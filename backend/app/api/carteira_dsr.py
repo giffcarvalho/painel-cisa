@@ -1,0 +1,1 @@
+"""Todos os endpoints da Carteira DSR"""
