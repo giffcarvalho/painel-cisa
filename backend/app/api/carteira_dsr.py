@@ -341,3 +341,146 @@ async def get_mapa_coropletico(
     result = await _execute_query(db, sql, params)
     return MapaCoropleticoResponse(data=[dict(r) for r in result.mappings().all()])
 
+# mapa de pontos - coordenadas dos municípios
+@router.get("/mapa-pontos", response_model=MapaPontosResponse, summary="Coordenadas dos municípios beneficiados por ação padronizada")
+async def get_mapa_pontos(
+    response: Response,
+    filtros: FiltrosCarteiraDSR = Depends(),
+    db: AsyncSession = Depends(get_db)
+):
+    response.headers["Cache-Control"] = "public, max-age=300"
+    where, params = _build_where(filtros)
+    count_sql = f"""
+        SELECT COUNT(*) FROM (
+            SELECT DISTINCT cod_municipio, acao_padronizada
+            FROM {MV}
+            {where}
+            {"AND" if where else "WHERE"} latitude_sede IS NOT NULL
+        ) sub
+    """
+
+    lat_clause = "AND latitude_sede IS NOT NULL" if where else "WHERE latitude_sede IS NOT NULL"
+    data_sql = f"""
+        SELECT DISTINCT
+            acao_padronizada,
+            latitude_sede     AS latitude,
+            longitude_sede    AS longitude,
+            municipio         AS nome_municipio
+        FROM {MV}
+        {where}
+        {lat_clause}
+        ORDER BY acao_padronizada, municipio
+    """
+
+    total_result = await _execute_query(db, count_sql, params)
+    data_result = await _execute_query(db, data_sql, params)
+
+    return MapaPontosResponse(
+        total=total_result.scalar_one(),
+        data=[dict(r) for r in data_result.mappings().all()]
+    )
+
+# tabela detalhada com paginação
+@router.get("/tabela", response_model=TabelaResponse, summary="Tabela detalhada com paginação")
+async def get_tabela(
+    response: Response,
+    filtros: FiltrosCarteiraDSR = Depends(),
+    pagina: Annotated[int, Query(ge=1, description="Número da página (começa em 1).")] = 1,
+    tamanho_pagina: Annotated[int, Query(ge=1, le=500, description="Itens por página.")] = 100,
+    db: AsyncSession = Depends(get_db)
+):
+    response.headers["Cache-Control"] = "public, max-age=300"
+    where, params = _build_where(filtros)
+
+    offset = (pagina - 1) * tamanho_pagina
+    params["limit"] = tamanho_pagina
+    params["offset"] = offset
+
+    count_sql = f"""
+        SELECT COUNT(DISTINCT nr_instrumento)
+        FROM {MV}
+        {where}
+    """
+
+    data_sql = f"""
+        SELECT DISTINCT ON (nr_instrumento)
+            nr_instrumento,
+            nr_proposta,
+            operacao,
+            nr_proposta_selecao_pac,
+            ano_proposta,
+            tipo_instrumento,
+            novo_pac,
+            acao_orcamentaria,
+            componente,
+            acao_padronizada,
+            nome_proponente,
+            uf,
+            qtde_municipios,
+            municipios_beneficiados,
+            comunidades_rurais_beneficiadas,
+            objeto,
+            status,
+            situacao_contratacao,
+            carteira_ativa,
+            situacao_atual,
+            dia_assin_conv,
+            dia_fim_vigenc_conv,
+            dias_termino_vigencia,
+            termino_vigencia,
+            liminar_judicial,
+            motivo_suspensao,
+            data_suspensiva,
+            suspensiva_projeto,
+            suspensiva_licenca_ambiental,
+            suspensiva_sustentabilidade,
+            suspensiva_trabalho_social,
+            suspensiva_titularidade_area,
+            suspensiva_termo_referencia,
+            suspensiva_artigo_50,
+            suspensiva_outra,
+            data_retirada_suspensiva,
+            primeira_data_emissao_aio,
+            situacao_contrato,
+            situacao_obra,
+            percentual_fisico_informado,
+            percentual_fisico_aferido,
+            percentual_financeiro_desbloqueado,
+            data_ultimo_bm,
+            data_ultima_vistoria,
+            data_ultimo_desbloqueio,
+            data_ultima_obtv,
+            data_termino_obra,
+            paralisada,
+            principal_motivo_paralisacao,
+            detalhamento_motivo_paralisacao,
+            descricao_motivo_paralisacao,
+            data_paralisacao,
+            dias_sem_evolucao,
+            valor_global,
+            valor_repasse,
+            valor_contrapartida,
+            valor_empenhado,
+            valor_a_empenhar,
+            valor_desembolsado,
+            valor_empenhado_a_desembolsar,
+            valor_a_desembolsar,
+            valor_desbloqueado,
+            link_transferegov,
+            data_dados_transferegov,
+            data_dados_caixa
+        FROM {MV}
+        {where}
+        ORDER BY nr_instrumento
+        LIMIT :limit OFFSET :offset
+    """
+
+    count_result = await _execute_query(db,count_sql, params)
+    data_result = await _execute_query(db,data_sql, params)
+
+    return TabelaResponse(
+        total=count_result.scalar_one(),
+        pagina=pagina,
+        tamanho_pagina=tamanho_pagina,
+        data=[dict(r) for r in data_result.mappings().all()],
+    )
