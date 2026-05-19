@@ -1,0 +1,1 @@
+export default function Mapa() { return <div>Mapa MapBox aqui.</div> }
