@@ -2,20 +2,25 @@ import { createContext, useContext, useMemo, useState } from 'react'
 
 const FiltrosContext = createContext(null)
 
-// Estado inicial espelha exatamente os campos do FiltrosCarteiraDSR do backend
+// espelha exatamente os campos do FiltrosCarteiraDSR do backend
 const FILTROS_INICIAIS = {
-  componente:           [],
-  uf:                   [],
-  municipio:            [],
-  novo_pac:             [],
-  situacao_obra:        [],
-  situacao_contratacao: [],
-  fase_instrumento:     [],
-  carteira_ativa:       [],
-  ano_proposta:         [],
-  tipo_instrumento:     [],
-  acao_padronizada:     [],
-  acao_orcamentaria:    [],
+  componente:                   [],
+  uf:                           [],
+  municipio:                    [],
+  novo_pac:                     [],
+  situacao_obra:                [],
+  situacao_contratacao:         [],
+  fase_instrumento:             [],
+  carteira_ativa:               [],
+  ano_proposta:                 [],
+  tipo_instrumento:             [],
+  acao_padronizada:             [],
+  acao_orcamentaria:            [],
+  nr_proposta:                  [],
+  nome_proponente:              [],
+  termino_vigencia:             [],
+  nr_proposta_selecao_pac:      [],
+  nr_instrumento:               []
 }
 
 export function FiltrosProvider({ children }) {
