@@ -1,1 +1,7 @@
-export default function Mapa() { return <div>Mapa MapBox aqui.</div> }
+export default function Mapa() { 
+    return ( 
+        <div>Mapa MapBox aqui.</div>
+    );
+}
+
+//teste branch andre
