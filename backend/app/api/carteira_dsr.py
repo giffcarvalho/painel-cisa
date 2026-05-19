@@ -66,6 +66,11 @@ class FiltrosCarteiraDSR:  #-- Dependência do FastAPI para agrupar todos os Que
             tipo_instrumento: list[str] | None = Query(None),
             acao_padronizada: list[str] | None = Query(None),
             acao_orcamentaria: list[str] | None = Query(None),
+            nr_proposta: list[str] | None = Query(None),
+            nome_proponente: list[str] | None = Query(None),
+            termino_vigencia: list [str] | None = Query(None),
+            nr_proposta_selecao_pac: list[str] | None = Query(None),
+            nr_instrumento: list[str] | None = Query(None)
     ):
         self.componente = _parse_list_param(componente)
         self.uf = _parse_list_param(uf)
@@ -79,6 +84,11 @@ class FiltrosCarteiraDSR:  #-- Dependência do FastAPI para agrupar todos os Que
         self.tipo_instrumento = _parse_list_param(tipo_instrumento)
         self.acao_padronizada = _parse_list_param(acao_padronizada)
         self.acao_orcamentaria = _parse_list_param(acao_orcamentaria)
+        self.nr_proposta = _parse_list_param(nr_proposta)
+        self.nome_proponente = _parse_list_param(nome_proponente)
+        self.termino_vigencia = _parse_list_param(termino_vigencia)
+        self.nr_proposta_selecao_pac = _parse_list_param(nr_proposta_selecao_pac)
+        self.nr_instrumento = _parse_list_param(nr_instrumento)
 
 def _build_where(filtros: FiltrosCarteiraDSR) -> tuple[str, dict]:  #-- Os parâmetros são passados de forma segura via bind params do SQLAlchemy.
     clauses: list[str] = []
@@ -96,7 +106,12 @@ def _build_where(filtros: FiltrosCarteiraDSR) -> tuple[str, dict]:  #-- Os parâ
         ("acao_orcamentaria", filtros.acao_orcamentaria, "acao_orcamentaria"),
         ("novo_pac", filtros.novo_pac, "novo_pac"),
         ("carteira_ativa", filtros.carteira_ativa, "carteira_ativa"),
-        ("ano_proposta", filtros.ano_proposta, "ano_proposta")
+        ("ano_proposta", filtros.ano_proposta, "ano_proposta"),
+        ("nr_proposta", filtros.nr_proposta, "nr_proposta"),
+        ("nome_proponente", filtros.nome_proponente, "nome_proponente"),
+        ("termino_vigencia", filtros.termino_vigencia, "termino_vigencia"),
+        ("nr_proposta_selecao_pac", filtros.nr_proposta_selecao_pac, "nr_proposta_selecao_pac")
+        ("nr_instrumento", filtros.nr_instrumento, "nr_instrumento")
     ]
 
     for col, values, param_key in list_filters:
@@ -425,7 +440,6 @@ async def get_tabela(
             carteira_ativa,
             situacao_atual,
             dia_assin_conv,
-            dia_fim_vigenc_conv,
             dias_termino_vigencia,
             termino_vigencia,
             liminar_judicial,

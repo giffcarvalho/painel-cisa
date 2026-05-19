@@ -30,7 +30,6 @@ class TabelaItem(BaseModel):
     situacao_atual: str | None
     #--vigência
     dia_assin_conv: date | None
-    dia_fim_vigenc_conv: date | None
     dias_termino_vigencia: int | None
     termino_vigencia: str | None
     #--suspensivas
