@@ -1,17 +1,27 @@
 import { useState } from "react"
+import { useFiltros } from "@/context/filtrosContext"
 import KpisSection from '@/components/carteira-dsr/KpisSection'
 import GraficosSection from '@/components/carteira-dsr/GraficosSection'
 import TabelaSection from '@/components/carteira-dsr/TabelaSection'
+import FiltrosDrawer from "@/components/carteira-dsr/FiltrosDrawer"
+
 
 export default function CarteiraDsr() {
   const [mostrarTabela, setMostrarTabela] = useState(false)
 
+  const { setDrawerOpen } = useFiltros()
+
   return (
-    <div className="flex flex-col gap-8 p-6">
-      {/*Título do Dashboard*/}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">Carteira DSR</h1>
-        <p className="text-gray-500">Visão consolidada dos instrumentos de repasse</p>
+    <div className="relative flex flex-col gap-8 p-6">
+      {/*Título do Dashboard e Botão de Filtro*/}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Carteira DSR</h1>
+          <p className="text-gray-500">Visão consolidada dos intrumentos de repasse</p>
+        </div>
+        <button onClick={() => setDrawerOpen(true)} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded shadow-sm hover:bg-gray-50">
+          Filtrar Dados
+        </button>
       </div>
 
       {/*1ª camada: KPIs*/}
@@ -31,6 +41,7 @@ export default function CarteiraDsr() {
         </div>
         {mostrarTabela && <TabelaSection />}  {/*O componente tabelaSection só renderiza e chama a API se mostrarTabela = True */}
       </div>
+      <FiltrosDrawer />
     </div>
   )
 }

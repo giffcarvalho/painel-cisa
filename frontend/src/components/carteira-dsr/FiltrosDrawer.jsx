@@ -119,7 +119,7 @@ export default function FiltrosDrawer() {
               </div>
               
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">UF (Estado)</label>
+                <label className="text-sm font-medium text-gray-700">UF</label>
                 <select 
                   className="p-2 border rounded-md text-sm outline-none focus:border-blue-500"
                   value={rascunho.uf[0] || ''} 

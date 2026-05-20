@@ -28,18 +28,6 @@ logger = logging.getLogger(__name__)
 
 MV = "temporario.mvw_cisa_tabelao"
 
-def _parse_list_param(param: list[str] | None) -> list[str] | None:  #--Garante que parâmetros passados como string separada por vírgula no frontend sejam convertidos em uma lista válida.
-    if not param:
-        return None
-    parsed = []
-    for item in param:
-        if "," in item:
-            parsed.extend([p.strip() for p in item.split(",") if p.strip()])
-        else:
-            if item.strip():
-                parsed.append(item.strip())
-    return parsed if parsed else None
-
 async def _execute_query(db: AsyncSession, sql: str, params: dict | None = None) -> CursorResult: #--Executa a query com tratamento de erro para evitar que exceções brutas do banco vazem.
     try:
         return await db.execute(text(sql), params or {})
@@ -72,23 +60,23 @@ class FiltrosCarteiraDSR:  #-- Dependência do FastAPI para agrupar todos os Que
             nr_proposta_selecao_pac: list[str] | None = Query(None),
             nr_instrumento: list[str] | None = Query(None)
     ):
-        self.componente = _parse_list_param(componente)
-        self.uf = _parse_list_param(uf)
-        self.municipio = _parse_list_param(municipio)
-        self.novo_pac = _parse_list_param(novo_pac)
-        self.situacao_obra = _parse_list_param(situacao_obra)
-        self.situacao_contratacao = _parse_list_param(situacao_contratacao)
-        self.fase_instrumento = _parse_list_param(fase_instrumento)
-        self.carteira_ativa = _parse_list_param(carteira_ativa)
-        self.ano_proposta = _parse_list_param(ano_proposta)
-        self.tipo_instrumento = _parse_list_param(tipo_instrumento)
-        self.acao_padronizada = _parse_list_param(acao_padronizada)
-        self.acao_orcamentaria = _parse_list_param(acao_orcamentaria)
-        self.nr_proposta = _parse_list_param(nr_proposta)
-        self.nome_proponente = _parse_list_param(nome_proponente)
-        self.termino_vigencia = _parse_list_param(termino_vigencia)
-        self.nr_proposta_selecao_pac = _parse_list_param(nr_proposta_selecao_pac)
-        self.nr_instrumento = _parse_list_param(nr_instrumento)
+        self.componente = componente
+        self.uf = uf
+        self.municipio = municipio
+        self.novo_pac = novo_pac
+        self.situacao_obra = situacao_obra
+        self.situacao_contratacao = situacao_contratacao
+        self.fase_instrumento = fase_instrumento
+        self.carteira_ativa = carteira_ativa
+        self.ano_proposta = ano_proposta
+        self.tipo_instrumento = tipo_instrumento
+        self.acao_padronizada = acao_padronizada
+        self.acao_orcamentaria = acao_orcamentaria
+        self.nr_proposta = nr_proposta
+        self.nome_proponente = nome_proponente
+        self.termino_vigencia = termino_vigencia
+        self.nr_proposta_selecao_pac = nr_proposta_selecao_pac
+        self.nr_instrumento = nr_instrumento
 
 def _build_where(filtros: FiltrosCarteiraDSR) -> tuple[str, dict]:  #-- Os parâmetros são passados de forma segura via bind params do SQLAlchemy.
     clauses: list[str] = []
@@ -110,7 +98,7 @@ def _build_where(filtros: FiltrosCarteiraDSR) -> tuple[str, dict]:  #-- Os parâ
         ("nr_proposta", filtros.nr_proposta, "nr_proposta"),
         ("nome_proponente", filtros.nome_proponente, "nome_proponente"),
         ("termino_vigencia", filtros.termino_vigencia, "termino_vigencia"),
-        ("nr_proposta_selecao_pac", filtros.nr_proposta_selecao_pac, "nr_proposta_selecao_pac")
+        ("nr_proposta_selecao_pac", filtros.nr_proposta_selecao_pac, "nr_proposta_selecao_pac"),
         ("nr_instrumento", filtros.nr_instrumento, "nr_instrumento")
     ]
 
@@ -408,8 +396,7 @@ async def get_tabela(
     where, params = _build_where(filtros)
 
     offset = (pagina - 1) * tamanho_pagina
-    params["limit"] = tamanho_pagina
-    params["offset"] = offset
+    data_params = {**params, "limit": tamanho_pagina, "offset": offset}
 
     count_sql = f"""
         SELECT COUNT(DISTINCT nr_instrumento)
@@ -489,8 +476,8 @@ async def get_tabela(
         LIMIT :limit OFFSET :offset
     """
 
-    count_result = await _execute_query(db,count_sql, params)
-    data_result = await _execute_query(db,data_sql, params)
+    count_result = await _execute_query(db, count_sql, params)
+    data_result = await _execute_query(db, data_sql, data_params)
 
     return TabelaResponse(
         total=count_result.scalar_one(),

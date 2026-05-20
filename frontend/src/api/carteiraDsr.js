@@ -1,5 +1,21 @@
 import api from './axios'
 
+function toParams(filtros) {
+  const params = new URLSearchParams()
+
+  Object.entries(filtros || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      if (Array.isArray(value)) {
+        value.forEach((v) => params.append(key, v))
+      } else {
+        params.append(key, value)
+      }
+    }
+  })
+
+  return params
+}
+
 export const carteiraDsrApi = {
   getKpis:          (filtros) => api.get('/carteira-dsr/kpis', { params: toParams(filtros) }),
   getFiltros:       ()        => api.get('/carteira-dsr/filtros'),
