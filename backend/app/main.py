@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import engine
 from app.api import carteira_dsr
+from app.api import mapa
 from app.core.database import lifespan_db
  
  
@@ -39,6 +40,12 @@ app.include_router(
     carteira_dsr.router,
     prefix="/api/v1/carteira-dsr",
     tags=["Carteira DSR"],
+)
+
+app.include_router(
+    mapa.router,
+    prefix="/api/v1/mapa",
+    tags=["Mapa"],
 )
  
  
