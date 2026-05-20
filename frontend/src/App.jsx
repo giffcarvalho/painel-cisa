@@ -30,15 +30,15 @@ export const router = createBrowserRouter([
       {
         path: 'carteira-dsr',
         element: <CarteiraDsr />,   
-      },
-      {
-        path: 'mapa',
-        element: (
-          <Suspense fallback={<MapaLoading />}>
-            <Mapa />
-          </Suspense>
-        ),
-      },
-    ],
+      }
+    ]
   },
+  {
+    path: 'mapa',
+    element: (
+      <Suspense fallback={<MapaLoading />}>
+        <Mapa />
+      </Suspense>
+    )
+  }
 ])
