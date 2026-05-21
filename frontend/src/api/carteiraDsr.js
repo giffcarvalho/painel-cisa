@@ -4,12 +4,14 @@ function toParams(filtros) {
   const params = new URLSearchParams()
 
   Object.entries(filtros || {}).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '') {
-      if (Array.isArray(value)) {
-        value.forEach((v) => params.append(key, v))
-      } else {
-        params.append(key, value)
-      }
+    if (value === undefined || value === null || value === '') return
+
+    if (Array.isArray(value)) {
+      value
+        .filter((v) => v !== undefined && v !== null && String(v).trim() !== '')
+        .forEach((v) => params.append(key, String(v).trim()))
+    } else {
+      params.append(key, String(value).trim())
     }
   })
 

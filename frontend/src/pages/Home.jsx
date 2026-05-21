@@ -48,7 +48,7 @@ export default function Home() {
           <div className="p-4 bg-gray-200 rounded-full mb-4">
             <Map className="w-10 h-10 text-gray-500" />
           </div>
-          <h2 className="text-lg font-semibold text-gray-600">Municípios</h2>
+          <h2 className="text-lg font-semibold text-gray-600">Mapa Interativo</h2>
           <span className="text-xs text-gray-400 mt-1">Em breve</span>
         </div>
         

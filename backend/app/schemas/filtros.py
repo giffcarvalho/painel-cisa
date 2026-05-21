@@ -21,4 +21,4 @@ class OpcoesFiltros(BaseModel):
     acoes_padronizadas: list[str]
     acoes_orcamentarias: list[str]
 
-model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True}

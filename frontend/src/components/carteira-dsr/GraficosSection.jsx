@@ -1,6 +1,7 @@
 import { AlertCircle } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton" 
 import styles from './GraficosSection.module.css'
+import ValoresUfChart from './graficos/ValoresUfChart'
 
 
 import { 
@@ -112,10 +113,7 @@ function AsyncValoresUf() {
   const { data, isLoading, isError } = useValoresUfQuery()
   return (
     <ChartStateWrapper isLoading={isLoading} isError={isError}>
-      {/* Quando você for plugar o ECharts, substitua a div abaixo pelo componente do gráfico passando 'data' */}
-      <div className="flex items-center justify-center w-full h-full min-h-[300px] text-gray-500 text-sm">
-        [Gráfico Barras Horizontais] (Itens: {data?.length || 0})
-      </div>
+      <ValoresUfChart dados={data} />
     </ChartStateWrapper>
   )
 }

@@ -10,7 +10,10 @@ export default function ValoresUfChart({ dados }) {
         )
     }
     // Converte strings do Pydantic para Float e trata Nulls do Banco
-    const parseNumber = (val) => (val ? Number(val) : 0)
+    const parseNumber = (val) => {
+        const number = Number(val)
+        return Number.isFinite(number) ? number : 0
+    }
 
     const eixosY = dados.map(item => item.uf || 'N/I') // Protege contra UF nula
     const desembolsado = dados.map(item => parseNumber(item.desembolsado))

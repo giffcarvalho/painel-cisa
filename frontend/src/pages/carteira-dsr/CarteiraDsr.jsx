@@ -8,7 +8,6 @@ import FiltrosDrawer from "@/components/carteira-dsr/FiltrosDrawer"
 export default function CarteiraDsr() {
   const [mostrarTabela, setMostrarTabela] = useState(false)
   
-  // NOVO: O estado da gaveta agora é local, isolado da lógica de dados
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   
   const { qtdeFiltrosAtivos } = useFiltros()
@@ -51,10 +50,9 @@ export default function CarteiraDsr() {
         {mostrarTabela && <TabelaSection />}
       </div>
       
-      <FiltrosDrawer 
-        isOpen={isDrawerOpen} 
-        onClose={() => setIsDrawerOpen(false)} 
-      />
+      {isDrawerOpen && (
+        <FiltrosDrawer onClose={() => setIsDrawerOpen(false)} />
+      )}
     </div>
   )
 }

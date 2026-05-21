@@ -23,22 +23,13 @@ const CONFIG_FILTROS = [
   { id: 'fase_instrumento', label: 'Fase do Instrumento', optionsKey: 'fase_instrumento' }
 ]
 
-export default function FiltrosDrawer({ isOpen, onClose }) {
+export default function FiltrosDrawer({ onClose }) {
   const { filtros: filtrosGlobais, aplicarFiltros, limparFiltros } = useFiltros()
-  
   const { data: opcoes, isLoading, isError } = useOpcoesFiltrosQuery()
 
  
   const [rascunho, setRascunho] = useState(filtrosGlobais)
-  const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
   
-  if (isOpen !== prevIsOpen) {
-    setPrevIsOpen(isOpen)
-    if (isOpen) {
-      setRascunho(filtrosGlobais)
-    }
-  }
-
   const handleChange = (campo, valor) => {
     // Trata tanto string vazia quanto nulo
     const valorTratado = (valor && valor.trim() !== '') ? [valor] : [] 
@@ -50,7 +41,6 @@ export default function FiltrosDrawer({ isOpen, onClose }) {
     onClose() 
   }
 
-  if (!isOpen) return null
 
   return (
     <>

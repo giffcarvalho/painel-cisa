@@ -56,7 +56,7 @@ class FiltrosCarteiraDSR:  #-- Dependência do FastAPI para agrupar todos os Que
             acao_orcamentaria: list[str] | None = Query(None),
             nr_proposta: list[str] | None = Query(None),
             nome_proponente: list[str] | None = Query(None),
-            termino_vigencia: list [str] | None = Query(None),
+            termino_vigencia: list[str] | None = Query(None),
             nr_proposta_selecao_pac: list[str] | None = Query(None),
             nr_instrumento: list[str] | None = Query(None)
     ):
@@ -78,36 +78,39 @@ class FiltrosCarteiraDSR:  #-- Dependência do FastAPI para agrupar todos os Que
         self.nr_proposta_selecao_pac = nr_proposta_selecao_pac
         self.nr_instrumento = nr_instrumento
 
-def _build_where(filtros: FiltrosCarteiraDSR) -> tuple[str, dict]:  #-- Os parâmetros são passados de forma segura via bind params do SQLAlchemy.
+def _build_where(filtros: FiltrosCarteiraDSR) -> tuple[str, dict]:
     clauses: list[str] = []
     params: dict = {}
 
     list_filters = [
-        ("componente", filtros.componente, "componente"),
-        ("uf", filtros.uf, "uf"),
-        ("municipio", filtros.municipio, "municipio"),
-        ("situacao_obra", filtros.situacao_obra, "situacao_obra"),
-        ("situacao_contratacao", filtros.situacao_contratacao, "situacao_contratacao"),
-        ("fase_instrumento", filtros.fase_instrumento, "fase_instrumento"),
-        ("tipo_instrumento", filtros.tipo_instrumento, "tipo_instrumento"),
-        ("acao_padronizada", filtros.acao_padronizada, "acao_padronizada"),
-        ("acao_orcamentaria", filtros.acao_orcamentaria, "acao_orcamentaria"),
-        ("novo_pac", filtros.novo_pac, "novo_pac"),
-        ("carteira_ativa", filtros.carteira_ativa, "carteira_ativa"),
-        ("ano_proposta", filtros.ano_proposta, "ano_proposta"),
-        ("nr_proposta", filtros.nr_proposta, "nr_proposta"),
-        ("nome_proponente", filtros.nome_proponente, "nome_proponente"),
-        ("termino_vigencia", filtros.termino_vigencia, "termino_vigencia"),
-        ("nr_proposta_selecao_pac", filtros.nr_proposta_selecao_pac, "nr_proposta_selecao_pac"),
-        ("nr_instrumento", filtros.nr_instrumento, "nr_instrumento")
+        ("componente", filtros.componente, "componente", None),
+        ("uf", filtros.uf, "uf", None),
+        ("municipio", filtros.municipio, "municipio", None),
+        ("situacao_obra", filtros.situacao_obra, "situacao_obra", None),
+        ("situacao_contratacao", filtros.situacao_contratacao, "situacao_contratacao", None),
+        ("fase_instrumento", filtros.fase_instrumento, "fase_instrumento", None),
+        ("tipo_instrumento", filtros.tipo_instrumento, "tipo_instrumento", None),
+        ("acao_padronizada", filtros.acao_padronizada, "acao_padronizada", None),
+        ("acao_orcamentaria", filtros.acao_orcamentaria, "acao_orcamentaria", None),
+        ("novo_pac", filtros.novo_pac, "novo_pac", None),
+        ("carteira_ativa", filtros.carteira_ativa, "carteira_ativa", None),
+        # Campos que o frontend recebe/envia como texto
+        ("ano_proposta", filtros.ano_proposta, "ano_proposta", "text"),
+        ("nr_proposta", filtros.nr_proposta, "nr_proposta", "text"),
+        ("nome_proponente", filtros.nome_proponente, "nome_proponente", None),
+        ("termino_vigencia", filtros.termino_vigencia, "termino_vigencia", "text"),
+        ("nr_proposta_selecao_pac", filtros.nr_proposta_selecao_pac, "nr_proposta_selecao_pac", "text"),
+        ("nr_instrumento", filtros.nr_instrumento, "nr_instrumento", "text"),
     ]
 
-    for col, values, param_key in list_filters:
+    for col, values, param_key, cast_type in list_filters:
         if values:
             placeholder = ", ".join(f":{param_key}_{i}" for i in range(len(values)))
-            clauses.append(f"{col} IN ({placeholder})")
+            sql_col = f"{col}::{cast_type}" if cast_type else col
+            clauses.append(f"{sql_col} IN ({placeholder})")
+
             for i, v in enumerate(values):
-                params[f"{param_key}_{i}"] = v
+                params[f"{param_key}_{i}"] = str(v).strip()
 
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
     return where, params
@@ -125,10 +128,16 @@ async def get_kpis(
     sql = f"""
         WITH instrumentos AS (
             SELECT DISTINCT ON (nr_instrumento)
-                nr_instrumento, valor_global, valor_repasse, valor_contrapartida,
-                valor_empenhado, valor_desembolsado, valor_desbloqueado
+                nr_instrumento,
+                valor_global,
+                valor_repasse,
+                valor_contrapartida,
+                valor_empenhado,
+                valor_desembolsado,
+                valor_desbloqueado
             FROM {MV}
             {where}
+            ORDER BY nr_instrumento, data_dados_caixa DESC NULLS LAST, data_dados_transferegov DESC NULLS LAST
         )
         SELECT
             COUNT(nr_instrumento)                     AS qtde_instrumentos,
@@ -215,10 +224,15 @@ async def get_valores_por_acao(
     sql = f"""
         WITH instrumentos AS (
             SELECT DISTINCT ON (nr_instrumento)
-                nr_instrumento, acao_padronizada, valor_desembolsado,
-                valor_empenhado_a_desembolsar, valor_a_empenhar, valor_contrapartida
+                nr_instrumento, 
+                acao_padronizada, 
+                valor_desembolsado,
+                valor_empenhado_a_desembolsar, 
+                valor_a_empenhar, 
+                valor_contrapartida
             FROM {MV}
             {where}
+            ORDER BY nr_instrumento, data_dados_caixa DESC NULLS LAST, data_dados_transferegov DESC NULLS LAST
         )
         SELECT
             acao_padronizada,
@@ -269,6 +283,7 @@ async def get_valor_por_tipo(
                 nr_instrumento, tipo_instrumento, valor_global
             FROM {MV}
             {where}
+            ORDER BY nr_instrumento, data_dados_caixa DESC NULLS LAST, data_dados_transferegov DESC NULLS LAST
         )
         SELECT
             tipo_instrumento,
@@ -472,7 +487,7 @@ async def get_tabela(
             data_dados_caixa
         FROM {MV}
         {where}
-        ORDER BY nr_instrumento
+        ORDER BY nr_instrumento, data_dados_caixa DESC NULLS LAST, data_dados_transferegov DESC NULLS LAST
         LIMIT :limit OFFSET :offset
     """
 

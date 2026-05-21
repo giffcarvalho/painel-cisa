@@ -1,8 +1,8 @@
 import axios from 'axios'
 
 const api = axios.create({
-baseURL: 'http://localhost:8000/api/v1',
-  timeout: 30000,                    // 30s: consultas com muitos filtros podem ser lentas
+  baseURL: import.meta.env.VITE_API_URL ?? '/api/v1',
+  timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
   /*paramsSerializer: {
     serialize: (params) => {
