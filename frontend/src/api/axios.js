@@ -1,12 +1,10 @@
 import axios from 'axios'
 
 const api = axios.create({
-  // Em dev: o Vite proxy redireciona /api → http://localhost:8000
-  // Em prod (Nginx): o Nginx serve /api do mesmo host — sem CORS
-  baseURL: '/api/v1',
-  timeout: 30000,                    // 30s: consultas com muitos filtros podem ser lentas
+  baseURL: import.meta.env.VITE_API_URL ?? '/api/v1',
+  timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
-  paramsSerializer: {
+  /*paramsSerializer: {
     serialize: (params) => {
       const searchParams = new URLSearchParams();
       for (const key of Object.keys(params)) {
@@ -19,7 +17,7 @@ const api = axios.create({
       }
       return searchParams.toString();
     },
-  },
+  },*/
 })
 
 // Interceptor de resposta: trata erros globalmente

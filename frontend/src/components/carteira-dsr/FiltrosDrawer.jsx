@@ -1,44 +1,52 @@
-import { useState, useEffect } from 'react'
-import { X, Filter } from 'lucide-react'
-import { useFiltros } from '@/context/filtrosContext'
-import { useOpcoesFiltros } from '@/hooks/useCarteiraDsr'
+import { useMemo, useState } from 'react'
+import { X, Filter, AlertCircle, ChevronDown } from 'lucide-react'
+import { useFiltros } from '@/context/useFiltros'
+import { useBuscaFiltroQuery, useOpcoesFiltrosQuery } from '@/hooks/useCarteiraDsr'
 
-export default function FiltrosDrawer() {
-  const { 
-    filtros: filtrosGlobais, 
-    aplicarFiltros, 
-    limparFiltros, 
-    isDrawerOpen, 
-    setDrawerOpen 
-  } = useFiltros()
+const CONFIG_FILTROS = [
+  { id: 'tipo_instrumento', label: 'Tipo de Instrumento', optionsKey: 'tipos_instrumento' },
+  { id: 'acao_padronizada', label: 'Ação Padronizada', optionsKey: 'acoes_padronizadas' },
+  { id: 'acao_orcamentaria', label: 'Ação Orçamentária', optionsKey: 'acoes_orcamentarias' },
+  { id: 'componente', label: 'Componente', optionsKey: 'componentes' },
+  { id: 'uf', label: 'UF', optionsKey: 'ufs' },
+  { id: 'municipio', label: 'Município', optionsKey: 'municipios', remoteSearch: true },
+  { id: 'novo_pac', label: 'Novo PAC', optionsKey: 'novo_pac' },
+  { id: 'situacao_obra', label: 'Situação da Obra', optionsKey: 'situacoes_obra' },
+  { id: 'situacao_contratacao', label: 'Situação da Contratação', optionsKey: 'situacoes_contratacao' },
+  { id: 'nr_proposta', label: 'Número da Proposta', optionsKey: 'nr_proposta', remoteSearch: true },
+  { id: 'nr_instrumento', label: 'Número do Instrumento', optionsKey: 'nr_instrumento', remoteSearch: true },
+  { id: 'ano_proposta', label: 'Ano da Proposta', optionsKey: 'anos_proposta' },
+  { id: 'nome_proponente', label: 'Proponente', optionsKey: 'nome_proponente', remoteSearch: true },
+  { id: 'termino_vigencia', label: 'Término da Vigência', optionsKey: 'termino_vigencia' },
+  { id: 'nr_proposta_selecao_pac', label: 'Proposta Seleção PAC', optionsKey: 'nr_proposta_selecao_pac', remoteSearch: true },
+  { id: 'carteira_ativa', label: 'Carteira Ativa', optionsKey: 'carteira_ativa' },
+  { id: 'fase_instrumento', label: 'Fase do Instrumento', optionsKey: 'fase_instrumento' }
+]
 
-  const { data: opcoes, isLoading } = useOpcoesFiltros()
+export default function FiltrosDrawer({ onClose }) {
+  const { filtros: filtrosGlobais, aplicarFiltros, limparFiltros } = useFiltros()
+  const { data: opcoes, isLoading, isError } = useOpcoesFiltrosQuery()
 
+ 
   const [rascunho, setRascunho] = useState(filtrosGlobais)
-
-  useEffect(() => {
-    if (isDrawerOpen) {
-      setRascunho(filtrosGlobais)
-    }
-  }, [isDrawerOpen, filtrosGlobais])
-
+  
   const handleChange = (campo, valor) => {
-    const valorTratado = valor ? [valor] : [] 
+    // Trata tanto string vazia quanto nulo
+    const valorTratado = (valor && valor.trim() !== '') ? [valor] : [] 
     setRascunho(prev => ({ ...prev, [campo]: valorTratado }))
   }
 
   const handleAplicar = () => {
     aplicarFiltros(rascunho)
-    setDrawerOpen(false) 
+    onClose() 
   }
 
-  if (!isDrawerOpen) return null
 
   return (
     <>
       <div 
         className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm transition-opacity"
-        onClick={() => setDrawerOpen(false)}
+        onClick={onClose}
       />
 
       <div className="fixed inset-y-0 right-0 z-50 w-full max-w-sm flex flex-col bg-white shadow-2xl animate-slide-in-right">
@@ -49,7 +57,7 @@ export default function FiltrosDrawer() {
             <h2 className="text-lg font-semibold text-gray-800">Filtros da Carteira</h2>
           </div>
           <button 
-            onClick={() => setDrawerOpen(false)}
+            onClick={onClose}
             className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
           >
             <X className="h-5 w-5" />
@@ -57,268 +65,161 @@ export default function FiltrosDrawer() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          
-          {isLoading ? (
-            <p className="text-sm text-gray-500">Carregando opções...</p>
-          ) : (
-            <>
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Tipo de Instrumento</label>
-                <select 
-                  className="p-2 border rounded-md text-sm outline-none focus:border-blue-500"
-                  value={rascunho.tipo_instrumento[0] || ''} 
-                  onChange={(e) => handleChange('tipo_instrumento', e.target.value)}
-                >
-                  <option value="">Todas</option>
-                  {opcoes?.tipos_instrumento?.map(tpi => (
-                    <option key={tpi} value={tpi}>{tpi}</option>
-                  ))}
-                </select>
-              </div>
+          {isLoading && (
+            <p className="text-sm text-gray-500 flex items-center gap-2 animate-pulse">
+              Carregando opções...
+            </p>
+          )}
 
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Ação Padronizada</label>
-                <select 
-                  className="p-2 border rounded-md text-sm outline-none focus:border-blue-500"
-                  value={rascunho.acao_padronizada[0] || ''} 
-                  onChange={(e) => handleChange('acao_padronizada', e.target.value)}
-                >
-                  <option value="">Todas</option>
-                  {opcoes?.acoes_padronizadas?.map(acp => (
-                    <option key={acp} value={acp}>{acp}</option>
-                  ))}
-                </select>
-              </div>
+          {isError && (
+            <div className="p-3 bg-red-50 text-red-600 rounded-md text-sm flex gap-2 items-start border border-red-200">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <span>Não foi possível carregar as opções de filtro. Tente novamente mais tarde.</span>
+            </div>
+          )}
 
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Ação Orçamentária</label>
-                <select 
-                  className="p-2 border rounded-md text-sm outline-none focus:border-blue-500"
-                  value={rascunho.acao_orcamentaria[0] || ''} 
-                  onChange={(e) => handleChange('acao_orcamentaria', e.target.value)}
-                >
-                  <option value="">Todas</option>
-                  {opcoes?.acoes_orcamentarias?.map(aco => (
-                    <option key={aco} value={aco}>{aco}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Componente</label>
-                <select 
-                  className="p-2 border rounded-md text-sm outline-none focus:border-blue-500"
-                  value={rascunho.componente[0] || ''} 
-                  onChange={(e) => handleChange('componente', e.target.value)}
-                >
-                  <option value="">Todas</option>
-                  {opcoes?.componentes?.map(comp => (
-                    <option key={comp} value={comp}>{comp}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">UF (Estado)</label>
-                <select 
-                  className="p-2 border rounded-md text-sm outline-none focus:border-blue-500"
-                  value={rascunho.uf[0] || ''} 
-                  onChange={(e) => handleChange('uf', e.target.value)}
-                >
-                  <option value="">Todas</option>
-                  {opcoes?.ufs?.map(uf => (
-                    <option key={uf} value={uf}>{uf}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Município</label>
-                <select 
-                  className="p-2 border rounded-md text-sm outline-none focus:border-blue-500"
-                  value={rascunho.municipio[0] || ''} 
-                  onChange={(e) => handleChange('municipio', e.target.value)}
-                >
-                  <option value="">Todas</option>
-                  {opcoes?.municipios?.map(mun => (
-                    <option key={mun} value={mun}>{mun}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Novo PAC</label>
-                <select 
-                  className="p-2 border rounded-md text-sm outline-none focus:border-blue-500"
-                  value={rascunho.novo_pac[0] || ''} 
-                  onChange={(e) => handleChange('novo_pac', e.target.value)}
-                >
-                  <option value="">Todas</option>
-                  {opcoes?.novo_pac?.map(nvp => (
-                    <option key={nvp} value={nvp}>{nvp}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Situação da Obra</label>
-                <select 
-                  className="p-2 border rounded-md text-sm outline-none focus:border-blue-500"
-                  value={rascunho.situacao_obra[0] || ''} 
-                  onChange={(e) => handleChange('situacao_obra', e.target.value)}
-                >
-                  <option value="">Todas</option>
-                  {opcoes?.situacoes_obra?.map(sito => (
-                    <option key={sito} value={sito}>{sito}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Situação da Contratação</label>
-                <select 
-                  className="p-2 border rounded-md text-sm outline-none focus:border-blue-500"
-                  value={rascunho.situacao_contratacao[0] || ''} 
-                  onChange={(e) => handleChange('situacao_contratacao', e.target.value)}
-                >
-                  <option value="">Todas</option>
-                  {opcoes?.situacoes_contratacao?.map(sitc => (
-                    <option key={sitc} value={sitc}>{sitc}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Número da Proposta</label>
-                <select 
-                  className="p-2 border rounded-md text-sm outline-none focus:border-blue-500"
-                  value={rascunho.nr_proposta[0] || ''} 
-                  onChange={(e) => handleChange('nr_proposta', e.target.value)}
-                >
-                  <option value="">Todas</option>
-                  {opcoes?.nr_proposta?.map(nrp => (
-                    <option key={nrp} value={nrp}>{nrp}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Número do Instrumento</label>
-                <select 
-                  className="p-2 border rounded-md text-sm outline-none focus:border-blue-500"
-                  value={rascunho.nr_instrumento[0] || ''} 
-                  onChange={(e) => handleChange('nr_instrumento', e.target.value)}
-                >
-                  <option value="">Todas</option>
-                  {opcoes?.nr_instrumento?.map(nri => (
-                    <option key={nri} value={nri}>{nri}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Ano da Proposta</label>
-                <select 
-                  className="p-2 border rounded-md text-sm outline-none focus:border-blue-500"
-                  value={rascunho.ano_proposta[0] || ''} 
-                  onChange={(e) => handleChange('ano_proposta', e.target.value)}
-                >
-                  <option value="">Todas</option>
-                  {opcoes?.anos_proposta?.map(anop => (
-                    <option key={anop} value={anop}>{anop}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Proponente</label>
-                <select 
-                  className="p-2 border rounded-md text-sm outline-none focus:border-blue-500"
-                  value={rascunho.nome_proponente[0] || ''} 
-                  onChange={(e) => handleChange('nome_proponente', e.target.value)}
-                >
-                  <option value="">Todas</option>
-                  {opcoes?.nome_proponente?.map(nomp => (
-                    <option key={nomp} value={nomp}>{nomp}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Término da Vigência</label>
-                <select 
-                  className="p-2 border rounded-md text-sm outline-none focus:border-blue-500"
-                  value={rascunho.termino_vigencia[0] || ''} 
-                  onChange={(e) => handleChange('termino_vigencia', e.target.value)}
-                >
-                  <option value="">Todas</option>
-                  {opcoes?.termino_vigencia?.map(terv => (
-                    <option key={terv} value={terv}>{terv}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Proposta Seleção PAC</label>
-                <select 
-                  className="p-2 border rounded-md text-sm outline-none focus:border-blue-500"
-                  value={rascunho.nr_proposta_selecao_pac[0] || ''} 
-                  onChange={(e) => handleChange('nr_proposta_selecao_pac', e.target.value)}
-                >
-                  <option value="">Todas</option>
-                  {opcoes?.nr_proposta_selecao_pac?.map(propac => (
-                    <option key={propac} value={propac}>{propac}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Carteira Ativa</label>
-                <select 
-                  className="p-2 border rounded-md text-sm outline-none focus:border-blue-500"
-                  value={rascunho.carteira_ativa[0] || ''} 
-                  onChange={(e) => handleChange('carteira_ativa', e.target.value)}
-                >
-                  <option value="">Todas</option>
-                  {opcoes?.carteira_ativa?.map(cart => (
-                    <option key={cart} value={cart}>{cart}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Fase do Instrumento</label>
-                <select 
-                  className="p-2 border rounded-md text-sm outline-none focus:border-blue-500"
-                  value={rascunho.fase_instrumento[0] || ''} 
-                  onChange={(e) => handleChange('fase_instrumento', e.target.value)}
-                >
-                  <option value="">Todas</option>
-                  {opcoes?.fase_instrumento?.map(fsi => (
-                    <option key={fsi} value={fsi}>{fsi}</option>
-                  ))}
-                </select>
-              </div>
-
-            </>
+          {(!isLoading && !isError) && (
+            <div className="space-y-4">
+              {CONFIG_FILTROS.map((config) => {
+                const listaOpcoes = opcoes?.[config.optionsKey] || []
+                
+                return (
+                  <FiltroSelectGenerico
+                    key={config.id}
+                    id={config.id}
+                    label={config.label}
+                    valorAtual={rascunho[config.id]?.[0] || ''}
+                    opcoes={listaOpcoes}
+                    onChange={(valor) => handleChange(config.id, valor)}
+                    remoteSearch={config.remoteSearch}
+                  />
+                )
+              })}
+            </div>
           )}
         </div>
 
-        {/* Rodapé da Gaveta ; Botões de Ação */}
         <div className="p-4 border-t bg-gray-50 flex gap-3">
           <button 
             onClick={() => {
               limparFiltros()
-              setDrawerOpen(false)
+              onClose()
             }}
-            className="flex-1 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-md hover:bg-gray-50">Limpar Todos</button>
+            className="flex-1 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-md hover:bg-gray-50"
+          >
+            Limpar Todos
+          </button>
           
           <button 
             onClick={handleAplicar}
-            className="flex-1 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 shadow-sm">Aplicar Filtros</button>
+            className="flex-1 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 shadow-sm"
+          >
+            Aplicar Filtros
+          </button>
         </div>
 
       </div>
     </>
+  )
+}
+
+// 5. O COMPONENTE REUTILIZÁVEL
+function FiltroSelectGenerico({ id, label, valorAtual, opcoes, onChange, remoteSearch }) {
+  const [termoBusca, setTermoBusca] = useState(valorAtual)
+  const [aberto, setAberto] = useState(false)
+  const termoNormalizado = termoBusca.trim().toLocaleLowerCase('pt-BR')
+
+  const { data: opcoesBusca = [], isFetching } = useBuscaFiltroQuery(
+  remoteSearch ? id : null,
+  termoBusca
+  )
+
+  const opcoesFiltradas = useMemo(() => {
+    const opcoesBase = remoteSearch && termoBusca.trim().length >= 2
+    ? [...opcoesBusca, ...opcoes]
+    : opcoes
+
+    const opcoesUnicas = [...new Set(opcoesBase.filter(Boolean))]
+
+    if (!termoNormalizado) {
+      return opcoesUnicas.slice(0,200)
+    }
+
+    return opcoesUnicas
+      .filter((item) => String(item).toLocaleLowerCase('pt-BR').includes(termoNormalizado))
+      .slice(0,200)
+  }, [opcoes, opcoesBusca, remoteSearch, termoBusca, termoNormalizado])
+
+  const handleInputChange = (valor) => {
+    setTermoBusca(valor)
+    onChange(valor)
+    setAberto(true)
+  }
+
+  const handleSelecionar = (valor) => {
+    setTermoBusca(valor)
+    onChange(valor)
+    setAberto(false)
+  }
+
+  return (
+    <div className="relative flex flex-col gap-1">
+      <label htmlFor={`filtro-${id}`} className="text-sm font-medium text-gray-700">
+        {label}
+      </label>
+
+      <div className="relative">
+        <input 
+          id={`filtro-${id}`}
+          className="w-full p-2 pr-9 border rounded-md text-sm outline-none focus:border-blue-500 bg-white"
+          value={termoBusca}
+          placeholder={isFetching ? 'Buscando...' : 'Digite para filtrar...'}
+          autoComplete="off"
+          onFocus={() => setAberto(true)}
+          onBlur={() => setTimeout(() => setAberto(false), 120)}
+          onChange={(e) => handleInputChange(e.target.value)}
+        />
+
+        <button 
+        type="button"
+        className="absolute inset-y-0 right-1 flex w-8 items-center justify-center text-gray-500 hover:text-gray-700"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => setAberto((atual) => !atual)}
+        aria-label={aberto ? 'Recolher Opções' : 'Mostrar Opções'}>
+          <ChevronDown className={`h-4 w-4 transition-transform ${aberto ? 'rotate-180' : ''}`} />
+        </button>
+      </div>
+     
+      {aberto && (
+        <div className="absolute left-0 right-0 top-full z-[60] mt-1 max-h-56 overflow-y-auto rounded-md border border-gray-200 bg-white py-1 text-sm shadow-lg">
+          <button
+            type="button"
+            className="w-full px-3 py-2 text-left font-medium text-gray-600 hover:bg-blue-50"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => handleSelecionar('')}
+          >
+            Todos
+          </button>
+
+          {opcoesFiltradas.map((item) => (
+            <button
+              type="button"
+              key={item}
+              className="w-full px-3 py-2 text-left text-gray-700 hover:bg-blue-50"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => handleSelecionar(item)}
+            >
+              {item}
+            </button>
+          ))}
+
+          {!isFetching && opcoesFiltradas.length === 0 && (
+            <div className="px-3 py-2 text-gray-500">
+              Nenhuma opção encontrada
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   )
 }

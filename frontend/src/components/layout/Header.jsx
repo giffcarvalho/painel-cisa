@@ -20,7 +20,7 @@ export function Header() {
             Painel CISA
           </span>
           <span className="text-xs font-medium text-cisa-text-secondary">
-            Carteira DSR
+            DEPARTAMENTO DE SANEAMENTO RURAL E DE PEQUENOS MUNICÍPIOS
           </span>
         </div>
       </div>
