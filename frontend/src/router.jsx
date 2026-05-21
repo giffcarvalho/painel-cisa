@@ -5,7 +5,6 @@ import AppLayout from '@/components/layout/AppLayout'
 import Home from '@/pages/Home'
 import CarteiraDsr from '@/pages/carteira-dsr/CarteiraDsr'
 
-// Lazy loading para o Mapa
 const Mapa = lazy(() => import('@/pages/mapa/Mapa'))
 
 function MapaLoading() {
@@ -21,11 +20,11 @@ function MapaLoading() {
 
 export const router = createBrowserRouter([
   {
-    path: '/',                 
-    element: <Home />,           // 1. Rota da página inicial
+    path: '/',
+    element: <Home />,
   },
   {
-    element: <AppLayout />,        // 2. Rota de Layout - Serve apenas para injetar o <AppLayout /> em todos os módulos listados no childrenn
+    element: <AppLayout />,
     children: [
       {
         path: 'carteira-dsr',

@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.database import get_db
-from app.schemas.filtros import OpcoesFiltros
+from app.schemas.filtros import BuscaFiltroResponse, OpcoesFiltros
 from app.schemas.graficos import (
     InstrumentosPorAcaoResponse,
     InstrumentosPorFaseResponse,
@@ -27,18 +27,13 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 MV = "temporario.mvw_cisa_tabelao"
-
-def _parse_list_param(param: list[str] | None) -> list[str] | None:  #--Garante que parâmetros passados como string separada por vírgula no frontend sejam convertidos em uma lista válida.
-    if not param:
-        return None
-    parsed = []
-    for item in param:
-        if "," in item:
-            parsed.extend([p.strip() for p in item.split(",") if p.strip()])
-        else:
-            if item.strip():
-                parsed.append(item.strip())
-    return parsed if parsed else None
+CAMPOS_BUSCA_FILTROS = {
+    "municipio": "municipio",
+    "nr_proposta": "nr_proposta::text",
+    "nr_instrumento": "nr_instrumento::text",
+    "nome_proponente": "nome_proponente",
+    "nr_proposta_selecao_pac": "nr_proposta_selecao_pac::text",
+}
 
 async def _execute_query(db: AsyncSession, sql: str, params: dict | None = None) -> CursorResult: #--Executa a query com tratamento de erro para evitar que exceções brutas do banco vazem.
     try:
@@ -68,58 +63,61 @@ class FiltrosCarteiraDSR:  #-- Dependência do FastAPI para agrupar todos os Que
             acao_orcamentaria: list[str] | None = Query(None),
             nr_proposta: list[str] | None = Query(None),
             nome_proponente: list[str] | None = Query(None),
-            termino_vigencia: list [str] | None = Query(None),
+            termino_vigencia: list[str] | None = Query(None),
             nr_proposta_selecao_pac: list[str] | None = Query(None),
             nr_instrumento: list[str] | None = Query(None)
     ):
-        self.componente = _parse_list_param(componente)
-        self.uf = _parse_list_param(uf)
-        self.municipio = _parse_list_param(municipio)
-        self.novo_pac = _parse_list_param(novo_pac)
-        self.situacao_obra = _parse_list_param(situacao_obra)
-        self.situacao_contratacao = _parse_list_param(situacao_contratacao)
-        self.fase_instrumento = _parse_list_param(fase_instrumento)
-        self.carteira_ativa = _parse_list_param(carteira_ativa)
-        self.ano_proposta = _parse_list_param(ano_proposta)
-        self.tipo_instrumento = _parse_list_param(tipo_instrumento)
-        self.acao_padronizada = _parse_list_param(acao_padronizada)
-        self.acao_orcamentaria = _parse_list_param(acao_orcamentaria)
-        self.nr_proposta = _parse_list_param(nr_proposta)
-        self.nome_proponente = _parse_list_param(nome_proponente)
-        self.termino_vigencia = _parse_list_param(termino_vigencia)
-        self.nr_proposta_selecao_pac = _parse_list_param(nr_proposta_selecao_pac)
-        self.nr_instrumento = _parse_list_param(nr_instrumento)
+        self.componente = componente
+        self.uf = uf
+        self.municipio = municipio
+        self.novo_pac = novo_pac
+        self.situacao_obra = situacao_obra
+        self.situacao_contratacao = situacao_contratacao
+        self.fase_instrumento = fase_instrumento
+        self.carteira_ativa = carteira_ativa
+        self.ano_proposta = ano_proposta
+        self.tipo_instrumento = tipo_instrumento
+        self.acao_padronizada = acao_padronizada
+        self.acao_orcamentaria = acao_orcamentaria
+        self.nr_proposta = nr_proposta
+        self.nome_proponente = nome_proponente
+        self.termino_vigencia = termino_vigencia
+        self.nr_proposta_selecao_pac = nr_proposta_selecao_pac
+        self.nr_instrumento = nr_instrumento
 
-def _build_where(filtros: FiltrosCarteiraDSR) -> tuple[str, dict]:  #-- Os parâmetros são passados de forma segura via bind params do SQLAlchemy.
+def _build_where(filtros: FiltrosCarteiraDSR) -> tuple[str, dict]:
     clauses: list[str] = []
     params: dict = {}
 
     list_filters = [
-        ("componente", filtros.componente, "componente"),
-        ("uf", filtros.uf, "uf"),
-        ("municipio", filtros.municipio, "municipio"),
-        ("situacao_obra", filtros.situacao_obra, "situacao_obra"),
-        ("situacao_contratacao", filtros.situacao_contratacao, "situacao_contratacao"),
-        ("fase_instrumento", filtros.fase_instrumento, "fase_instrumento"),
-        ("tipo_instrumento", filtros.tipo_instrumento, "tipo_instrumento"),
-        ("acao_padronizada", filtros.acao_padronizada, "acao_padronizada"),
-        ("acao_orcamentaria", filtros.acao_orcamentaria, "acao_orcamentaria"),
-        ("novo_pac", filtros.novo_pac, "novo_pac"),
-        ("carteira_ativa", filtros.carteira_ativa, "carteira_ativa"),
-        ("ano_proposta", filtros.ano_proposta, "ano_proposta"),
-        ("nr_proposta", filtros.nr_proposta, "nr_proposta"),
-        ("nome_proponente", filtros.nome_proponente, "nome_proponente"),
-        ("termino_vigencia", filtros.termino_vigencia, "termino_vigencia"),
-        ("nr_proposta_selecao_pac", filtros.nr_proposta_selecao_pac, "nr_proposta_selecao_pac")
-        ("nr_instrumento", filtros.nr_instrumento, "nr_instrumento")
+        ("componente", filtros.componente, "componente", None),
+        ("uf", filtros.uf, "uf", None),
+        ("municipio", filtros.municipio, "municipio", None),
+        ("situacao_obra", filtros.situacao_obra, "situacao_obra", None),
+        ("situacao_contratacao", filtros.situacao_contratacao, "situacao_contratacao", None),
+        ("fase_instrumento", filtros.fase_instrumento, "fase_instrumento", None),
+        ("tipo_instrumento", filtros.tipo_instrumento, "tipo_instrumento", None),
+        ("acao_padronizada", filtros.acao_padronizada, "acao_padronizada", None),
+        ("acao_orcamentaria", filtros.acao_orcamentaria, "acao_orcamentaria", None),
+        ("novo_pac", filtros.novo_pac, "novo_pac", None),
+        ("carteira_ativa", filtros.carteira_ativa, "carteira_ativa", None),
+        # Campos que o frontend recebe/envia como texto
+        ("ano_proposta", filtros.ano_proposta, "ano_proposta", "text"),
+        ("nr_proposta", filtros.nr_proposta, "nr_proposta", "text"),
+        ("nome_proponente", filtros.nome_proponente, "nome_proponente", None),
+        ("termino_vigencia", filtros.termino_vigencia, "termino_vigencia", "text"),
+        ("nr_proposta_selecao_pac", filtros.nr_proposta_selecao_pac, "nr_proposta_selecao_pac", "text"),
+        ("nr_instrumento", filtros.nr_instrumento, "nr_instrumento", "text"),
     ]
 
-    for col, values, param_key in list_filters:
+    for col, values, param_key, cast_type in list_filters:
         if values:
             placeholder = ", ".join(f":{param_key}_{i}" for i in range(len(values)))
-            clauses.append(f"{col} IN ({placeholder})")
+            sql_col = f"{col}::{cast_type}" if cast_type else col
+            clauses.append(f"{sql_col} IN ({placeholder})")
+
             for i, v in enumerate(values):
-                params[f"{param_key}_{i}"] = v
+                params[f"{param_key}_{i}"] = str(v).strip()
 
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
     return where, params
@@ -131,16 +129,22 @@ async def get_kpis(
     filtros: FiltrosCarteiraDSR = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
-    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Cache-Control"] = "private, max-age=300"
     where, params = _build_where(filtros)
 
     sql = f"""
         WITH instrumentos AS (
             SELECT DISTINCT ON (nr_instrumento)
-                nr_instrumento, valor_global, valor_repasse, valor_contrapartida,
-                valor_empenhado, valor_desembolsado, valor_desbloqueado
+                nr_instrumento,
+                valor_global,
+                valor_repasse,
+                valor_contrapartida,
+                valor_empenhado,
+                valor_desembolsado,
+                valor_desbloqueado
             FROM {MV}
             {where}
+            ORDER BY nr_instrumento, data_dados_caixa DESC NULLS LAST, data_dados_transferegov DESC NULLS LAST
         )
         SELECT
             COUNT(nr_instrumento)                     AS qtde_instrumentos,
@@ -191,6 +195,47 @@ async def get_filtros(response: Response, db: AsyncSession = Depends(get_db)):
     result = await _execute_query(db, sql)
     return OpcoesFiltros(**dict(result.mappings().one()))
 
+@router.get("/filtros/busca", response_model=BuscaFiltroResponse, summary="Busca de filtros")
+async def buscar_opcoes_filtro(
+    campo: Annotated[str, Query(description="Campo pesquisável.")],
+    q: Annotated[str, Query(min_length=2, max_length=100, description="Termo de busca.")],
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    db: AsyncSession = Depends(get_db)
+):
+    coluna = CAMPOS_BUSCA_FILTROS.get(campo)
+
+    if not coluna: 
+        raise HTTPException(
+            status_code=400,
+            detail="Campo de filtro não permitido para busca."
+        )
+    
+    termo = q.strip()
+
+    sql = f"""
+        SELECT DISTINCT {coluna} AS valor
+        FROM {MV}
+        WHERE {coluna} IS NOT NULL
+        AND {coluna} ILIKE :termo
+        ORDER BY valor
+        LIMIT :limit
+    """
+
+    result = await _execute_query(
+        db,
+        sql,
+        {
+            "termo": f"%{termo}%",
+            "limit": limit,
+        },
+    )
+
+    return BuscaFiltroResponse(
+        campo=campo,
+        termo=termo,
+        data=[row["valor"] for row in result.mappings().all()],
+    )
+
 # valores por UF
 @router.get("/graficos/localidade", response_model=ValoresPorUFResponse, summary="Valores proporcionais por UF")
 async def get_valores_por_uf(
@@ -198,7 +243,7 @@ async def get_valores_por_uf(
     filtros: FiltrosCarteiraDSR = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
-    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Cache-Control"] = "private, max-age=300"
     where, params = _build_where(filtros)
     sql = f"""
         SELECT 
@@ -222,15 +267,20 @@ async def get_valores_por_acao(
     filtros: FiltrosCarteiraDSR = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
-    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Cache-Control"] = "private, max-age=300"
     where, params = _build_where(filtros)
     sql = f"""
         WITH instrumentos AS (
             SELECT DISTINCT ON (nr_instrumento)
-                nr_instrumento, acao_padronizada, valor_desembolsado,
-                valor_empenhado_a_desembolsar, valor_a_empenhar, valor_contrapartida
+                nr_instrumento, 
+                acao_padronizada, 
+                valor_desembolsado,
+                valor_empenhado_a_desembolsar, 
+                valor_a_empenhar, 
+                valor_contrapartida
             FROM {MV}
             {where}
+            ORDER BY nr_instrumento, data_dados_caixa DESC NULLS LAST, data_dados_transferegov DESC NULLS LAST
         )
         SELECT
             acao_padronizada,
@@ -252,7 +302,7 @@ async def get_instrumentos_por_acao(
     filtros: FiltrosCarteiraDSR = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
-    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Cache-Control"] = "private, max-age=300"
     where, params = _build_where(filtros)
     sql = f"""
         SELECT
@@ -273,7 +323,7 @@ async def get_valor_por_tipo(
     filtros: FiltrosCarteiraDSR = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
-    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Cache-Control"] = "private, max-age=300"
     where, params = _build_where(filtros)
     sql = f"""
         WITH instrumentos AS (
@@ -281,6 +331,7 @@ async def get_valor_por_tipo(
                 nr_instrumento, tipo_instrumento, valor_global
             FROM {MV}
             {where}
+            ORDER BY nr_instrumento, data_dados_caixa DESC NULLS LAST, data_dados_transferegov DESC NULLS LAST
         )
         SELECT
             tipo_instrumento,
@@ -299,7 +350,7 @@ async def get_instrumentos_por_fase(
     filtros: FiltrosCarteiraDSR = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
-    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Cache-Control"] = "private, max-age=300"
     where, params = _build_where(filtros)
     sql = f"""
         SELECT
@@ -320,7 +371,7 @@ async def get_instrumentos_por_situacao(
     filtros: FiltrosCarteiraDSR = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
-    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Cache-Control"] = "private, max-age=300"
     where, params = _build_where(filtros)
     sql = f"""
         SELECT
@@ -341,7 +392,7 @@ async def get_mapa_coropletico(
     filtros: FiltrosCarteiraDSR = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
-    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Cache-Control"] = "private, max-age=300"
     where, params = _build_where(filtros)
     sql = f"""
         SELECT
@@ -363,7 +414,7 @@ async def get_mapa_pontos(
     filtros: FiltrosCarteiraDSR = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
-    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Cache-Control"] = "private, max-age=300"
     where, params = _build_where(filtros)
     count_sql = f"""
         SELECT COUNT(*) FROM (
@@ -404,12 +455,11 @@ async def get_tabela(
     tamanho_pagina: Annotated[int, Query(ge=1, le=500, description="Itens por página.")] = 100,
     db: AsyncSession = Depends(get_db)
 ):
-    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Cache-Control"] = "private, max-age=300"
     where, params = _build_where(filtros)
 
     offset = (pagina - 1) * tamanho_pagina
-    params["limit"] = tamanho_pagina
-    params["offset"] = offset
+    data_params = {**params, "limit": tamanho_pagina, "offset": offset}
 
     count_sql = f"""
         SELECT COUNT(DISTINCT nr_instrumento)
@@ -485,12 +535,12 @@ async def get_tabela(
             data_dados_caixa
         FROM {MV}
         {where}
-        ORDER BY nr_instrumento
+        ORDER BY nr_instrumento, data_dados_caixa DESC NULLS LAST, data_dados_transferegov DESC NULLS LAST
         LIMIT :limit OFFSET :offset
     """
 
-    count_result = await _execute_query(db,count_sql, params)
-    data_result = await _execute_query(db,data_sql, params)
+    count_result = await _execute_query(db, count_sql, params)
+    data_result = await _execute_query(db, data_sql, data_params)
 
     return TabelaResponse(
         total=count_result.scalar_one(),

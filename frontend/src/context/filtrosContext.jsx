@@ -1,8 +1,6 @@
-import { createContext, useContext, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
+import { FiltrosContext } from './filtrosContextValue'
 
-const FiltrosContext = createContext(null)
-
-// Estado inicial espelha exatamente os campos do FiltrosCarteiraDSR do backend
 const FILTROS_INICIAIS = {
   componente:           [],
   uf:                   [],
@@ -16,14 +14,43 @@ const FILTROS_INICIAIS = {
   tipo_instrumento:     [],
   acao_padronizada:     [],
   acao_orcamentaria:    [],
+  nr_proposta:          [],
+  nome_proponente:      [],
+  termino_vigencia:     [],
+  nr_proposta_selecao_pac: [],
+  nr_instrumento:       []
+}
+
+function normalizarFiltros(filtros) {
+  return Object.fromEntries(
+    Object.keys(FILTROS_INICIAIS).map((campo) => {
+      const valor = filtros?.[campo]
+
+      if (!Array.isArray(valor)) {
+        return [campo, []]
+      }
+
+      const valoresNormalizados = [...new Set(
+        valor
+          .map((item) => String(item).trim())
+          .filter(Boolean)
+      )].sort((a, b) => a.localeCompare(b, 'pt-BR'))
+
+      return [campo, valoresNormalizados]
+    })
+  )
 }
 
 export function FiltrosProvider({ children }) {
-  const [filtros, setFiltros] = useState(FILTROS_INICIAIS)
-  const [isDrawerOpen, setDrawerOpen] = useState(false)
+  const [filtros, setFiltros] = useState(() => normalizarFiltros(FILTROS_INICIAIS))
 
-  const aplicarFiltros = (novosFiltros) => setFiltros(novosFiltros)
-  const limparFiltros  = ()             => setFiltros(FILTROS_INICIAIS)
+  const aplicarFiltros = (novosFiltros) => {
+    setFiltros(normalizarFiltros(novosFiltros))
+  }
+
+  const limparFiltros = () => {
+    setFiltros(FILTROS_INICIAIS)
+  }
 
   const qtdeFiltrosAtivos = Object.values(filtros).filter((v) =>
     Array.isArray(v) ? v.length > 0 : v !== null
@@ -33,24 +60,13 @@ export function FiltrosProvider({ children }) {
     filtros,
     aplicarFiltros,
     limparFiltros,
-    isDrawerOpen,
-    setDrawerOpen,
     qtdeFiltrosAtivos,
-  }), [filtros, isDrawerOpen, qtdeFiltrosAtivos])
+  }), [filtros, qtdeFiltrosAtivos])
 
   return (
-    <FiltrosContext.Provider value={{
-      filtros, aplicarFiltros, limparFiltros,
-      isDrawerOpen, setDrawerOpen,
-      qtdeFiltrosAtivos,
-    }}>
+    <FiltrosContext.Provider value={contextValue}>
       {children}
     </FiltrosContext.Provider>
   )
 }
 
-export const useFiltros = () => {
-  const ctx = useContext(FiltrosContext)
-  if (!ctx) throw new Error('useFiltros deve ser usado dentro de FiltrosProvider')
-  return ctx
-}

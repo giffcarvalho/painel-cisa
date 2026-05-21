@@ -5,11 +5,11 @@ from pydantic import BaseModel, Field
 
 # Gráfico de Valores por UF -- Barras Empilhadas Horizontais
 class ValoresPorUFItem(BaseModel):
-    uf: str = Field(..., description="Sigla do estado (ex: 'SP').")
-    desembolsado: Decimal
-    empenhado_a_desembolsar: Decimal
-    a_empenhar: Decimal
-    contrapartida: Decimal
+    uf: str | None = Field(None, description="Sigla do estado (ex: 'SP').")
+    desembolsado: Decimal | None
+    empenhado_a_desembolsar: Decimal | None
+    a_empenhar: Decimal | None
+    contrapartida: Decimal | None
 
     model_config = {"from_attributes": True}
 
@@ -18,11 +18,11 @@ class ValoresPorUFResponse(BaseModel):
 
 # Gráfico de Valores por Ação -- Barras Empilhadas Verticais
 class ValoresPorAcaoItem(BaseModel):
-    acao_padronizada: str
-    desembolsado: Decimal
-    empenhado_a_desembolsar: Decimal
-    a_empenhar: Decimal
-    contrapartida: Decimal
+    acao_padronizada: str | None
+    desembolsado: Decimal | None
+    empenhado_a_desembolsar: Decimal | None
+    a_empenhar: Decimal | None
+    contrapartida: Decimal | None
 
     model_config = {"from_attributes": True}
 
@@ -31,8 +31,8 @@ class ValoresPorAcaoResponse(BaseModel):
 
 # Gráfico de Quantidade de Instrumentos por Ação -- Barras Verticais
 class InstrumentosPorAcaoItem(BaseModel):
-    acao_padronizada: str
-    qtde_instrumentos: int
+    acao_padronizada: str | None
+    qtde_instrumentos: int | None
 
     model_config = {"from_attributes": True}
 
@@ -41,8 +41,8 @@ class InstrumentosPorAcaoResponse(BaseModel):
 
 #Gráfico de Valor Global por Tipo de Instrumento -- Gráfico de Rosca
 class ValorPorTipoItem(BaseModel):
-    tipo_instrumento: str
-    valor_global: Decimal
+    tipo_instrumento: str | None
+    valor_global: Decimal | None
 
     model_config = {"from_attributes": True}
 
@@ -51,18 +51,18 @@ class ValorPorTipoResponse(BaseModel):
 
 # Gráfico de Instrumentos por Fase de Execução -- Barras
 class InstrumentosPorFaseItem(BaseModel):
-    fase_instrumento: str
-    qtde_instrumentos: int
+    fase_instrumento: str | None
+    qtde_instrumentos: int | None
 
     model_config = {"from_attributes": True}
 
 class InstrumentosPorFaseResponse(BaseModel):
-    data: list[InstrumentosPorAcaoItem]
+    data: list[InstrumentosPorFaseItem]
 
 # Gráfico de Instrumentos por Situação de Contratação -- Gráfico de Rosca
 class InstrumentosPorSituacaoItem(BaseModel):
-    situacao_contratacao: str
-    qtde_instrumentos: int
+    situacao_contratacao: str | None
+    qtde_instrumentos: int | None
 
     model_config = {"from_attributes": True}
 
@@ -71,9 +71,9 @@ class InstrumentosPorSituacaoResponse(BaseModel):
 
 # Valor global Proporcional por UF -- Mapa coroplético
 class MapaCoropleticoItem(BaseModel):
-    uf: str
-    valor_global_proporcional: Decimal
-    qtde_instrumentos: int
+    uf: str | None
+    valor_global_proporcional: Decimal | None
+    qtde_instrumentos: int | None
 
     model_config = {"from_attributes": True}
 
@@ -83,8 +83,8 @@ class MapaCoropleticoResponse(BaseModel):
 # Coordenadas dos Municípios Beneficiados -- Mapa de Pontos
 class MapaPontosItem(BaseModel):
     acao_padronizada: str | None
-    latitude_sede: float | None
-    longitude_sede: float | None
+    latitude: float | None
+    longitude: float | None
     nome_municipio: str | None
 
     model_config = {"from_attributes": True}
