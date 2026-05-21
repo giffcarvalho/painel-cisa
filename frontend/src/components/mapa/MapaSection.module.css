@@ -1,0 +1,47 @@
+.mapa_box {
+    display: flex;
+    position: relative;
+}
+
+
+.mapContainer {
+    width: 100%;
+    height: 100vh;
+}
+
+
+.botaoMenu {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 35px;
+  height: 35px;
+  border: none;
+  background: white;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.botaoFiltros {
+  position: absolute;
+  top: 20px;
+  left: 120px;
+  width: 35px;
+  height: 35px;
+  border: none;
+  background: white;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.botaoCamadas {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  width: 35px;
+  height: 35px;
+  border: none;
+  background: white;
+  cursor: pointer;
+  z-index: 1;
+}

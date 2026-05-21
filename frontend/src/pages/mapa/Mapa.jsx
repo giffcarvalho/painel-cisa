@@ -1,1 +1,8 @@
-export default function Mapa() { return <div>Mapa MapBox aqui.</div> }
+import MapaSection from "../../components/mapa/MapaSection";
+
+export default function Mapa() { 
+    
+    return ( 
+        <MapaSection/>
+    );
+}

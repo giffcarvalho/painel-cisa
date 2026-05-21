@@ -28,16 +28,16 @@ export const router = createBrowserRouter([
     children: [
       {
         path: 'carteira-dsr',
-        element: <CarteiraDsr />,
-      },
-      {
-        path: 'mapa',
-        element: (
-          <Suspense fallback={<MapaLoading />}>
-            <Mapa />
-          </Suspense>
-        ),
-      },
-    ],
+        element: <CarteiraDsr />,   
+      }
+    ]
   },
+  {
+    path: 'mapa',
+    element: (
+      <Suspense fallback={<MapaLoading />}>
+        <Mapa />
+      </Suspense>
+    )
+  }
 ])

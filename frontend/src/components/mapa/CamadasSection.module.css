@@ -1,0 +1,29 @@
+ .camadas {
+  position: absolute;
+  bottom: 80px;
+  left: 20px;
+  width: 230px;
+  padding: 10px;
+  background: rgb(241, 236, 236);
+  border-radius: 4px;
+  box-shadow: 0 0 5px rgba(0,0,0,0.2);
+  z-index: 1;
+  overflow: hidden;
+}
+
+
+.camadas label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 11px;
+}
+
+.seletorVariavel {
+  width: 70%;
+  font-size: 11px;
+  height: 24px;
+  border: 1px solid rgb(215, 217, 218);
+  border-radius: 5px;
+  padding: 2px 4px;
+  margin-left: 20px;
+}
