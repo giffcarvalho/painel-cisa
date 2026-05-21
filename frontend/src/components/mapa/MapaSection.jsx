@@ -2,10 +2,11 @@ import estilos from "./MapaSection.module.css";
 import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import CamadasSection from "./CamadasSection";
 
 export default function MapaSection() { 
     
-    //Esse estado controla a visibilidade e variaveis das camadas
+    //este estado controla a visibilidade e variaveis das camadas
     const [layers, setLayers] = useState([
         { id: "ufs", nome: "Limites Estaduais", visivel: true },
         { id: "municipios_2025", nome: "Limites Municipais 2025", visivel: true },
@@ -13,8 +14,27 @@ export default function MapaSection() {
         { id: "setores_censitarios_2022", nome: "Setores Censitários 2022", visivel: true },
         { id: "enderecos_2022", nome: "Endereços 2022", visivel: true },
         { id: "localidades_2022", nome: "Localidades 2022", visivel: true },
+        { id: "informacoes_municipais", 
+            nome: "Informações Municipais",
+            visivel: false,
+            variavelSel: "",
+            variaveis: [
+                {value: "deficit_agua_rural_ibge", label: "Déficit água rural", tipo: "percentual_invertido"},
+                {value: "deficit_esgoto_rural_ibge", label: "Déficit esgoto rural", tipo: "percentual_invertido"},
+                {value: "deficit_residuo_rural_ibge", label: "Déficit resíduos rural", tipo: "percentual_invertido"},
+                {value: "deficit_banheiro_rural_ibge", label: "Déficit banheiro rural", tipo: "percentual_invertido"},
+                {value: "deficit_agua_urbana_ibge", label: "Déficit água urbano", tipo: "percentual_invertido"},
+                {value: "deficit_esgoto_urbana_ibge", label: "Déficit esgoto urbano", tipo: "percentual_invertido"},
+                {value: "deficit_residuo_urbana_ibge", label: "Déficit resíduos urbano", tipo: "percentual_invertido"},
+                {value: "deficit_banheiro_urbana_ibge", label: "Déficit banheiro urbano", tipo: "percentual_invertido"},
+            ]
+        },
     ]);
-  
+    
+    //este estado controla o painel de camadas
+    const [painelCamadas, setPainelCamadas] = useState(false);
+
+
 
     const API_URL = "http://localhost:8000/api/v1/mapa";
     const mapContainer = useRef(null);
@@ -44,11 +64,12 @@ export default function MapaSection() {
 
 
         //adição das camadas. O primeiro bloco são as fontes (sources). O segundo bloco são as camadas (layers) já com a simbologia desejada
-        //a ordem dos addLayers no código influencia na ordem de renderização. Os últimos ficam por cima no mapa
+        //a ordem dos addLayers no código influencia na ordem de renderização. Os últimos layers ficam por cima no mapa
         map.on("load", () => {
             map.addSource("setores_censitarios_2022", {type: "vector", tiles: [`${API_URL}/setores_censitarios_2022/{z}/{x}/{y}.pbf`], minzoom: 8, maxzoom: 20});
             map.addSource("distritos_2022", {type: "vector", tiles: [`${API_URL}/distritos_2022/{z}/{x}/{y}.pbf`], minzoom: 6, maxzoom: 20});
             map.addSource("municipios_2025", {type: "vector", tiles: [`${API_URL}/municipios_2025/{z}/{x}/{y}.pbf`], minzoom: 5, maxzoom: 20});
+            map.addSource("municipios_2022", {type: "vector", tiles: [`${API_URL}/municipios_2022/{z}/{x}/{y}.pbf`], minzoom: 3, maxzoom: 20});
             map.addSource("ufs", {type: "vector", tiles: [`${API_URL}/ufs/{z}/{x}/{y}.pbf`], minzoom: 3, maxzoom: 20});
             map.addSource("enderecos_2022", {type: "vector", tiles: [`${API_URL}/enderecos_2022/{z}/{x}/{y}.pbf`], minzoom: 12, maxzoom: 20});
             map.addSource("localidades_2022", {type: "vector", tiles: [`${API_URL}/localidades_2022/{z}/{x}/{y}.pbf`], minzoom: 8, maxzoom: 20});
@@ -63,6 +84,19 @@ export default function MapaSection() {
                 "fill-opacity": 0
                 }
             });
+
+
+            map.addLayer({
+                id: "informacoes_municipais",
+                type: "fill",
+                source: "municipios_2022", "source-layer": "poligonos",
+                layout: {visibility: "none"},
+                paint: {
+                "fill-color": "#e7e1e1",
+                "fill-opacity": 0.8
+                }
+            });
+
 
 
             map.addLayer({
@@ -215,15 +249,145 @@ export default function MapaSection() {
     }, [layers]);
   
 
+    //função que liga e desliga a visibilidade das camadas
+    function toggleLayer(id) {
+        const map = mapRef.current;
+        if (!map || !map.getLayer(id)) return;
+
+        setLayers(prev => prev.map(layer => {
+        if (layer.id === id) {
+            const novaVis = !layer.visivel;
+
+            map.setLayoutProperty(id, "visibility", novaVis ? "visible" : "none");
+            return { ...layer, visivel: novaVis };
+        }
+        return layer;
+        }));
+    }
+    
+    
+    //Função que troca a variável usada para fazer a simbologia da camada
+    function alterarVariavel(id, valor) {
+        setLayers(prev => prev.map(layer => layer.id === id ? { ...layer, variavelSel: valor } : layer));
+    }
+    
+
+    //useEffect que troca a simbologia do mapa de acordo com a variável escolhida
+    useEffect(() => {
+
+        const map = mapRef.current;
+        if (!map) return;
+
+        async function atualizarClassificacoes() {
+
+            for (const layer of layers) {
+
+            if (!layer.variaveis) continue;
+            if (!map.getLayer(layer.id)) continue;
+            if (!layer.variavelSel) continue;
+
+            try {
+
+                // procura configuração da variável selecionada
+                const variavelConfig = layer.variaveis.find(v => v.value === layer.variavelSel);
+                if (!variavelConfig) continue;
 
 
+                //variavel do tipo percentual - invertido pois quanto maior pior
+                if (variavelConfig.tipo === "percentual_invertido") {
+
+                const res = await fetch(
+                    `${API_URL}/classificacao/${layer.variavelSel}`
+                );
+
+                const data = await res.json();
+
+                map.setPaintProperty(layer.id,
+                    "fill-color", ["step", ["coalesce", ["to-number", ["get", layer.variavelSel]],
+                                0], "#2d6a4f",
+                    data.breaks[1], "#95d5b2",
+                    data.breaks[2], "#ffe066",
+                    data.breaks[3], "#f77f00",
+                    data.breaks[4], "#d62828"
+                    ]
+                );
+                }
+                
+
+                //variavel do tipo percentual - normal pois quanto maior melhor
+                if (variavelConfig.tipo === "percentual_normal") {
+
+                const res = await fetch(
+                    `${API_URL}/classificacao/${layer.variavelSel}`
+                );
+
+                const data = await res.json();
+
+                map.setPaintProperty(layer.id,
+                    "fill-color", ["step", ["coalesce", ["to-number", ["get", layer.variavelSel]],
+                                0], "#d62828",
+                    data.breaks[1], "#f77f00",
+                    data.breaks[2], "#ffe066",
+                    data.breaks[3], "#95d5b2",
+                    data.breaks[4], "#2d6a4f"
+                    ]
+                );
+                }
+
+
+                //variavel do tipo categorica
+                if (variavelConfig.tipo === "categorica") {
+
+
+                if (layer.variavelSel === "subgrupo") {
+                    map.setPaintProperty(layer.id,
+                    "fill-color", ["match", ["get", "subgrupo"],
+                        "G1", "#d73027",
+                        "G2", "#fc8d59",
+                        "G3", "#049e91",
+                        "#cccccc"
+                    ]
+                    );
+                }
+
+                
+                if (layer.variavelSel === "categoria_metropolitana") {
+                    map.setPaintProperty(layer.id,
+                    "fill-color", ["match", ["get", "categoria_metropolitana"],
+                        "Não Possui", "#2a9d8f",
+                        "#d62828"
+                    ]
+                    );
+                }
+                }
+
+                //variavel do tipo booleana
+                if (variavelConfig.tipo === "booleana") {
+                map.setPaintProperty(layer.id,
+                    "fill-color", ["match", ["to-number", ["get", layer.variavelSel]],
+                    1, "#d62828",
+                    0, "#2a9d8f",
+                    "#750a3c"
+                    ]
+                );
+                }
+
+            } catch (err) {console.error(`Erro na camada ${layer.id}:`, err);}
+            }
+        }
+
+        atualizarClassificacoes();
+
+    }, [layers]);
+    //--------------------------------------------------------------------------------------------
 
     
     return ( 
         <div className={estilos.mapa_box}>
             <button className={estilos.botaoMenu}> ☰ </button>
             <button className={estilos.botaoFiltros}> ☰ </button>
-            <button className={estilos.botaoCamadas}> ☰ </button>
+            <button className={estilos.botaoCamadas} onClick={() => setPainelCamadas(!painelCamadas)}> ☰ </button>
+            {painelCamadas && (<CamadasSection layers={layers} toggleLayer={toggleLayer} alterarVariavel={alterarVariavel}/>)}
             <div ref={mapContainer} className={estilos.mapContainer}/>
         </div>
     );
