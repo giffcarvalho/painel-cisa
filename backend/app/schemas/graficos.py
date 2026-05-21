@@ -5,20 +5,16 @@ from pydantic import BaseModel, Field
 
 # Gráfico de Valores por UF -- Barras Empilhadas Horizontais
 class ValoresPorUFItem(BaseModel):
-    uf: str = Field(..., description="Sigla do estado (ex: 'SP').")
-    desembolsado: Decimal
-    empenhado_a_desembolsar: Decimal
-    a_empenhar: Decimal
-    contrapartida: Decimal
-
-    model_config = {"from_attributes": True}
-
-class ValoresPorUFResponse(BaseModel):
     uf: str | None = Field(None, description="Sigla do estado (ex: 'SP').")
     desembolsado: Decimal | None
     empenhado_a_desembolsar: Decimal | None
     a_empenhar: Decimal | None
     contrapartida: Decimal | None
+
+    model_config = {"from_attributes": True}
+
+class ValoresPorUFResponse(BaseModel):
+    data: list[ValoresPorUFItem]
 
 # Gráfico de Valores por Ação -- Barras Empilhadas Verticais
 class ValoresPorAcaoItem(BaseModel):

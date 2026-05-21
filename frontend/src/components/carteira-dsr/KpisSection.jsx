@@ -1,11 +1,9 @@
 import { Loader2, AlertCircle} from 'lucide-react'
-import { useKpis } from '@/hooks/useCarteiraDsr'
-import { formatCurrency } from '@/utils/formatters'
+import { useKpisQuery } from '@/hooks/useCarteiraDsr'
 
 export default function KpisSection() {
-    const { data: kpis, isLoading, isError, error } = useKpis()
+    const { data: kpis, isLoading, isError, error } = useKpisQuery()
 
-    console.log({ kpis, isLoading, isError, error })
 
     if (isLoading) {
         return (

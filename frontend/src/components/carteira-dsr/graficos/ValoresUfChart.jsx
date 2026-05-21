@@ -2,24 +2,30 @@ import ReactECharts from 'echarts-for-react'
 import { formatCurrency } from '@/utils/formatters'
 
 export default function ValoresUfChart({ dados }) {
-    if (!dados || dados.lengh === 0) {
-        return <div className="flex h-full w-full items-center justify-center text-gray-400">Sem dados para exibir</div>
+    if (!dados || dados.length === 0) {
+        return (
+            <div className="flex h-full min-h-[300px] w-full items-center justify-center text-gray-400 text-sm">
+                Sem dados para os filtros selecionados
+            </div>
+        )
     }
+    // Converte strings do Pydantic para Float e trata Nulls do Banco
+    const parseNumber = (val) => (val ? Number(val) : 0)
 
-    const eixosY = dados.map(item => item.uf)
-
-    const desembolsado = dados.map(item => item.desembolsado)
-    const empenhadoADesembolsar = dados.map(item => item.empenhado_a_desembolsar)
-    const aEmpenhar = dados.map(item => item.a_empenhar)
-    const contrapartida = dados.map(item => item.contrapartida)
+    const eixosY = dados.map(item => item.uf || 'N/I') // Protege contra UF nula
+    const desembolsado = dados.map(item => parseNumber(item.desembolsado))
+    const empenhadoADesembolsar = dados.map(item => parseNumber(item.empenhado_a_desembolsar))
+    const aEmpenhar = dados.map(item => parseNumber(item.a_empenhar))
+    const contrapartida = dados.map(item => parseNumber(item.contrapartida))
 
     const option = {
         color: ['#3b82f6', '#10b981', '#f59e0b', '#6b7280'],
 
         tooltip: {
             trigger: 'axis',
-            axisPointer: {type: 'shadow'},
-            valueFormatter: (value) => formatCurrency(value, true)
+            axisPointer: { type: 'shadow' },
+            // 3. Proteção no formatter
+            valueFormatter: (value) => value ? formatCurrency(value, true) : formatCurrency(0, true)
         },
 
         grid: {
@@ -33,7 +39,7 @@ export default function ValoresUfChart({ dados }) {
         xAxis: {
             type: 'value',
             axisLabel: {
-                formatter: (value) => formatCurrency(value, true)
+                formatter: (value) => value ? formatCurrency(value, true) : '0'
             }
         },
 
@@ -50,12 +56,13 @@ export default function ValoresUfChart({ dados }) {
             { name: 'Contrapartida', type: 'bar', stack: 'total', data: contrapartida }
         ]
     }
-        return (
-            <ReactECharts 
+
+    return (
+        <ReactECharts 
             option={option} 
-            style={{ height: '100%', width: '100%' }} 
+            style={{ height: '100%', width: '100%', minHeight: '300px' }} 
             notMerge={true} 
             lazyUpdate={true} 
-            />
-        )
+        />
+    )
 }

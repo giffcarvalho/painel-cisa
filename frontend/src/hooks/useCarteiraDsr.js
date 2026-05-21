@@ -2,117 +2,92 @@ import { useQuery } from '@tanstack/react-query'
 import { carteiraDsrApi } from '@/api/carteiraDsr'
 import { useFiltros } from '@/context/filtrosContext'
 
-export function useKpis() {                 //hook para buscar os kpis
-    const { filtros } = useFiltros()
-
-    return useQuery({
-        queryKey: ['carteira-dsr', 'kpis', filtros],
-
-        queryFn: async () => {
-            const response = await carteiraDsrApi.getKpis(filtros)
-            return response.data
-        },
-    })
-}
-
-export function useOpcoesFiltros() {
-    return useQuery({
-        queryKey: ['carteira-dsr', 'opcoes-filtros'],
-        queryFn: async () => {
-            const response = await carteiraDsrApi.getFiltros()
-            return response.data
-        },
-        staleTime: Infinity,
-    })
-}
-
-export function useValoresPorAcao() {
-    const { filtros } = useFiltros()
-
-    return useQuery({
-        queryKey: ['carteira-dsr', 'graficos-acoes', filtros],
-
-        queryFn: async () => {
-        const response = await carteiraDsrApi.getAcoesValores(filtros)
-        return response.data.data 
-        },
-    })
-}
-
-export function useFasesESituacao () {
-    const { filtros } = useFiltros()
-
-    return useQuery({
-        queryKey: ['carteira-dsr', 'graficos-fases', filtros],
-
-        queryFn: async () => {
-            const [fasesRes, situacaoRes] = await Promise.all([
-                carteiraDsrApi.getFaseSituacao(filtros),
-                carteiraDsrApi.getSituacaoCont(filtros)
-            ])
-
-            return {
-                fases: fasesRes.data.data,
-                situacoes: situacaoRes.data.data
-            }
-        },
-    })
-}
-
-export function useGeografia() {
-    const { filtros } = useFiltros()
-
-    return useQuery({
-    queryKey: ['carteira-dsr', 'geografia', filtros],
-    queryFn: async () => {
-      const [ufRes, coroplRes, pontosRes] = await Promise.all([
-        carteiraDsrApi.getLocalidade(filtros),
-        carteiraDsrApi.getMapaCoropl(filtros),
-        carteiraDsrApi.getMapaPontos(filtros)
-      ])
-      return {
-        valoresUf: ufRes.data.data,
-        coropletico: coroplRes.data.data,
-        pontos: pontosRes.data.data
-      }
-    },
+// 1. KPIs
+export function useKpisQuery() {
+  const { filtros } = useFiltros()
+  return useQuery({
+    queryKey: ['carteira-dsr', 'kpis', filtros],
+    queryFn: async () => (await carteiraDsrApi.getKpis(filtros)).data,
   })
 }
 
-export function useAcoesETipos() {
-  const { filtros } = useFiltros()
-
+// 2. Filtros
+export function useOpcoesFiltrosQuery() {
   return useQuery({
-    queryKey: ['carteira-dsr', 'acoes-tipos', filtros],
-    queryFn: async () => {
-      const [acoesValRes, acoesQtdRes, tiposRes] = await Promise.all([
-        carteiraDsrApi.getAcoesValores(filtros),
-        carteiraDsrApi.getAcoesQtde(filtros),
-        carteiraDsrApi.getTipoInstr(filtros)
-      ])
-      return {
-        acoesValores: acoesValRes.data.data,
-        acoesQtde: acoesQtdRes.data.data,
-        tipos: tiposRes.data.data
-      }
-    },
+    queryKey: ['carteira-dsr', 'opcoes-filtros'],
+    queryFn: async () => (await carteiraDsrApi.getFiltros()).data,
+    staleTime: Infinity,
   })
 }
 
-export function useExecucao() {
+// 3. Valores por UF
+export function useValoresUfQuery() {
   const { filtros } = useFiltros()
-
   return useQuery({
-    queryKey: ['carteira-dsr', 'execucao', filtros],
-    queryFn: async () => {
-      const [fasesRes, situacaoRes] = await Promise.all([
-        carteiraDsrApi.getFasesSituacao(filtros),
-        carteiraDsrApi.getSituacaoCont(filtros)
-      ])
-      return {
-        fases: fasesRes.data.data,
-        situacoes: situacaoRes.data.data
-      }
-    },
+    queryKey: ['carteira-dsr', 'valores-uf', filtros],
+    queryFn: async () => (await carteiraDsrApi.getLocalidade(filtros)).data.data,
+  })
+}
+
+// 4. Valores por Ação
+export function useValoresAcaoQuery() {
+  const { filtros } = useFiltros()
+  return useQuery({
+    queryKey: ['carteira-dsr', 'valores-acao', filtros],
+    queryFn: async () => (await carteiraDsrApi.getAcoesValores(filtros)).data.data,
+  })
+}
+
+// 5. Quantidade de Instrumentos por Ação
+export function useAcoesQtdeQuery() {
+  const { filtros } = useFiltros()
+  return useQuery({
+    queryKey: ['carteira-dsr', 'acoes-qtde', filtros],
+    queryFn: async () => (await carteiraDsrApi.getAcoesQtde(filtros)).data.data,
+  })
+}
+
+// 6. Valor por Tipo de Instrumento
+export function useTipoInstrumentoQuery() {
+  const { filtros } = useFiltros()
+  return useQuery({
+    queryKey: ['carteira-dsr', 'tipo-instrumento', filtros],
+    queryFn: async () => (await carteiraDsrApi.getTipoInstr(filtros)).data.data,
+  })
+}
+
+// 7. Fases de Execução
+export function useFasesQuery() {
+  const { filtros } = useFiltros()
+  return useQuery({
+    queryKey: ['carteira-dsr', 'fases-execucao', filtros],
+    queryFn: async () => (await carteiraDsrApi.getFaseSituacao(filtros)).data.data,
+  })
+}
+
+// 8. Situação de Contratação
+export function useSituacaoContratacaoQuery() {
+  const { filtros } = useFiltros()
+  return useQuery({
+    queryKey: ['carteira-dsr', 'situacao-contratacao', filtros],
+    queryFn: async () => (await carteiraDsrApi.getSituacaoCont(filtros)).data.data,
+  })
+}
+
+// 9. Mapa Coroplético
+export function useMapaCoropleticoQuery() {
+  const { filtros } = useFiltros()
+  return useQuery({
+    queryKey: ['carteira-dsr', 'mapa-coropletico', filtros],
+    queryFn: async () => (await carteiraDsrApi.getMapaCoropl(filtros)).data.data,
+  })
+}
+
+// 10. Mapa de Pontos
+export function useMapaPontosQuery() {
+  const { filtros } = useFiltros()
+  return useQuery({
+    queryKey: ['carteira-dsr', 'mapa-pontos', filtros],
+    queryFn: async () => (await carteiraDsrApi.getMapaPontos(filtros)).data.data,
   })
 }
