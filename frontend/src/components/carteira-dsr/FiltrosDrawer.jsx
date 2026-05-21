@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { X, Filter, AlertCircle } from 'lucide-react'
 import { useFiltros } from '@/context/useFiltros'
-import { useOpcoesFiltrosQuery } from '@/hooks/useCarteiraDsr'
+import { useBuscaFiltroQuery, useOpcoesFiltrosQuery } from '@/hooks/useCarteiraDsr'
 
 const CONFIG_FILTROS = [
   { id: 'tipo_instrumento', label: 'Tipo de Instrumento', optionsKey: 'tipos_instrumento' },
@@ -9,16 +9,16 @@ const CONFIG_FILTROS = [
   { id: 'acao_orcamentaria', label: 'Ação Orçamentária', optionsKey: 'acoes_orcamentarias' },
   { id: 'componente', label: 'Componente', optionsKey: 'componentes' },
   { id: 'uf', label: 'UF', optionsKey: 'ufs' },
-  { id: 'municipio', label: 'Município', optionsKey: 'municipios', isLargeList: true },
+  { id: 'municipio', label: 'Município', searchable: true },
   { id: 'novo_pac', label: 'Novo PAC', optionsKey: 'novo_pac' },
   { id: 'situacao_obra', label: 'Situação da Obra', optionsKey: 'situacoes_obra' },
   { id: 'situacao_contratacao', label: 'Situação da Contratação', optionsKey: 'situacoes_contratacao' },
-  { id: 'nr_proposta', label: 'Número da Proposta', optionsKey: 'nr_proposta', isLargeList: true },
-  { id: 'nr_instrumento', label: 'Número do Instrumento', optionsKey: 'nr_instrumento', isLargeList: true },
+  { id: 'nr_proposta', label: 'Número da Proposta', searchable: true },
+  { id: 'nr_instrumento', label: 'Número do Instrumento', osearchable: true },
   { id: 'ano_proposta', label: 'Ano da Proposta', optionsKey: 'anos_proposta' },
-  { id: 'nome_proponente', label: 'Proponente', optionsKey: 'nome_proponente', isLargeList: true },
+  { id: 'nome_proponente', label: 'Proponente', searchable: true },
   { id: 'termino_vigencia', label: 'Término da Vigência', optionsKey: 'termino_vigencia' },
-  { id: 'nr_proposta_selecao_pac', label: 'Proposta Seleção PAC', optionsKey: 'nr_proposta_selecao_pac', isLargeList: true },
+  { id: 'nr_proposta_selecao_pac', label: 'Proposta Seleção PAC', searchable: true },
   { id: 'carteira_ativa', label: 'Carteira Ativa', optionsKey: 'carteira_ativa' },
   { id: 'fase_instrumento', label: 'Fase do Instrumento', optionsKey: 'fase_instrumento' }
 ]
@@ -91,7 +91,7 @@ export default function FiltrosDrawer({ onClose }) {
                     valorAtual={rascunho[config.id]?.[0] || ''}
                     opcoes={listaOpcoes}
                     onChange={(valor) => handleChange(config.id, valor)}
-                    isLargeList={config.isLargeList}
+                    searchable={config.searchable}
                   />
                 )
               })}
@@ -124,21 +124,30 @@ export default function FiltrosDrawer({ onClose }) {
 }
 
 // 5. O COMPONENTE REUTILIZÁVEL (Agora com Autocomplete Nativo)
-function FiltroSelectGenerico({ id, label, valorAtual, opcoes, onChange, isLargeList }) {
-  // Se for uma lista gigante (ex: Municípios), renderiza um Autocomplete nativo
-  if (isLargeList) {
+function FiltroSelectGenerico({ id, label, valorAtual, opcoes, onChange, searchable }) {
+  const [termoBusca, setTermoBusca] = useState(valorAtual)
+  const { data: opcoesBusca = [], isFetching } = useBuscaFiltroQuery(id, termoBusca)
+  
+  if (searchable) {
+    const opcoesDisponiveis = valorAtual && !opcoesBusca.includes(valorAtual)
+      ? [valorAtual, ...opcoesBusca]
+      : opcoesBusca
+    
     return (
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium text-gray-700">{label}</label>
-        <input 
+        <input
           list={`datalist-${id}`}
           className="p-2 border rounded-md text-sm outline-none focus:border-blue-500 bg-white"
           value={valorAtual}
-          placeholder="Digite para buscar..."
-          onChange={(e) => onChange(e.target.value)}
+          placeholder={isFetching ? 'Buscando...' : 'Digite para buscar...'}
+          onChange={(e) => {
+            setTermoBusca(e.target.value)
+            onChange(e.target.value)
+          }}
         />
         <datalist id={`datalist-${id}`}>
-          {opcoes.map(item => (
+          {opcoesDisponiveis.map((item) => (
             <option key={item} value={item} />
           ))}
         </datalist>
@@ -146,17 +155,16 @@ function FiltroSelectGenerico({ id, label, valorAtual, opcoes, onChange, isLarge
     )
   }
 
-  // Se for uma lista normal, renderiza o select comum
   return (
     <div className="flex flex-col gap-1">
       <label className="text-sm font-medium text-gray-700">{label}</label>
       <select 
         className="p-2 border rounded-md text-sm outline-none focus:border-blue-500 bg-white"
-        value={valorAtual} 
+        value={valorAtual}
         onChange={(e) => onChange(e.target.value)}
       >
         <option value="">Todas</option>
-        {opcoes.map(item => (
+        {opcoes.map((item) => (
           <option key={item} value={item}>{item}</option>
         ))}
       </select>

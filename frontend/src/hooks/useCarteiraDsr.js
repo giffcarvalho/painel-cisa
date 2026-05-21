@@ -20,6 +20,19 @@ export function useOpcoesFiltrosQuery() {
   })
 }
 
+export function useBuscaFiltroQuery(campo, termo) {
+  const termoNormalizado = termo?.trim() || ''
+
+  return useQuery({
+    queryKey: ['carteira-dsr', 'busca-filtro', campo, termoNormalizado],
+    queryFn: async () => (
+      await carteiraDsrApi.buscarFiltro(campo, termoNormalizado)
+    ).data.data,
+    enabled: Boolean(campo) && termoNormalizado.length >= 2,
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
 // 3. Valores por UF
 export function useValoresUfQuery() {
   const { filtros } = useFiltros()

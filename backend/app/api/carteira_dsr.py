@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.database import get_db
-from app.schemas.filtros import OpcoesFiltros
+from app.schemas.filtros import BuscaFiltroResponse, OpcoesFiltros
 from app.schemas.graficos import (
     InstrumentosPorAcaoResponse,
     InstrumentosPorFaseResponse,
@@ -27,6 +27,13 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 MV = "temporario.mvw_cisa_tabelao"
+CAMPOS_BUSCA_FILTROS = {
+    "municipio": "municipio",
+    "nr_proposta": "nr_proposta::text",
+    "nr_instrumento": "nr_instrumento::text",
+    "nome_proponente": "nome_proponente",
+    "nr_proposta_selecao_pac": "nr_proposta_selecao_pac::text",
+}
 
 async def _execute_query(db: AsyncSession, sql: str, params: dict | None = None) -> CursorResult: #--Executa a query com tratamento de erro para evitar que exceções brutas do banco vazem.
     try:
@@ -187,6 +194,47 @@ async def get_filtros(response: Response, db: AsyncSession = Depends(get_db)):
     """
     result = await _execute_query(db, sql)
     return OpcoesFiltros(**dict(result.mappings().one()))
+
+@router.get("/filtros/busca", response_model=BuscaFiltroResponse, summary="Busca de filtros")
+async def buscar_opcoes_filtro(
+    campo: Annotated[str, Query(description="Campo pesquisável.")],
+    q: Annotated[str, Query(min_length=2, max_length=100, description="Termo de busca.")],
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    db: AsyncSession = Depends(get_db)
+):
+    coluna = CAMPOS_BUSCA_FILTROS.get(campo)
+
+    if not coluna: 
+        raise HTTPException(
+            status_code=400,
+            detail="Campo de filtro não permitido para busca."
+        )
+    
+    termo = q.strip()
+
+    sql = f"""
+        SELECT DISTINCT {coluna} AS valor
+        FROM {MV}
+        WHERE {coluna} IS NOT NULL
+        AND {coluna} ILIKE :termo
+        ORDER BY valor
+        LIMIT :limit
+    """
+
+    result = await _execute_query(
+        db,
+        sql,
+        {
+            "termo": f"%{termo}%",
+            "limit": limit,
+        },
+    )
+
+    return BuscaFiltroResponse(
+        campo=campo,
+        termo=termo,
+        data=[row["valor"] for row in result.mappings().all()],
+    )
 
 # valores por UF
 @router.get("/graficos/localidade", response_model=ValoresPorUFResponse, summary="Valores proporcionais por UF")

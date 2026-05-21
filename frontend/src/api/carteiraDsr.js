@@ -36,4 +36,8 @@ export const carteiraDsrApi = {
     
     return api.get('/carteira-dsr/tabela', { params })
   },
+  buscarFiltro: (campo, q, limit = 50) =>
+    api.get('/carteira-dsr/filtros/busca', {
+      params: { campo, q, limit },
+    }),
 }

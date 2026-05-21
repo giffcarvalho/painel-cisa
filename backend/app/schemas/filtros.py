@@ -22,3 +22,8 @@ class OpcoesFiltros(BaseModel):
     acoes_orcamentarias: list[str]
 
     model_config = {"from_attributes": True}
+
+class BuscaFiltroResponse(BaseModel):
+    campo: str
+    termo: str
+    data: list[str]
