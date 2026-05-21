@@ -14,7 +14,7 @@ const CONFIG_FILTROS = [
   { id: 'situacao_obra', label: 'Situação da Obra', optionsKey: 'situacoes_obra' },
   { id: 'situacao_contratacao', label: 'Situação da Contratação', optionsKey: 'situacoes_contratacao' },
   { id: 'nr_proposta', label: 'Número da Proposta', searchable: true },
-  { id: 'nr_instrumento', label: 'Número do Instrumento', osearchable: true },
+  { id: 'nr_instrumento', label: 'Número do Instrumento', searchable: true },
   { id: 'ano_proposta', label: 'Ano da Proposta', optionsKey: 'anos_proposta' },
   { id: 'nome_proponente', label: 'Proponente', searchable: true },
   { id: 'termino_vigencia', label: 'Término da Vigência', optionsKey: 'termino_vigencia' },
