@@ -1,6 +1,5 @@
-import { createContext, useContext, useMemo, useState } from 'react'
-
-const FiltrosContext = createContext(null)
+import { useMemo, useState } from 'react'
+import { FiltrosContext } from './filtrosContextValue'
 
 const FILTROS_INICIAIS = {
   componente:           [],
@@ -71,8 +70,3 @@ export function FiltrosProvider({ children }) {
   )
 }
 
-export const useFiltros = () => {
-  const ctx = useContext(FiltrosContext)
-  if (!ctx) throw new Error('useFiltros deve ser usado dentro de FiltrosProvider')
-  return ctx
-}

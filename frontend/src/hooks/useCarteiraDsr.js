@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { carteiraDsrApi } from '@/api/carteiraDsr'
-import { useFiltros } from '@/context/filtrosContext'
+import { useFiltros } from '@/context/useFiltros'
 
 // 1. KPIs
 export function useKpisQuery() {

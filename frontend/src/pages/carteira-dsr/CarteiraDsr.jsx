@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useFiltros } from "@/context/filtrosContext"
+import { useFiltros } from '@/context/useFiltros'
 import KpisSection from '@/components/carteira-dsr/KpisSection'
 import GraficosSection from '@/components/carteira-dsr/GraficosSection'
 import TabelaSection from '@/components/carteira-dsr/TabelaSection'

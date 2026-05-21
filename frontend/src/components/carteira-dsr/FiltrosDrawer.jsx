@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { X, Filter, AlertCircle } from 'lucide-react'
-import { useFiltros } from '@/context/filtrosContext'
+import { useFiltros } from '@/context/useFiltros'
 import { useOpcoesFiltrosQuery } from '@/hooks/useCarteiraDsr'
 
 const CONFIG_FILTROS = [
@@ -18,7 +18,7 @@ const CONFIG_FILTROS = [
   { id: 'ano_proposta', label: 'Ano da Proposta', optionsKey: 'anos_proposta' },
   { id: 'nome_proponente', label: 'Proponente', optionsKey: 'nome_proponente', isLargeList: true },
   { id: 'termino_vigencia', label: 'Término da Vigência', optionsKey: 'termino_vigencia' },
-  { id: 'nr_proposta_selecao_pac', label: 'Proposta Seleção PAC', optionsKey: 'nr_proposta_selecao_pac' },
+  { id: 'nr_proposta_selecao_pac', label: 'Proposta Seleção PAC', optionsKey: 'nr_proposta_selecao_pac', isLargeList: true },
   { id: 'carteira_ativa', label: 'Carteira Ativa', optionsKey: 'carteira_ativa' },
   { id: 'fase_instrumento', label: 'Fase do Instrumento', optionsKey: 'fase_instrumento' }
 ]

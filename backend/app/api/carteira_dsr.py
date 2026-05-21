@@ -122,7 +122,7 @@ async def get_kpis(
     filtros: FiltrosCarteiraDSR = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
-    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Cache-Control"] = "private, max-age=300"
     where, params = _build_where(filtros)
 
     sql = f"""
@@ -195,7 +195,7 @@ async def get_valores_por_uf(
     filtros: FiltrosCarteiraDSR = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
-    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Cache-Control"] = "private, max-age=300"
     where, params = _build_where(filtros)
     sql = f"""
         SELECT 
@@ -219,7 +219,7 @@ async def get_valores_por_acao(
     filtros: FiltrosCarteiraDSR = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
-    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Cache-Control"] = "private, max-age=300"
     where, params = _build_where(filtros)
     sql = f"""
         WITH instrumentos AS (
@@ -254,7 +254,7 @@ async def get_instrumentos_por_acao(
     filtros: FiltrosCarteiraDSR = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
-    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Cache-Control"] = "private, max-age=300"
     where, params = _build_where(filtros)
     sql = f"""
         SELECT
@@ -275,7 +275,7 @@ async def get_valor_por_tipo(
     filtros: FiltrosCarteiraDSR = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
-    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Cache-Control"] = "private, max-age=300"
     where, params = _build_where(filtros)
     sql = f"""
         WITH instrumentos AS (
@@ -302,7 +302,7 @@ async def get_instrumentos_por_fase(
     filtros: FiltrosCarteiraDSR = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
-    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Cache-Control"] = "private, max-age=300"
     where, params = _build_where(filtros)
     sql = f"""
         SELECT
@@ -323,7 +323,7 @@ async def get_instrumentos_por_situacao(
     filtros: FiltrosCarteiraDSR = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
-    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Cache-Control"] = "private, max-age=300"
     where, params = _build_where(filtros)
     sql = f"""
         SELECT
@@ -344,7 +344,7 @@ async def get_mapa_coropletico(
     filtros: FiltrosCarteiraDSR = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
-    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Cache-Control"] = "private, max-age=300"
     where, params = _build_where(filtros)
     sql = f"""
         SELECT
@@ -366,7 +366,7 @@ async def get_mapa_pontos(
     filtros: FiltrosCarteiraDSR = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
-    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Cache-Control"] = "private, max-age=300"
     where, params = _build_where(filtros)
     count_sql = f"""
         SELECT COUNT(*) FROM (
@@ -407,7 +407,7 @@ async def get_tabela(
     tamanho_pagina: Annotated[int, Query(ge=1, le=500, description="Itens por página.")] = 100,
     db: AsyncSession = Depends(get_db)
 ):
-    response.headers["Cache-Control"] = "public, max-age=300"
+    response.headers["Cache-Control"] = "private, max-age=300"
     where, params = _build_where(filtros)
 
     offset = (pagina - 1) * tamanho_pagina
