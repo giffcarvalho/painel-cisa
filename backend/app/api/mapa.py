@@ -7,6 +7,7 @@ from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from app.core.database import get_db
+import jenkspy
 
 
 router = APIRouter()
@@ -70,7 +71,7 @@ async def get_ufs(z: int, x: int, y: int, db: AsyncSession = Depends(get_db)):
         ) AS tile;
     """
     
-    result = await _execute_query(db, sql, params)
+    result = await _execute_query(db, sql, params) # transformar esse bloco em uma função e depois só chamar ela nas rotas?
     row = result.fetchone()
     return Response(
         content=row.mvt if row and row.mvt else b"",
@@ -133,8 +134,8 @@ async def get_distritos_2022(z: int, x: int, y: int, db: AsyncSession = Depends(
                     ST_Simplify(
                         ST_Transform(geom, 3857),
                         CASE
-                            WHEN $1 <= 8 THEN 500 
-                            WHEN $1 <= 9 THEN 300
+                            WHEN :z <= 8 THEN 500 
+                            WHEN :z <= 9 THEN 300
                             ELSE 0
                         END
                     ),
@@ -173,8 +174,8 @@ async def get_setores_censitarios_2022(z: int, x: int, y: int, db: AsyncSession 
                     ST_Simplify(
                         ST_Transform(geom, 3857),
                         CASE
-                            WHEN $1 <= 8 THEN 500 
-                            WHEN $1 <= 9 THEN 300
+                            WHEN :z <= 8 THEN 500 
+                            WHEN :z <= 9 THEN 300
                             ELSE 0
                         END
                     ),
@@ -260,3 +261,121 @@ async def get_enderecos_2022(z: int, x: int, y: int, db: AsyncSession = Depends(
         media_type="application/x-protobuf",
         headers={"Cache-Control": "public, max-age=300"}
     )
+
+
+# municipios 2022
+@router.get("/municipios_2022/{z}/{x}/{y}.pbf", summary="Municípios 2022")
+async def get_municipios_2022(z: int, x: int, y: int, db: AsyncSession = Depends(get_db)):
+
+    
+    params = {"z": z, "x": x, "y": y}
+
+    sql = """
+        SELECT ST_AsMVT(tile, 'poligonos', 4096, 'geom') AS mvt
+        FROM (
+            SELECT
+                cod_municipio,
+                nome_municipio,
+                populacao_total_censo_2022,
+                categoria_metropolitana,
+                subgrupo,
+                semiarido_2022,
+                amazonia_legal,
+                vale_jequetinhonha,
+                idhm_2010,
+                indice_firjan_2016,
+                deficit_agua_rural_ibge,
+                deficit_esgoto_rural_ibge,
+                deficit_residuo_rural_ibge,
+                deficit_banheiro_rural_ibge,
+                deficit_agua_urbana_ibge,
+                deficit_esgoto_urbana_ibge,
+                deficit_residuo_urbana_ibge,
+                deficit_banheiro_urbana_ibge,
+                ST_AsMVTGeom(
+                    ST_Simplify(
+                        ST_Transform(geom2022, 3857),
+                        CASE
+                            WHEN :z <= 7 THEN 1000
+                            WHEN :z <= 8 THEN 500
+                            WHEN :z <= 9 THEN 300
+                            ELSE 0
+                        END
+                    ),
+                    ST_TileEnvelope(:z, :x, :y), 4096, 256, true) AS geom
+            FROM territorio.vw_base_municipal
+            WHERE geom2022 && ST_Transform(ST_TileEnvelope(:z, :x, :y), 4326)
+        ) AS tile;
+    """
+    
+    result = await _execute_query(db, sql, params)
+    row = result.fetchone()
+    return Response(
+        content=row.mvt if row and row.mvt else b"",
+        media_type="application/x-protobuf",
+        headers={"Cache-Control": "public, max-age=300"}
+    )
+
+
+
+# classificação das classes cloropléticas do mapa usando quebra Jenks (lib jenkspy)
+cache_jenks = {}
+colunas_permitidas = [
+    "populacao_total_censo_2022",
+    "categoria_metropolitana",
+    "subgrupo",
+    "semiarido_2022",
+    "amazonia_legal",
+    "vale_jequetinhonha",
+    "idhm_2010",
+    "indice_firjan_2016",
+    "deficit_agua_rural_ibge",
+    "deficit_esgoto_rural_ibge",
+    "deficit_residuo_rural_ibge",
+    "deficit_banheiro_rural_ibge",
+    "deficit_agua_urbana_ibge",
+    "deficit_esgoto_urbana_ibge",
+    "deficit_residuo_urbana_ibge",
+    "deficit_banheiro_urbana_ibge",
+]
+
+@router.get("/classificacao/{variavel}")
+async def get_classificacao(variavel: str, classes: int = 5, db: AsyncSession = Depends(get_db)):
+
+    cache_key = f"{variavel}_{classes}"
+
+    if cache_key in cache_jenks:
+        return cache_jenks[cache_key]
+
+
+    if classes < 2 or classes > 9:
+        raise HTTPException(
+            status_code=400,
+            detail="Número de classes inválido."
+        )
+
+    if variavel not in colunas_permitidas:
+        raise HTTPException(
+            status_code=400,
+            detail="Variável inválida."
+        )
+
+    sql = f"""
+        SELECT {variavel} AS valor
+        FROM territorio.vw_base_municipal
+        WHERE {variavel} IS NOT NULL
+    """
+
+    result = await _execute_query(db, sql)
+    rows = result.fetchall()
+    valores = [float(row.valor) for row in rows]
+    breaks = jenkspy.jenks_breaks(valores, n_classes=classes)
+
+    resultado = {
+        "variavel": variavel,
+        "classes": classes,
+        "breaks": breaks
+    }
+
+    cache_jenks[cache_key] = resultado
+    return resultado
