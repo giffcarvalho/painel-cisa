@@ -2,7 +2,7 @@ import { createBrowserRouter } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import { Loader2 } from 'lucide-react'
 import AppLayout from '@/components/layout/AppLayout'
-import Home from '@/pages/Home'
+import Home from '@/pages/home/Home'
 import CarteiraDsr from '@/pages/carteira-dsr/CarteiraDsr'
 
 const Mapa = lazy(() => import('@/pages/mapa/Mapa'))

@@ -49,7 +49,7 @@ export function FiltrosProvider({ children }) {
   }
 
   const limparFiltros = () => {
-    setFiltros(FILTROS_INICIAIS)
+    setFiltros(normalizarFiltros(FILTROS_INICIAIS))
   }
 
   const qtdeFiltrosAtivos = Object.values(filtros).filter((v) =>

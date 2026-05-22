@@ -2,7 +2,7 @@ import { AlertCircle } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton" 
 import styles from './GraficosSection.module.css'
 import ValoresUfChart from './graficos/ValoresUfChart'
-
+import MapaIntegradoChart from "./graficos/MapaIntegradoChart"
 
 import { 
   useValoresUfQuery,
@@ -15,24 +15,23 @@ import {
   useTipoInstrumentoQuery
 } from "@/hooks/useCarteiraDsr"
 
-
 export default function GraficosSection() {
   return (
     <div className={styles.dashboardGrid}>
       
-      {/* --- LINHA 1 --- */}
+      {/* --- LINHA 1: BARRAS E MAPA --- */}
       <div className={styles.graficosRow}>
         <div className={styles.graficoCard}>
           <h3 className={styles.cardTitle}>Valores Proporcionais por UF</h3>
-          <div className={styles.chartPlaceholder}>
+          <div className={styles.chartPlaceholder} style={{ minHeight: '900px' }}>
             <AsyncValoresUf />
           </div>
         </div>
 
         <div className={styles.graficoCard}>
-          <h3 className={styles.cardTitle}>Valores por UF</h3>
-          <div className={styles.chartPlaceholder}>
-            <AsyncMapaCoropletico />
+          <h3 className={styles.cardTitle}>Visão Geospacial (Valores vs. Municípios Beneficiados)</h3>
+          <div className={styles.chartPlaceholder} style={{ minHeight: '900px' }}>
+            <AsyncMapaIntegrado />
           </div>
         </div>
       </div>
@@ -74,18 +73,14 @@ export default function GraficosSection() {
       {/* --- LINHA 4 --- */}
       <div className={styles.graficosRow}>
         <div className={styles.graficoCard}>
-          <h3 className={styles.cardTitle}>Localização dos Municípios Beneficiados</h3>
-          <div className={styles.chartPlaceholder}>
-            <AsyncMapaPontos />
-          </div>
-        </div>
-
-        <div className={styles.graficoCard}>
           <h3 className={styles.cardTitle}>Valor Global por Tipo de Instrumento</h3>
           <div className={styles.chartPlaceholder}>
             <AsyncTipoInstrumento />
           </div>
         </div>
+        
+        {/* Espaço vazio à direita nesta linha, ou pode ser preenchido futuramente */}
+        <div className="hidden md:block"></div>
       </div>
 
     </div>
@@ -114,17 +109,6 @@ function AsyncValoresUf() {
   return (
     <ChartStateWrapper isLoading={isLoading} isError={isError}>
       <ValoresUfChart dados={data} />
-    </ChartStateWrapper>
-  )
-}
-
-function AsyncMapaCoropletico() {
-  const { data, isLoading, isError } = useMapaCoropleticoQuery()
-  return (
-    <ChartStateWrapper isLoading={isLoading} isError={isError}>
-      <div className="flex items-center justify-center w-full h-full min-h-[300px] text-gray-500 text-sm">
-        [Mapa Coroplético] (Itens: {data?.length || 0})
-      </div>
     </ChartStateWrapper>
   )
 }
@@ -173,17 +157,6 @@ function AsyncSituacaoContratacao() {
   )
 }
 
-function AsyncMapaPontos() {
-  const { data, isLoading, isError } = useMapaPontosQuery()
-  return (
-    <ChartStateWrapper isLoading={isLoading} isError={isError}>
-      <div className="flex items-center justify-center w-full h-full min-h-[300px] text-gray-500 text-sm">
-        [Mapa Dispersão] (Itens: {data?.length || 0})
-      </div>
-    </ChartStateWrapper>
-  )
-}
-
 function AsyncTipoInstrumento() {
   const { data, isLoading, isError } = useTipoInstrumentoQuery()
   return (
@@ -191,6 +164,23 @@ function AsyncTipoInstrumento() {
       <div className="flex items-center justify-center w-full h-full min-h-[300px] text-gray-500 text-sm">
         [Gráfico Rosca Tipo] (Itens: {data?.length || 0})
       </div>
+    </ChartStateWrapper>
+  )
+}
+
+function AsyncMapaIntegrado() {
+  const queryCoropletico = useMapaCoropleticoQuery()
+  const queryPontos = useMapaPontosQuery()
+
+  const isLoading = queryCoropletico.isLoading || queryPontos.isLoading
+  const isError = queryCoropletico.isError || queryPontos.isError
+
+  return (
+    <ChartStateWrapper isLoading={isLoading} isError={isError}>
+      <MapaIntegradoChart 
+        dadosCoropletico={queryCoropletico.data} 
+        dadosPontos={queryPontos.data} 
+      />
     </ChartStateWrapper>
   )
 }

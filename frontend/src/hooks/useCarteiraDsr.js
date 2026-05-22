@@ -16,7 +16,7 @@ export function useOpcoesFiltrosQuery() {
   return useQuery({
     queryKey: ['carteira-dsr', 'opcoes-filtros'],
     queryFn: async () => (await carteiraDsrApi.getFiltros()).data,
-    staleTime: Infinity,
+    staleTime: 60 * 60 * 1000,
   })
 }
 

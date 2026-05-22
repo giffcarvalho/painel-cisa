@@ -1,0 +1,65 @@
+@reference "tailwindcss";
+
+.container {
+    @apply flex flex-col items-center min-h-screen bg-gray-50 p-10 font-sans;
+}
+
+.header {
+    @apply text-center mb-16;
+}
+
+.title {
+    @apply text-3xl font-bold text-gray-800 tracking-tight;
+}
+
+.subtitle {
+    @apply text-gray-500 mt-2;
+}
+
+.grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl;
+}
+
+/* cards ativos */
+
+.cardActive {
+  @apply flex flex-col items-center justify-center p-8 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg hover:border-blue-500 transition-all cursor-pointer transform hover:-translate-y-1;
+}
+
+.iconWrapperActive {
+  @apply p-4 bg-blue-50 rounded-full hover:bg-blue-100 transition-colors mb-4;
+}
+
+.cardActive:hover .iconWrapperActive {
+    @apply bg-blue-100;
+}
+
+.iconActive {
+  @apply w-10 h-10 text-blue-600;
+}
+
+.cardTitleActive {
+  @apply text-lg font-semibold text-gray-800;
+}
+
+/* cards inativos */
+
+.cardDisabled {
+  @apply flex flex-col items-center justify-center p-8 bg-gray-100 rounded-xl border border-gray-200 opacity-60 cursor-not-allowed;
+}
+
+.iconWrapperDisabled {
+  @apply p-4 bg-gray-200 rounded-full mb-4;
+}
+
+.iconDisabled {
+  @apply w-10 h-10 text-gray-500;
+}
+
+.cardTitleDisabled {
+  @apply text-lg font-semibold text-gray-600;
+}
+
+.badgeDisabled {
+  @apply text-xs text-gray-400 mt-1;
+}
