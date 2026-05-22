@@ -12,7 +12,8 @@ import {
   useFasesQuery,
   useSituacaoContratacaoQuery,
   useMapaPontosQuery,
-  useTipoInstrumentoQuery
+  useTipoInstrumentoQuery,
+  useBrasilGeoJsonQuery
 } from "@/hooks/useCarteiraDsr"
 
 export default function GraficosSection() {
@@ -171,15 +172,17 @@ function AsyncTipoInstrumento() {
 function AsyncMapaIntegrado() {
   const queryCoropletico = useMapaCoropleticoQuery()
   const queryPontos = useMapaPontosQuery()
+  const queryGeoJson = useBrasilGeoJsonQuery()
 
-  const isLoading = queryCoropletico.isLoading || queryPontos.isLoading
-  const isError = queryCoropletico.isError || queryPontos.isError
+  const isLoading = queryCoropletico.isLoading || queryPontos.isLoading || queryGeoJson.isLoading
+  const isError = queryCoropletico.isError || queryPontos.isError || queryGeoJson.isError
 
   return (
     <ChartStateWrapper isLoading={isLoading} isError={isError}>
       <MapaIntegradoChart 
         dadosCoropletico={queryCoropletico.data} 
         dadosPontos={queryPontos.data} 
+        geoJson={queryGeoJson.data}
       />
     </ChartStateWrapper>
   )

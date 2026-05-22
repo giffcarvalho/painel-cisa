@@ -104,3 +104,18 @@ export function useMapaPontosQuery() {
     queryFn: async () => (await carteiraDsrApi.getMapaPontos(filtros)).data.data,
   })
 }
+
+// 11. Busca do GeoJSON estático
+export function useBrasilGeoJsonQuery() {
+  return useQuery({
+    queryKey: ['geo', 'brazil'],
+    queryFn: async () => {
+      const response = await fetch('/geo/brasilUf.json')
+      if (!response.ok) throw new Error('Falha ao carregar o mapa base')
+      return response.json()
+    },
+    staleTime: Infinity,
+    gcTime: Infinity, 
+    refetchOnWindowFocus: false,
+  })
+}

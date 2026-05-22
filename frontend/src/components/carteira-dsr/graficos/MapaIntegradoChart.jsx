@@ -1,11 +1,13 @@
 import ReactECharts from 'echarts-for-react'
 import * as echarts from 'echarts'
 import { formatCurrency } from '@/utils/formatters'
-import brasilUf from '@/assets/geo/brasilUf.json'
 
-echarts.registerMap('BR', brasilUf)
 
-export default function MapaIntegradoChart({ dadosCoropletico, dadosPontos }) {
+export default function MapaIntegradoChart({ dadosCoropletico, dadosPontos, geoJson }) {
+    if (geoJson && !echarts.getMap('BR')) {
+        echarts.registerMap('BR', geoJson)
+    }
+
     if (!dadosCoropletico?.length && !dadosPontos?.length) {
         return (
             <div className="flex h-full min-h-[400px] w-full items-center justify-center text-gray-400 text-sm">
@@ -123,11 +125,24 @@ export default function MapaIntegradoChart({ dadosCoropletico, dadosPontos }) {
     }
 
     return (
-        <ReactECharts 
-            option={option} 
-            style={{ height: '100%', width: '100%', minHeight: '450px' }} 
-            notMerge={true} 
-            lazyUpdate={true} 
-        />
+        <div className="flex flex-col h-full w-full">
+            <div className="flex-grow min-h-[450px]">
+                <ReactECharts 
+                    option={option} 
+                    style={{ height: '100%', width: '100%' }} 
+                    notMerge={true} 
+                    lazyUpdate={true} 
+                />
+            </div>
+            
+            <div className="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-500 space-y-1 px-2 text-center md:text-left">
+                <p>
+                    <span className="font-semibold text-gray-600">Nota 1:</span> A variação de cores do mapa acima representa a soma do valor global dos instrumentos celebrados em cada UF, variando do azul claro (menor valor) ao azul escuto (maior valor).
+                </p>
+                <p>
+                    <span className="font-semibold text-gray-600">Nota 2:</span> Os pontos no mapa representam apenas as sedes dos municípios beneficiados. Não se trata da localização exata das intervenções/obras.
+                </p>
+            </div>
+        </div>
     )
 }
