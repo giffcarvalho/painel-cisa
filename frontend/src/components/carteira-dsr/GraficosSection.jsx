@@ -5,6 +5,9 @@ import ValoresUfChart from './graficos/ValoresUfChart'
 import MapaIntegradoChart from "./graficos/MapaIntegradoChart"
 import AcoesQtdeChart from "./graficos/AcoesQtdeChart"
 import TipoInstrumentoChart from "./graficos/TipoInstrumentoChart"
+import ValoresAcaoChart from "./graficos/ValoresAcaoChart"
+import FasesChart from "./graficos/FasesChart"
+import SituacaoContratacaoChart from "./graficos/SituacaoContratacaoChart"
 
 import { 
   useValoresUfQuery,
@@ -120,9 +123,7 @@ function AsyncValoresAcao() {
   const { data, isLoading, isError } = useValoresAcaoQuery()
   return (
     <ChartStateWrapper isLoading={isLoading} isError={isError}>
-      <div className="flex items-center justify-center w-full h-full min-h-[300px] text-gray-500 text-sm">
-        [Gráfico Barras Verticais] (Itens: {data?.length || 0})
-      </div>
+      <ValoresAcaoChart dados={data} />
     </ChartStateWrapper>
   )
 }
@@ -140,9 +141,7 @@ function AsyncFases() {
   const { data, isLoading, isError } = useFasesQuery()
   return (
     <ChartStateWrapper isLoading={isLoading} isError={isError}>
-      <div className="flex items-center justify-center w-full h-full min-h-[300px] text-gray-500 text-sm">
-        [Gráfico Fases Execução] (Itens: {data?.length || 0})
-      </div>
+      <FasesChart dados={data} />
     </ChartStateWrapper>
   )
 }
@@ -151,9 +150,7 @@ function AsyncSituacaoContratacao() {
   const { data, isLoading, isError } = useSituacaoContratacaoQuery()
   return (
     <ChartStateWrapper isLoading={isLoading} isError={isError}>
-      <div className="flex items-center justify-center w-full h-full min-h-[300px] text-gray-500 text-sm">
-        [Gráfico Rosca Contratação] (Itens: {data?.length || 0})
-      </div>
+      <SituacaoContratacaoChart dados={data} />
     </ChartStateWrapper>
   )
 }
