@@ -3,6 +3,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import styles from './GraficosSection.module.css'
 import ValoresUfChart from './graficos/ValoresUfChart'
 import MapaIntegradoChart from "./graficos/MapaIntegradoChart"
+import AcoesQtdeChart from "./graficos/AcoesQtdeChart"
+import TipoInstrumentoChart from "./graficos/TipoInstrumentoChart"
 
 import { 
   useValoresUfQuery,
@@ -129,9 +131,7 @@ function AsyncAcoesQtde() {
   const { data, isLoading, isError } = useAcoesQtdeQuery()
   return (
     <ChartStateWrapper isLoading={isLoading} isError={isError}>
-      <div className="flex items-center justify-center w-full h-full min-h-[300px] text-gray-500 text-sm">
-        [Gráfico Barras Simples] (Itens: {data?.length || 0})
-      </div>
+      <AcoesQtdeChart dados={data} />
     </ChartStateWrapper>
   )
 }
@@ -162,9 +162,7 @@ function AsyncTipoInstrumento() {
   const { data, isLoading, isError } = useTipoInstrumentoQuery()
   return (
     <ChartStateWrapper isLoading={isLoading} isError={isError}>
-      <div className="flex items-center justify-center w-full h-full min-h-[300px] text-gray-500 text-sm">
-        [Gráfico Rosca Tipo] (Itens: {data?.length || 0})
-      </div>
+      <TipoInstrumentoChart dados={data} />
     </ChartStateWrapper>
   )
 }

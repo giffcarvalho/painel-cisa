@@ -1,9 +1,14 @@
+// === src/components/carteira-dsr/graficos/MapaIntegradoChart.jsx ===
 import ReactECharts from 'echarts-for-react'
 import * as echarts from 'echarts'
 import { formatCurrency } from '@/utils/formatters'
-
+import { useRef } from 'react' // <--- NOVA IMPORTAÇÃO AQUI
 
 export default function MapaIntegradoChart({ dadosCoropletico, dadosPontos, geoJson }) {
+    const coropleticoAtivo = useRef(true);
+    const echartsRef = useRef(null); 
+    const symbolSizeRef = useRef(6);
+
     if (geoJson && !echarts.getMap('BR')) {
         echarts.registerMap('BR', geoJson)
     }
@@ -16,13 +21,25 @@ export default function MapaIntegradoChart({ dadosCoropletico, dadosPontos, geoJ
         )
     }
 
-    const chartDataCoropletico = (dadosCoropletico || []).map((item) => ({
-        name: item.uf,
-        value: Number(item.valor_global_proporcional) || 0,
-        qtde: item.qtde_instrumentos || 0
-    }))
+    const chartDataCoropletico = (geoJson?.features || []).map((feature) => {
+        const props = feature.properties;
+        const siglaGeo = props.SIGLA;
 
-    const maxValue = Math.max(...chartDataCoropletico.map(d => d.value), 1)
+        const dadoApi = (dadosCoropletico || []).find(
+            (item) => item.uf && String(item.uf).trim().toUpperCase() === siglaGeo
+        );
+
+        return {
+            name: siglaGeo, 
+            value: dadoApi ? Number(dadoApi.valor_global_proporcional) || 0 : 0,
+            qtde: dadoApi ? dadoApi.qtde_instrumentos || 0 : 0,
+            nomeCompleto: props.Estado || siglaGeo,
+            regiao: props.Regiao || 'N/I',
+            codigoUf: props.Codigo || 'N/I'
+        };
+    });
+
+    const maxValue = Math.max(...chartDataCoropletico.map(d => d.value), 1);
 
     const chartDataPontos = (dadosPontos || []).map((item) => ({
         name: item.nome_municipio,
@@ -31,10 +48,11 @@ export default function MapaIntegradoChart({ dadosCoropletico, dadosPontos, geoJ
             item.latitude, 
             item.acao_padronizada || 'Ação não informada'
         ]
-    }))
+    }));
+
+    const boxStyle = "background: rgba(255, 255, 255, 0.95); border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); color: #374151;";
 
     const option = {
-        // O Legend cria automaticamente os "Filtros de Camada" para o usuário clicar e ligar/desligar
         legend: {
             show: true,
             orient: 'vertical',
@@ -49,16 +67,16 @@ export default function MapaIntegradoChart({ dadosCoropletico, dadosPontos, geoJ
 
         geo: {
             map: 'BR',
-            roam: true, // Permite zoom e arrastar.
-            zoom: 1.2, // Define o zoom ao iniciar a página
-            nameProperty: 'SIGLA', // Conecta com a propriedade SIGLA do GeoJSON
+            roam: true,
+            zoom: 1.2,
+            nameProperty: 'SIGLA',
             itemStyle: {
-                areaColor: '#f3f4f6',
-                borderColor: '#ffffff',
+                areaColor: '#f3f4f6',   
+                borderColor: '#9ca3af',
                 borderWidth: 1
             },
             emphasis: {
-                itemStyle: { areaColor: '#fcd34d' },
+                itemStyle: { areaColor: '#c0dda4' },
                 label: { show: false }
             }
         },
@@ -79,22 +97,76 @@ export default function MapaIntegradoChart({ dadosCoropletico, dadosPontos, geoJ
 
         tooltip: {
             trigger: 'item',
+            backgroundColor: 'transparent',
+            borderColor: 'transparent',
+            borderWidth: 0,
+            padding: 0,
+            shadowColor: 'transparent',
+            
             formatter: (params) => {
+                if (!params.seriesType || !params.data) return '';
+
                 if (params.seriesType === 'map') {
-                    const { name, value, qtde } = params.data || {}
-                    if (!value) return `${name}: Sem dados`
+                    if (!coropleticoAtivo.current) return '';
+
+                    const { name, value, qtde, nomeCompleto, regiao, codigoUf } = params.data;
+                    
+                    if (value === 0 && qtde === 0) {
+                        return `
+                            <div style="${boxStyle} min-width: 200px;">
+                                <div style="font-weight: bold; font-size: 14px; border-bottom: 2px solid #9ca3af; padding-bottom: 4px; margin-bottom: 8px;">
+                                    ${nomeCompleto} (${name})
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; font-size: 12px; color: #6b7280;">
+                                    <div><span style="font-weight: 600;">Cód IBGE:</span> ${codigoUf}</div>
+                                    <div><span style="font-weight: 600;">Região:</span> ${regiao}</div>
+                                </div>
+                                <div style="color: #ef4444; font-size: 12px; text-align: center; padding: 4px 0; font-weight: 500;">
+                                    Nenhum instrumento registrado
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
                     return `
-                        <div style="font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-bottom: 4px;">UF: ${name}</div>
-                        <div>Valor: <strong>${formatCurrency(value, true)}</strong></div>
-                        <div>Instrumentos: <strong>${qtde}</strong></div>
-                    `
+                        <div style="${boxStyle} min-width: 200px;">
+                            <div style="font-weight: bold; font-size: 14px; border-bottom: 2px solid #3b82f6; padding-bottom: 4px; margin-bottom: 8px;">
+                                ${nomeCompleto} (${name})
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; font-size: 12px; color: #6b7280;">
+                                <div><span style="font-weight: 600;">Cód IBGE:</span> ${codigoUf}</div>
+                                <div><span style="font-weight: 600;">Região:</span> ${regiao}</div>
+                            </div>
+                            <div style="margin-bottom: 4px;">
+                                <span style="color: #6b7280;">Valor Global:</span> 
+                                <strong style="float: right; color: #111827;">${formatCurrency(value, true)}</strong>
+                            </div>
+                            <div>
+                                <span style="color: #6b7280;">Instrumentos:</span> 
+                                <strong style="float: right; color: #111827;">${qtde}</strong>
+                            </div>
+                        </div>
+                    `;
                 } else if (params.seriesType === 'scatter') {
-                    const municipio = params.name
-                    const acao = params.value[2]
+                    const municipio = params.name;
+                    const longitude = params.value[0];
+                    const latitude = params.value[1];
+                    const acao = params.value[2];
+                    
                     return `
-                        <div style="font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-bottom: 4px;">${municipio}</div>
-                        <div style="max-width: 200px; white-space: normal;">Ação: ${acao}</div>
-                    `
+                        <div style="${boxStyle}">
+                            <div style="font-weight: bold; border-bottom: 1px solid #f97316; padding-bottom: 4px; margin-bottom: 8px;">
+                                ${municipio}
+                            </div>
+                            <div style="max-width: 250px; white-space: normal; font-size: 12px; margin-bottom: 8px;">
+                                <span style="color: #6b7280;">Ação:</span> ${acao}
+                            </div>
+                            <div style="display: flex; gap: 12px; font-size: 11px; color: #9ca3af; border-top: 1px dashed #e5e7eb; padding-top: 6px;">
+                                <div><span style="font-weight: 600; color: #6b7280;">Lat:</span> ${latitude}</div>
+                                <div><span style="font-weight: 600; color: #6b7280;">Lon:</span> ${longitude}</div>
+                            </div>
+                        </div>
+                    `;
                 }
             }
         },
@@ -111,7 +183,7 @@ export default function MapaIntegradoChart({ dadosCoropletico, dadosPontos, geoJ
                 type: 'scatter',
                 coordinateSystem: 'geo',
                 data: chartDataPontos,
-                symbolSize: 6,
+                symbolSize: symbolSizeRef.current,
                 itemStyle: {
                     color: '#f97316',
                     borderColor: '#fff',
@@ -124,11 +196,34 @@ export default function MapaIntegradoChart({ dadosCoropletico, dadosPontos, geoJ
         ]
     }
 
+    const handleEvents = {
+        legendselectchanged: (params) => {
+            coropleticoAtivo.current = params.selected['Valores por UF (Coroplético)'];
+        },
+
+        georoam: (params) => {
+            if (params.zoom && echartsRef.current) {
+                const chart = echartsRef.current.getEchartsInstance();
+                let novoTamanho = symbolSizeRef.current * params.zoom;
+                novoTamanho = Math.max(3, Math.min(novoTamanho, 25));
+                symbolSizeRef.current = novoTamanho;
+                chart.setOption({
+                    series: [
+                        {},
+                        { symbolSize: novoTamanho }
+                    ]
+                });
+            }
+        }
+    };
+
     return (
         <div className="flex flex-col h-full w-full">
             <div className="flex-grow min-h-[450px]">
-                <ReactECharts 
+                <ReactECharts
+                    ref={echartsRef}
                     option={option} 
+                    onEvents={handleEvents} 
                     style={{ height: '100%', width: '100%' }} 
                     notMerge={true} 
                     lazyUpdate={true} 
@@ -137,7 +232,7 @@ export default function MapaIntegradoChart({ dadosCoropletico, dadosPontos, geoJ
             
             <div className="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-500 space-y-1 px-2 text-center md:text-left">
                 <p>
-                    <span className="font-semibold text-gray-600">Nota 1:</span> A variação de cores do mapa acima representa a soma do valor global dos instrumentos celebrados em cada UF, variando do azul claro (menor valor) ao azul escuto (maior valor).
+                    <span className="font-semibold text-gray-600">Nota 1:</span> A variação de cores do mapa acima representa a soma do valor global dos instrumentos celebrados em cada UF, variando do azul claro (menor valor) ao azul escuro (maior valor).
                 </p>
                 <p>
                     <span className="font-semibold text-gray-600">Nota 2:</span> Os pontos no mapa representam apenas as sedes dos municípios beneficiados. Não se trata da localização exata das intervenções/obras.

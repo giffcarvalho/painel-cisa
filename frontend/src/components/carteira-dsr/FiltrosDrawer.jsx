@@ -31,7 +31,6 @@ export default function FiltrosDrawer({ onClose }) {
   const [rascunho, setRascunho] = useState(filtrosGlobais)
   
   const handleChange = (campo, valor) => {
-    // Trata tanto string vazia quanto nulo
     const valorTratado = (valor && valor.trim() !== '') ? [valor] : [] 
     setRascunho(prev => ({ ...prev, [campo]: valorTratado }))
   }
@@ -123,7 +122,6 @@ export default function FiltrosDrawer({ onClose }) {
   )
 }
 
-// 5. O COMPONENTE REUTILIZÁVEL
 function FiltroSelectGenerico({ id, label, valorAtual, opcoes, onChange, remoteSearch }) {
   const [termoBusca, setTermoBusca] = useState(valorAtual)
   const [aberto, setAberto] = useState(false)
