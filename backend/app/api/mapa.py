@@ -1,31 +1,24 @@
 """Todos os endpoints do Mapa"""
 
 import logging
-from fastapi import APIRouter, Depends, Response, HTTPException
+from fastapi import APIRouter, Depends, Query, Response, HTTPException
 from sqlalchemy import text
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from app.core.database import get_db
 import jenkspy
+from app.schemas.filtrosMapa import BuscaFiltroResponse, OpcoesFiltros
 
-
+ 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-
-
-def _parse_list_param(param: list[str] | None) -> list[str] | None:  #--Garante que parâmetros passados como string separada por vírgula no frontend sejam convertidos em uma lista válida.
-    if not param:
-        return None
-    parsed = []
-    for item in param:
-        if "," in item:
-            parsed.extend([p.strip() for p in item.split(",") if p.strip()])
-        else:
-            if item.strip():
-                parsed.append(item.strip())
-    return parsed if parsed else None
+CAMPOS_BUSCA_FILTROS = {
+    "municipio": "cod_municipio::text",
+    "uf": "cod_uf::text",
+    "nr_instrumento": "nr_instrumento::text",
+}
 
 
 async def _execute_query(db: AsyncSession, sql: str, params: dict | None = None) -> CursorResult: #--Executa a query com tratamento de erro para evitar que exceções brutas do banco vazem.
@@ -38,6 +31,47 @@ async def _execute_query(db: AsyncSession, sql: str, params: dict | None = None)
             detail="Erro interno de processamento ao consultar a base de dados."
         )
 
+
+#--Dependência de filtros
+class FiltrosMapa:  #-- Dependência do FastAPI para agrupar todos os Query Parameters. Evita repetição nas assinaturas das funções de rota.
+    def __init__(
+            self,
+            uf: list[str] | None = Query(None),
+            municipio: list[str] | None = Query(None),
+            nr_instrumento: list[str] | None = Query(None),
+            tipo_instrumento: list[str] | None = Query(None),
+            acao_padronizada: list[str] | None = Query(None) 
+    ):
+        self.uf = uf
+        self.municipio = municipio
+        self.nr_instrumento = nr_instrumento
+        self.tipo_instrumento = tipo_instrumento
+        self.acao_padronizada = acao_padronizada
+        
+
+def _build_where(filtros: FiltrosMapa) -> tuple[str, dict]:
+    clauses: list[str] = []
+    params: dict = {}
+
+    list_filters = [
+        ("cod_uf", filtros.uf, "cod_uf", "text"),
+        ("cod_municipio", filtros.municipio, "cod_municipio", "text"),
+        ("nr_instrumento", filtros.nr_instrumento, "nr_instrumento", "text"),
+        ("tipo_instrumento", filtros.tipo_instrumento, "tipo_instrumento", None),
+        ("acao_padronizada", filtros.acao_padronizada, "acao_padronizada", None)
+    ]
+
+    for col, values, param_key, cast_type in list_filters:
+        if values:
+            placeholder = ", ".join(f":{param_key}_{i}" for i in range(len(values)))
+            sql_col = f"{col}::{cast_type}" if cast_type else col
+            clauses.append(f"{sql_col} IN ({placeholder})")
+
+            for i, v in enumerate(values):
+                params[f"{param_key}_{i}"] = str(v).strip()
+
+    where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+    return where, params
 
 
 # ufs
@@ -78,6 +112,33 @@ async def get_ufs(z: int, x: int, y: int, db: AsyncSession = Depends(get_db)):
         media_type="application/x-protobuf",
         headers={"Cache-Control": "public, max-age=300"}
     )
+
+
+
+# box das ufs
+@router.get("/ufs_bbox/{cod_uf}", summary="Encaixe das Unidades da Federação na tela")
+async def get_ufs_bbox(cod_uf: int, db: AsyncSession = Depends(get_db)):
+
+    
+    sql = """
+        SELECT
+            ST_XMin(ext) AS xmin,
+            ST_YMin(ext) AS ymin,
+            ST_XMax(ext) AS xmax,
+            ST_YMax(ext) AS ymax
+        FROM (SELECT ST_Extent(geom) AS ext FROM territorio.tb_uf WHERE cod_uf = :cod_uf) t
+    """
+    
+    result = await _execute_query(db, sql, {"cod_uf": cod_uf}) # transformar esse bloco em uma função e depois só chamar ela nas rotas?
+    row = result.mappings().first()
+    if not row:
+        raise HTTPException(
+            status_code=404,
+            detail="UF não encontrada."
+        )
+
+    return row
+
 
 
 # municipios 2025
@@ -379,3 +440,45 @@ async def get_classificacao(variavel: str, classes: int = 5, db: AsyncSession = 
 
     cache_jenks[cache_key] = resultado
     return resultado
+
+
+
+# empreendimentos DSR
+@router.get("/empreendimentos_dsr/{z}/{x}/{y}.pbf", summary="Empreendimentos DSR")
+async def get_empreendimentos_dsr(z: int, x: int, y: int, filtros: FiltrosMapa = Depends(), db: AsyncSession = Depends(get_db)):
+
+    
+    tile_params = {"z": z, "x": x, "y": y}
+    filter_where, filter_params = _build_where(filtros)
+    spatial_where = """geom && ST_Transform(ST_TileEnvelope(:z, :x, :y), 4326)"""
+
+    if filter_where:
+        where = f"""WHERE {spatial_where} AND {filter_where.removeprefix("WHERE ")}"""
+    else:
+        where = f"WHERE {spatial_where}"
+
+    params = {**tile_params, **filter_params}
+
+
+    sql = f"""
+        SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom') AS mvt
+        FROM (
+            SELECT
+                nr_instrumento,
+                tipo_instrumento,
+                acao_padronizada,
+                cod_uf,
+                cod_municipio,
+                ST_AsMVTGeom(ST_Transform(geom, 3857), ST_TileEnvelope(:z, :x, :y), 4096, 256, true) AS geom
+            FROM temporario.vw_coordenadas
+            {where}
+        ) AS tile;
+    """
+    
+    result = await _execute_query(db, sql, params)
+    row = result.fetchone()
+    return Response(
+        content=row.mvt if row and row.mvt else b"",
+        media_type="application/x-protobuf",
+        headers={"Cache-Control": "public, max-age=300"}
+    )
