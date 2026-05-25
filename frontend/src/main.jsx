@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 
 import { router } from './router'
-import { FiltrosProvider } from './context/filtrosContext'
+import { FiltrosProvider } from './context/carteira-Dsr/filtrosContext'
 import './index.css'
 
 const queryClient = new QueryClient({
