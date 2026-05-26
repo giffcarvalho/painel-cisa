@@ -1,6 +1,7 @@
+import { forwardRef } from 'react'
 import ReactECharts from 'echarts-for-react'
 
-export default function SituacaoContratacaoChart({ dados }) {
+const SituacaoContratacaoChart = forwardRef(({ dados }, ref) => {
   if (!dados || dados.length === 0) {
     return (
       <div className="flex h-full w-full items-center justify-center text-sm text-gray-500">
@@ -30,5 +31,15 @@ export default function SituacaoContratacaoChart({ dados }) {
     ]
   }
 
-  return <ReactECharts option={options} style={{ height: '100%', width: '100%', minHeight: '300px' }} notMerge={true} />
-}
+  return (
+    <ReactECharts 
+      ref={ref}
+      option={options} 
+      style={{ height: '100%', width: '100%', minHeight: '300px' }} 
+      notMerge={true} 
+    />
+  )
+})
+
+SituacaoContratacaoChart.displayName = 'SituacaoContratacaoChart'
+export default SituacaoContratacaoChart

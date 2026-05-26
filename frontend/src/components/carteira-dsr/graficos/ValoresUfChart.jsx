@@ -1,7 +1,8 @@
+import { forwardRef } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { formatCurrency } from '@/utils/formatters'
 
-export default function ValoresUfChart({ dados }) {
+const ValoresUfChart = forwardRef(({ dados }, ref) => {
     if (!dados || dados.length === 0) {
         return (
             <div className="flex h-full min-h-[300px] w-full items-center justify-center text-gray-400 text-sm">
@@ -67,10 +68,14 @@ export default function ValoresUfChart({ dados }) {
 
     return (
         <ReactECharts 
+            ref={ref}
             option={option} 
             style={{ height: '100%', width: '100%', minHeight: '300px' }} 
             notMerge={true} 
             lazyUpdate={true} 
         />
     )
-}
+})
+
+ValoresUfChart.displayName = 'ValoresUfChart'
+export default ValoresUfChart

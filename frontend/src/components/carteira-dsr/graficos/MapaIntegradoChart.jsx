@@ -1,11 +1,10 @@
+import { forwardRef, useRef } from 'react'
 import ReactECharts from 'echarts-for-react'
 import * as echarts from 'echarts'
 import { formatCurrency } from '@/utils/formatters'
-import { useRef } from 'react'
 
-export default function MapaIntegradoChart({ dadosCoropletico, dadosPontos, geoJson }) {
+const MapaIntegradoChart = forwardRef(({ dadosCoropletico, dadosPontos, geoJson }, ref) => {
     const coropleticoAtivo = useRef(true);
-    const echartsRef = useRef(null); 
     const symbolSizeRef = useRef(6);
 
     if (geoJson && !echarts.getMap('BR')) {
@@ -201,8 +200,8 @@ export default function MapaIntegradoChart({ dadosCoropletico, dadosPontos, geoJ
         },
 
         georoam: (params) => {
-            if (params.zoom && echartsRef.current) {
-                const chart = echartsRef.current.getEchartsInstance();
+            if (params.zoom && ref && ref.current) {
+                const chart = ref.current.getEchartsInstance();
                 let novoTamanho = symbolSizeRef.current * params.zoom;
                 novoTamanho = Math.max(3, Math.min(novoTamanho, 25));
                 symbolSizeRef.current = novoTamanho;
@@ -220,7 +219,7 @@ export default function MapaIntegradoChart({ dadosCoropletico, dadosPontos, geoJ
         <div className="flex flex-col h-full w-full">
             <div className="flex-grow min-h-[450px]">
                 <ReactECharts
-                    ref={echartsRef}
+                    ref={ref}
                     option={option} 
                     onEvents={handleEvents} 
                     style={{ height: '100%', width: '100%' }} 
@@ -239,4 +238,7 @@ export default function MapaIntegradoChart({ dadosCoropletico, dadosPontos, geoJ
             </div>
         </div>
     )
-}
+})
+
+MapaIntegradoChart.displayName = 'MapaIntegradoChart'
+export default MapaIntegradoChart
