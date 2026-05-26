@@ -1,8 +1,7 @@
-// === src/components/carteira-dsr/graficos/MapaIntegradoChart.jsx ===
 import ReactECharts from 'echarts-for-react'
 import * as echarts from 'echarts'
 import { formatCurrency } from '@/utils/formatters'
-import { useRef } from 'react' // <--- NOVA IMPORTAÇÃO AQUI
+import { useRef } from 'react'
 
 export default function MapaIntegradoChart({ dadosCoropletico, dadosPontos, geoJson }) {
     const coropleticoAtivo = useRef(true);
