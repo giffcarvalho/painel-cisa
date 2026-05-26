@@ -21,7 +21,7 @@ const AcoesQtdeChart = forwardRef(({ dados }, ref) => {
     grid: {
       left: '3%',
       right: '4%',
-      bottom: '15%',
+      bottom: '25%',
       containLabel: true
     },
     xAxis: {
