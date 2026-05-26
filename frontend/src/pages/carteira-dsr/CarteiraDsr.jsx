@@ -9,7 +9,6 @@ import styles from './CarteiraDsr.module.css'
 export default function CarteiraDsr() {
   const [mostrarTabela, setMostrarTabela] = useState(false)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-
   const { qtdeFiltrosAtivos } = useFiltros()
 
   return (
