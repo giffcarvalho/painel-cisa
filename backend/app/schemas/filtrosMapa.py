@@ -3,9 +3,9 @@
 from pydantic import BaseModel
 
 class OpcoesFiltros(BaseModel):
-    ufs: list[str]
-    municipios: list[str]
-    nr_instrumento: list[str]
+    cod_uf: list[int]
+    cod_municipio: list[int]
+    nr_instrumento: list[int]
     tipos_instrumento: list[str]
     acoes_padronizadas: list[str]
     
