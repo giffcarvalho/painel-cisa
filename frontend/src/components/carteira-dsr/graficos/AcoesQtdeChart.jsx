@@ -28,10 +28,11 @@ const AcoesQtdeChart = forwardRef(({ dados }, ref) => {
       type: 'category',
       data: categorias,
       axisLabel: {
-        rotate: 45,
-        width: 120,
-        overflow: 'truncate',
-        hideOverlap: false
+        rotate: 0,
+        width: 100,
+        overflow: 'break',
+        hideOverlap: false,
+        interval: 0
       },
       axisLine: { show: true },
       axisTick: { alignWithLabel: true }

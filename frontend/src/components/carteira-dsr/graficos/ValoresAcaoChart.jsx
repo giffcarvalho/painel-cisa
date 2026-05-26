@@ -25,11 +25,11 @@ const ValoresAcaoChart = forwardRef(({ dados }, ref) => {
       valueFormatter: (value) => formatCurrency(value, true)
     },
     legend: { bottom: '0%', type: 'scroll' },
-    grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+    grid: { left: '3%', right: '4%', bottom: '25%', containLabel: true },
     xAxis: {
       type: 'category',
       data: categorias,
-      axisLabel: { rotate: 45, width: 120, overflow: 'truncate' }
+      axisLabel: { rotate: 0, width: 100, overflow: 'break', interval: 0 }
     },
     yAxis: { type: 'value' },
     series: [
