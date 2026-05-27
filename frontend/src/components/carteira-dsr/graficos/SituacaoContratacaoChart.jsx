@@ -17,12 +17,13 @@ const SituacaoContratacaoChart = forwardRef(({ dados }, ref) => {
 
   const options = {
     tooltip: { trigger: 'item' },
-    legend: { bottom: '0%', left: 'center', type: 'scroll' },
+    legend: { bottom: '0%', left: 'center' },
     series: [
       {
         name: 'Situação',
         type: 'pie',
         radius: ['40%', '70%'],
+        center: ['50%', '40%'],
         avoidLabelOverlap: false,
         itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 2 },
         label: { show: false },

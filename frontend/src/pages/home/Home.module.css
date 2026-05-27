@@ -1,65 +1,84 @@
-@reference "tailwindcss";
+@reference "../../index.css";
 
 .container {
-    @apply flex flex-col items-center min-h-screen bg-gray-50 p-10 font-sans;
+    @apply flex flex-col min-h-screen bg-cisa-bg p-10 lg:p-16 font-sans;
 }
 
 .header {
-    @apply text-center mb-16;
+    @apply mb-16 flex flex-col gap-2 max-w-4xl text-left;
+}
+
+.eyebrow {
+    @apply text-sm font-semibold text-cisa-primary tracking-wide uppercase;
 }
 
 .title {
-    @apply text-3xl font-bold text-gray-800 tracking-tight;
+    @apply text-3xl font-semibold text-cisa-text-primary tracking-tight leading-tight;
 }
 
 .subtitle {
-    @apply text-gray-500 mt-2;
+    @apply text-lg text-cisa-text-secondary mt-1;
 }
 
 .grid {
-  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl;
+  @apply grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-5xl;
 }
 
-/* cards ativos */
-
+/* --- CARDS ATIVOS --- */
 .cardActive {
-  @apply flex flex-col items-center justify-center p-8 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg hover:border-blue-500 transition-all cursor-pointer transform hover:-translate-y-1;
+  @apply flex items-start gap-5 p-6 bg-transparent rounded-2xl border border-transparent transition-all duration-300 cursor-pointer;
+}
+
+/* Estado Hover: Revela a "caixa" e eleva suavemente */
+.cardActive:hover {
+    @apply bg-cisa-surface border-cisa-border shadow-sm -translate-y-1;
 }
 
 .iconWrapperActive {
-  @apply p-4 bg-blue-50 rounded-full hover:bg-blue-100 transition-colors mb-4;
+  @apply p-3 bg-cisa-surface border border-cisa-border rounded-xl transition-colors shrink-0;
 }
 
 .cardActive:hover .iconWrapperActive {
-    @apply bg-blue-100;
+    @apply bg-cisa-primary-light border-transparent;
 }
 
 .iconActive {
-  @apply w-10 h-10 text-blue-600;
+  @apply w-6 h-6 text-cisa-text-secondary transition-colors;
+}
+
+.cardActive:hover .iconActive {
+    @apply text-cisa-primary;
 }
 
 .cardTitleActive {
-  @apply text-lg font-semibold text-gray-800;
+  @apply text-lg font-medium text-cisa-text-primary;
 }
 
-/* cards inativos */
+.cardDescription {
+    @apply text-sm text-cisa-text-secondary leading-relaxed;
+}
 
+/* --- CARDS INATIVOS (Em Breve) --- */
 .cardDisabled {
-  @apply flex flex-col items-center justify-center p-8 bg-gray-100 rounded-xl border border-gray-200 opacity-60 cursor-not-allowed;
+  @apply flex items-start gap-5 p-6 bg-transparent rounded-2xl border-2 border-dashed border-cisa-border opacity-70 cursor-not-allowed;
 }
 
 .iconWrapperDisabled {
-  @apply p-4 bg-gray-200 rounded-full mb-4;
+  @apply p-3 bg-transparent border border-dashed border-cisa-border rounded-xl shrink-0;
 }
 
 .iconDisabled {
-  @apply w-10 h-10 text-gray-500;
+  @apply w-6 h-6 text-cisa-text-muted;
 }
 
 .cardTitleDisabled {
-  @apply text-lg font-semibold text-gray-600;
+  @apply text-lg font-medium text-cisa-text-muted;
+}
+
+.cardDescriptionDisabled {
+    @apply text-sm text-cisa-text-muted leading-relaxed;
 }
 
 .badgeDisabled {
-  @apply text-xs text-gray-400 mt-1;
+  @apply bg-cisa-border text-cisa-text-secondary px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider;
 }

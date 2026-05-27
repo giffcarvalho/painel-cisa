@@ -34,7 +34,7 @@ const CONFIG_COLUNAS = [
   { key: 'carteira_ativa', label: 'Carteira Ativa' },
   { key: 'situacao_atual', label: 'Situação Atual' },
   
-  // Execução e Prazos (Requer formatação de data)
+  // Execução e Prazos
   { key: 'dia_assin_conv', label: 'Data Assinatura', isDate: true },
   { key: 'dias_termino_vigencia', label: 'Dias Término Vigência' },
   { key: 'termino_vigencia', label: 'Término Vigência' },
@@ -54,7 +54,7 @@ const CONFIG_COLUNAS = [
   { key: 'principal_motivo_paralisacao', label: 'Principal Motivo Paralisação' },
   { key: 'dias_sem_evolucao', label: 'Dias Sem Evolução' },
   
-  // Valores Financeiros (Requer formatação de moeda)
+  // Valores Financeiros
   { key: 'valor_global', label: 'Valor Global', isCurrency: true },
   { key: 'valor_repasse', label: 'Valor Repasse', isCurrency: true },
   { key: 'valor_contrapartida', label: 'Contrapartida', isCurrency: true },
@@ -84,7 +84,6 @@ export default function TabelaSection() {
       const response = await carteiraDsrApi.getTabela(filtros, 1, 500)
       const dadosBrutos = response.data.data || []
 
-      // Gera as colunas dinamicamente para o Excel baseado na nossa config
       const columnsConfig = CONFIG_COLUNAS.map(col => ({
         header: col.label,
         key: col.key,
@@ -148,9 +147,9 @@ export default function TabelaSection() {
   const totalPaginas = Math.ceil(totalItems / tamanhoPagina)
 
   return (
-    <div className="mt-4 bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col overflow-hidden animate-fade-in">
+    <div className="flex flex-col overflow-hidden animate-fade-in">
       
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
+      <div className="flex items-center justify-between py-3 border-b border-gray-100">
         <div>
           <h3 className="text-sm font-semibold text-gray-800">Registros Encontrados</h3>
           <p className="text-xs text-gray-500">
@@ -167,16 +166,15 @@ export default function TabelaSection() {
         </button>
       </div>
 
-      {/* Container com limite de altura e scroll em ambas as direções */}
       <div className={`overflow-auto max-h-[600px] relative ${isFetching ? 'opacity-60 pointer-events-none' : 'opacity-100'} transition-opacity duration-200`}>
         <table className="w-full text-left text-sm text-gray-600 border-collapse">
-          <thead className="bg-gray-100 text-xs uppercase font-semibold text-gray-600 sticky top-0 z-20 shadow-sm">
+          <thead className="bg-white text-xs font-semibold text-gray-500 sticky top-0 z-20 shadow-[0_1px_0_0_#f3f4f6]">
             <tr>
               {CONFIG_COLUNAS.map((col) => (
                 <th 
                   key={col.key} 
-                  className={`px-4 py-3 whitespace-nowrap border-b border-gray-200 
-                    ${col.fixed ? 'sticky left-0 bg-gray-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] z-30' : ''}
+                  className={`px-4 py-3 whitespace-nowrap tracking-wide 
+                    ${col.fixed ? 'sticky left-0 bg-white shadow-[1px_0_0_0_#f3f4f6] z-30' : ''}
                     ${col.isCurrency ? 'text-right' : ''}
                   `}
                 >
@@ -185,22 +183,23 @@ export default function TabelaSection() {
               ))}
             </tr>
           </thead>
+          
           <tbody className="divide-y divide-gray-100">
             {tabelaData.length === 0 ? (
               <tr>
-                <td colSpan={CONFIG_COLUNAS.length} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={CONFIG_COLUNAS.length} className="px-4 py-12 text-center text-gray-500">
                   Nenhum instrumento encontrado para os filtros selecionados.
                 </td>
               </tr>
             ) : (
               tabelaData.map((item) => (
-                <tr key={item.nr_instrumento} className="hover:bg-blue-50/50 transition-colors group">
+                <tr key={item.nr_instrumento} className="hover:bg-cisa-bg transition-colors group">
                   {CONFIG_COLUNAS.map((col) => (
                     <td 
                       key={`${item.nr_instrumento}-${col.key}`} 
-                      className={`px-4 py-2.5 whitespace-nowrap 
-                        ${col.fixed ? 'sticky left-0 bg-white group-hover:bg-blue-50/50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] font-medium text-gray-900 z-10 transition-colors' : ''}
-                        ${col.isCurrency ? 'text-right' : ''}
+                      className={`px-4 py-3 whitespace-nowrap 
+                        ${col.fixed ? 'sticky left-0 bg-white group-hover:bg-cisa-bg shadow-[1px_0_0_0_#f3f4f6] font-medium text-gray-900 z-10 transition-colors' : ''}
+                        ${col.isCurrency ? 'text-right tabular-nums' : ''}
                       `}
                     >
                       {renderCellContent(item, col)}
@@ -214,11 +213,11 @@ export default function TabelaSection() {
       </div>
 
       {totalPaginas > 1 && (
-        <div className="flex items-center justify-between p-4 border-t border-gray-200 bg-white">
+        <div className="flex items-center justify-between py-4 border-t border-gray-100 mt-2">
           <button
             onClick={() => setPagina(p => Math.max(1, p - 1))}
             disabled={pagina === 1}
-            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
+            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50"
           >
             <ChevronLeft className="w-4 h-4" /> Anterior
           </button>
@@ -230,7 +229,7 @@ export default function TabelaSection() {
           <button
             onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
             disabled={pagina === totalPaginas}
-            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
+            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50"
           >
             Próxima <ChevronRight className="w-4 h-4" />
           </button>
