@@ -119,3 +119,16 @@ export function useBrasilGeoJsonQuery() {
     refetchOnWindowFocus: false,
   })
 }
+
+// 12. Tabela Detalhada
+export function useTabelaQuery(pagina = 1, tamanho = 100) {
+  const { filtros } = useFiltros()
+  return useQuery({
+    queryKey: ['carteira-dsr', 'tabela', filtros, pagina, tamanho],
+    queryFn: async () => {
+      const response = await carteiraDsrApi.getTabela(filtros, pagina, tamanho)
+      return response.data
+    },
+    placeholderData: (previousData) => previousData
+  })
+}
