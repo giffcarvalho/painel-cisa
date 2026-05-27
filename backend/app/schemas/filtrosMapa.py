@@ -2,16 +2,17 @@
 
 from pydantic import BaseModel
 
-class OpcoesFiltros(BaseModel):
-    cod_uf: list[int]
-    cod_municipio: list[int]
-    nr_instrumento: list[int]
-    tipos_instrumento: list[str]
-    acoes_padronizadas: list[str]
-    
-    model_config = {"from_attributes": True}
 
-class BuscaFiltroResponse(BaseModel):
-    campo: str
-    termo: str
-    data: list[str]
+class UfItem(BaseModel):
+    cod_uf: int
+    sigla_uf: str
+
+class OpcoesFiltrosUf(BaseModel):
+    data: list[UfItem]
+    
+class MunicipioItem(BaseModel):
+    cod_municipio: int
+    nome_municipio: str
+
+class OpcoesFiltrosMunicipio(BaseModel):
+    data: list[MunicipioItem]
