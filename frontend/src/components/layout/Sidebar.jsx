@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Wallet, Map, Menu } from 'lucide-react';
+import { LayoutDashboard, Wallet, Map, Menu, Info } from 'lucide-react';
 
 export function Sidebar() {
   const navItems = [
@@ -43,9 +43,10 @@ export function Sidebar() {
         ))}
       </nav>
       
+      
       {/* Rodapé */}
       <div className="p-4 border-t border-cisa-border text-xs text-cisa-text-muted text-center whitespace-nowrap overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        Painel CISA v1.0
+        Painel CIS v1.0
       </div>
     </aside>
   );

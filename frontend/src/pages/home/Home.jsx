@@ -1,126 +1,150 @@
 import { Link } from 'react-router-dom'
-import { Wallet, FileWarning, CheckSquare, Map, ArrowRight, Activity } from 'lucide-react'
+import { Info , Wallet, FileWarning, CheckSquare, Map, Activity } from 'lucide-react'
 import styles from './Home.module.css'
 
 export default function Home() {
   return (
     <div className="relative flex flex-col min-h-screen bg-[#FAFAFA] px-6 py-12 lg:py-20 overflow-hidden font-sans">
       
-      {/* O Background Mágico continua aqui */}
       <div className={styles.heroBackground} />
 
-      {/* Container principal agora não centraliza tudo, ele alinha à esquerda */}
       <div className="relative z-10 w-full max-w-[1200px] mx-auto flex">
         
-        {/* COLUNA ESQUERDA: Restringe a largura a 600px para deixar a direita livre */}
-        <div className="flex flex-col w-full max-w-[600px] xl:max-w-[650px]">
+        <div className="flex flex-col w-full max-w-[550px] xl:max-w-[600px] mt-4">
           
-          {/* === HERO SECTION === */}
-          <header className="flex flex-col items-start gap-5">
+          <header className="flex flex-col items-start">
             <div className={styles.badgeLabel}>
               <Activity className="w-3.5 h-3.5 text-cisa-primary" />
-              {/* O novo nome sugerido */}
               <span>Centro de Informações em Saneamento</span>
             </div>
             
             <h1 className={styles.title}>
               Departamento de Saneamento Rural <br />
-              <span className="text-gray-500 font-medium">& Pequenos Municípios</span>
+              <span className="text-gray-400 font-medium tracking-normal">& Pequenos Municípios</span>
             </h1>
             
             <p className={styles.subtitle}>
-              Acompanhe a execução física, financeira e o panorama geoespacial dos instrumentos de repasse em tempo real.
+              Acompanhe a execução física, financeira e o panorama geoespacial dos instrumentos de repasse.
             </p>
 
-            {/* Micro-Overview (Quick Stats) */}
-            <div className={styles.quickStats}>
-               <div className={styles.statItem}>
-                  <span className={styles.statValue}>R$ 9.8 Bi</span>
+            <div className="mt-10 flex items-center gap-8">
+               <div className="flex flex-col">
+                  <span className={styles.statValue}>exemp</span>
                   <span className={styles.statLabel}>Valor Global Ativo</span>
                </div>
                <div className={styles.divider} />
-               <div className={styles.statItem}>
-                  <span className={styles.statValue}>2.418</span>
+               <div className="flex flex-col">
+                  <span className={styles.statValue}>exemp</span>
                   <span className={styles.statLabel}>Municípios Beneficiados</span>
                </div>
                <div className={styles.divider} />
-               <div className={styles.statItem}>
-                  <span className={styles.statValue}>100%</span>
+               <div className="flex flex-col">
+                  <span className={styles.statValue}>exemp</span>
                   <span className={styles.statLabel}>Dados Sincronizados</span>
                </div>
             </div>
           </header>
 
-          {/* === MÓDULOS (Agora em formato de Lista Elegante) === */}
-          <div className="mt-14 mb-5">
-            <h2 className="text-[13px] font-bold text-gray-400 uppercase tracking-widest">
+          <div className="mt-20 flex flex-col w-full">
+            <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4 pl-2">
               Módulos Analíticos
             </h2>
-          </div>
 
-          <div className="flex flex-col gap-4 w-full pb-10">
-            
-            {/* Módulo 1: Carteira DSR */}
-            <Link to="/carteira-dsr" className={`group ${styles.moduleCard}`}>
-              <div className={styles.iconWrapperPrimary}>
-                <Wallet className="w-5 h-5 text-[#1351B4]" />
-              </div>
+            <p className="text-[12px] text-gray-400 font-bold mb-4 pl-2">
+              Selecione a ferramenta desejada:
+            </p>
+
+            <div className="flex flex-col gap-1">
               
-              <div className="flex-1 flex flex-col justify-center">
-                <h3 className={styles.cardTitle}>Carteira DSR</h3>
-                <p className={styles.cardDescription}>
-                  Visão financeira dos instrumentos.
-                </p>
-              </div>
+              {/* Item 1: Carteira DSR */}
+              <Link to="/carteira-dsr" className={`group ${styles.editorialRow}`}>
+                <div className="flex items-center gap-5">
+                  <div className={styles.iconWrapperPrimary}>
+                    <Wallet className="w-[18px] h-[18px] text-[#1351B4]" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className={styles.rowTitle}>Carteira DSR</span>
+                    <span className={styles.rowDesc}>
+                      Visão financeira dos repasses e status das obras.
+                    </span>
+                  </div>
+                </div>
+                
+                <div className={styles.customArrow}>
+                  <div className={styles.arrowTop}></div>
+                  <div className={styles.arrowBottom}></div>
+                </div>
+              </Link>
 
-              <div className="pl-4">
-                <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-cisa-primary transition-all transform group-hover:translate-x-1" />
-              </div>
-            </Link>
+              <div className="h-px w-5/12 ml-[76px] bg-black/[0.06] my-0.5 rounded-full" />
 
-            {/* Módulo 2: Mapa Interativo */}
-            <Link to="/mapa" className={`group ${styles.moduleCard}`}>
-              <div className={styles.iconWrapperSecondary}>
-                <Map className="w-5 h-5 text-gray-600 group-hover:text-gray-900 transition-colors" />
-              </div>
-              
-              <div className="flex-1 flex flex-col justify-center">
-                <h3 className={styles.cardTitle}>Mapa Interativo</h3>
-                <p className={styles.cardDescription}>
-                  Visão geoespacial de investimentos por município e região.
-                </p>
-              </div>
+              {/* Item 2: Mapa Interativo */}
+              <Link to="/mapa" className={`group ${styles.editorialRow}`}>
+                <div className="flex items-center gap-5">
+                  <div className={styles.iconWrapperSecondary}>
+                    <Map className="w-[18px] h-[18px] text-gray-600 group-hover:text-gray-900 transition-colors" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className={styles.rowTitle}>Mapa Interativo</span>
+                    <span className={styles.rowDesc}>
+                      Exploração geoespacial tática de investimentos.
+                    </span>
+                  </div>
+                </div>
 
-              <div className="pl-4">
-                <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-gray-600 transition-all transform group-hover:translate-x-1" />
-              </div>
-            </Link>
+                <div className={styles.customArrow}>
+                  <div className={styles.arrowTop}></div>
+                  <div className={styles.arrowBottom}></div>
+                </div>
+              </Link>
 
-            {/* Linha Divisória Sutil */}
-            <div className="h-px w-full bg-gradient-to-r from-gray-200 to-transparent my-2" />
+              <div className="h-px w-5/12 ml-[76px] bg-black/[0.06] my-0.5 rounded-full" />
 
-            {/* Módulos Inativos (Lado a Lado para economizar espaço) */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className={styles.moduleCardDisabled}>
-                <div className="flex items-center gap-3 mb-1">
-                  <FileWarning className="w-4 h-4 text-gray-400" />
-                  <h3 className={styles.cardTitleDisabled}>Suspensiva</h3>
+              {/* Item 3: Manual do Usuário */}
+              <Link to="/." className={`group ${styles.editorialRow}`}>
+                <div className="flex items-center gap-5">
+                  <div className={styles.iconWrapperSecondary}>
+                    <Info className="w-[18px] h-[18px] text-gray-600 group-hover:text-gray-900 transition-colors" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className={styles.rowTitle}>Manual do Usuário</span>
+                    <span className={styles.rowDesc}>
+                      Aprenda a explorar os módulos, aplicar filtros complexos e exportar relatórios.
+                    </span>
+                  </div>
                   <span className={styles.badgeSoon}>Em breve</span>
                 </div>
-                <p className={styles.cardDescriptionDisabled}>Gestão de paralisações.</p>
-              </div>
 
-              <div className={styles.moduleCardDisabled}>
-                <div className="flex items-center gap-3 mb-1">
-                  <CheckSquare className="w-4 h-4 text-gray-400" />
-                  <h3 className={styles.cardTitleDisabled}>Seleção PAC</h3>
+                <div className={styles.customArrow}>
+                  <div className={styles.arrowTop}></div>
+                  <div className={styles.arrowBottom}></div>
+                </div>
+              </Link>
+
+              <div className="h-px w-full bg-gradient-to-r from-gray-200/60 to-transparent my-4" />
+
+              {/* Itens Futuros */}
+              <div className="flex flex-col gap-2 pl-2">
+                <div className="flex items-center justify-between py-2 opacity-50 cursor-not-allowed">
+                  <div className="flex items-center gap-4">
+                    <FileWarning className="w-4 h-4 text-gray-400" />
+                    <span className="text-[14px] font-medium text-gray-500">Gestão de Suspensivas</span>
+                  </div>
                   <span className={styles.badgeSoon}>Em breve</span>
                 </div>
-                <p className={styles.cardDescriptionDisabled}>Propostas Novo PAC.</p>
+
+                <div className="flex items-center justify-between py-2 opacity-50 cursor-not-allowed">
+                  <div className="flex items-center gap-4">
+                    <CheckSquare className="w-4 h-4 text-gray-400" />
+                    <span className="text-[14px] font-medium text-gray-500">Seleções Novo PAC</span>
+                  </div>
+                  <span className={styles.badgeSoon}>Em breve</span>
+                </div>
               </div>
+
             </div>
-
           </div>
+
         </div>
       </div>
     </div>

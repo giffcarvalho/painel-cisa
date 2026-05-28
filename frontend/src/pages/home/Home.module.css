@@ -1,11 +1,10 @@
 @reference "../../index.css";
 
-/* Container principal ajustado para não forçar itens no centro */
 .container {
   @apply relative flex flex-col min-h-full bg-[#FAFAFA] font-sans px-6 py-12 lg:py-20 overflow-hidden;
 }
 
-/* === BACKGROUND === */
+/* === BACKGROUND MÁGICO (Inalterado, perfeito como estava) === */
 .heroBackground {
   position: absolute;
   inset: 0;
@@ -43,81 +42,146 @@
   -webkit-mask-composite: source-in;
 }
 
-/* --- HERO --- */
+/* --- HERO TYPOGRAPHY --- */
 .badgeLabel {
-  @apply flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 backdrop-blur-sm border border-cisa-border-soft text-xs font-semibold text-cisa-text-secondary shadow-surface mb-2;
+  @apply flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/60 backdrop-blur-md border border-black/[0.04] text-xs font-semibold text-cisa-text-secondary mb-6;
+  /* Sombra sutil premium aplicada no badge */
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.02), 0 8px 16px rgba(15, 23, 42, 0.03);
 }
 
 .title {
-  @apply text-4xl lg:text-[42px] font-bold text-cisa-text-primary tracking-tight leading-[1.15];
+  @apply text-[40px] lg:text-[46px] font-bold text-gray-900 tracking-tight leading-[1.12];
 }
 
 .subtitle {
-  @apply text-[17px] text-cisa-text-secondary leading-relaxed mt-2;
+  @apply text-[17px] text-gray-500 leading-relaxed mt-4 max-w-[90%];
 }
 
-/* --- QUICK STATS --- */
-.quickStats {
-  @apply mt-8 flex items-center gap-6 p-1 bg-white/60 backdrop-blur-md border border-cisa-border-soft rounded-2xl shadow-surface w-fit;
-}
-
-.statItem {
-  @apply flex flex-col px-5 py-3;
-}
-
+/* --- QUICK STATS (Agora fluido e limpo) --- */
 .statValue {
-  @apply text-lg font-bold text-cisa-text-primary tracking-tight;
+  @apply text-[22px] font-bold text-gray-900 tracking-tight leading-none;
 }
 
 .statLabel {
-  @apply text-xs font-medium text-cisa-text-muted mt-0.5;
+  @apply text-[13px] font-medium text-gray-400 mt-1.5;
 }
 
 .divider {
-  @apply w-px h-10 bg-cisa-border-soft;
+  @apply w-px h-8 bg-black/[0.06];
 }
 
-/* --- NOVOS CARDS (ESTILO LISTA HORIZONTAL) --- */
+/* --- EDITORIAL NAVIGATION (Linear/Stripe Vibe) --- */
 
-.moduleCard {
-  @apply flex items-center gap-5 p-5 bg-white/70 backdrop-blur-md border border-cisa-border-soft rounded-2xl shadow-surface hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-300 cursor-pointer relative overflow-hidden;
-  /* Brilho sutil no topo para dar efeito "glass" */
-  box-shadow: inset 0 1px 0 0 rgba(255,255,255,1), var(--shadow-surface);
+.editorialRow {
+  @apply flex items-center justify-between p-3 -mx-3 rounded-2xl transition-all duration-200 cursor-pointer;
 }
-.moduleCard:hover {
-  box-shadow: inset 0 1px 0 0 rgba(255,255,255,1), var(--shadow-elevated);
+
+/* Hover super elegante: cria um highlight quase imperceptível */
+.editorialRow:hover {
+  background-color: rgba(15, 23, 42, 0.02);
 }
 
 .iconWrapperPrimary {
-  @apply p-3.5 bg-cisa-primary-light/60 border border-cisa-primary-light rounded-[14px] transition-transform duration-500 group-hover:scale-105;
+  @apply p-3 bg-white border border-black/[0.04] rounded-xl transition-transform duration-300;
+  /* A sua sombra perfeita aplicada nos ícones */
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04), 0 12px 30px rgba(15, 23, 42, 0.05);
 }
 
 .iconWrapperSecondary {
-  @apply p-3.5 bg-gray-50 border border-gray-100 rounded-[14px] transition-colors duration-500 group-hover:bg-gray-100 group-hover:scale-105;
+  @apply p-3 bg-white border border-black/[0.04] rounded-xl transition-transform duration-300;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04), 0 12px 30px rgba(15, 23, 42, 0.05);
 }
 
-.cardTitle {
-  @apply text-[17px] font-bold text-cisa-text-primary leading-tight;
+.editorialRow:hover .iconWrapperPrimary,
+.editorialRow:hover .iconWrapperSecondary {
+  transform: scale(1.05);
 }
 
-.cardDescription {
-  @apply text-[14px] text-cisa-text-secondary mt-1 leading-snug;
+.rowTitle {
+  @apply text-[16px] font-semibold text-gray-800 leading-none mb-1.5;
 }
 
-/* --- CARDS INATIVOS --- */
-
-.moduleCardDisabled {
-  @apply flex flex-col justify-center p-4 border border-dashed border-cisa-border bg-transparent opacity-60 cursor-not-allowed rounded-2xl shadow-none;
+.rowDesc {
+  @apply text-[14px] text-gray-400 leading-none;
 }
 
-.cardTitleDisabled {
-  @apply text-sm font-semibold text-cisa-text-muted;
+.editorialRow {
+  @apply flex items-center justify-between p-3 -mx-3 rounded-2xl transition-all duration-200 cursor-pointer;
 }
 
-.cardDescriptionDisabled {
-  @apply text-[13px] text-cisa-text-muted leading-tight;
+.editorialRow {
+  @apply flex items-center justify-between p-3 -mx-3 rounded-2xl transition-all duration-200 cursor-pointer;
 }
 
+/* Hover super elegante: cria um highlight quase imperceptível */
+.editorialRow:hover {
+  background-color: rgba(15, 23, 42, 0.02);
+}
+
+.editorialRow:active {
+  transform: scale(0.98);
+  transition-duration: 0.1s; /* Resposta imediata ao clique */
+}
+
+.iconWrapperPrimary {
+  @apply p-3 bg-white border border-black/[0.04] rounded-xl transition-transform duration-300;
+  /* A sua sombra perfeita aplicada nos ícones */
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04), 0 12px 30px rgba(15, 23, 42, 0.05);
+}
+
+.iconWrapperSecondary {
+  @apply p-3 bg-white border border-black/[0.04] rounded-xl transition-transform duration-300;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04), 0 12px 30px rgba(15, 23, 42, 0.05);
+}
+
+.editorialRow:hover .iconWrapperPrimary,
+.editorialRow:hover .iconWrapperSecondary {
+  transform: scale(1.05);
+}
+
+.rowTitle {
+  @apply text-[16px] font-semibold text-gray-800 leading-none mb-1.5;
+}
+
+.rowDesc {
+  @apply text-[14px] text-gray-400 leading-none;
+}
+
+/* --- CUSTOM ANIMATED ARROW --- */
+.customArrow {
+  @apply relative flex items-center justify-center w-6 h-6 mr-1;
+}
+
+.arrowTop, .arrowBottom {
+  @apply absolute h-[2px] w-[10px] bg-[#1351B4] rounded-full;
+  right: 4px;
+  /* O transform-origin na direita garante que a linha "cresça" a partir da ponta */
+  transform-origin: right center;
+  transition: transform 0.15s ease-in-out;
+}
+
+.arrowTop {
+  transform: rotate(45deg) scaleX(0);
+  transition-delay: 0s; 
+}
+
+.arrowBottom {
+  transform: rotate(-45deg) scaleX(0);
+  transition-delay: 0.15s; 
+}
+
+/* ESTADO HOVER: Desenhando as linhas em sequência */
+.editorialRow:hover .arrowBottom {
+  transform: rotate(-45deg) scaleX(1);
+  transition-delay: 0s; /* A perna de baixo desenha primeiro */
+}
+
+.editorialRow:hover .arrowTop {
+  transform: rotate(45deg) scaleX(1);
+  transition-delay: 0.15s; /* A perna de cima desenha logo em seguida */
+}
+
+/* --- MÓDULOS INATIVOS --- */
 .badgeSoon {
-  @apply bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ml-auto;
+  @apply bg-gray-200/50 text-gray-500 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider;
 }
