@@ -1,84 +1,123 @@
 @reference "../../index.css";
 
+/* Container principal ajustado para não forçar itens no centro */
 .container {
-    @apply flex flex-col min-h-screen bg-cisa-bg p-10 lg:p-16 font-sans;
+  @apply relative flex flex-col min-h-full bg-[#FAFAFA] font-sans px-6 py-12 lg:py-20 overflow-hidden;
 }
 
-.header {
-    @apply mb-16 flex flex-col gap-2 max-w-4xl text-left;
+/* === BACKGROUND === */
+.heroBackground {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
 }
 
-.eyebrow {
-    @apply text-sm font-semibold text-cisa-primary tracking-wide uppercase;
+.heroBackground::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(15, 23, 42, 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(to bottom, black 10%, transparent 80%);
+  -webkit-mask-image: linear-gradient(to bottom, black 10%, transparent 80%);
+}
+
+.heroBackground::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url('../../assets/background-home.png');
+  background-repeat: no-repeat;
+  background-position: right -5% top 0;
+  background-size: max(900px, 75vw);
+  mix-blend-mode: multiply;
+  opacity: 0.85;
+  mask-image: 
+    radial-gradient(ellipse at 85% 15%, black 25%, transparent 65%),
+    linear-gradient(to bottom, black 40%, transparent 90%);
+  -webkit-mask-image: 
+    radial-gradient(ellipse at 85% 15%, black 25%, transparent 65%),
+    linear-gradient(to bottom, black 40%, transparent 90%);
+  mask-composite: intersect;
+  -webkit-mask-composite: source-in;
+}
+
+/* --- HERO --- */
+.badgeLabel {
+  @apply flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 backdrop-blur-sm border border-cisa-border-soft text-xs font-semibold text-cisa-text-secondary shadow-surface mb-2;
 }
 
 .title {
-    @apply text-3xl font-semibold text-cisa-text-primary tracking-tight leading-tight;
+  @apply text-4xl lg:text-[42px] font-bold text-cisa-text-primary tracking-tight leading-[1.15];
 }
 
 .subtitle {
-    @apply text-lg text-cisa-text-secondary mt-1;
+  @apply text-[17px] text-cisa-text-secondary leading-relaxed mt-2;
 }
 
-.grid {
-  @apply grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-5xl;
+/* --- QUICK STATS --- */
+.quickStats {
+  @apply mt-8 flex items-center gap-6 p-1 bg-white/60 backdrop-blur-md border border-cisa-border-soft rounded-2xl shadow-surface w-fit;
 }
 
-/* --- CARDS ATIVOS --- */
-.cardActive {
-  @apply flex items-start gap-5 p-6 bg-transparent rounded-2xl border border-transparent transition-all duration-300 cursor-pointer;
+.statItem {
+  @apply flex flex-col px-5 py-3;
 }
 
-/* Estado Hover: Revela a "caixa" e eleva suavemente */
-.cardActive:hover {
-    @apply bg-cisa-surface border-cisa-border shadow-sm -translate-y-1;
+.statValue {
+  @apply text-lg font-bold text-cisa-text-primary tracking-tight;
 }
 
-.iconWrapperActive {
-  @apply p-3 bg-cisa-surface border border-cisa-border rounded-xl transition-colors shrink-0;
+.statLabel {
+  @apply text-xs font-medium text-cisa-text-muted mt-0.5;
 }
 
-.cardActive:hover .iconWrapperActive {
-    @apply bg-cisa-primary-light border-transparent;
+.divider {
+  @apply w-px h-10 bg-cisa-border-soft;
 }
 
-.iconActive {
-  @apply w-6 h-6 text-cisa-text-secondary transition-colors;
+/* --- NOVOS CARDS (ESTILO LISTA HORIZONTAL) --- */
+
+.moduleCard {
+  @apply flex items-center gap-5 p-5 bg-white/70 backdrop-blur-md border border-cisa-border-soft rounded-2xl shadow-surface hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-300 cursor-pointer relative overflow-hidden;
+  /* Brilho sutil no topo para dar efeito "glass" */
+  box-shadow: inset 0 1px 0 0 rgba(255,255,255,1), var(--shadow-surface);
+}
+.moduleCard:hover {
+  box-shadow: inset 0 1px 0 0 rgba(255,255,255,1), var(--shadow-elevated);
 }
 
-.cardActive:hover .iconActive {
-    @apply text-cisa-primary;
+.iconWrapperPrimary {
+  @apply p-3.5 bg-cisa-primary-light/60 border border-cisa-primary-light rounded-[14px] transition-transform duration-500 group-hover:scale-105;
 }
 
-.cardTitleActive {
-  @apply text-lg font-medium text-cisa-text-primary;
+.iconWrapperSecondary {
+  @apply p-3.5 bg-gray-50 border border-gray-100 rounded-[14px] transition-colors duration-500 group-hover:bg-gray-100 group-hover:scale-105;
+}
+
+.cardTitle {
+  @apply text-[17px] font-bold text-cisa-text-primary leading-tight;
 }
 
 .cardDescription {
-    @apply text-sm text-cisa-text-secondary leading-relaxed;
+  @apply text-[14px] text-cisa-text-secondary mt-1 leading-snug;
 }
 
-/* --- CARDS INATIVOS (Em Breve) --- */
-.cardDisabled {
-  @apply flex items-start gap-5 p-6 bg-transparent rounded-2xl border-2 border-dashed border-cisa-border opacity-70 cursor-not-allowed;
-}
+/* --- CARDS INATIVOS --- */
 
-.iconWrapperDisabled {
-  @apply p-3 bg-transparent border border-dashed border-cisa-border rounded-xl shrink-0;
-}
-
-.iconDisabled {
-  @apply w-6 h-6 text-cisa-text-muted;
+.moduleCardDisabled {
+  @apply flex flex-col justify-center p-4 border border-dashed border-cisa-border bg-transparent opacity-60 cursor-not-allowed rounded-2xl shadow-none;
 }
 
 .cardTitleDisabled {
-  @apply text-lg font-medium text-cisa-text-muted;
+  @apply text-sm font-semibold text-cisa-text-muted;
 }
 
 .cardDescriptionDisabled {
-    @apply text-sm text-cisa-text-muted leading-relaxed;
+  @apply text-[13px] text-cisa-text-muted leading-tight;
 }
 
-.badgeDisabled {
-  @apply bg-cisa-border text-cisa-text-secondary px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider;
+.badgeSoon {
+  @apply bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ml-auto;
 }
