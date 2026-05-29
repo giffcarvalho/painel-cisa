@@ -1,47 +1,115 @@
-@reference "tailwindcss";
+@reference "../../index.css";
 
 .container {
-    @apply relative flex flex-col gap-8 p-6;
+  @apply relative flex flex-col gap-7 min-h-full px-6 py-8 md:px-8 lg:px-10 font-sans overflow-hidden;
+  background: #f8f7f5;
+  color: var(--cisa-text-primary);
+}
+
+.container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), transparent 260px);
 }
 
 .header {
-    @apply flex items-center justify-between;
+  @apply relative z-10 flex flex-col gap-4 md:flex-row md:items-start md:justify-between;
 }
 
-/* títulos */
-
 .title {
-    @apply text-2xl font-bold text-gray-800;
+  @apply text-[30px] md:text-[34px] font-bold tracking-tight leading-tight text-gray-900;
 }
 
 .subtitle {
-  @apply text-gray-500;
+  @apply mt-1 text-[15px] leading-relaxed text-cisa-text-secondary;
 }
 
-/* botão de filtro */
-
 .filterButton {
-    @apply flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded shadow-sm hover:bg-gray-50;
+  @apply relative z-10 flex items-center gap-2 px-4 py-2.5 bg-white/75 border border-black/[0.06] text-cisa-text-secondary font-semibold rounded-xl transition-all duration-200;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.025), 0 12px 26px rgba(15, 23, 42, 0.045);
+}
+
+.filterButton:hover {
+  @apply bg-white text-cisa-text-primary border-black/[0.08];
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.035), 0 16px 34px rgba(15, 23, 42, 0.06);
 }
 
 .badge {
-  @apply bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-bold;
+  @apply inline-flex min-w-5 h-5 items-center justify-center rounded-full bg-[#EDF4FF] px-1.5 text-xs font-bold text-cisa-primary;
+  box-shadow: inset 0 0 0 1px rgba(19, 81, 180, 0.08);
 }
 
-/* tabela */
-
 .detailsSection {
-  @apply flex flex-col gap-4 border-t pt-8;
+  @apply relative z-10 flex flex-col gap-4 pt-6;
+  border-top: 1px solid rgba(15, 23, 42, 0.06);
 }
 
 .detailsHeader {
-  @apply flex items-center justify-between;
+  @apply flex items-center justify-between gap-4;
 }
 
 .detailsTitle {
-  @apply text-xl font-semibold;
+  @apply text-[20px] font-semibold tracking-tight text-gray-900;
 }
 
 .toggleButton {
-  @apply px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700;
+  @apply px-4 py-2 bg-white/80 text-cisa-primary font-semibold rounded-xl border border-black/[0.06] transition-all duration-200;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.025), 0 10px 22px rgba(15, 23, 42, 0.04);
+}
+
+.toggleButton:hover {
+  @apply bg-white border-cisa-primary/20;
+  transform: translateY(-1px);
+}
+
+.tableCard.tableCard {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.075);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.035),
+    0 8px 20px rgba(15, 23, 42, 0.045);
+}
+
+.detailsSubtitle {
+  @apply mt-1 text-sm leading-relaxed;
+  color: rgba(92, 84, 72, 0.82);
+}
+
+.emptyState {
+  @apply flex flex-col items-center justify-center px-4 py-16 text-center rounded-2xl border transition-all;
+  margin-top: 24px;
+  background: #fbfaf8;
+  border-color: rgba(15, 23, 42, 0.07);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.emptyIcon {
+  @apply w-10 h-10 mb-4;
+  color: rgba(19, 81, 180, 0.34);
+}
+
+.emptyTitle {
+  @apply mb-1 text-base font-semibold;
+  color: var(--cisa-text-primary);
+}
+
+.emptyText {
+  @apply mb-6 max-w-md text-center text-sm leading-relaxed;
+  color: var(--cisa-text-secondary);
+}
+
+.tableActionButton {
+  @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200;
+  color: var(--cisa-primary);
+  background: #ffffff;
+  border: 1px solid rgba(19, 81, 180, 0.14);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.tableActionButton:hover {
+  background: #f7faff;
+  border-color: rgba(19, 81, 180, 0.24);
 }

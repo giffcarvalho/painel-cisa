@@ -166,15 +166,15 @@ export default function TabelaSection() {
         </button>
       </div>
 
-      <div className={`overflow-auto max-h-[600px] relative ${isFetching ? 'opacity-60 pointer-events-none' : 'opacity-100'} transition-opacity duration-200`}>
-        <table className="w-full text-left text-sm text-gray-600 border-collapse">
-          <thead className="bg-white text-xs font-semibold text-gray-500 sticky top-0 z-20 shadow-[0_1px_0_0_#f3f4f6]">
+      <div className={`overflow-auto max-h-[600px] relative rounded-xl border border-slate-200/80 bg-white ${isFetching ? 'opacity-60 pointer-events-none' : 'opacity-100'} transition-opacity duration-200`}>
+        <table className="w-full text-left text-sm text-slate-600 border-collapse bg-white">
+          <thead className="bg-[#f7faff] text-xs font-semibold text-slate-600 sticky top-0 z-20 shadow-[0_1px_0_0_rgba(19,81,180,0.10)]">
             <tr>
               {CONFIG_COLUNAS.map((col) => (
                 <th 
                   key={col.key} 
                   className={`px-4 py-3 whitespace-nowrap tracking-wide 
-                    ${col.fixed ? 'sticky left-0 bg-white shadow-[1px_0_0_0_#f3f4f6] z-30' : ''}
+                    ${col.fixed ? 'sticky left-0 bg-[#f7faff] shadow-[1px_0_0_0_rgba(19,81,180,0.10)] z-30' : ''}
                     ${col.isCurrency ? 'text-right' : ''}
                   `}
                 >
@@ -193,12 +193,12 @@ export default function TabelaSection() {
               </tr>
             ) : (
               tabelaData.map((item) => (
-                <tr key={item.nr_instrumento} className="hover:bg-cisa-bg transition-colors group">
+                <tr key={item.nr_instrumento} className="hover:bg-[#f8fbff] transition-colors group">
                   {CONFIG_COLUNAS.map((col) => (
                     <td 
                       key={`${item.nr_instrumento}-${col.key}`} 
                       className={`px-4 py-3 whitespace-nowrap 
-                        ${col.fixed ? 'sticky left-0 bg-white group-hover:bg-cisa-bg shadow-[1px_0_0_0_#f3f4f6] font-medium text-gray-900 z-10 transition-colors' : ''}
+                        ${col.fixed ? 'sticky left-0 bg-white group-hover:bg-[#f8fbff] shadow-[1px_0_0_0_rgba(15,23,42,0.07)] font-medium text-slate-900 z-10 transition-colors' : ''}
                         ${col.isCurrency ? 'text-right tabular-nums' : ''}
                       `}
                     >
