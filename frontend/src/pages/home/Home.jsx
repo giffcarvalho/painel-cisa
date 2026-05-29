@@ -91,7 +91,7 @@ export default function Home() {
               <div className="h-px w-5/12 ml-[76px] bg-black/[0.06] my-0.5 rounded-full" />
 
               {/* Item 3: Manual do Usuário */}
-              <Link to="/." className={`group ${styles.editorialRow}`}>
+              <Link to="/manual" className={`group ${styles.editorialRow}`}>
                 <div className="flex items-center gap-5">
                   <div className={styles.iconWrapperSecondary}>
                     <Info className="w-[18px] h-[18px] text-gray-600 group-hover:text-gray-900 transition-colors" />
