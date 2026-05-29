@@ -4,6 +4,8 @@ import { Loader2 } from 'lucide-react'
 import AppLayout from '@/components/layout/AppLayout'
 import Home from '@/pages/home/Home'
 import CarteiraDsr from '@/pages/carteira-dsr/CarteiraDsr'
+import Manual from './pages/manual/Manual'
+import MapLayout from './components/layout/MapLayout'
 
 const Mapa = lazy(() => import('@/pages/mapa/Mapa'))
 
@@ -28,16 +30,25 @@ export const router = createBrowserRouter([
     children: [
       {
         path: 'carteira-dsr',
-        element: <CarteiraDsr />,   
-      }
-    ]
+        element: <CarteiraDsr />,
+      },
+      {
+        path: 'manual',
+        element: <Manual />,
+      },
+    ],
   },
   {
-    path: 'mapa',
-    element: (
-      <Suspense fallback={<MapaLoading />}>
-        <Mapa />
-      </Suspense>
-    )
-  }
+    element: <MapLayout />,
+    children: [
+      {
+        path: 'mapa',
+        element: (
+          <Suspense fallback={<MapaLoading />}>
+            <Mapa />
+          </Suspense>
+        ),
+      },
+    ],
+  },
 ])
