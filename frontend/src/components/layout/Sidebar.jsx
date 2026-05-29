@@ -1,9 +1,9 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Wallet, Map, Menu, Info } from 'lucide-react';
+import { House, Wallet, Map, Menu, Info } from 'lucide-react';
 
 export function Sidebar() {
   const navItems = [
-    { to: '/', label: 'Menu Inicial', icon: LayoutDashboard, exact: true },
+    { to: '/', label: 'Menu Inicial', icon: House, exact: true },
     { to: '/carteira-dsr', label: 'Carteira DSR', icon: Wallet, exact: false },
     { to: '/mapa', label: 'Mapa Interativo', icon: Map, exact: false },
     { to: '/manual', label: 'Manual do Usuário', icon: Info, exact: false }
@@ -47,7 +47,7 @@ export function Sidebar() {
       
       {/* Rodapé */}
       <div className="p-4 border-t border-black/[0.06] text-xs text-cisa-text-muted text-center whitespace-nowrap overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        Painel CIS v1.0
+        Portal DSR v1.0
       </div>
     </aside>
   );

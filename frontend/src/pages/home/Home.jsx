@@ -1,21 +1,28 @@
 import { Link } from 'react-router-dom'
 import { Info , Wallet, FileWarning, CheckSquare, Map, Activity } from 'lucide-react'
 import styles from './Home.module.css'
+import marcaMcid from '../../assets/marca-mcid.png'
 
 export default function Home() {
   return (
-    <div className="relative flex flex-col min-h-screen bg-[#FAFAFA] px-6 py-12 lg:py-20 overflow-hidden font-sans">
+    <div className="relative flex flex-col min-h-screen bg-[#FAFAFA] px-6 py-8 lg:py-14 overflow-hidden font-sans">
       
       <div className={styles.heroBackground} />
+      
+      <img
+        src={marcaMcid}
+        alt="Ministério das Cidades"
+        className={styles.fixedMcidLogo}
+      />
 
-      <div className="relative z-10 w-full max-w-[1200px] mx-auto flex">
+      <div className="relative z-10 w-full max-w-[1280px] mx-auto flex lg:-translate-x-8 xl:-translate-x-14 2xl:-translate-x-20">
         
-        <div className="flex flex-col w-full max-w-[550px] xl:max-w-[600px] mt-4">
+        <div className="flex flex-col w-full max-w-[550px] xl:max-w-[600px]">
           
           <header className="flex flex-col items-start">
             <div className={styles.badgeLabel}>
               <Activity className="w-3.5 h-3.5 text-cisa-primary" />
-              <span>Centro de Informações em Saneamento</span>
+              <span>Painel de Informações e Monitoramento</span>
             </div>
             
             <h1 className={styles.title}>
@@ -26,26 +33,9 @@ export default function Home() {
             <p className={styles.subtitle}>
               Acompanhe a execução física, financeira e o panorama geoespacial dos instrumentos de repasse.
             </p>
-
-            <div className="mt-10 flex items-center gap-8">
-               <div className="flex flex-col">
-                  <span className={styles.statValue}>exemp</span>
-                  <span className={styles.statLabel}>Valor Global Ativo</span>
-               </div>
-               <div className={styles.divider} />
-               <div className="flex flex-col">
-                  <span className={styles.statValue}>exemp</span>
-                  <span className={styles.statLabel}>Municípios Beneficiados</span>
-               </div>
-               <div className={styles.divider} />
-               <div className="flex flex-col">
-                  <span className={styles.statValue}>exemp</span>
-                  <span className={styles.statLabel}>Dados Sincronizados</span>
-               </div>
-            </div>
           </header>
 
-          <div className="mt-20 flex flex-col w-full">
+          <div className="mt-12 flex flex-col w-full">
             <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4 pl-2">
               Módulos Analíticos
             </h2>
@@ -65,7 +55,7 @@ export default function Home() {
                   <div className="flex flex-col">
                     <span className={styles.rowTitle}>Carteira DSR</span>
                     <span className={styles.rowDesc}>
-                      Visão financeira dos repasses e status das obras.
+                      Visão analítica e financeira dos repasses e status das obras.
                     </span>
                   </div>
                 </div>
@@ -87,7 +77,7 @@ export default function Home() {
                   <div className="flex flex-col">
                     <span className={styles.rowTitle}>Mapa Interativo</span>
                     <span className={styles.rowDesc}>
-                      Exploração geoespacial tática de investimentos.
+                      Visão geoespacial para análise de investimentos por localidade.
                     </span>
                   </div>
                 </div>

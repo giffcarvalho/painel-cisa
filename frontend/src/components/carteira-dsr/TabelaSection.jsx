@@ -149,7 +149,7 @@ export default function TabelaSection() {
   return (
     <div className="flex flex-col overflow-hidden animate-fade-in">
       
-      <div className="flex items-center justify-between py-3 border-b border-gray-100">
+      <div className="flex items-center justify-between py-3">
         <div>
           <h3 className="text-sm font-semibold text-gray-800">Registros Encontrados</h3>
           <p className="text-xs text-gray-500">
@@ -166,9 +166,9 @@ export default function TabelaSection() {
         </button>
       </div>
 
-      <div className={`overflow-auto max-h-[600px] relative rounded-xl border border-slate-200/80 bg-white ${isFetching ? 'opacity-60 pointer-events-none' : 'opacity-100'} transition-opacity duration-200`}>
+      <div className={`overflow-auto max-h-[600px] relative rounded-xl bg-white ${isFetching ? 'opacity-60 pointer-events-none' : 'opacity-100'} transition-opacity duration-200`}>
         <table className="w-full text-left text-sm text-slate-600 border-collapse bg-white">
-          <thead className="bg-[#f7faff] text-xs font-semibold text-slate-600 sticky top-0 z-20 shadow-[0_1px_0_0_rgba(19,81,180,0.10)]">
+          <thead className="bg-[#f7faff] text-xs font-semibold text-slate-600 sticky top-0 z-20">
             <tr>
               {CONFIG_COLUNAS.map((col) => (
                 <th 

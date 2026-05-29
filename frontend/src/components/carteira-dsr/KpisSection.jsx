@@ -35,7 +35,7 @@ export default function KpisSection() {
   if (!kpis) return <div>Nenhum dado encontrado.</div>
 
   return (
-    <div className="bg-white rounded-2xl border border-cisa-border shadow-sm p-4 md:p-6 w-full">
+    <div className="bg-white rounded-2xl border border-black/[0.06] p-4 md:p-6 w-full">
       <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-y-6 divide-y md:divide-y-0 md:divide-x divide-gray-100">
         <KpiCard titulo="Instrumentos" valor={formatInteger(kpis.qtde_instrumentos)} />
         <KpiCard titulo="Municípios" valor={formatInteger(kpis.qtde_municipios_beneficiados)} />
