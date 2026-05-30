@@ -87,9 +87,9 @@ async def get_lista_ufs(response: Response, db: AsyncSession = Depends(get_db)):
 @router.get("/filtros/municipios", response_model=OpcoesFiltrosMunicipio, summary="Lista dos nomes dos Municípios")
 async def get_lista_municipios(
     response: Response, 
-    q: Annotated[str, Query(min_length=2, max_length=100, description="Termo de busca do município.")],  #é um params que contém o texto que a pessoa começa digitando no campo do filtro. É obrigatório e tem o tamanho especificado
+    q: Annotated[str | None, Query(max_length=100, description="Termo de busca do município.")] = None,  #é um params que contém o texto que a pessoa começa digitando no campo do filtro. É obrigatório e tem o tamanho especificado
     cod_uf: Annotated[int | None, Query(description="Código da UF.")] = None,                            #é um params, nesse caso opcional, valor padrão None
-    limit: Annotated[int, Query(ge=1, le=100, description="Quantidade máxima de resultados.")] = 50,
+    limit: Annotated[int, Query(ge=1, le=100, description="Quantidade máxima de resultados.")] = 20,
     db: AsyncSession = Depends(get_db)):
 
     response.headers["Cache-Control"] = "public, max-age=86400"
@@ -99,17 +99,21 @@ async def get_lista_municipios(
             cod_municipio,
             nome_municipio
         FROM territorio.tb_municipio
-        WHERE nome_municipio ILIKE :termo
+        WHERE 1=1
     """
 
-    params = {
-        "termo": f"%{q.strip()}%",
-        "limit": limit
-    }
+    params = {"limit": limit}
 
     if cod_uf:
         sql += " AND cod_uf = :cod_uf"
         params["cod_uf"] = cod_uf
+
+
+    texto = (q or "").strip()
+    if texto:
+        sql += " AND nome_municipio ILIKE :termo"
+        params["termo"] = f"%{texto}%"
+
 
     sql += """
         ORDER BY nome_municipio
@@ -120,14 +124,74 @@ async def get_lista_municipios(
     return OpcoesFiltrosMunicipio(data=[MunicipioItem(**row) for row in result.mappings().all()])
 
 
-# ufs
+# bounding box das UFS. Busca para cada UF filtrada os limites de sua geometria. Informação usada para o mapa fazer o fly e enquadrar na UF selecionada
+@router.get("/bbox_ufs", summary="Bounding box das Unidades da Federação")
+async def get_bbox_ufs(filtros: FiltrosMapa = Depends(), db: AsyncSession = Depends(get_db)):
+
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf"})
+
+    sql = f"""
+        SELECT
+            ST_XMin(ext) AS xmin,
+            ST_YMin(ext) AS ymin,
+            ST_XMax(ext) AS xmax,
+            ST_YMax(ext) AS ymax
+        FROM (
+            SELECT ST_Extent(ST_Transform(geom, 4326)) AS ext
+            FROM territorio.vw_base_uf
+    """
+    if where_filtro:
+        sql += f"""
+            WHERE {where_filtro}
+        """
+
+    sql += """) t"""
+
+        
+    result = await _execute_query(db, sql, params_filtro)
+    row = result.mappings().first()
+    return row
+
+
+
+# bounding box dos Municípios. Busca para cada Município filtrado os limites de sua geometria. Informação usada para o mapa fazer o fly e enquadrar no Município selecionado
+@router.get("/bbox_municipios", summary="Bounding box dos Municípios")
+async def get_bbox_municipios(filtros: FiltrosMapa = Depends(), db: AsyncSession = Depends(get_db)):
+
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_municipio"})
+
+    sql = f"""
+        SELECT
+            ST_XMin(ext) AS xmin,
+            ST_YMin(ext) AS ymin,
+            ST_XMax(ext) AS xmax,
+            ST_YMax(ext) AS ymax
+        FROM (
+            SELECT ST_Extent(ST_Transform(geom_2025, 4326)) AS ext
+            FROM territorio.vw_base_municipal
+    """
+    if where_filtro:
+        sql += f"""
+            WHERE {where_filtro}
+        """
+
+    sql += """) t"""
+
+        
+    result = await _execute_query(db, sql, params_filtro)
+    row = result.mappings().first()
+    return row
+
+
+
+# geometria das ufs
 @router.get("/ufs/{z}/{x}/{y}.pbf", summary="Unidades da Federação")
 async def get_ufs(z: int, x: int, y: int, filtros: FiltrosMapa = Depends(), db: AsyncSession = Depends(get_db)):
 
     where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf"})
     
     base_where = """
-        geom2025 && ST_Transform(ST_TileEnvelope(:z, :x, :y), 4326)
+        geom && ST_TileEnvelope(:z, :x, :y)
     """
 
     if where_filtro:
@@ -137,25 +201,28 @@ async def get_ufs(z: int, x: int, y: int, filtros: FiltrosMapa = Depends(), db: 
     params.update(params_filtro)
 
     sql = f"""
-        SELECT ST_AsMVT(tile, 'poligonos', 4096, 'geom') AS mvt
+        SELECT ST_AsMVT(tile, 'poligonos', 4096, 'geom', 'cod_uf') AS mvt
         FROM (
             SELECT
                 cod_uf,
-                sigla_uf,
-                nome_uf,
                 ST_AsMVTGeom(
                     ST_Simplify(
-                        ST_Transform(geom, 3857),
+                        geom,
                         CASE
                             WHEN :z <= 6 THEN 2000
                             WHEN :z <= 7 THEN 1000
                             WHEN :z <= 8 THEN 500
                             WHEN :z <= 9 THEN 300
                             ELSE 0
-                        END
+                        END,
+                        false
                     ),
-                    ST_TileEnvelope(:z, :x, :y), 4096, 256, true) AS geom
-            FROM territorio.tb_uf
+                    ST_TileEnvelope(:z, :x, :y),
+                    4096,
+                    256,
+                    true
+                ) AS geom
+            FROM territorio.vw_base_uf
             WHERE {base_where}
         ) AS tile;
     """
@@ -178,7 +245,7 @@ async def get_municipios_2025(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
     where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio"})
     
     base_where = """
-        geom2025 && ST_Transform(ST_TileEnvelope(:z, :x, :y), 4326)
+        geom_2025 && ST_TileEnvelope(:z, :x, :y)
     """
 
     if where_filtro:
@@ -189,23 +256,27 @@ async def get_municipios_2025(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
 
 
     sql = f"""
-        SELECT ST_AsMVT(tile, 'poligonos', 4096, 'geom') AS mvt
+        SELECT ST_AsMVT(tile, 'poligonos', 4096, 'geom', 'cod_municipio') AS mvt
         FROM (
             SELECT
                 cod_municipio,
-                nome_municipio,
                 ST_AsMVTGeom(
                     ST_Simplify(
-                        ST_Transform(geom2025, 3857),
+                        geom_2025,
                         CASE
                             WHEN :z <= 7 THEN 1000
                             WHEN :z <= 8 THEN 500
                             WHEN :z <= 9 THEN 300
                             ELSE 0
-                        END
+                        END,
+                        false
                     ),
-                    ST_TileEnvelope(:z, :x, :y), 4096, 256, true) AS geom
-            FROM territorio.tb_municipio
+                    ST_TileEnvelope(:z, :x, :y),
+                    4096,
+                    256,
+                    true
+                ) AS geom
+            FROM territorio.vw_base_municipal
             WHERE {base_where}
         ) AS tile;
     """
@@ -226,7 +297,7 @@ async def get_distritos_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Depe
     where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio"})
     
     base_where = """
-        geom2025 && ST_Transform(ST_TileEnvelope(:z, :x, :y), 4326)
+        geom && ST_TileEnvelope(:z, :x, :y)
     """
 
     if where_filtro:
@@ -236,25 +307,29 @@ async def get_distritos_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Depe
     params.update(params_filtro)
 
     sql = f"""
-        SELECT ST_AsMVT(tile, 'poligonos', 4096, 'geom') AS mvt
+        SELECT ST_AsMVT(tile, 'poligonos', 4096, 'geom', 'cod_distrito') AS mvt
         FROM (
             SELECT
                 cod_distrito,
                 ST_AsMVTGeom(
                     ST_Simplify(
-                        ST_Transform(geom, 3857),
+                        geom,
                         CASE
                             WHEN :z <= 8 THEN 500 
                             WHEN :z <= 9 THEN 300
                             ELSE 0
-                        END
+                        END,
+                        false
                     ),
-                    ST_TileEnvelope(:z, :x, :y), 4096, 256, true) AS geom
-            FROM territorio.tb_distrito
+                    ST_TileEnvelope(:z, :x, :y),
+                    4096,
+                    256,
+                    true
+                ) AS geom
+            FROM territorio.vw_base_distrito
             WHERE {base_where}
         ) AS tile;
     """
-
         
     result = await _execute_query(db, sql, params)
     row = result.fetchone()
@@ -272,7 +347,7 @@ async def get_setores_censitarios_2022(z: int, x: int, y: int, filtros: FiltrosM
     where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio"})
     
     base_where = """
-        geom2025 && ST_Transform(ST_TileEnvelope(:z, :x, :y), 4326)
+        geom && ST_TileEnvelope(:z, :x, :y)
     """
 
     if where_filtro:
@@ -283,7 +358,7 @@ async def get_setores_censitarios_2022(z: int, x: int, y: int, filtros: FiltrosM
 
 
     sql = f"""
-        SELECT ST_AsMVT(tile, 'poligonos', 4096, 'geom') AS mvt
+        SELECT ST_AsMVT(tile, 'poligonos', 4096, 'geom', 'cod_setor') AS mvt
         FROM (
             SELECT
                 cod_setor,
@@ -293,14 +368,19 @@ async def get_setores_censitarios_2022(z: int, x: int, y: int, filtros: FiltrosM
                 nome_municipio || '/' || sigla_uf as nome_municipio,
                 ST_AsMVTGeom(
                     ST_Simplify(
-                        ST_Transform(geom, 3857),
+                        geom,
                         CASE
                             WHEN :z <= 8 THEN 500 
                             WHEN :z <= 9 THEN 300
                             ELSE 0
-                        END
+                        END,
+                        false
                     ),
-                    ST_TileEnvelope(:z, :x, :y), 4096, 256, true) AS geom
+                    ST_TileEnvelope(:z, :x, :y),
+                    4096,
+                    256,
+                    true
+                ) AS geom
             FROM censo.vw_base_setor_censitario
             WHERE {base_where}
         ) AS tile;
@@ -324,7 +404,7 @@ async def get_localidades_2022(z: int, x: int, y: int, filtros: FiltrosMapa = De
     where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio"})
     
     base_where = """
-        geom2025 && ST_Transform(ST_TileEnvelope(:z, :x, :y), 4326)
+        geom && ST_TileEnvelope(:z, :x, :y)
     """
 
     if where_filtro:
@@ -335,14 +415,20 @@ async def get_localidades_2022(z: int, x: int, y: int, filtros: FiltrosMapa = De
 
 
     sql = f"""
-        SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom') AS mvt
+        SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom', 'cod_localidade') AS mvt
         FROM (
             SELECT
                 cod_localidade,
                 categoria_localidade,
                 nome_localidade,
-                ST_AsMVTGeom(ST_Transform(geom, 3857), ST_TileEnvelope(:z, :x, :y), 4096, 256, true) AS geom
-            FROM territorio.tb_localidade
+                ST_AsMVTGeom(
+                    geom,
+                    ST_TileEnvelope(:z, :x, :y),
+                    4096,
+                    256,
+                    true
+                ) AS geom
+            FROM territorio.vw_base_localidade
             WHERE {base_where}
         ) AS tile;
     """
@@ -365,7 +451,7 @@ async def get_enderecos_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Depe
     where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio"})
     
     base_where = """
-        geom2025 && ST_Transform(ST_TileEnvelope(:z, :x, :y), 4326)
+        geom && ST_TileEnvelope(:z, :x, :y)
     """
 
     if where_filtro:
@@ -376,25 +462,21 @@ async def get_enderecos_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Depe
 
 
     sql = f"""
-        SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom') AS mvt
+        SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom', 'cod_endereco') AS mvt
         FROM (
             SELECT
                 cod_endereco,
                 cod_especie,
                 dsc_localidade,
-                CASE
-                    WHEN cod_especie = 1 then '1 - Domicílio particular'
-                    WHEN cod_especie = 2 then '2 - Domicílio coletivo'
-                    WHEN cod_especie = 3 then '3 - Estabelecimento agropecuário'
-                    WHEN cod_especie = 4 then '4 - Estabelecimento de ensino'
-                    WHEN cod_especie = 5 then '5 - Estabelecimento de saúde'
-                    WHEN cod_especie = 6 then '6 - Estabelecimento de outras finalidades'
-                    WHEN cod_especie = 7 then '7 - Edificação em construção ou reforma'
-                    WHEN cod_especie = 8 then '8 - Estabelecimento religioso'
-                    ELSE 'verificar'
-                END as especie,
-                ST_AsMVTGeom(ST_Transform(geom, 3857), ST_TileEnvelope(:z, :x, :y), 4096, 256, true) AS geom
-            FROM territorio.tb_endereco
+                especie,
+                ST_AsMVTGeom(
+                    geom,
+                    ST_TileEnvelope(:z, :x, :y),
+                    4096,
+                    256,
+                    true
+                ) AS geom
+            FROM territorio.vw_base_endereco
             WHERE {base_where}
         ) AS tile;
     """
@@ -417,7 +499,7 @@ async def get_municipios_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
     where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio"})
     
     base_where = """
-        geom2025 && ST_Transform(ST_TileEnvelope(:z, :x, :y), 4326)
+        geom_2022 && ST_TileEnvelope(:z, :x, :y)
     """
 
     if where_filtro:
@@ -425,22 +507,13 @@ async def get_municipios_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
     
     params = {"z": z, "x": x, "y": y}
     params.update(params_filtro)
-
-
+    
     sql = f"""
-        SELECT ST_AsMVT(tile, 'poligonos', 4096, 'geom') AS mvt
+        SELECT ST_AsMVT(tile, 'poligonos', 4096, 'geom', 'cod_municipio') AS mvt
         FROM (
             SELECT
                 cod_municipio,
                 nome_municipio,
-                populacao_total_censo_2022,
-                categoria_metropolitana,
-                subgrupo,
-                semiarido_2022,
-                amazonia_legal,
-                vale_jequetinhonha,
-                idhm_2010,
-                indice_firjan_2016,
                 deficit_agua_rural_ibge,
                 deficit_esgoto_rural_ibge,
                 deficit_residuo_rural_ibge,
@@ -451,15 +524,20 @@ async def get_municipios_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
                 deficit_banheiro_urbana_ibge,
                 ST_AsMVTGeom(
                     ST_Simplify(
-                        ST_Transform(geom2022, 3857),
+                        geom_2022,
                         CASE
                             WHEN :z <= 7 THEN 1000
                             WHEN :z <= 8 THEN 500
                             WHEN :z <= 9 THEN 300
                             ELSE 0
-                        END
+                        END,
+                        false
                     ),
-                    ST_TileEnvelope(:z, :x, :y), 4096, 256, true) AS geom
+                    ST_TileEnvelope(:z, :x, :y),
+                    4096,
+                    256,
+                    true
+                ) AS geom
             FROM territorio.vw_base_municipal
             WHERE {base_where}
         ) AS tile;
@@ -515,6 +593,7 @@ def _cleanup_cache():
                 del cache_jenks[key]
 
 
+# whitelist das colunas que serão usadas no mapa cloroplético
 COLUNAS = {
     "deficit_agua_rural_ibge": "deficit_agua_rural_ibge",
     "deficit_esgoto_rural_ibge": "deficit_esgoto_rural_ibge",
