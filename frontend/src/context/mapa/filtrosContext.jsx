@@ -1,62 +1,86 @@
-import { useMemo, useState } from 'react'
-import { FiltrosContext } from './filtrosContextValue'
+import { createContext, useState, useEffect } from 'react'
+import { listarMunicipios, listarUfs } from "../../api/mapa"
 
-const FILTROS_INICIAIS = {
-  uf:                   [],
-  municipio:            [],
-  fase_instrumento:     [],
-  tipo_instrumento:     [],
-  acao_padronizada:     [],
-  nr_proposta:          [],
-  nr_instrumento:       []
-}
+export const FiltrosContext = createContext();
 
-function normalizarFiltros(filtros) {
-  return Object.fromEntries(
-    Object.keys(FILTROS_INICIAIS).map((campo) => {
-      const valor = filtros?.[campo]
-
-      if (!Array.isArray(valor)) {
-        return [campo, []]
-      }
-
-      const valoresNormalizados = [...new Set(
-        valor
-          .map((item) => String(item).trim())
-          .filter(Boolean)
-      )].sort((a, b) => a.localeCompare(b, 'pt-BR'))
-
-      return [campo, valoresNormalizados]
-    })
-  )
-}
 
 export function FiltrosProvider({ children }) {
-  const [filtros, setFiltros] = useState(() => normalizarFiltros(FILTROS_INICIAIS))
 
-  const aplicarFiltros = (novosFiltros) => {
-    setFiltros(normalizarFiltros(novosFiltros))
+  const filtrosIniciais = {
+    cod_municipio: "",
+    cod_uf: ""
+  };
+  
+
+  const [filtros, setFiltros] = useState(filtrosIniciais);
+  const [listas, setListas] = useState({
+    municipios: [],
+    ufs: [],
+  });
+
+  
+  //esse useEffect é quem ativa as funções de listar as quais fezem fetch no banco e trazem as lista, atualizando o estado ao chamar setListas
+  //só tem uf porque isso puxa a lista inteira de uma vez só. P/ listas grandes como municipios, não recomenda-se fazer isso
+  useEffect(() => {
+
+    listarUfs().then((data) => setListas((prev) => ({ ...prev, ufs: data })));
+
+  }, []);
+
+  
+  //essa função busca a lista de municípios, mas com condição:
+  //com usuário começando a digitar (esse texto digitado é q), ou UF sendo selecionada (mas não traz a lista inteira porque endpoint tem cláusula limit no sql)
+  async function buscarMunicipios(q="", cod_uf = filtros.cod_uf) {
+    
+    const texto = String(q ?? "").trim();
+
+    // sem UF e menos de 2 letras -> limpa
+    if (!cod_uf && texto.length < 2) {
+      setListas(prev => ({ ...prev, municipios: [] }));
+      return;
+    }
+
+    const data = await listarMunicipios(texto, cod_uf);
+    setListas(prev => ({ ...prev, municipios: data }));
+    
   }
 
-  const limparFiltros = () => {
-    setFiltros(FILTROS_INICIAIS)
+
+
+
+  //essa função a chamada pelo onChange dos filtros, e chama setFiltros atualizando o estado filtros
+  function atualizarFiltro(nome, valor) {
+    setFiltros((prev) => {
+      const novos = {...prev, [nome]: valor};
+
+      if (nome === "cod_uf") {
+        novos.cod_municipio = "";
+        buscarMunicipios("", valor);
+      }
+
+    return novos;
+    });
   }
 
-  const qtdeFiltrosAtivos = Object.values(filtros).filter((v) =>
-    Array.isArray(v) ? v.length > 0 : v !== null
-  ).length
 
-  const contextValue = useMemo(() => ({
-    filtros,
-    aplicarFiltros,
-    limparFiltros,
-    qtdeFiltrosAtivos,
-  }), [filtros, qtdeFiltrosAtivos])
+  //essa função limpa os filtros ao chamar setFiltros inserindo os valore em branco
+  function limparFiltros() {
+    setFiltros({ ...filtrosIniciais });
+    setListas(prev => ({ ...prev, municipios: [] }));
+  }
+
 
   return (
-    <FiltrosContext.Provider value={contextValue}>
+    <FiltrosContext.Provider
+      value={{
+        filtros,
+        listas,
+        atualizarFiltro,
+        limparFiltros,
+        buscarMunicipios
+      }}
+    >
       {children}
     </FiltrosContext.Provider>
-  )
+  );
 }
-
