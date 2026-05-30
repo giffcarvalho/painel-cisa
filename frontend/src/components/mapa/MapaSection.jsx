@@ -1,15 +1,19 @@
 import estilos from "./MapaSection.module.css";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useContext } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import CamadasSection from "./CamadasSection";
+import FiltrosMapaSection from "./FiltrosMapaSection";
+import { urlBboxUfs, urlDistritos2022, urlEnderecos2022, urlLocalidades2022, urlMunicipios2022, urlMunicipios2025, urlSetoresCensitarios2022, urlUfs, urlBboxMunicipios } from "@/api/mapa";
+import { FiltrosContext } from "../../context/mapa/filtrosContext";
+
 
 export default function MapaSection() { 
     
     //este estado controla a visibilidade e variaveis das camadas
     const [layers, setLayers] = useState([
         { id: "ufs", nome: "Limites Estaduais", visivel: true },
-        { id: "municipios_2025", nome: "Limites Municipais 2025", visivel: true },
+        { id: "municipios_2022", nome: "Limites Municipais 2022", visivel: true },
         { id: "distritos_2022", nome: "Distritos 2022", visivel: true },
         { id: "setores_censitarios_2022", nome: "Setores Censitários 2022", visivel: true },
         { id: "enderecos_2022", nome: "Endereços 2022", visivel: true },
@@ -34,6 +38,7 @@ export default function MapaSection() {
     //este estado controla o painel de camadas
     const [painelCamadas, setPainelCamadas] = useState(false);
 
+    const {filtros} = useContext(FiltrosContext)
 
 
     const API_URL = "http://localhost:8000/api/v1/mapa";
@@ -65,14 +70,15 @@ export default function MapaSection() {
 
         //adição das camadas. O primeiro bloco são as fontes (sources). O segundo bloco são as camadas (layers) já com a simbologia desejada
         //a ordem dos addLayers no código influencia na ordem de renderização. Os últimos layers ficam por cima no mapa
+        //as urls estão definidas em @/api/mapa dentro de funções, as quais são chamadas dentro de tiles: []. Essas funções pegam o conteúdo de filtros e transformam em url params
         map.on("load", () => {
-            map.addSource("setores_censitarios_2022", {type: "vector", tiles: [`${API_URL}/setores_censitarios_2022/{z}/{x}/{y}.pbf`], minzoom: 8, maxzoom: 20});
-            map.addSource("distritos_2022", {type: "vector", tiles: [`${API_URL}/distritos_2022/{z}/{x}/{y}.pbf`], minzoom: 6, maxzoom: 20});
-            map.addSource("municipios_2025", {type: "vector", tiles: [`${API_URL}/municipios_2025/{z}/{x}/{y}.pbf`], minzoom: 5, maxzoom: 20});
-            map.addSource("municipios_2022", {type: "vector", tiles: [`${API_URL}/municipios_2022/{z}/{x}/{y}.pbf`], minzoom: 3, maxzoom: 20});
-            map.addSource("ufs", {type: "vector", tiles: [`${API_URL}/ufs/{z}/{x}/{y}.pbf`], minzoom: 3, maxzoom: 20});
-            map.addSource("enderecos_2022", {type: "vector", tiles: [`${API_URL}/enderecos_2022/{z}/{x}/{y}.pbf`], minzoom: 12, maxzoom: 20});
-            map.addSource("localidades_2022", {type: "vector", tiles: [`${API_URL}/localidades_2022/{z}/{x}/{y}.pbf`], minzoom: 8, maxzoom: 20});
+            map.addSource("setores_censitarios_2022", {type: "vector", tiles: [urlSetoresCensitarios2022(filtros)], minzoom: 8, maxzoom: 20});
+            map.addSource("distritos_2022", {type: "vector", tiles: [urlDistritos2022(filtros)], minzoom: 6, maxzoom: 20});
+            map.addSource("municipios_2025", {type: "vector", tiles: [urlMunicipios2025(filtros)], minzoom: 5, maxzoom: 20});
+            map.addSource("municipios_2022", {type: "vector", tiles: [urlMunicipios2022(filtros)], minzoom: 3, maxzoom: 20});
+            map.addSource("ufs", {type: "vector", tiles: [urlUfs(filtros)], minzoom: 3, maxzoom: 20});
+            map.addSource("enderecos_2022", {type: "vector", tiles: [urlEnderecos2022(filtros)], minzoom: 12, maxzoom: 20});
+            map.addSource("localidades_2022", {type: "vector", tiles: [urlLocalidades2022(filtros)], minzoom: 8, maxzoom: 20});
             
             
             map.addLayer({
@@ -123,9 +129,9 @@ export default function MapaSection() {
 
 
             map.addLayer({
-                id: "municipios_2025",
+                id: "municipios_2022",
                 type: "line",
-                source: "municipios_2025", "source-layer": "poligonos",
+                source: "municipios_2022", "source-layer": "poligonos",
                 paint: {
                     "line-width": ["interpolate", ["linear"], ["zoom"], 6.0, 0.3, 7.0, 1.0, 8.0, 2.0, 9.0, 3.0, 10.0, 4.0, 11.0, 4.5],
                     "line-color": "#f3f3f3"
@@ -191,6 +197,66 @@ export default function MapaSection() {
     }, []);
     
     
+
+    //useEffect que faz o mapa fazer o fly até a UF ou município filtrado
+    useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    async function aplicarZoom() {
+      if (!filtros.cod_uf && !filtros.cod_municipio) {
+        map.flyTo({ center: [-47.9, -15.8], zoom: 3 });
+        return;
+      }
+      
+      if (filtros.cod_municipio) {
+        const res = await fetch(urlBboxMunicipios({cod_municipio: filtros.cod_municipio}));
+        const { xmin, ymin, xmax, ymax } = await res.json();
+        map.fitBounds([[xmin, ymin], [xmax, ymax]], { padding: 40 });
+        return;
+      }
+
+      if (filtros.cod_uf) {
+        const res = await fetch(urlBboxUfs({cod_uf: filtros.cod_uf}));
+        const { xmin, ymin, xmax, ymax } = await res.json();
+        map.fitBounds([[xmin, ymin], [xmax, ymax]], { padding: 40 });
+      }
+    }
+
+    if (map.isStyleLoaded()) {
+      aplicarZoom();
+    } else {
+      map.once("load", aplicarZoom)};
+
+  }, [filtros.cod_uf, filtros.cod_municipio]);
+  
+
+
+
+    //useEffect que atualiza as sources das camadas toda vez que um filtro for alterado 
+    useEffect(() => {
+
+        const map = mapRef.current;
+        if (!map) return;
+
+        const atualizarSource = (sourceId, url) => {
+            const source = map.getSource(sourceId);
+            if (!source) return;
+            source.setTiles([url]);
+        };
+
+        atualizarSource("ufs", urlUfs(filtros));
+        atualizarSource("municipios_2025", urlMunicipios2025(filtros));
+        atualizarSource("distritos_2022", urlDistritos2022(filtros));
+        atualizarSource("setores_censitarios_2022", urlSetoresCensitarios2022(filtros));
+        atualizarSource("localidades_2022", urlLocalidades2022(filtros));
+        atualizarSource("enderecos_2022", urlEnderecos2022(filtros));
+        atualizarSource("municipios_2022", urlMunicipios2022(filtros));
+
+    }, [filtros]);
+
+
+
 
     //useEffect que gera o popup ao clicar na feicao
     useEffect(() => {
@@ -278,6 +344,7 @@ export default function MapaSection() {
         const map = mapRef.current;
         if (!map) return;
 
+        
         async function atualizarClassificacoes() {
 
             for (const layer of layers) {
@@ -386,6 +453,7 @@ export default function MapaSection() {
         <div className={estilos.mapa_box}>
             <button className={estilos.botaoMenu}> ☰ </button>
             <button className={estilos.botaoFiltros}> ☰ </button>
+            <FiltrosMapaSection/>
             <button className={estilos.botaoCamadas} onClick={() => setPainelCamadas(!painelCamadas)}> ☰ </button>
             {painelCamadas && (<CamadasSection layers={layers} toggleLayer={toggleLayer} alterarVariavel={alterarVariavel}/>)}
             <div ref={mapContainer} className={estilos.mapContainer}/>
