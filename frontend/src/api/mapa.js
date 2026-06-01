@@ -31,7 +31,6 @@ export async function listarUfs(filtros = {}) {
 export async function listarMunicipios(q="", cod_uf, limit = 40) {
   
   const params = { q, limit }
-
   const temUf = Array.isArray(cod_uf)? cod_uf.length > 0: cod_uf != null
 
   if (temUf) {
@@ -42,6 +41,21 @@ export async function listarMunicipios(q="", cod_uf, limit = 40) {
   
   return res.data.data;
 }
+
+
+export async function listarNrPropostas(q="", limit = 40) {
+  
+  const params = { q, limit }
+  const res = await api.get("/mapa/filtros/nr_propostas", { params });
+  
+  return res.data.data;
+}
+
+
+
+
+
+
 
 
 const API_URL = "http://localhost:8000/api/v1"
@@ -97,4 +111,10 @@ export function urlEnderecos2022(filtros={}) {
 export function urlMunicipios2022(filtros={}) {
   const params = toParams(filtros);
   return `${API_URL}/mapa/municipios_2022/{z}/{x}/{y}.pbf?${params}`
+}
+
+
+export function urlGeometriasCarteiraDsr(filtros={}) {
+  const params = toParams(filtros);
+  return `${API_URL}/mapa/geometrias_carteira_dsr/{z}/{x}/{y}.pbf?${params}`
 }
