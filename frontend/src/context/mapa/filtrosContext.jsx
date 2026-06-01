@@ -7,8 +7,8 @@ export const FiltrosContext = createContext();
 export function FiltrosProvider({ children }) {
 
   const filtrosIniciais = {
-    cod_municipio: "",
-    cod_uf: ""
+    cod_municipio: null,
+    cod_uf: null
   };
   
 
@@ -34,14 +34,19 @@ export function FiltrosProvider({ children }) {
     
     const texto = String(q ?? "").trim();
 
-    // sem UF e menos de 2 letras -> limpa
-    if (!cod_uf && texto.length < 2) {
-      setListas(prev => ({ ...prev, municipios: [] }));
+    const temUf = Array.isArray(cod_uf)? cod_uf.length > 0 : !!cod_uf;
+
+    if (!temUf && texto.length < 2) {
+      setListas(prev => ({...prev, municipios: []}));
+      return;
+    }
+
+    if (texto.length > 0 && texto.length < 2) {
       return;
     }
 
     const data = await listarMunicipios(texto, cod_uf);
-    setListas(prev => ({ ...prev, municipios: data }));
+    setListas(prev => ({...prev, municipios: data}));
     
   }
 
@@ -54,7 +59,7 @@ export function FiltrosProvider({ children }) {
       const novos = {...prev, [nome]: valor};
 
       if (nome === "cod_uf") {
-        novos.cod_municipio = "";
+        novos.cod_municipio = null;
         buscarMunicipios("", valor);
       }
 
