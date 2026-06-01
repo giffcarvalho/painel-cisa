@@ -3,26 +3,24 @@ import { useState, useContext, useEffect } from "react";
 import { X, Filter } from "lucide-react";
 import FiltroSelect from "./FiltroSelect";
 import { FiltrosContext } from "../../context/mapa/filtrosContext";
+import FiltroSelecaoUnica from "./FiltroSelecaoUnica";
 
 
 export default function FiltroPainel ({ setPainelFiltros }) {
     
-    const { listas, buscarMunicipios, atualizarFiltro, filtros } = useContext(FiltrosContext);
-    const [rascunho, setRascunho] = useState({municipios: [], ufs: []})
+    const { listas, filtros, buscarMunicipios, buscarNrPropostas, atualizarFiltro, limparFiltros } = useContext(FiltrosContext);
+    const [rascunho, setRascunho] = useState({municipios: []})
     
-
-    useEffect(() => {
-        atualizarFiltro('cod_uf', rascunho.ufs)
-    }, [rascunho.ufs])
 
     useEffect(() => {
         atualizarFiltro('cod_municipio', rascunho.municipios)
     }, [rascunho.municipios])
 
-
+ 
+    
     const handleChange = (campo, valor, acao = 'TOGGLE') => {
         setRascunho(prev => {
-            if (acao === 'LIMPAR') return { ...prev, [campo]: [] }
+            if (acao === 'LIMPAR') return {...prev, [campo]: []}
             
             if (acao === 'TODOS') {
                 const atuais = prev[campo] || []
@@ -54,17 +52,19 @@ export default function FiltroPainel ({ setPainelFiltros }) {
                 </div>
                 
                 <div className={estilos.filtrosSel}>
-                    <FiltroSelect
+                    
+                    <FiltroSelecaoUnica
                         key='uf'
-                        id='uf'
+                        id='cod_uf'
                         label='UF'
-                        valorAtual={rascunho.ufs}
+                        valorAtual={filtros.cod_uf}
                         opcoes={listas.ufs}
-                        getValue={(u) => u.cod_uf}
-                        getLabel={(u) => u.sigla_uf}
-                        onChange={(valor, acao) => {const novo = handleChange('ufs', valor, acao)}}
+                        getValue={(uf)=>uf.cod_uf}
+                        getLabel={(uf)=>uf.sigla_uf}
+                        onChange={(valor)=> atualizarFiltro("cod_uf", valor)}
                     />
                     
+
                     <FiltroSelect
                         key='municipio'
                         id='municipio'
@@ -77,10 +77,25 @@ export default function FiltroPainel ({ setPainelFiltros }) {
                         onChange={(valor, acao) => handleChange('municipios', valor, acao)}
                     />
 
+
+                    <FiltroSelecaoUnica
+                        key='nrProposta'
+                        id='nrProposta'
+                        label='Número da Proposta'
+                        valorAtual={filtros.nr_proposta}
+                        opcoes={listas.nrPropostas}
+                        getValue={(nr)=>nr.nr_proposta}
+                        getLabel={(nr)=>nr.nr_proposta}
+                        onBuscar={(texto) => buscarNrPropostas(texto)}
+                        onChange={(valor)=> atualizarFiltro("nr_proposta", valor)}
+                    />
+
+
+
                 </div>
 
                 <div className={estilos.areaBotoes}>
-                    <button className={estilos.botaoLimpar}>Limpar Filtros</button>
+                    <button className={estilos.botaoLimpar} onClick={limparFiltros} >Limpar Filtros</button>
                     <button className={estilos.botaoAplicar}>Aplicar Filtros</button>
                 </div>
             </div>
