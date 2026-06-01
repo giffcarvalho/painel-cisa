@@ -28,10 +28,18 @@ export async function listarUfs(filtros = {}) {
 }
 
 
-export async function listarMunicipios(q="", cod_uf, limit = 20) {
+export async function listarMunicipios(q="", cod_uf, limit = 40) {
   
-  const res = await api.get("/mapa/filtros/municipios", {params: { q, cod_uf, limit }});
+  const params = { q, limit }
 
+  const temUf = Array.isArray(cod_uf)? cod_uf.length > 0: cod_uf != null
+
+  if (temUf) {
+    params.cod_uf = Array.isArray(cod_uf)? cod_uf.join(","): cod_uf
+  }
+  
+  const res = await api.get("/mapa/filtros/municipios", { params });
+  
   return res.data.data;
 }
 
