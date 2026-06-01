@@ -24,24 +24,43 @@
 
 .botaoFiltros {
   position: absolute;
-  top: 20px;
-  left: 120px;
+  top: 15px;
+  right: 15px;
   width: 35px;
   height: 35px;
   border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 5px;
   background: white;
   cursor: pointer;
   z-index: 1;
+}
+
+
+.FilterIcon {
+  color: #f50b9b;
+  transition: color .2s;
 }
 
 .botaoCamadas {
   position: absolute;
   bottom: 20px;
   left: 20px;
-  width: 35px;
-  height: 35px;
-  border: none;
-  background: white;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 5px;
+  background: rgb(255, 255, 255);
   cursor: pointer;
   z-index: 1;
+}
+
+
+.LayersIcon {
+  color: #0326ea;
+  transition: color .2s;
 }
