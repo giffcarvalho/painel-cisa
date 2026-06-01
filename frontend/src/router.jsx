@@ -4,7 +4,11 @@ import { Loader2 } from 'lucide-react'
 import AppLayout from '@/components/layout/AppLayout'
 import Home from '@/pages/home/Home'
 import CarteiraDsr from '@/pages/carteira-dsr/CarteiraDsr'
-import Manual from './pages/manual/Manual'
+import ManualLayout from './pages/manual/ManualLayout'
+import ManualHome from './pages/manual/ManualHome'
+import ManualCarteiraDsr from './pages/manual/ManualCarteiraDsr'
+import ManualMapaInterativo from './pages/manual/ManualMapaInterativo'
+import ManualInformacoesGerais from './pages/manual/ManualInformacoesGerais'
 import MapLayout from './components/layout/MapLayout'
 
 const Mapa = lazy(() => import('@/pages/mapa/Mapa'))
@@ -34,7 +38,25 @@ export const router = createBrowserRouter([
       },
       {
         path: 'manual',
-        element: <Manual />,
+        element: <ManualLayout />,
+        children: [
+          {
+            index: true,
+            element: <ManualHome />,
+          },
+          {
+            path: 'carteira-dsr',
+            element: <ManualCarteiraDsr />,
+          },
+          {
+            path: 'mapa-interativo',
+            element: <ManualMapaInterativo />,
+          },
+          {
+            path: 'informacoes-gerais',
+            element: <ManualInformacoesGerais />,
+          },
+        ],
       },
     ],
   },

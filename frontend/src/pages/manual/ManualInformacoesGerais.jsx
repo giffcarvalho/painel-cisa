@@ -1,0 +1,40 @@
+import { glossario, perguntasFrequentes } from './manualContent'
+import styles from './Manual.module.css'
+
+export default function ManualInformacoesGerais() {
+  return (
+    <main className={styles.detailPage}>
+      <section className={styles.contentCard}>
+        <h2>Informações Gerais</h2>
+
+        <div className={styles.notice}>
+          As informações exibidas no portal dependem da atualização das bases
+          utilizadas pelo Departamento. A data de referência deve ser confirmada
+          com a área responsável.
+        </div>
+
+        <section className={styles.subsection}>
+          <h3>Dúvidas frequentes</h3>
+
+          {perguntasFrequentes.map((item) => (
+            <article key={item.question} className={styles.textBlock}>
+              <h4>{item.question}</h4>
+              <p>{item.answer}</p>
+            </article>
+          ))}
+        </section>
+
+        <section className={styles.subsection}>
+          <h3>Glossário básico</h3>
+
+          {glossario.map((item) => (
+            <article key={item.term} className={styles.textBlock}>
+              <h4>{item.term}</h4>
+              <p>{item.description}</p>
+            </article>
+          ))}
+        </section>
+      </section>
+    </main>
+  )
+}
