@@ -2,10 +2,11 @@ import estilos from "./MapaSection.module.css";
 import { useEffect, useRef, useState, useContext } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { Filter, Layers } from "lucide-react";
 import CamadasSection from "./CamadasSection";
-import FiltrosMapaSection from "./FiltrosMapaSection";
 import { urlBboxUfs, urlDistritos2022, urlEnderecos2022, urlLocalidades2022, urlMunicipios2022, urlMunicipios2025, urlSetoresCensitarios2022, urlUfs, urlBboxMunicipios } from "@/api/mapa";
 import { FiltrosContext } from "../../context/mapa/filtrosContext";
+import FiltroPainel from "./FiltroPainel";
 
 
 export default function MapaSection() { 
@@ -35,8 +36,9 @@ export default function MapaSection() {
         },
     ]);
     
-    //este estado controla o painel de camadas
+    //estes estados controlam a abertura dos paineis
     const [painelCamadas, setPainelCamadas] = useState(false);
+    const [painelFiltros, setPainelFiltros] = useState(false);
 
     const {filtros} = useContext(FiltrosContext)
 
@@ -452,9 +454,9 @@ export default function MapaSection() {
     return ( 
         <div className={estilos.mapa_box}>
             <button className={estilos.botaoMenu}> ☰ </button>
-            <button className={estilos.botaoFiltros}> ☰ </button>
-            <FiltrosMapaSection/>
-            <button className={estilos.botaoCamadas} onClick={() => setPainelCamadas(!painelCamadas)}> ☰ </button>
+            <button className={estilos.botaoFiltros} onClick={() => setPainelFiltros(!painelFiltros)}> <Filter className={estilos.FilterIcon}/> </button>
+            {painelFiltros && <FiltroPainel setPainelFiltros={setPainelFiltros}/>}
+            <button className={estilos.botaoCamadas} onClick={() => setPainelCamadas(!painelCamadas)}> <Layers className={estilos.LayersIcon}/> </button> 
             {painelCamadas && (<CamadasSection layers={layers} toggleLayer={toggleLayer} alterarVariavel={alterarVariavel}/>)}
             <div ref={mapContainer} className={estilos.mapContainer}/>
         </div>
