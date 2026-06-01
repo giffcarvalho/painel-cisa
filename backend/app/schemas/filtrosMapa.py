@@ -16,3 +16,13 @@ class MunicipioItem(BaseModel):
 
 class OpcoesFiltrosMunicipio(BaseModel):
     data: list[MunicipioItem]
+
+
+class NrPropostaItem(BaseModel):
+    nr_proposta: str
+
+class OpcoesFiltrosNrProposta(BaseModel):
+    data: list[NrPropostaItem]
+
+
+    
