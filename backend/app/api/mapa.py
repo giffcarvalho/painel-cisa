@@ -11,8 +11,11 @@ from app.core.database import get_db
 import jenkspy
 import time
 from threading import Lock
-from app.schemas.filtrosMapa import UfItem, OpcoesFiltrosUf, MunicipioItem, OpcoesFiltrosMunicipio
-
+from app.schemas.filtrosMapa import (
+    UfItem, OpcoesFiltrosUf, 
+    MunicipioItem, OpcoesFiltrosMunicipio,
+    NrPropostaItem, OpcoesFiltrosNrProposta
+)
 
  
 router = APIRouter()
@@ -20,7 +23,11 @@ logger = logging.getLogger(__name__)
 
 
 
-async def _execute_query(db: AsyncSession, sql: str, params: dict | None = None) -> CursorResult: #--Executa a query com tratamento de erro para evitar que exceções brutas do banco vazem.
+#-----------------------------------------------------------------------------------------------------------------
+# Criação da seção de conexão com o banco
+#-----------------------------------------------------------------------------------------------------------------
+
+async def _execute_query(db: AsyncSession, sql: str, params: dict | None = None) -> CursorResult: 
     try:
         return await db.execute(text(sql), params or {})
     except SQLAlchemyError as e:
@@ -31,15 +38,24 @@ async def _execute_query(db: AsyncSession, sql: str, params: dict | None = None)
         )
 
 
+
+
+
+#-----------------------------------------------------------------------------------------------------------------
+# Construção da cláusula WHERE de forma dinâmica. A construção é feita a partir dos params recebidos do frontend
+#-----------------------------------------------------------------------------------------------------------------
+
 #--Dependência de filtros
 class FiltrosMapa:  #-- Dependência do FastAPI para agrupar todos os Query Parameters. Evita repetição nas assinaturas das funções de rota.
     def __init__(
             self,
-            cod_uf: list[int] | None = Query(None), #-- list[] é porque pode ser mais de um, | None diz que é opcional, e Query(None) diz que não tem valor padrão
-            cod_municipio: list[int] | None = Query(None)
+            cod_uf: list[int] | None = Query(None), 
+            cod_municipio: list[int] | None = Query(None),
+            nr_proposta: list[str] | None = Query(None)
     ):
         self.cod_uf = cod_uf
         self.cod_municipio = cod_municipio
+        self.nr_proposta = nr_proposta
         
 
 def _build_where(filtros: FiltrosMapa, allowed: set[str] | None = None) -> tuple[str, dict]:  #--filtros: FiltrosMapa é recebido do frontend via depends. str é a string da cláusula where, dict é o dicionário com os valores dos params
@@ -48,23 +64,32 @@ def _build_where(filtros: FiltrosMapa, allowed: set[str] | None = None) -> tuple
     params: dict = {}                                                                         #--é o dicionário com os valores dos params que foram recebidos do frontend
 
     list_filters = [                                       
-        ("cod_uf", filtros.cod_uf, "cod_uf", int),                          #(coluna do banco, valor da params recebido do frontend, nome do params, cast)
-        ("cod_municipio", filtros.cod_municipio, "cod_municipio", int),
+        ("cod_uf", filtros.cod_uf, "cod_uf", int, "int[]"),                          #(coluna do banco, valor da params recebido do frontend, nome do params, cast)
+        ("cod_municipio", filtros.cod_municipio, "cod_municipio", int, "int[]"),
+        ("nr_proposta", filtros.nr_proposta, "nr_proposta", None, "text[]"),
     ]
 
-    for col, values, param_key, cast_python in list_filters:
+    for col, values, param_key, cast_python, sql_array_type in list_filters:
         
         if allowed and col not in allowed:
             continue
 
         if values:
-            clauses.append(f"{col} = ANY(CAST(:{param_key} AS int[]))")
+            clauses.append(f"{col} = ANY(CAST(:{param_key} AS {sql_array_type}))")
             params[param_key] = [cast_python(v) if cast_python else v for v in values]
 
 
     where = (" AND ".join(clauses)) if clauses else ""
     return where, params
 
+
+
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+# Endpoints das listas de opções dos filtros
+#--------------------------------------------------------------------------------------------------------------
 
 # opções do filtro de uf
 @router.get("/filtros/ufs", response_model=OpcoesFiltrosUf, summary="Lista de siglas das UFs")
@@ -87,9 +112,9 @@ async def get_lista_ufs(response: Response, db: AsyncSession = Depends(get_db)):
 @router.get("/filtros/municipios", response_model=OpcoesFiltrosMunicipio, summary="Lista dos nomes dos Municípios")
 async def get_lista_municipios(
     response: Response, 
-    q: Annotated[str | None, Query(max_length=100, description="Termo de busca do município.")] = None,  #é um params que contém o texto que a pessoa começa digitando no campo do filtro. É obrigatório e tem o tamanho especificado
-    cod_uf: Annotated[int | None, Query(description="Código da UF.")] = None,                            #é um params, nesse caso opcional, valor padrão None
-    limit: Annotated[int, Query(ge=1, le=100, description="Quantidade máxima de resultados.")] = 20,
+    q: Annotated[str | None, Query(max_length=100, description="Termo de busca do município.")] = None,  
+    cod_uf: Annotated[int | None, Query(description="Código da UF.")] = None,                            
+    limit: Annotated[int, Query(ge=1, le=100, description="Quantidade máxima de resultados.")] = 40,
     db: AsyncSession = Depends(get_db)):
 
     response.headers["Cache-Control"] = "public, max-age=86400"
@@ -123,6 +148,47 @@ async def get_lista_municipios(
     result = await _execute_query(db, sql, params)
     return OpcoesFiltrosMunicipio(data=[MunicipioItem(**row) for row in result.mappings().all()])
 
+
+# opções do filtro de nr_proposta
+@router.get("/filtros/nr_propostas", response_model=OpcoesFiltrosNrProposta, summary="Lista dos números de proposta")
+async def get_lista_nr_propostas(
+    response: Response, 
+    q: Annotated[str | None, Query(max_length=100, description="Termo de busca do município.")] = None,  
+    limit: Annotated[int, Query(ge=1, le=100, description="Quantidade máxima de resultados.")] = 40,
+    db: AsyncSession = Depends(get_db)):
+
+    response.headers["Cache-Control"] = "public, max-age=600"
+
+    sql = """
+        SELECT
+            DISTINCT(nr_proposta)            
+        FROM instrumento.vw_geometrias_carteira_dsr
+        WHERE 1=1
+    """
+
+    params = {"limit": limit}
+    
+    texto = (q or "").strip()
+    if texto:
+        sql += " AND nr_proposta ILIKE :termo"
+        params["termo"] = f"%{texto}%"
+
+
+    sql += """
+        ORDER BY nr_proposta
+        LIMIT :limit
+    """
+
+    result = await _execute_query(db, sql, params)
+    return OpcoesFiltrosNrProposta(data=[NrPropostaItem(**row) for row in result.mappings().all()])
+
+
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+# Endpoints das bounding box das geometrias filtradas
+#--------------------------------------------------------------------------------------------------------------
 
 # bounding box das UFS. Busca para cada UF filtrada os limites de sua geometria. Informação usada para o mapa fazer o fly e enquadrar na UF selecionada
 @router.get("/bbox_ufs", summary="Bounding box das Unidades da Federação")
@@ -183,6 +249,11 @@ async def get_bbox_municipios(filtros: FiltrosMapa = Depends(), db: AsyncSession
     return row
 
 
+
+
+#--------------------------------------------------------------------------------------------------------------
+# Endpoints das geometrias
+#--------------------------------------------------------------------------------------------------------------
 
 # geometria das ufs
 @router.get("/ufs/{z}/{x}/{y}.pbf", summary="Unidades da Federação")
@@ -554,6 +625,63 @@ async def get_municipios_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
 
 
 
+
+# geometrias da carteira dsr
+@router.get("/geometrias_carteira_dsr/{z}/{x}/{y}.pbf", summary="Geometrias da Carteira DSR")
+async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMapa = Depends(), db: AsyncSession = Depends(get_db)):
+
+    
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "nr_proposta"})
+    
+    base_where = """
+        geom && ST_TileEnvelope(:z, :x, :y)
+    """
+
+    if where_filtro:
+        base_where += f" AND {where_filtro}"
+    
+    params = {"z": z, "x": x, "y": y}
+    params.update(params_filtro)
+
+    sql = f"""
+        SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom', 'nr_instrumento') AS mvt
+        FROM (
+            SELECT
+                nr_instrumento,
+                nr_proposta,
+                tipo_instrumento,
+                acao_padronizada,
+                componente,
+                ST_AsMVTGeom(
+                    geom,
+                    ST_TileEnvelope(:z, :x, :y),
+                    4096,
+                    256,
+                    true
+                ) AS geom
+            FROM instrumento.vw_geometrias_carteira_dsr
+            WHERE {base_where}
+        ) AS tile;
+    """
+    
+
+    result = await _execute_query(db, sql, params)
+    row = result.fetchone()
+    return Response(
+        content=row.mvt if row and row.mvt else b"",
+        media_type="application/x-protobuf",
+        headers={"Cache-Control": "public, max-age=300"}
+    )
+
+
+
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+# Endpoints p/ buscar classificações p/ mapas cloropléticos
+#--------------------------------------------------------------------------------------------------------------
+
 # classificação das classes cloropléticas do mapa usando quebra Jenks (lib jenkspy)
 cache_jenks: dict = {}
 cache_lock = Lock()
@@ -676,3 +804,6 @@ async def get_classificacao(response: Response, variavel: str, classes: int = 5,
         cache_jenks[cache_key] = (resultado, now + CACHE_TTL)
 
     return resultado
+
+
+
