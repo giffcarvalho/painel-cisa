@@ -4,7 +4,7 @@ import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Filter, Layers } from "lucide-react";
 import CamadasSection from "./CamadasSection";
-import { urlBboxUfs, urlDistritos2022, urlEnderecos2022, urlLocalidades2022, urlMunicipios2022, urlMunicipios2025, urlSetoresCensitarios2022, urlUfs, urlBboxMunicipios } from "@/api/mapa";
+import { urlBboxUfs, urlDistritos2022, urlEnderecos2022, urlLocalidades2022, urlMunicipios2022, urlMunicipios2025, urlSetoresCensitarios2022, urlUfs, urlBboxMunicipios, urlGeometriasCarteiraDsr } from "@/api/mapa";
 import { FiltrosContext } from "../../context/mapa/filtrosContext";
 import FiltroPainel from "./FiltroPainel";
 
@@ -19,6 +19,7 @@ export default function MapaSection() {
         { id: "setores_censitarios_2022", nome: "Setores Censitários 2022", visivel: true },
         { id: "enderecos_2022", nome: "Endereços 2022", visivel: true },
         { id: "localidades_2022", nome: "Localidades 2022", visivel: true },
+        { id: "geometrias_carteira_dsr", nome: "Carteira DSR", visivel: true },
         { id: "informacoes_municipais", 
             nome: "Informações Municipais",
             visivel: false,
@@ -34,6 +35,7 @@ export default function MapaSection() {
                 {value: "deficit_banheiro_urbana_ibge", label: "Déficit banheiro urbano", tipo: "percentual_invertido"},
             ]
         },
+        
     ]);
     
     //estes estados controlam a abertura dos paineis
@@ -77,11 +79,14 @@ export default function MapaSection() {
             map.addSource("setores_censitarios_2022", {type: "vector", tiles: [urlSetoresCensitarios2022(filtros)], minzoom: 8, maxzoom: 20});
             map.addSource("distritos_2022", {type: "vector", tiles: [urlDistritos2022(filtros)], minzoom: 6, maxzoom: 20});
             map.addSource("municipios_2025", {type: "vector", tiles: [urlMunicipios2025(filtros)], minzoom: 5, maxzoom: 20});
-            map.addSource("municipios_2022", {type: "vector", tiles: [urlMunicipios2022(filtros)], minzoom: 3, maxzoom: 20});
+            map.addSource("municipios_2022_limites", {type: "vector", tiles: [urlMunicipios2022(filtros)], minzoom: 5, maxzoom: 20});
+            map.addSource("municipios_2022_informacoes", {type: "vector", tiles: [urlMunicipios2022(filtros)], minzoom: 3, maxzoom: 20});
             map.addSource("ufs", {type: "vector", tiles: [urlUfs(filtros)], minzoom: 3, maxzoom: 20});
             map.addSource("enderecos_2022", {type: "vector", tiles: [urlEnderecos2022(filtros)], minzoom: 12, maxzoom: 20});
             map.addSource("localidades_2022", {type: "vector", tiles: [urlLocalidades2022(filtros)], minzoom: 8, maxzoom: 20});
-            
+            map.addSource("geometrias_carteira_dsr", {type: "vector", tiles: [urlGeometriasCarteiraDsr(filtros)], minzoom: 3, maxzoom: 20});
+
+
             
             map.addLayer({
                 id: "setores_censitarios_2022_fill",
@@ -97,7 +102,7 @@ export default function MapaSection() {
             map.addLayer({
                 id: "informacoes_municipais",
                 type: "fill",
-                source: "municipios_2022", "source-layer": "poligonos",
+                source: "municipios_2022_informacoes", "source-layer": "poligonos",
                 layout: {visibility: "none"},
                 paint: {
                 "fill-color": "#e7e1e1",
@@ -133,7 +138,7 @@ export default function MapaSection() {
             map.addLayer({
                 id: "municipios_2022",
                 type: "line",
-                source: "municipios_2022", "source-layer": "poligonos",
+                source: "municipios_2022_limites", "source-layer": "poligonos",
                 paint: {
                     "line-width": ["interpolate", ["linear"], ["zoom"], 6.0, 0.3, 7.0, 1.0, 8.0, 2.0, 9.0, 3.0, 10.0, 4.0, 11.0, 4.5],
                     "line-color": "#f3f3f3"
@@ -176,15 +181,28 @@ export default function MapaSection() {
                 type: "circle",
                 source: "localidades_2022", "source-layer": "pontos",
                 paint: {
-                "circle-radius": ["interpolate", ["linear"], ["zoom"], 8.5, 3.0, 9.0, 3.5, 9.5, 4.0, 10.0, 5.0, 11.0, 6.0, 12.0, 8.0],
-                "circle-color": ["match", ["get", "categoria_localidade"], 
-                    "Vila", "#9608b3",
-                    "Povoado", "#fdff74",
-                    "Lugarejo", "#365809",
-                    "Núcleo Rural","#b8905c",
-                    "Localidade Indígena","#880925",
-                    "Localidade Quilombola","#442d2f",
-                    "#e9e9e9"]
+                    "circle-radius": ["interpolate", ["linear"], ["zoom"], 8.5, 3.0, 9.0, 3.5, 9.5, 4.0, 10.0, 5.0, 11.0, 6.0, 12.0, 8.0],
+                    "circle-color": ["match", ["get", "categoria_localidade"], 
+                        "Vila", "#9608b3",
+                        "Povoado", "#fdff74",
+                        "Lugarejo", "#365809",
+                        "Núcleo Rural","#b8905c",
+                        "Localidade Indígena","#880925",
+                        "Localidade Quilombola","#442d2f",
+                        "#e9e9e9"]
+                }
+            });
+
+
+            map.addLayer({
+                id: "geometrias_carteira_dsr",
+                type: "circle",
+                source: "geometrias_carteira_dsr", "source-layer": "pontos",
+                paint: {
+                    "circle-radius": ["interpolate", ["linear"], ["zoom"], 4.0, 4.0, 5.0, 5.0, 6.0, 6.0, 7.0, 7.0, 8.0, 8.0, 9.0, 9.0],
+                    "circle-color": "#1d2cfd",
+                    "circle-stroke-width": 2,
+                    "circle-stroke-color": "#ffffff"
                 }
             });
 
@@ -254,6 +272,7 @@ export default function MapaSection() {
         atualizarSource("localidades_2022", urlLocalidades2022(filtros));
         atualizarSource("enderecos_2022", urlEnderecos2022(filtros));
         atualizarSource("municipios_2022", urlMunicipios2022(filtros));
+        atualizarSource("geometrias_carteira_dsr", urlGeometriasCarteiraDsr(filtros));
 
     }, [filtros]);
 
@@ -265,7 +284,7 @@ export default function MapaSection() {
         const map = mapRef.current;
         if (!map) return;
 
-        const camadas = [ "localidades_2022", "enderecos_2022", "setores_censitarios_2022_fill"];
+        const camadas = [ "localidades_2022", "enderecos_2022", "setores_censitarios_2022_fill", "geometrias_carteira_dsr"];
         
         function handleClick(e) {
             const features = map.queryRenderedFeatures(e.point, { layers: camadas });
@@ -300,6 +319,15 @@ export default function MapaSection() {
                 <br/>
                 <strong> ${props.situacao} </strong> <br>
                 ${props.situacao_detalhada}
+                `;
+            }
+
+            if (f.layer.id === "geometrias_carteira_dsr") {
+                html += `
+                <strong> Proposta: </strong> ${props.nr_proposta} <br>
+                <br/>
+                <strong> Ação </strong> <br>
+                ${props.acao_padronizada} 
                 `;
             }
 
