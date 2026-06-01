@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect } from 'react'
-import { listarMunicipios, listarUfs } from "../../api/mapa"
+import { listarMunicipios, listarUfs, listarNrPropostas } from "../../api/mapa"
 
 export const FiltrosContext = createContext();
 
@@ -8,7 +8,8 @@ export function FiltrosProvider({ children }) {
 
   const filtrosIniciais = {
     cod_municipio: null,
-    cod_uf: null
+    cod_uf: null,
+    nr_proposta: null,
   };
   
 
@@ -16,10 +17,11 @@ export function FiltrosProvider({ children }) {
   const [listas, setListas] = useState({
     municipios: [],
     ufs: [],
+    nrPropostas: [],
   });
 
   
-  //esse useEffect é quem ativa as funções de listar as quais fezem fetch no banco e trazem as lista, atualizando o estado ao chamar setListas
+  //esse useEffect é quem ativa as funções de listar as quais fazem fetch no banco e trazem as lista, atualizando o estado ao chamar setListas
   //só tem uf porque isso puxa a lista inteira de uma vez só. P/ listas grandes como municipios, não recomenda-se fazer isso
   useEffect(() => {
 
@@ -49,6 +51,21 @@ export function FiltrosProvider({ children }) {
     setListas(prev => ({...prev, municipios: data}));
     
   }
+
+  //esta função busca a lista de nr_propostas tendo como condição o texto digitado pelo usuário no filtro
+  async function buscarNrPropostas(q="") {
+    
+    const texto = String(q ?? "").trim();
+
+    if (texto.length < 2) {
+      return;
+    }
+
+    const data = await listarNrPropostas(texto);
+    setListas(prev => ({...prev, nrPropostas: data}));
+  
+  }
+
 
 
 
@@ -82,7 +99,8 @@ export function FiltrosProvider({ children }) {
         listas,
         atualizarFiltro,
         limparFiltros,
-        buscarMunicipios
+        buscarMunicipios,
+        buscarNrPropostas
       }}
     >
       {children}
