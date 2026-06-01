@@ -1,6 +1,15 @@
 import { mapaTopics } from './manualContent'
 import styles from './Manual.module.css'
 
+const topicIds = {
+  'Objetivo da ferramenta': 'objetivo-da-ferramenta',
+  'Navegação no mapa': 'navegacao-no-mapa',
+  Filtros: 'filtros',
+  Camadas: 'camadas',
+  Legenda: 'legenda',
+  'Interpretação dos dados': 'interpretacao-dos-dados',
+}
+
 export default function ManualMapaInterativo() {
   return (
     <main className={styles.detailPage}>
@@ -13,7 +22,7 @@ export default function ManualMapaInterativo() {
 
         <div className={styles.topicGrid}>
           {mapaTopics.map((topic) => (
-            <article key={topic} className={styles.topicCard}>
+            <article key={topic} id={topicIds[topic]} className={styles.topicCard}>
               <h3>{topic}</h3>
               <p>Conteúdo em elaboração.</p>
             </article>

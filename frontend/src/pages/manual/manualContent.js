@@ -1,8 +1,8 @@
 export const manualIntro = {
   apresentacao:
-    'O Portal DSR reúne informações estratégicas para consulta e análise dos dados de investimentos, instrumentos e indicadores relacionados ao Departamento de Saneamento Rural e de Pequenos Municípios.',
+    'O Portal DSR é uma plataforma interna do Ministério das Cidades destinada à consulta e análise de informações relacionadas ao Departamento de Saneamento Rural e Pequenos Municípios. O sistema reúne indicadores, instrumentos de repasse, dados territoriais e outras informações estratégicas em um ambiente único de consulta. Este manual reúne orientações sobre as ferramentas disponíveis no portal. Utilize os guias específicos de cada módulo para compreender indicadores, filtros, gráficos, funcionalidades e conceitos utilizados nas análises.',
   navegacao:
-    'Use o menu lateral para acessar o Menu Inicial, a Carteira DSR, o Mapa Interativo e este Manual do Usuário.',
+    'A navegação principal é feita pelo menu lateral. Nele, o usuário pode acessar o Menu Inicial, a Carteira DSR, o Mapa Interativo e este Manual do Usuário.'
 }
 
 export const manualCards = [
@@ -18,7 +18,7 @@ export const manualCards = [
   },
   {
     title: 'Informações Gerais',
-    description: 'Dúvidas frequentes, glossário básico e atualização dos dados.',
+    description: 'Dúvidas frequentes, glossário básico e orientações gerais de uso.',
     to: '/manual/informacoes-gerais',
   },
 ]

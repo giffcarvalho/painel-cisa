@@ -1,6 +1,15 @@
 import { carteiraTopics } from './manualContent'
 import styles from './Manual.module.css'
 
+const topicIds = {
+  'Objetivo da ferramenta': 'objetivo-da-ferramenta',
+  Indicadores: 'indicadores',
+  Filtros: 'filtros',
+  Gráficos: 'graficos',
+  'Tabela detalhada': 'tabela-detalhada',
+  Exportação: 'exportacao',
+}
+
 export default function ManualCarteiraDsr() {
   return (
     <main className={styles.detailPage}>
@@ -13,7 +22,7 @@ export default function ManualCarteiraDsr() {
 
         <div className={styles.topicGrid}>
           {carteiraTopics.map((topic) => (
-            <article key={topic} className={styles.topicCard}>
+            <article key={topic} id={topicIds[topic]} className={styles.topicCard}>
               <h3>{topic}</h3>
               <p>Conteúdo em elaboração.</p>
             </article>
