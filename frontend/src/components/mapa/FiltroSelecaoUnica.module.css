@@ -1,0 +1,116 @@
+.caixaExterna {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 12px 12px 14px 12px;
+}
+
+
+.label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.caixaInput { 
+    position: relative;
+}
+
+.input {
+    width: 100%;
+    padding: 8px;
+    padding-right: 36px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 12px;
+    outline: none;
+    background-color: white;
+}
+
+.input:focus {
+    border-color: #3b82f6; 
+}
+
+
+.setaDropDown {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 4px;
+    display: flex;
+    width: 20px;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+}
+
+.setaDropDown:hover {
+    color: #374151;
+}
+
+.chevrondown {
+    height: 16px;
+    width: 16px;
+}
+
+
+.painelOpcoes {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 60;
+    margin-top: 4px;
+    max-height: 256px;
+    overflow-y: auto;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    background-color: white;
+    box-shadow:
+        0 20px 25px -5px rgba(0,0,0,.1),
+        0 10px 10px -5px rgba(0,0,0,.04);
+    display: flex;
+    flex-direction: column;
+}
+
+.caixaOpcoes {
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+.opcao {
+    width: 100%;
+    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    text-align: left;
+    font-size: 12px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #374151;
+}
+
+.opcao:hover {
+    background-color: #eff6ff;
+}
+
+
+.item {
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    line-height: 1.25;  
+}
+
+.nenhumaOpcao {
+    padding-left: 12px;
+    padding-right: 12px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    color: #6b7280;
+    font-size: 14px;
+    text-align: center;
+}
