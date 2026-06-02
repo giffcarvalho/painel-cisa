@@ -14,7 +14,8 @@ from threading import Lock
 from app.schemas.filtrosMapa import (
     UfItem, OpcoesFiltrosUf, 
     MunicipioItem, OpcoesFiltrosMunicipio,
-    NrPropostaItem, OpcoesFiltrosNrProposta
+    NrPropostaItem, OpcoesFiltrosNrProposta,
+    NrInstrumentoItem, OpcoesFiltrosNrInstrumento,
 )
 
  
@@ -51,11 +52,13 @@ class FiltrosMapa:  #-- Dependência do FastAPI para agrupar todos os Query Para
             self,
             cod_uf: list[int] | None = Query(None), 
             cod_municipio: list[int] | None = Query(None),
-            nr_proposta: list[str] | None = Query(None)
+            nr_proposta: list[str] | None = Query(None),
+            nr_instrumento: list[int] | None = Query(None)
     ):
         self.cod_uf = cod_uf
         self.cod_municipio = cod_municipio
         self.nr_proposta = nr_proposta
+        self.nr_instrumento = nr_instrumento
         
 
 def _build_where(filtros: FiltrosMapa, allowed: set[str] | None = None) -> tuple[str, dict]:  #--filtros: FiltrosMapa é recebido do frontend via depends. str é a string da cláusula where, dict é o dicionário com os valores dos params
@@ -67,6 +70,7 @@ def _build_where(filtros: FiltrosMapa, allowed: set[str] | None = None) -> tuple
         ("cod_uf", filtros.cod_uf, "cod_uf", int, "int[]"),                          #(coluna do banco, valor da params recebido do frontend, nome do params, cast)
         ("cod_municipio", filtros.cod_municipio, "cod_municipio", int, "int[]"),
         ("nr_proposta", filtros.nr_proposta, "nr_proposta", None, "text[]"),
+        ("nr_instrumento", filtros.nr_instrumento, "nr_instrumento", int, "int[]"),
     ]
 
     for col, values, param_key, cast_python, sql_array_type in list_filters:
@@ -114,7 +118,7 @@ async def get_lista_municipios(
     response: Response, 
     q: Annotated[str | None, Query(max_length=100, description="Termo de busca do município.")] = None,  
     cod_uf: Annotated[int | None, Query(description="Código da UF.")] = None,                            
-    limit: Annotated[int, Query(ge=1, le=100, description="Quantidade máxima de resultados.")] = 40,
+    limit: Annotated[int, Query(ge=1, le=100, description="Quantidade máxima de resultados.")] = 100,
     db: AsyncSession = Depends(get_db)):
 
     response.headers["Cache-Control"] = "public, max-age=86400"
@@ -152,26 +156,38 @@ async def get_lista_municipios(
 # opções do filtro de nr_proposta
 @router.get("/filtros/nr_propostas", response_model=OpcoesFiltrosNrProposta, summary="Lista dos números de proposta")
 async def get_lista_nr_propostas(
-    response: Response, 
-    q: Annotated[str | None, Query(max_length=100, description="Termo de busca do município.")] = None,  
-    limit: Annotated[int, Query(ge=1, le=100, description="Quantidade máxima de resultados.")] = 40,
+    response: Response,
+    filtros: FiltrosMapa = Depends(),
+    q: Annotated[str | None, Query(max_length=100, description="Termo de busca do número da proposta.")] = None,  
+    limit: Annotated[int, Query(ge=1, le=100, description="Quantidade máxima de resultados.")] = 100,
     db: AsyncSession = Depends(get_db)):
 
     response.headers["Cache-Control"] = "public, max-age=600"
+    
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio"})
+
 
     sql = """
         SELECT
             DISTINCT(nr_proposta)            
         FROM instrumento.vw_geometrias_carteira_dsr
-        WHERE 1=1
     """
 
     params = {"limit": limit}
+    params.update(params_filtro)
+    clauses = []
+
     
+    if where_filtro: clauses.append(where_filtro)
+
     texto = (q or "").strip()
+
     if texto:
-        sql += " AND nr_proposta ILIKE :termo"
+        clauses.append("nr_proposta ILIKE :termo")
         params["termo"] = f"%{texto}%"
+
+    if clauses:
+        sql += " WHERE " + " AND ".join(clauses)
 
 
     sql += """
@@ -181,6 +197,41 @@ async def get_lista_nr_propostas(
 
     result = await _execute_query(db, sql, params)
     return OpcoesFiltrosNrProposta(data=[NrPropostaItem(**row) for row in result.mappings().all()])
+
+
+
+# opções do filtro de nr_instrumento
+@router.get("/filtros/nr_instrumentos", response_model=OpcoesFiltrosNrInstrumento, summary="Lista dos números de instrumento")
+async def get_lista_nr_instrumentos(
+    response: Response, 
+    q: Annotated[str | None, Query(max_length=100, description="Termo de busca do número do instrumento.")] = None,  
+    limit: Annotated[int, Query(ge=1, le=100, description="Quantidade máxima de resultados.")] = 40,
+    db: AsyncSession = Depends(get_db)):
+
+    response.headers["Cache-Control"] = "public, max-age=600"
+
+    sql = """
+        SELECT
+            DISTINCT(nr_instrumento)            
+        FROM instrumento.vw_geometrias_carteira_dsr
+        WHERE 1=1
+    """
+
+    params = {"limit": limit}
+    
+    texto = (q or "").strip()
+    if texto:
+        sql += " AND nr_instrumento::text ILIKE :termo"
+        params["termo"] = f"%{texto}%"
+
+
+    sql += """
+        ORDER BY nr_instrumento
+        LIMIT :limit
+    """
+
+    result = await _execute_query(db, sql, params)
+    return OpcoesFiltrosNrInstrumento(data=[NrInstrumentoItem(**row) for row in result.mappings().all()])
 
 
 
@@ -247,6 +298,36 @@ async def get_bbox_municipios(filtros: FiltrosMapa = Depends(), db: AsyncSession
     result = await _execute_query(db, sql, params_filtro)
     row = result.mappings().first()
     return row
+
+
+# bounding box da carteira_dsr
+@router.get("/bbox_carteira_dsr", summary="Bounding box das coordenadas da Carteira DSR")
+async def get_bbox_carteira_dsr(filtros: FiltrosMapa = Depends(), db: AsyncSession = Depends(get_db)):
+
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "nr_proposta", "nr_instrumento"})
+
+    sql = f"""
+        SELECT
+            ST_XMin(ext) AS xmin,
+            ST_YMin(ext) AS ymin,
+            ST_XMax(ext) AS xmax,
+            ST_YMax(ext) AS ymax
+        FROM (
+            SELECT ST_Extent(ST_Transform(geom, 4326)) AS ext
+            FROM instrumento.vw_geometrias_carteira_dsr
+    """
+    if where_filtro:
+        sql += f"""
+            WHERE {where_filtro}
+        """
+
+    sql += """) t"""
+
+        
+    result = await _execute_query(db, sql, params_filtro)
+    row = result.mappings().first()
+    return row
+
 
 
 
@@ -631,7 +712,7 @@ async def get_municipios_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
 async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMapa = Depends(), db: AsyncSession = Depends(get_db)):
 
     
-    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "nr_proposta"})
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "nr_proposta", "nr_instrumento"})
     
     base_where = """
         geom && ST_TileEnvelope(:z, :x, :y)

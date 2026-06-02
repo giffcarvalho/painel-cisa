@@ -25,4 +25,11 @@ class OpcoesFiltrosNrProposta(BaseModel):
     data: list[NrPropostaItem]
 
 
+class NrInstrumentoItem(BaseModel):
+    nr_instrumento: int
+
+class OpcoesFiltrosNrInstrumento(BaseModel):
+    data: list[NrInstrumentoItem]
+
+
     
