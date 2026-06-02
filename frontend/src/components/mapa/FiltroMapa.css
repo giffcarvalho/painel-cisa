@@ -1,0 +1,77 @@
+.filtro__control {
+  min-height: 20px !important;
+  max-width: 200px !important;
+  border: 2px solid #1c1b1b !important;
+  border-radius: 4px;
+  box-shadow: none;
+  margin-top: 2px;
+}
+
+.filtro__menu {                   /*controla a caixa que abre quando clica na setinha para abrir as opções*/
+  font-size: 10px !important;
+  max-width: 160px !important;
+}
+
+
+.filtro__value-container {        /*controla o valor que aparece dentro do filtro*/
+  padding: 0 2px !important;
+}
+
+.filtro__input-container {
+  margin: 0 !important;
+  padding: 0 2px !important;
+}
+
+.filtro__input {
+  font-size: 10px !important;
+}
+
+.filtro__indicators {
+  height: 25px;
+}
+
+.filtro__clear-indicator {
+  padding: 2px !important;
+}
+
+.filtro__dropdown-indicator {
+  padding: 2px !important;
+}
+
+.filtro__option {
+  cursor: pointer;
+  padding: 4px !important;
+}
+
+
+.filtro__single-value {
+  font-size: 10px !important;
+}
+
+.filtro__placeholder {
+  font-size: 10px !important;
+}
+
+.filtro_label {
+  font-size: 10px;
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+.filtro_container {
+  /*border: 1px solid white;*/
+  display: flex;
+  flex-direction: column;
+  margin-right: 5px;
+  margin-left: 5px;
+  max-width: 160px;
+}
+
+.filtro_pequeno {
+  width: 100px;       /* UF */
+}
+
+.filtro_grande {
+  flex: 1;           /* Município ocupa o restante */
+  min-width: 160px;
+}
