@@ -482,8 +482,7 @@ export default function MapaSection() {
     
     return ( 
         <div className={estilos.mapa_box}>
-            <button className={estilos.botaoMenu}> ☰ </button>
-            <button className={estilos.botaoFiltros} onClick={() => setPainelFiltros(!painelFiltros)}> <Filter className={estilos.FilterIcon}/> </button>
+            <button className={estilos.botaoFiltros} onClick={() => setPainelFiltros(!painelFiltros)}>Filtrar</button>
             {painelFiltros && <FiltroPainel setPainelFiltros={setPainelFiltros}/>}
             <button className={estilos.botaoCamadas} onClick={() => setPainelCamadas(!painelCamadas)}> <Layers className={estilos.LayersIcon}/> </button> 
             {painelCamadas && (<CamadasSection layers={layers} toggleLayer={toggleLayer} alterarVariavel={alterarVariavel}/>)}

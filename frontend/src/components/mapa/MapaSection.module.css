@@ -9,30 +9,19 @@
     height: 100vh;
 }
 
-
-.botaoMenu {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  width: 35px;
-  height: 35px;
-  border: none;
-  background: white;
-  cursor: pointer;
-  z-index: 1;
-}
-
 .botaoFiltros {
   position: absolute;
   top: 15px;
   right: 15px;
-  width: 35px;
+  width: 65px;
   height: 35px;
   border: none;
   display: flex;
   justify-content: center;
   align-items: center;
   border-radius: 5px;
+  color: blue;
+  font-weight: 500;
   background: white;
   cursor: pointer;
   z-index: 1;
