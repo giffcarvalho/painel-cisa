@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Loader2, AlertCircle, FileSpreadsheet, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useTabelaQuery } from '@/hooks/useCarteiraDsr'
-import { useFiltros } from '@/context/useFiltros'
+import { useFiltros } from '@/context/carteira-Dsr/useFiltros'
 import { carteiraDsrApi } from '@/api/carteiraDsr'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 import { exportToExcel } from '@/utils/exportToExcel'
