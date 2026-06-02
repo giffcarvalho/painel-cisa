@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'   //AJUSTAR BOTÕES
 import { X, Filter, AlertCircle, ChevronDown } from 'lucide-react'
-import { useFiltros } from '@/context/useFiltros'
+import { useFiltros } from '@/context/carteira-Dsr/useFiltros'
 import { useBuscaFiltroQuery, useOpcoesFiltrosQuery } from '@/hooks/useCarteiraDsr'
 
 const CONFIG_FILTROS = [
