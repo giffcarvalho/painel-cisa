@@ -20,7 +20,7 @@ const toolItems = [
 
 const summaryByPath = {
   '/manual': [
-    { href: '#sobre-este-manual', label: 'Sobre este manual' },
+    { href: '#sobre-este-manual', label: 'Sobre este Portal' },
     { href: '#navegacao-no-portal', label: 'Como navegar pelo portal' },
   ],
   '/manual/carteira-dsr': [
