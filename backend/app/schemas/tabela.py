@@ -2,14 +2,15 @@
 
 from datetime import date, datetime
 from decimal import Decimal
-from pydantic import BaseModel, Field
+from typing import Any
+from pydantic import BaseModel, Field, model_validator
 
 class TabelaItem(BaseModel):
     #--identificação
-    nr_instrumento: str | None = None
-    nr_proposta: str | None = None
-    operacao: str | None = None
-    nr_proposta_selecao_pac: str | None = None
+    nr_instrumento: int | str | None = None
+    nr_proposta: int | str | None = None
+    operacao: int | str | None = None
+    nr_proposta_selecao_pac: int | str | None = None
     ano_proposta: int | None = None
     tipo_instrumento: str | None = None
     novo_pac: str | None = None
@@ -34,7 +35,7 @@ class TabelaItem(BaseModel):
     #--vigência (Tolerância a datas corrompidas)
     dia_assin_conv: date | datetime | None = None
     dias_termino_vigencia: int | None = None
-    termino_vigencia: str | None = None
+    termino_vigencia: date | datetime | str | None = None
     
     #--suspensivas
     liminar_judicial: str | None = None
@@ -88,6 +89,17 @@ class TabelaItem(BaseModel):
     data_dados_caixa: date | datetime | None = None
 
     model_config = {"from_attributes": True}
+
+    @model_validator(mode='before')
+    @classmethod
+    def limpar_sujeira_banco(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            return {
+                k: (None if isinstance(v, str) and not v.strip() else v)
+                for k, v in data.items()
+            }
+        return data
+
 
 class TabelaResponse(BaseModel):
     total: int = Field(

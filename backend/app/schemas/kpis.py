@@ -45,4 +45,4 @@ class KpisResponse(BaseModel):
         examples=[2418],
     )
 
-model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True}

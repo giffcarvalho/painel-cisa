@@ -1,7 +1,8 @@
+import { forwardRef } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { formatCurrency } from '@/utils/formatters'
 
-export default function ValoresUfChart({ dados }) {
+const ValoresUfChart = forwardRef(({ dados }, ref) => {
     if (!dados || dados.length === 0) {
         return (
             <div className="flex h-full min-h-[300px] w-full items-center justify-center text-gray-400 text-sm">
@@ -9,13 +10,12 @@ export default function ValoresUfChart({ dados }) {
             </div>
         )
     }
-    // Converte strings do Pydantic para Float e trata Nulls do Banco
     const parseNumber = (val) => {
         const number = Number(val)
         return Number.isFinite(number) ? number : 0
     }
 
-    const eixosY = dados.map(item => item.uf || 'N/I') // Protege contra UF nula
+    const eixosY = dados.map(item => item.uf || 'N/I') 
     const desembolsado = dados.map(item => parseNumber(item.desembolsado))
     const empenhadoADesembolsar = dados.map(item => parseNumber(item.empenhado_a_desembolsar))
     const aEmpenhar = dados.map(item => parseNumber(item.a_empenhar))
@@ -27,14 +27,20 @@ export default function ValoresUfChart({ dados }) {
         tooltip: {
             trigger: 'axis',
             axisPointer: { type: 'shadow' },
-            // 3. Proteção no formatter
             valueFormatter: (value) => value ? formatCurrency(value, true) : formatCurrency(0, true)
+        },
+
+        legend: {
+            data:['Desembolsado', 'Empenhado a Desembolsar', 'A Empenhar', 'Contrapartida'],
+            bottom: 0,
+            icon: 'circle',
+            textStyle: {fontSize: 12, color: '#4b5563'}
         },
 
         grid: {
             left: '3%',
             right: '4%',
-            bottom: '15%',
+            bottom: '5%',
             top: '5%',
             containLabel: true
         },
@@ -62,10 +68,14 @@ export default function ValoresUfChart({ dados }) {
 
     return (
         <ReactECharts 
+            ref={ref}
             option={option} 
             style={{ height: '100%', width: '100%', minHeight: '300px' }} 
             notMerge={true} 
             lazyUpdate={true} 
         />
     )
-}
+})
+
+ValoresUfChart.displayName = 'ValoresUfChart'
+export default ValoresUfChart
