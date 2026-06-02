@@ -49,9 +49,21 @@
     color: #374151;
 }
 
-.chevrondown {
-    height: 16px;
-    width: 16px;
+
+.XLimpar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 35px;
+    display: flex;
+    width: 15px;
+    align-items: center;
+    justify-content: center;
+    color: #f84d4d;
+}
+
+.XLimpar:hover {
+    color: #d40000;
 }
 
 

@@ -1,5 +1,5 @@
 import estilos from "./FiltroSelecaoUnica.module.css"
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, CircleX, } from 'lucide-react'
 import { useState, useEffect } from "react";
 
 
@@ -41,7 +41,6 @@ export default function ({ id, label, valorAtual="", opcoes=[], getValue, getLab
                         setAberto(true)
                         setTermoBusca("")
                     }}
-                    /*onBlur={() => setTimeout(() => setAberto(false), 200)}*/
                     onChange={(e) => {
                         const texto=e.target.value
                         setTermoBusca(texto)
@@ -51,6 +50,18 @@ export default function ({ id, label, valorAtual="", opcoes=[], getValue, getLab
                 />
                 
                 
+                <button className={estilos.XLimpar}
+                    type="button"
+                    onClick={() => {
+                        setAberto(false)
+                        setTermoBusca("")
+                        onChange(null)
+                    }}>
+                    <CircleX/> 
+                </button>
+
+
+
                 <button className={estilos.setaDropDown}
                     type="button"
                     onClick={() => {

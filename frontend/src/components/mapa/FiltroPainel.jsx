@@ -65,18 +65,18 @@ export default function FiltroPainel ({ setPainelFiltros }) {
                     />
                     
 
-                    <FiltroSelect
+                    <FiltroSelecaoUnica
                         key='municipio'
-                        id='municipio'
+                        id='cod_municipio'
                         label='Município'
-                        valorAtual={rascunho.municipios}
+                        valorAtual={filtros.cod_municipio}
                         opcoes={listas.municipios}
-                        getValue={(m) => m.cod_municipio}
-                        getLabel={(m) => m.nome_municipio}
+                        getValue={(m)=>m.cod_municipio}
+                        getLabel={(m)=>m.nome_municipio}
                         onBuscar={(texto) => buscarMunicipios(texto)}
-                        onChange={(valor, acao) => handleChange('municipios', valor, acao)}
+                        onChange={(valor)=> atualizarFiltro("cod_municipio", valor)}
                     />
-
+                    
 
                     <FiltroSelecaoUnica
                         key='nrProposta'
@@ -96,10 +96,25 @@ export default function FiltroPainel ({ setPainelFiltros }) {
 
                 <div className={estilos.areaBotoes}>
                     <button className={estilos.botaoLimpar} onClick={limparFiltros} >Limpar Filtros</button>
-                    <button className={estilos.botaoAplicar}>Aplicar Filtros</button>
                 </div>
             </div>
             
         </>
     )
 } 
+
+
+
+/*
+<FiltroSelect
+                        key='municipio'
+                        id='municipio'
+                        label='Município'
+                        valorAtual={rascunho.municipios}
+                        opcoes={listas.municipios}
+                        getValue={(m) => m.cod_municipio}
+                        getLabel={(m) => m.nome_municipio}
+                        onBuscar={(texto) => buscarMunicipios(texto)}
+                        onChange={(valor, acao) => handleChange('municipios', valor, acao)}
+/>
+*/

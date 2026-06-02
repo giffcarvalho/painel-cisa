@@ -271,7 +271,8 @@ export default function MapaSection() {
         atualizarSource("setores_censitarios_2022", urlSetoresCensitarios2022(filtros));
         atualizarSource("localidades_2022", urlLocalidades2022(filtros));
         atualizarSource("enderecos_2022", urlEnderecos2022(filtros));
-        atualizarSource("municipios_2022", urlMunicipios2022(filtros));
+        atualizarSource("municipios_2022_limites", urlMunicipios2022(filtros));
+        atualizarSource("municipios_2022_informacoes", urlMunicipios2022(filtros));
         atualizarSource("geometrias_carteira_dsr", urlGeometriasCarteiraDsr(filtros));
 
     }, [filtros]);
