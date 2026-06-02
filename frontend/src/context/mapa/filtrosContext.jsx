@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect } from 'react'
-import { listarMunicipios, listarUfs, listarNrPropostas } from "../../api/mapa"
+import { listarMunicipios, listarUfs, listarNrPropostas, listarNrInstrumentos } from "../../api/mapa"
 
 export const FiltrosContext = createContext();
 
@@ -10,6 +10,7 @@ export function FiltrosProvider({ children }) {
     cod_municipio: null,
     cod_uf: null,
     nr_proposta: null,
+    nr_instrumento: null,
   };
   
 
@@ -18,6 +19,7 @@ export function FiltrosProvider({ children }) {
     municipios: [],
     ufs: [],
     nrPropostas: [],
+    nrInstrumentos: [],
   });
 
   
@@ -36,13 +38,6 @@ export function FiltrosProvider({ children }) {
     
     const texto = String(q ?? "").trim();
 
-    const temUf = Array.isArray(cod_uf)? cod_uf.length > 0 : !!cod_uf;
-
-    if (!temUf && texto.length < 2) {
-      setListas(prev => ({...prev, municipios: []}));
-      return;
-    }
-
     if (texto.length > 0 && texto.length < 2) {
       return;
     }
@@ -53,16 +48,31 @@ export function FiltrosProvider({ children }) {
   }
 
   //esta função busca a lista de nr_propostas tendo como condição o texto digitado pelo usuário no filtro
-  async function buscarNrPropostas(q="") {
+  async function buscarNrPropostas(q="", cod_uf = filtros.cod_uf, cod_municipio = filtros.cod_municipio) {
     
     const texto = String(q ?? "").trim();
 
-    if (texto.length < 2) {
+    if (texto.length > 0 && texto.length < 2) {
       return;
     }
 
-    const data = await listarNrPropostas(texto);
+    const data = await listarNrPropostas(texto, cod_uf, cod_municipio);
     setListas(prev => ({...prev, nrPropostas: data}));
+  
+  }
+
+
+  //esta função busca a lista de nr_instrumento tendo como condição o texto digitado pelo usuário no filtro
+  async function buscarNrInstrumentos(q="", cod_uf = filtros.cod_uf, cod_municipio = filtros.cod_municipio) {
+    
+    const texto = String(q ?? "").trim();
+
+    if (texto.length > 0 && texto.length < 2) {
+      return;
+    }
+
+    const data = await listarNrInstrumentos(texto, cod_uf, cod_municipio);
+    setListas(prev => ({...prev, nrInstrumentos: data}));
   
   }
 
@@ -72,12 +82,30 @@ export function FiltrosProvider({ children }) {
 
   //essa função a chamada pelo onChange dos filtros, e chama setFiltros atualizando o estado filtros
   function atualizarFiltro(nome, valor) {
-    setFiltros((prev) => {
-      const novos = {...prev, [nome]: valor};
+    
+    if (nome === "cod_uf") {
+      buscarMunicipios("", valor);
+      buscarNrPropostas("", valor, null);
+      buscarNrInstrumentos("", valor, null);
+    }
+
+    if (nome === "cod_municipio") {
+      buscarNrPropostas("", filtros.cod_uf, valor);
+      buscarNrInstrumentos("", filtros.cod_uf, valor);
+    }
+    
+       
+    setFiltros((prev) => {const novos = {...prev, [nome]: valor};
 
       if (nome === "cod_uf") {
         novos.cod_municipio = null;
-        buscarMunicipios("", valor);
+        novos.nr_proposta = null;
+        novos.nr_instrumento = null;
+      }
+
+      if (nome === "cod_municipio") {
+        novos.nr_proposta = null;
+        novos.nr_instrumento = null;
       }
 
     return novos;
@@ -100,7 +128,8 @@ export function FiltrosProvider({ children }) {
         atualizarFiltro,
         limparFiltros,
         buscarMunicipios,
-        buscarNrPropostas
+        buscarNrPropostas,
+        buscarNrInstrumentos,
       }}
     >
       {children}

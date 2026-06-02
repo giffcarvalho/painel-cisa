@@ -8,7 +8,7 @@ import FiltroSelecaoUnica from "./FiltroSelecaoUnica";
 
 export default function FiltroPainel ({ setPainelFiltros }) {
     
-    const { listas, filtros, buscarMunicipios, buscarNrPropostas, atualizarFiltro, limparFiltros } = useContext(FiltrosContext);
+    const { listas, filtros, buscarMunicipios, buscarNrPropostas, buscarNrInstrumentos, atualizarFiltro, limparFiltros } = useContext(FiltrosContext);
     const [rascunho, setRascunho] = useState({municipios: []})
     
 
@@ -77,6 +77,19 @@ export default function FiltroPainel ({ setPainelFiltros }) {
                         onChange={(valor)=> atualizarFiltro("cod_municipio", valor)}
                     />
                     
+
+                    <FiltroSelecaoUnica
+                        key='nrInstrumento'
+                        id='nrInstrumento'
+                        label='Número do Instrumento'
+                        valorAtual={filtros.nr_instrumento}
+                        opcoes={listas.nrInstrumentos}
+                        getValue={(nr)=>nr.nr_instrumento}
+                        getLabel={(nr)=>nr.nr_instrumento}
+                        onBuscar={(texto) => buscarNrInstrumentos(texto)}
+                        onChange={(valor)=> atualizarFiltro("nr_instrumento", valor)}
+                    />
+
 
                     <FiltroSelecaoUnica
                         key='nrProposta'

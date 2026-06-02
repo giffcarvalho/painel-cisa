@@ -28,7 +28,7 @@ export async function listarUfs(filtros = {}) {
 }
 
 
-export async function listarMunicipios(q="", cod_uf, limit = 40) {
+export async function listarMunicipios(q="", cod_uf, limit = 100) {
   
   const params = { q, limit }
   const temUf = Array.isArray(cod_uf)? cod_uf.length > 0: cod_uf != null
@@ -43,10 +43,26 @@ export async function listarMunicipios(q="", cod_uf, limit = 40) {
 }
 
 
-export async function listarNrPropostas(q="", limit = 40) {
+export async function listarNrPropostas(q="", cod_uf, cod_municipio, limit = 100) {
   
   const params = { q, limit }
+
+  const temMunicipio = Array.isArray(cod_municipio)? cod_municipio.length > 0: cod_municipio != null && cod_municipio !== "";
+  if (temMunicipio) {params.cod_municipio = cod_municipio;}
+
+  const temUf = Array.isArray(cod_uf)? cod_uf.length > 0: cod_uf != null && cod_uf !== "";
+  if (temUf) {params.cod_uf = cod_uf;}
+
   const res = await api.get("/mapa/filtros/nr_propostas", { params });
+  
+  return res.data.data;
+}
+
+
+export async function listarNrInstrumentos(q="", limit = 40) {
+  
+  const params = { q, limit }
+  const res = await api.get("/mapa/filtros/nr_instrumentos", { params });
   
   return res.data.data;
 }
@@ -69,6 +85,12 @@ export function urlBboxUfs(filtros={}) {
 export function urlBboxMunicipios(filtros={}) {
   const params = toParams(filtros);
   return `${API_URL}/mapa/bbox_municipios?${params}`
+}
+
+
+export function urlBboxCarteiraDsr(filtros={}) {
+  const params = toParams(filtros);
+  return `${API_URL}/mapa/bbox_carteira_dsr?${params}`
 }
 
 

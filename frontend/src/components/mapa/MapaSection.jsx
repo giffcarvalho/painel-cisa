@@ -2,9 +2,9 @@ import estilos from "./MapaSection.module.css";
 import { useEffect, useRef, useState, useContext } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { Filter, Layers } from "lucide-react";
+import { Layers } from "lucide-react";
 import CamadasSection from "./CamadasSection";
-import { urlBboxUfs, urlDistritos2022, urlEnderecos2022, urlLocalidades2022, urlMunicipios2022, urlMunicipios2025, urlSetoresCensitarios2022, urlUfs, urlBboxMunicipios, urlGeometriasCarteiraDsr } from "@/api/mapa";
+import { urlBboxUfs, urlDistritos2022, urlEnderecos2022, urlLocalidades2022, urlMunicipios2022, urlMunicipios2025, urlSetoresCensitarios2022, urlUfs, urlBboxMunicipios, urlGeometriasCarteiraDsr, urlBboxCarteiraDsr } from "@/api/mapa";
 import { FiltrosContext } from "../../context/mapa/filtrosContext";
 import FiltroPainel from "./FiltroPainel";
 
@@ -218,37 +218,54 @@ export default function MapaSection() {
     
     
 
-    //useEffect que faz o mapa fazer o fly até a UF ou município filtrado
+    //useEffect que faz o mapa fazer o fly até a feição filtrada
     useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
+        const map = mapRef.current;
+        if (!map) return;
 
-    async function aplicarZoom() {
-      if (!filtros.cod_uf && !filtros.cod_municipio) {
-        map.flyTo({ center: [-47.9, -15.8], zoom: 3 });
-        return;
-      }
-      
-      if (filtros.cod_municipio) {
-        const res = await fetch(urlBboxMunicipios({cod_municipio: filtros.cod_municipio}));
-        const { xmin, ymin, xmax, ymax } = await res.json();
-        map.fitBounds([[xmin, ymin], [xmax, ymax]], { padding: 40 });
-        return;
-      }
+        async function aplicarZoom() {
+            if (!filtros.cod_uf && !filtros.cod_municipio && !filtros.nr_proposta && !filtros.nr_instrumento) {
+                map.flyTo({ center: [-47.9, -15.8], zoom: 3 });
+                return;
+            }
 
-      if (filtros.cod_uf) {
-        const res = await fetch(urlBboxUfs({cod_uf: filtros.cod_uf}));
-        const { xmin, ymin, xmax, ymax } = await res.json();
-        map.fitBounds([[xmin, ymin], [xmax, ymax]], { padding: 40 });
-      }
-    }
+            if (filtros.nr_proposta || filtros.nr_instrumento) {
+                const res = await fetch(urlBboxCarteiraDsr({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento}));
+                const { xmin, ymin, xmax, ymax } = await res.json();
+                
+                if (xmin == null) 
+                    return
 
-    if (map.isStyleLoaded()) {
-      aplicarZoom();
-    } else {
-      map.once("load", aplicarZoom)};
+                if (xmin === xmax && ymin === ymax) {map.flyTo({center:[xmin,ymin], zoom:11})
+                    return
+                }
 
-  }, [filtros.cod_uf, filtros.cod_municipio]);
+                map.fitBounds([[xmin,ymin],[xmax,ymax]], {padding:40, maxZoom:11})
+                
+                return
+                
+            }
+        
+            if (filtros.cod_municipio) {
+                const res = await fetch(urlBboxMunicipios({cod_municipio: filtros.cod_municipio}));
+                const { xmin, ymin, xmax, ymax } = await res.json();
+                map.fitBounds([[xmin, ymin], [xmax, ymax]], { padding: 40 });
+                return;
+            }
+
+            if (filtros.cod_uf) {
+                const res = await fetch(urlBboxUfs({cod_uf: filtros.cod_uf}));
+                const { xmin, ymin, xmax, ymax } = await res.json();
+                map.fitBounds([[xmin, ymin], [xmax, ymax]], { padding: 40 });
+            }
+        }
+
+        if (map.isStyleLoaded()) {
+        aplicarZoom();
+        } else {
+        map.once("load", aplicarZoom)};
+
+    }, [filtros.cod_uf, filtros.cod_municipio, filtros.nr_proposta, filtros.nr_instrumento]);
   
 
 

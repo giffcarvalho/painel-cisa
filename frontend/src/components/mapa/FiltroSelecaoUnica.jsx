@@ -9,13 +9,13 @@ export default function ({ id, label, valorAtual="", opcoes=[], getValue, getLab
     const [termoBusca, setTermoBusca] = useState('');
     const [aberto, setAberto] = useState(false); 
     const itemSelecionado = opcoes.find(item => getValue(item) === valorAtual);
-    const opcoesFiltradas = opcoes.filter(item => getLabel(item).toLowerCase().includes(termoBusca.toLowerCase()));
+    const opcoesFiltradas = opcoes.filter(item => String(getLabel(item)).toLowerCase().includes(termoBusca.toLowerCase()));
 
     useEffect(() => {
         if (!aberto) {
-            setTermoBusca(itemSelecionado? getLabel(itemSelecionado): "");
+            setTermoBusca(itemSelecionado? String(getLabel(itemSelecionado)): "");
         }
-    }, [valorAtual, aberto]);
+    }, [valorAtual, aberto, itemSelecionado]);
 
 
 
@@ -40,6 +40,7 @@ export default function ({ id, label, valorAtual="", opcoes=[], getValue, getLab
                     onFocus={() => {
                         setAberto(true)
                         setTermoBusca("")
+                        if(onBuscar) onBuscar("")
                     }}
                     onChange={(e) => {
                         const texto=e.target.value
@@ -65,8 +66,10 @@ export default function ({ id, label, valorAtual="", opcoes=[], getValue, getLab
                 <button className={estilos.setaDropDown}
                     type="button"
                     onClick={() => {
-                        setAberto((v) => !v)
+                        const novoAberto = !aberto
+                        setAberto(novoAberto)
                         setTermoBusca("")
+                        if (novoAberto && onBuscar) onBuscar("")
                     }}>
                     <ChevronDown/>
                 </button>
@@ -90,7 +93,7 @@ export default function ({ id, label, valorAtual="", opcoes=[], getValue, getLab
                                         setAberto(false)
                                     }}
                                 >
-                                    <span className={estilos.item}> {getLabel(item)} </span>
+                                    <span className={estilos.item}> {String(getLabel(item))} </span>
                                 </button>
                             )
                         })}
