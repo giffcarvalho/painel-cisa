@@ -3,21 +3,7 @@ import axios from 'axios'
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? '/api/v1',
   timeout: 30000,
-  headers: { 'Content-Type': 'application/json' },
-  /*paramsSerializer: {
-    serialize: (params) => {
-      const searchParams = new URLSearchParams();
-      for (const key of Object.keys(params)) {
-        const value = params[key];
-        if (Array.isArray(value)) {
-          value.forEach((val) => searchParams.append(key, val));
-        } else if (value !== undefined && value !== null) {
-          searchParams.append(key, value);
-        }
-      }
-      return searchParams.toString();
-    },
-  },*/
+  headers: { 'Content-Type': 'application/json' }
 })
 
 // Interceptor de resposta: trata erros globalmente

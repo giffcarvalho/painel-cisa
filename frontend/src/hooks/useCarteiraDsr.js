@@ -16,7 +16,7 @@ export function useOpcoesFiltrosQuery() {
   return useQuery({
     queryKey: ['carteira-dsr', 'opcoes-filtros'],
     queryFn: async () => (await carteiraDsrApi.getFiltros()).data,
-    staleTime: Infinity,
+    staleTime: 60 * 60 * 1000,
   })
 }
 
@@ -102,5 +102,33 @@ export function useMapaPontosQuery() {
   return useQuery({
     queryKey: ['carteira-dsr', 'mapa-pontos', filtros],
     queryFn: async () => (await carteiraDsrApi.getMapaPontos(filtros)).data.data,
+  })
+}
+
+// 11. Busca do GeoJSON estático
+export function useBrasilGeoJsonQuery() {
+  return useQuery({
+    queryKey: ['geo', 'brazil'],
+    queryFn: async () => {
+      const response = await fetch('/geo/brasilUf.json')
+      if (!response.ok) throw new Error('Falha ao carregar o mapa base')
+      return response.json()
+    },
+    staleTime: Infinity,
+    gcTime: Infinity, 
+    refetchOnWindowFocus: false,
+  })
+}
+
+// 12. Tabela Detalhada
+export function useTabelaQuery(pagina = 1, tamanho = 100) {
+  const { filtros } = useFiltros()
+  return useQuery({
+    queryKey: ['carteira-dsr', 'tabela', filtros, pagina, tamanho],
+    queryFn: async () => {
+      const response = await carteiraDsrApi.getTabela(filtros, pagina, tamanho)
+      return response.data
+    },
+    placeholderData: (previousData) => previousData
   })
 }
