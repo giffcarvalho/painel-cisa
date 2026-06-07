@@ -4,9 +4,25 @@ import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Layers } from "lucide-react";
 import CamadasSection from "./CamadasSection";
-import { urlBboxUfs, urlDistritos2022, urlEnderecos2022, urlLocalidades2022, urlMunicipios2022, urlMunicipios2025, urlSetoresCensitarios2022, urlUfs, urlBboxMunicipios, urlGeometriasCarteiraDsr, urlBboxCarteiraDsr } from "@/api/mapa";
 import { FiltrosContext } from "../../context/mapa/filtrosContext";
 import FiltroPainel from "./FiltroPainel";
+import { 
+    urlBboxUfs,
+    urlDistritos2022,
+    urlEnderecos2022,
+    urlLocalidades2022,
+    urlMunicipios2022,
+    urlMunicipios2025,
+    urlSetoresCensitarios2022,
+    urlUfs,
+    urlBboxMunicipios,
+    urlGeometriasCarteiraDsr,
+    urlBboxCarteiraDsr,
+    urlBboxLocalidades,
+    urlBboxEnderecos,
+    urlBboxCategoriasMetropolitanas,
+} from "@/api/mapa";
+
 
 
 export default function MapaSection() { 
@@ -19,7 +35,7 @@ export default function MapaSection() {
         { id: "setores_censitarios_2022", nome: "Setores Censitários 2022", visivel: true },
         { id: "enderecos_2022", nome: "Endereços 2022", visivel: true },
         { id: "localidades_2022", nome: "Localidades 2022", visivel: true },
-        { id: "geometrias_carteira_dsr", nome: "Carteira DSR", visivel: true },
+        { id: "geometrias_carteira_dsr", nome: "Carteira DSR", visivel: false },
         { id: "informacoes_municipais", 
             nome: "Informações Municipais",
             visivel: false,
@@ -33,6 +49,8 @@ export default function MapaSection() {
                 {value: "deficit_esgoto_urbana_ibge", label: "Déficit esgoto urbano", tipo: "percentual_invertido"},
                 {value: "deficit_residuo_urbana_ibge", label: "Déficit resíduos urbano", tipo: "percentual_invertido"},
                 {value: "deficit_banheiro_urbana_ibge", label: "Déficit banheiro urbano", tipo: "percentual_invertido"},
+                {value: "subgrupo", label: "Subgrupo PAC", tipo: "categorica"},
+                {value: "tipo_catmetropol", label: "Categoria Metropolitana", tipo: "categorica"},
             ]
         },
         
@@ -41,6 +59,7 @@ export default function MapaSection() {
     //estes estados controlam a abertura dos paineis
     const [painelCamadas, setPainelCamadas] = useState(false);
     const [painelFiltros, setPainelFiltros] = useState(false);
+    
 
     const {filtros} = useContext(FiltrosContext)
 
@@ -60,11 +79,11 @@ export default function MapaSection() {
             version: 8,
             sources: {
             satellite: {type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: "Esri"},
-            labels: {type: "raster", tiles: ["https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png"], tileSize: 256},
+            //labels: {type: "raster", tiles: ["https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png"], tileSize: 256},
             },
             layers: [
             {id: "satellite", type: "raster", source: "satellite"},
-            {id: "labels", type: "raster", source: "labels"}
+            //{id: "labels", type: "raster", source: "labels"}
             ]
         },
         center: [-47.9, -15.8], //centraliza o mapa nessas coordenadas ao carregar
@@ -77,10 +96,9 @@ export default function MapaSection() {
         //as urls estão definidas em @/api/mapa dentro de funções, as quais são chamadas dentro de tiles: []. Essas funções pegam o conteúdo de filtros e transformam em url params
         map.on("load", () => {
             map.addSource("setores_censitarios_2022", {type: "vector", tiles: [urlSetoresCensitarios2022(filtros)], minzoom: 8, maxzoom: 20});
-            map.addSource("distritos_2022", {type: "vector", tiles: [urlDistritos2022(filtros)], minzoom: 6, maxzoom: 20});
+            map.addSource("distritos_2022", {type: "vector", tiles: [urlDistritos2022(filtros)], minzoom: 7, maxzoom: 20});
             map.addSource("municipios_2025", {type: "vector", tiles: [urlMunicipios2025(filtros)], minzoom: 5, maxzoom: 20});
-            map.addSource("municipios_2022_limites", {type: "vector", tiles: [urlMunicipios2022(filtros)], minzoom: 5, maxzoom: 20});
-            map.addSource("municipios_2022_informacoes", {type: "vector", tiles: [urlMunicipios2022(filtros)], minzoom: 3, maxzoom: 20});
+            map.addSource("municipios_2022", {type: "vector", tiles: [urlMunicipios2022(filtros)], minzoom: 3, maxzoom: 20});
             map.addSource("ufs", {type: "vector", tiles: [urlUfs(filtros)], minzoom: 3, maxzoom: 20});
             map.addSource("enderecos_2022", {type: "vector", tiles: [urlEnderecos2022(filtros)], minzoom: 12, maxzoom: 20});
             map.addSource("localidades_2022", {type: "vector", tiles: [urlLocalidades2022(filtros)], minzoom: 8, maxzoom: 20});
@@ -102,7 +120,8 @@ export default function MapaSection() {
             map.addLayer({
                 id: "informacoes_municipais",
                 type: "fill",
-                source: "municipios_2022_informacoes", "source-layer": "poligonos",
+                source: "municipios_2022", "source-layer": "poligonos",
+                layout:{visibility: layers.find(l=>l.id==="informacoes_municipais")?.visivel? "visible": "none"},
                 layout: {visibility: "none"},
                 paint: {
                 "fill-color": "#e7e1e1",
@@ -116,6 +135,7 @@ export default function MapaSection() {
                 id: "setores_censitarios_2022",
                 type: "line",
                 source: "setores_censitarios_2022", "source-layer": "poligonos",
+                layout:{visibility: layers.find(l=>l.id==="setores_censitarios_2022")?.visivel? "visible": "none"},
                 paint: {
                     "line-width": ["interpolate", ["linear"], ["zoom"], 9.5, 0.5, 10.0, 1.0, 11.0, 2.5, 11.5, 4.0],
                     "line-color": ["step", ["get", "cod_sit"], "#e9e9e9", 1, "#ff1e00", 2, "#f87f6f", 3, "#3b0303", 5, "#fdff74", 6, "#b8905c", 7, "#365809", 8, "#a6ca03", 9, "#3067ff"],
@@ -128,6 +148,7 @@ export default function MapaSection() {
                 id: "distritos_2022",
                 type: "line",
                 source: "distritos_2022", "source-layer": "poligonos",
+                layout:{visibility: layers.find(l=>l.id==="distritos_2022")?.visivel? "visible": "none"},
                 paint: {
                     "line-width": ["interpolate", ["linear"], ["zoom"], 7.5, 0.5, 8.0, 1.0, 9.0, 1.5, 10.0, 3.0],
                     "line-color": "#d51bfa"
@@ -138,7 +159,9 @@ export default function MapaSection() {
             map.addLayer({
                 id: "municipios_2022",
                 type: "line",
-                source: "municipios_2022_limites", "source-layer": "poligonos",
+                source: "municipios_2022", "source-layer": "poligonos",
+                minzoom: 6,
+                layout:{visibility: layers.find(l=>l.id==="municipios_2022")?.visivel? "visible": "none"},
                 paint: {
                     "line-width": ["interpolate", ["linear"], ["zoom"], 6.0, 0.3, 7.0, 1.0, 8.0, 2.0, 9.0, 3.0, 10.0, 4.0, 11.0, 4.5],
                     "line-color": "#f3f3f3"
@@ -150,6 +173,7 @@ export default function MapaSection() {
                 id: "ufs",
                 type: "line",
                 source: "ufs", "source-layer": "poligonos",
+                layout:{visibility: layers.find(l=>l.id==="ufs")?.visivel? "visible": "none"},
                 paint: {
                     "line-width": ["interpolate", ["linear"], ["zoom"], 3.0, 1.0, 5.0, 2.0, 6.0, 3.0, 7.0, 4.0, 8.0, 6.0, 9.0, 7.0, 10.0, 10.0],
                     "line-color": "#c9c9c9"
@@ -161,6 +185,7 @@ export default function MapaSection() {
                 id: "enderecos_2022",
                 type: "circle",
                 source: "enderecos_2022", "source-layer": "pontos",
+                layout:{visibility: layers.find(l=>l.id==="enderecos_2022")?.visivel? "visible": "none"},
                 paint: {
                     "circle-radius": ["interpolate", ["linear"], ["zoom"], 12.0, 2.0, 12.5, 2.5, 13.0, 3.0, 14.0, 5.0],
                     "circle-color": ["step", ["get", "cod_especie"], "#e9e9e9",
@@ -180,6 +205,7 @@ export default function MapaSection() {
                 id: "localidades_2022",
                 type: "circle",
                 source: "localidades_2022", "source-layer": "pontos",
+                layout:{visibility: layers.find(l=>l.id==="localidades_2022")?.visivel? "visible": "none"},
                 paint: {
                     "circle-radius": ["interpolate", ["linear"], ["zoom"], 8.5, 3.0, 9.0, 3.5, 9.5, 4.0, 10.0, 5.0, 11.0, 6.0, 12.0, 8.0],
                     "circle-color": ["match", ["get", "categoria_localidade"], 
@@ -198,19 +224,17 @@ export default function MapaSection() {
                 id: "geometrias_carteira_dsr",
                 type: "circle",
                 source: "geometrias_carteira_dsr", "source-layer": "pontos",
+                layout:{visibility: layers.find(l=>l.id==="geometrias_carteira_dsr")?.visivel? "visible": "none"},
                 paint: {
-                    "circle-radius": ["interpolate", ["linear"], ["zoom"], 4.0, 4.0, 5.0, 5.0, 6.0, 6.0, 7.0, 7.0, 8.0, 8.0, 9.0, 9.0],
+                    "circle-radius": ["interpolate", ["linear"], ["zoom"], 4.0, 2.0, 5.0, 3.0, 6.0, 4.0, 7.0, 5.0, 8.0, 6.0],
                     "circle-color": "#1d2cfd",
-                    "circle-stroke-width": 2,
+                    "circle-stroke-width": 1.5,
                     "circle-stroke-color": "#ffffff"
                 }
             });
 
 
         })
-
-
-
 
         mapRef.current = map;
 
@@ -222,9 +246,10 @@ export default function MapaSection() {
     useEffect(() => {
         const map = mapRef.current;
         if (!map) return;
-
+        
         async function aplicarZoom() {
-            if (!filtros.cod_uf && !filtros.cod_municipio && !filtros.nr_proposta && !filtros.nr_instrumento) {
+            
+            if (!filtros.cod_uf && !filtros.cod_municipio && !filtros.nr_proposta && !filtros.nr_instrumento && !filtros.cod_localidade && !filtros.cod_dsc_localidade && !filtros.cod_catmetropol) {
                 map.flyTo({ center: [-47.9, -15.8], zoom: 3 });
                 return;
             }
@@ -232,11 +257,12 @@ export default function MapaSection() {
             if (filtros.nr_proposta || filtros.nr_instrumento) {
                 const res = await fetch(urlBboxCarteiraDsr({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento}));
                 const { xmin, ymin, xmax, ymax } = await res.json();
-                
+                                
                 if (xmin == null) 
                     return
 
-                if (xmin === xmax && ymin === ymax) {map.flyTo({center:[xmin,ymin], zoom:11})
+                if (xmin === xmax && ymin === ymax) {
+                    map.flyTo({center:[xmin,ymin], zoom:11})
                     return
                 }
 
@@ -245,6 +271,52 @@ export default function MapaSection() {
                 return
                 
             }
+
+
+            if (filtros.cod_dsc_localidade) {
+                const res = await fetch(urlBboxEnderecos({cod_uf:filtros.cod_uf, cod_municipio:filtros.cod_municipio, cod_dsc_localidade:filtros.cod_dsc_localidade}));
+                const { xmin, ymin, xmax, ymax } = await res.json();
+                                
+                if (xmin == null) 
+                    return
+
+                if (xmin === xmax && ymin === ymax) {
+                    map.flyTo({center:[xmin,ymin], zoom:14})
+                    return
+                }
+
+                map.fitBounds([[xmin,ymin],[xmax,ymax]], {padding:40, maxZoom:14})
+                
+                return
+                
+            }
+
+
+            if (filtros.cod_localidade) {
+                const res = await fetch(urlBboxLocalidades({cod_uf:filtros.cod_uf, cod_municipio:filtros.cod_municipio, cod_localidade:filtros.cod_localidade}));
+                const { xmin, ymin, xmax, ymax } = await res.json();
+                                
+                if (xmin == null) 
+                    return
+
+                if (xmin === xmax && ymin === ymax) {
+                    map.flyTo({center:[xmin,ymin], zoom:14})
+                    return
+                }
+
+                map.fitBounds([[xmin,ymin],[xmax,ymax]], {padding:40, maxZoom:14})
+                
+                return
+                
+            }
+
+
+            if (filtros.cod_catmetropol) {
+                const res = await fetch(urlBboxCategoriasMetropolitanas({cod_catmetropol: filtros.cod_catmetropol}));
+                const { xmin, ymin, xmax, ymax } = await res.json();
+                map.fitBounds([[xmin, ymin], [xmax, ymax]], { padding: 40 });
+            }
+
         
             if (filtros.cod_municipio) {
                 const res = await fetch(urlBboxMunicipios({cod_municipio: filtros.cod_municipio}));
@@ -261,38 +333,48 @@ export default function MapaSection() {
         }
 
         if (map.isStyleLoaded()) {
-        aplicarZoom();
+            aplicarZoom();
         } else {
-        map.once("load", aplicarZoom)};
+            map.once("load", aplicarZoom)
+        };
 
-    }, [filtros.cod_uf, filtros.cod_municipio, filtros.nr_proposta, filtros.nr_instrumento]);
+    }, [filtros.cod_uf, filtros.cod_municipio, filtros.nr_proposta, filtros.nr_instrumento, filtros.cod_localidade, filtros.cod_dsc_localidade, filtros.cod_catmetropol]);
   
 
 
 
-    //useEffect que atualiza as sources das camadas toda vez que um filtro for alterado 
-    useEffect(() => {
-
+    //useEffects que atualizas as sources das camadas toda vez que houver alterações nos filtros
+    const atualizarSource = (sourceId, url) => {
         const map = mapRef.current;
         if (!map) return;
+        const source = map.getSource(sourceId);
+        if (!source) return;
+        source.setTiles([url]);
+    };
 
-        const atualizarSource = (sourceId, url) => {
-            const source = map.getSource(sourceId);
-            if (!source) return;
-            source.setTiles([url]);
-        };
+    useEffect(()=>{
+        atualizarSource("ufs", urlUfs({cod_uf: filtros.cod_uf}))
+    }, [filtros.cod_uf]);
 
-        atualizarSource("ufs", urlUfs(filtros));
-        atualizarSource("municipios_2025", urlMunicipios2025(filtros));
-        atualizarSource("distritos_2022", urlDistritos2022(filtros));
-        atualizarSource("setores_censitarios_2022", urlSetoresCensitarios2022(filtros));
-        atualizarSource("localidades_2022", urlLocalidades2022(filtros));
-        atualizarSource("enderecos_2022", urlEnderecos2022(filtros));
-        atualizarSource("municipios_2022_limites", urlMunicipios2022(filtros));
-        atualizarSource("municipios_2022_informacoes", urlMunicipios2022(filtros));
-        atualizarSource("geometrias_carteira_dsr", urlGeometriasCarteiraDsr(filtros));
+    useEffect(()=>{
+        atualizarSource("municipios_2025", urlMunicipios2025({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, cod_catmetropol: filtros.cod_catmetropol}))
+        atualizarSource("municipios_2022", urlMunicipios2022({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, cod_catmetropol: filtros.cod_catmetropol, subgrupo: filtros.subgrupo, semiarido_2022: filtros.semiarido_2022, amazonia_legal: filtros.amazonia_legal, vale_jequetinhonha: filtros.vale_jequetinhonha}))
+        atualizarSource("distritos_2022", urlDistritos2022({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, cod_catmetropol: filtros.cod_catmetropol}))
+        atualizarSource("setores_censitarios_2022", urlSetoresCensitarios2022({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, cod_catmetropol: filtros.cod_catmetropol}))
+    }, [filtros.cod_uf, filtros.cod_municipio, filtros.cod_catmetropol, filtros.subgrupo, filtros.semiarido_2022, filtros.amazonia_legal, filtros.vale_jequetinhonha]);
+    
+    useEffect(()=>{
+        atualizarSource("localidades_2022", urlLocalidades2022({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, cod_localidade: filtros.cod_localidade, cod_catmetropol: filtros.cod_catmetropol}))
+    }, [filtros.cod_uf, filtros.cod_municipio, filtros.cod_localidade, filtros.cod_catmetropol]);
 
-    }, [filtros]);
+    useEffect(()=>{
+        atualizarSource("enderecos_2022", urlEnderecos2022({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, cod_dsc_localidade: filtros.cod_dsc_localidade, cod_catmetropol: filtros.cod_catmetropol}))
+    }, [filtros.cod_uf, filtros.cod_municipio, filtros.cod_dsc_localidade, filtros.cod_catmetropol]);
+
+    useEffect(()=>{
+        atualizarSource("geometrias_carteira_dsr", urlGeometriasCarteiraDsr({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento, cod_catmetropol: filtros.cod_catmetropol}))
+    }, [filtros.cod_uf, filtros.cod_municipio, filtros.nr_proposta, filtros.nr_instrumento, filtros.cod_catmetropol]);
+    
 
 
 
@@ -411,42 +493,42 @@ export default function MapaSection() {
                 //variavel do tipo percentual - invertido pois quanto maior pior
                 if (variavelConfig.tipo === "percentual_invertido") {
 
-                const res = await fetch(
-                    `${API_URL}/classificacao/${layer.variavelSel}`
-                );
+                    const res = await fetch(
+                        `${API_URL}/classificacao/${layer.variavelSel}`
+                    );
 
-                const data = await res.json();
+                    const data = await res.json();
 
-                map.setPaintProperty(layer.id,
-                    "fill-color", ["step", ["coalesce", ["to-number", ["get", layer.variavelSel]],
-                                0], "#2d6a4f",
-                    data.breaks[1], "#95d5b2",
-                    data.breaks[2], "#ffe066",
-                    data.breaks[3], "#f77f00",
-                    data.breaks[4], "#d62828"
-                    ]
-                );
+                    map.setPaintProperty(layer.id,
+                        "fill-color", ["step", ["coalesce", ["to-number", ["get", layer.variavelSel]],
+                                    0], "#2d6a4f",
+                        data.breaks[1], "#95d5b2",
+                        data.breaks[2], "#ffe066",
+                        data.breaks[3], "#f77f00",
+                        data.breaks[4], "#d62828"
+                        ]
+                    );
                 }
                 
 
                 //variavel do tipo percentual - normal pois quanto maior melhor
                 if (variavelConfig.tipo === "percentual_normal") {
 
-                const res = await fetch(
-                    `${API_URL}/classificacao/${layer.variavelSel}`
-                );
+                    const res = await fetch(
+                        `${API_URL}/classificacao/${layer.variavelSel}`
+                    );
 
-                const data = await res.json();
+                    const data = await res.json();
 
-                map.setPaintProperty(layer.id,
-                    "fill-color", ["step", ["coalesce", ["to-number", ["get", layer.variavelSel]],
-                                0], "#d62828",
-                    data.breaks[1], "#f77f00",
-                    data.breaks[2], "#ffe066",
-                    data.breaks[3], "#95d5b2",
-                    data.breaks[4], "#2d6a4f"
-                    ]
-                );
+                    map.setPaintProperty(layer.id,
+                        "fill-color", ["step", ["coalesce", ["to-number", ["get", layer.variavelSel]],
+                                    0], "#d62828",
+                        data.breaks[1], "#f77f00",
+                        data.breaks[2], "#ffe066",
+                        data.breaks[3], "#95d5b2",
+                        data.breaks[4], "#2d6a4f"
+                        ]
+                    );
                 }
 
 
@@ -454,37 +536,44 @@ export default function MapaSection() {
                 if (variavelConfig.tipo === "categorica") {
 
 
-                if (layer.variavelSel === "subgrupo") {
-                    map.setPaintProperty(layer.id,
-                    "fill-color", ["match", ["get", "subgrupo"],
-                        "G1", "#d73027",
-                        "G2", "#fc8d59",
-                        "G3", "#049e91",
-                        "#cccccc"
-                    ]
-                    );
-                }
+                    if (layer.variavelSel === "subgrupo") {
+                        map.setPaintProperty(layer.id,
+                        "fill-color", ["match", ["get", "subgrupo"],
+                            "G1", "#d73027",
+                            "G2", "#fc8d59",
+                            "G3", "#049e91",
+                            "#cccccc"
+                        ]
+                        );
+                    }
 
-                
-                if (layer.variavelSel === "categoria_metropolitana") {
-                    map.setPaintProperty(layer.id,
-                    "fill-color", ["match", ["get", "categoria_metropolitana"],
-                        "Não Possui", "#2a9d8f",
-                        "#d62828"
-                    ]
-                    );
-                }
+                    
+                    if (layer.variavelSel === "tipo_catmetropol") {
+                        map.setPaintProperty(layer.id,
+                        "fill-color", ["match", ["get", "tipo_catmetropol"],
+                            "Não Possui", "#ffffff",
+                            "RM", "#46f3df",
+                            "RIDE, RM", "#00515c",
+                            "RIDE", "#0034df",
+                            "RAIDE", "#867d00",
+                            "Entorno Metropolitano", "#f5b352",
+                            "Colar Metropolitano", "#fc2f8f",
+                            "Área de Expansão Metropolitana", "#d62828",
+                            "#ffffff"
+                        ]
+                        );
+                    }
                 }
 
                 //variavel do tipo booleana
                 if (variavelConfig.tipo === "booleana") {
-                map.setPaintProperty(layer.id,
-                    "fill-color", ["match", ["to-number", ["get", layer.variavelSel]],
-                    1, "#d62828",
-                    0, "#2a9d8f",
-                    "#750a3c"
-                    ]
-                );
+                    map.setPaintProperty(layer.id,
+                        "fill-color", ["match", ["to-number", ["get", layer.variavelSel]],
+                        1, "#d62828",
+                        0, "#2a9d8f",
+                        "#750a3c"
+                        ]
+                    );
                 }
 
             } catch (err) {console.error(`Erro na camada ${layer.id}:`, err);}
@@ -500,7 +589,12 @@ export default function MapaSection() {
     return ( 
         <div className={estilos.mapa_box}>
             <button className={estilos.botaoFiltros} onClick={() => setPainelFiltros(!painelFiltros)}>Filtrar</button>
-            {painelFiltros && <FiltroPainel setPainelFiltros={setPainelFiltros}/>}
+            {painelFiltros && 
+                <FiltroPainel
+                    setPainelFiltros={setPainelFiltros}
+                    layers={layers}
+                />
+            }
             <button className={estilos.botaoCamadas} onClick={() => setPainelCamadas(!painelCamadas)}> <Layers className={estilos.LayersIcon}/> </button> 
             {painelCamadas && (<CamadasSection layers={layers} toggleLayer={toggleLayer} alterarVariavel={alterarVariavel}/>)}
             <div ref={mapContainer} className={estilos.mapContainer}/>

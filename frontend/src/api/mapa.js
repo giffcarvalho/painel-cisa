@@ -59,9 +59,16 @@ export async function listarNrPropostas(q="", cod_uf, cod_municipio, limit = 100
 }
 
 
-export async function listarNrInstrumentos(q="", limit = 40) {
+export async function listarNrInstrumentos(q="", cod_uf, cod_municipio, limit = 100) {
   
   const params = { q, limit }
+
+  const temMunicipio = Array.isArray(cod_municipio)? cod_municipio.length > 0: cod_municipio != null && cod_municipio !== "";
+  if (temMunicipio) {params.cod_municipio = cod_municipio;}
+
+  const temUf = Array.isArray(cod_uf)? cod_uf.length > 0: cod_uf != null && cod_uf !== "";
+  if (temUf) {params.cod_uf = cod_uf;}
+
   const res = await api.get("/mapa/filtros/nr_instrumentos", { params });
   
   return res.data.data;
@@ -69,8 +76,47 @@ export async function listarNrInstrumentos(q="", limit = 40) {
 
 
 
+export async function listarLocalidades(q="", cod_uf, cod_municipio, limit = 50) {
+  
+  const params = { q, limit }
+
+  const temMunicipio = Array.isArray(cod_municipio)? cod_municipio.length > 0: cod_municipio != null && cod_municipio !== "";
+  if (temMunicipio) {params.cod_municipio = cod_municipio;}
+
+  const temUf = Array.isArray(cod_uf)? cod_uf.length > 0: cod_uf != null && cod_uf !== "";
+  if (temUf) {params.cod_uf = cod_uf;}
+
+  const res = await api.get("/mapa/filtros/localidades", { params });
+  
+  return res.data.data;
+}
 
 
+
+export async function listarLocalidadeEnderecos(q="", cod_uf, cod_municipio, limit = 30) {
+  
+  const params = { q, limit }
+
+  const temMunicipio = Array.isArray(cod_municipio)? cod_municipio.length > 0: cod_municipio != null && cod_municipio !== "";
+  if (temMunicipio) {params.cod_municipio = cod_municipio;}
+
+  const temUf = Array.isArray(cod_uf)? cod_uf.length > 0: cod_uf != null && cod_uf !== "";
+  if (temUf) {params.cod_uf = cod_uf;}
+
+  const res = await api.get("/mapa/filtros/localidade_enderecos", { params });
+  
+  return res.data.data;
+}
+
+
+export async function listarCategoriasMetropolitanas(q="", limit = 50) {
+  
+  const params = { q, limit }
+
+  const res = await api.get("/mapa/filtros/categorias_metropolitanas", { params });
+  
+  return res.data.data;
+}
 
 
 
@@ -91,6 +137,24 @@ export function urlBboxMunicipios(filtros={}) {
 export function urlBboxCarteiraDsr(filtros={}) {
   const params = toParams(filtros);
   return `${API_URL}/mapa/bbox_carteira_dsr?${params}`
+}
+
+
+export function urlBboxLocalidades(filtros={}) {
+  const params = toParams(filtros);
+  return `${API_URL}/mapa/bbox_localidades?${params}`
+}
+
+
+export function urlBboxEnderecos(filtros={}) {
+  const params = toParams(filtros);
+  return `${API_URL}/mapa/bbox_enderecos?${params}`
+}
+
+
+export function urlBboxCategoriasMetropolitanas(filtros={}) {
+  const params = toParams(filtros);
+  return `${API_URL}/mapa/bbox_categorias_metropolitanas?${params}`
 }
 
 
