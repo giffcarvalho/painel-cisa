@@ -1,6 +1,6 @@
 import { BookOpen } from 'lucide-react'
 import { manualIntro } from './manualContent'
-import styles from './Manual.module.css'
+import styles from './ManualHome.module.css'
 import navVideo from '../../assets/navVideo.mp4'
 
 export default function ManualHome() {

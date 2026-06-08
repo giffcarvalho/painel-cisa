@@ -1,0 +1,25 @@
+.notice {
+  margin: 18px 0;
+  padding: 14px 16px;
+  border-left: 4px solid #1351b4;
+  border-radius: 6px;
+  background: #f7faff;
+  color: #514a42;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.subsection {
+  margin-top: 24px;
+}
+
+.textBlock {
+  padding: 16px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.subsection h3,
+.textBlock h4 {
+  margin: 0 0 8px;
+  color: #25221d;
+}

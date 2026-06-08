@@ -1,4 +1,5 @@
-import styles from './Manual.module.css'
+import sharedStyles from './Manual.module.css'
+import styles from './ManualCarteiraDsr.module.css'
 import tutFiltros from '../../assets/tutFiltros.mp4'
 import indicadoresCarteiraDsr from '../../assets/indicadoresCarteiraDsr.png'
 
@@ -13,8 +14,8 @@ const topicIds = {
 
 export default function ManualCarteiraDsr() {
   return (
-    <main className={styles.detailPage}>
-      <section className={styles.contentCard}>
+    <main className={sharedStyles.detailPage}>
+      <section className={sharedStyles.contentCard}>
         <h2>Carteira DSR</h2>
         <p>
         
@@ -66,22 +67,47 @@ export default function ManualCarteiraDsr() {
             <p>
               Os valores exibidos são atualizados automaticamente de acordo com os filtros selecionados, refletindo apenas os dados correspondentes ao recorte definido pelo usuário.
             </p>
-            <img src={indicadoresCarteiraDsr} alt="KPIs" className={styles.imageKpi}/>
+            <figure className={styles.imageKpiFrame}>
+              <img src={indicadoresCarteiraDsr} alt="KPIs" className={styles.imageKpi}/>
+            </figure>
           </section>
 
           <section id={topicIds.Gráficos} className={styles.manualTopic}>
             <h3>Gráficos</h3>
-            <p>Conteúdo em elaboração.</p>
+            <p>
+              Os gráficos apresentam representações visuais dos dados da Carteira DSR, facilitando a identificação de padrões, distribuições e comparações
+              entre diferentes grupos de informações. Eles permitem visualizar os dados sob diferentes perspectivas, contribuindo para análises mais rápidas e intuitivas.
+            </p>
+            <p>
+              Os gráficos são interativos e respondem automaticamente aos filtros aplicados na página. Além disso, é possível utilizar os itens da legenda para ocultar
+              ou exibir categorias específicas, ajustando a visualização conforme a necessidade da análise.
+            </p>
           </section>
 
           <section id={topicIds['Tabela detalhada']} className={styles.manualTopic}>
             <h3>Tabela Detalhada</h3>
-            <p>Conteúdo em elaboração.</p>
+            <p>
+              A tabela detalhada apresenta os registros da Carteira DSR em formato tabular, permitindo consultar informações de forma mais específica e
+              complementar às visualizações gráficas da página.
+            </p>
+            <p>
+              Para otimizar o carregamento e a navegação, a tabela permanece recolhida por padrão. Quando necessário, basta utilizar a opção "Exibir Tabela" para gerar e
+              visualizar os dados. A tabela pode ser contultada tanto com filtros aplicados quanto sem filtros, refletindo o recorte de dados atualmente selecionado.
+            </p>
           </section>
 
           <section id={topicIds.Exportação} className={styles.manualTopic}>
             <h3>Exportação</h3>
-            <p>Conteúdo em elaboração.</p>
+            <p>
+              A funcionalidade de exportação permite salvar os dados e visualizações da Carteira DSR para utilização em relatórios, apresentações ou análises complementares.
+            </p>
+            <p>
+              Os gráficos podem ser exportados como imagem ou em planilha Excel já formatada, preservando as informações correspondentes ao recorte de dados selecionado.
+              A tabela detalhada pode ser exportada em formato Excel, permitindo consultar e tratamentos adicionais dos dados fora do portal.
+            </p>
+            <p>
+              Todos os arquivos exportados consideram os filtros aplicados no momento da exportação.
+            </p>
           </section>
         </div>
       </section>

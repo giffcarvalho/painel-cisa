@@ -1,0 +1,24 @@
+.topicGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.topicCard {
+  padding: 18px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+}
+
+.topicCard h3 {
+  margin: 0 0 8px;
+  color: #25221d;
+}
+
+@media (max-width: 900px) {
+  .topicGrid {
+    grid-template-columns: 1fr;
+  }
+}
