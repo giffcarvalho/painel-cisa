@@ -165,17 +165,7 @@ export default function FiltroPainel ({ setPainelFiltros, layers }) {
                                 onChange={(valor)=> atualizarFiltro("cod_catmetropol", valor)}
                             />
 
-                            <FiltroSelecaoUnica
-                                key='subgrupo'
-                                id='subgrupo'
-                                label='Subgrupo - PAC'
-                                valorAtual={filtros.subgrupo}
-                                opcoes={listas.subgrupo}
-                                getValue={(e)=>e.subgrupo}
-                                getLabel={(e)=>e.subgrupo}
-                                onChange={(valor)=> atualizarFiltro("subgrupo", valor)}
-                            />
-
+                            
                             <FiltroSelecaoUnica
                                 key='semiarido_2022'
                                 id='semiarido_2022'
@@ -183,7 +173,7 @@ export default function FiltroPainel ({ setPainelFiltros, layers }) {
                                 valorAtual={filtros.semiarido_2022}
                                 opcoes={listas.semiarido_2022}
                                 getValue={(e)=>e.semiarido_2022}
-                                getLabel={(e)=>e.semiarido_2022}
+                                getLabel={(e)=> e.semiarido_2022 ? "Sim" : "Não"}
                                 onChange={(valor)=> atualizarFiltro("semiarido_2022", valor)}
                             />
 
@@ -194,7 +184,7 @@ export default function FiltroPainel ({ setPainelFiltros, layers }) {
                                 valorAtual={filtros.amazonia_legal}
                                 opcoes={listas.amazonia_legal}
                                 getValue={(e)=>e.amazonia_legal}
-                                getLabel={(e)=>e.amazonia_legal}
+                                getLabel={(e)=>e.amazonia_legal ? "Sim" : "Não"}
                                 onChange={(valor)=> atualizarFiltro("amazonia_legal", valor)}
                             />
 
@@ -205,7 +195,7 @@ export default function FiltroPainel ({ setPainelFiltros, layers }) {
                                 valorAtual={filtros.vale_jequetinhonha}
                                 opcoes={listas.vale_jequetinhonha}
                                 getValue={(e)=>e.vale_jequetinhonha}
-                                getLabel={(e)=>e.vale_jequetinhonha}
+                                getLabel={(e)=>e.vale_jequetinhonha ? "Sim" : "Não"}
                                 onChange={(valor)=> atualizarFiltro("vale_jequetinhonha", valor)}
                             />
 

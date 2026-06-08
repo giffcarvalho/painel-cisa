@@ -194,6 +194,12 @@ export function urlEnderecos2022(filtros={}) {
 }
 
 
+export function urlCidades(filtros={}) {
+  const params = toParams(filtros);
+  return `${API_URL}/mapa/cidades/{z}/{x}/{y}.pbf?${params}`
+}
+
+
 export function urlMunicipios2022(filtros={}) {
   const params = toParams(filtros);
   return `${API_URL}/mapa/municipios_2022/{z}/{x}/{y}.pbf?${params}`

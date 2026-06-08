@@ -10,6 +10,7 @@ import {
     urlBboxUfs,
     urlDistritos2022,
     urlEnderecos2022,
+    urlCidades,
     urlLocalidades2022,
     urlMunicipios2022,
     urlMunicipios2025,
@@ -31,10 +32,13 @@ export default function MapaSection() {
     const [layers, setLayers] = useState([
         { id: "ufs", nome: "Limites Estaduais", visivel: true },
         { id: "municipios_2022", nome: "Limites Municipais 2022", visivel: true },
+        { id: "cidades", nome: "Cidades", visivel: true },
+        { id: "cidades_labels", nome: "Nome das Cidades", visivel: true, dependencias: ["cidades"], mostrarPainel: false },
         { id: "distritos_2022", nome: "Distritos 2022", visivel: true },
         { id: "setores_censitarios_2022", nome: "Setores Censitários 2022", visivel: true },
         { id: "enderecos_2022", nome: "Endereços 2022", visivel: true },
         { id: "localidades_2022", nome: "Localidades 2022", visivel: true },
+        { id: "localidades_2022_labels", nome: "Nome das Localidades", visivel: true, dependencias: ["localidades_2022"], mostrarPainel: false },
         { id: "geometrias_carteira_dsr", nome: "Carteira DSR", visivel: false },
         { id: "informacoes_municipais", 
             nome: "Informações Municipais",
@@ -51,6 +55,7 @@ export default function MapaSection() {
                 {value: "deficit_banheiro_urbana_ibge", label: "Déficit banheiro urbano", tipo: "percentual_invertido"},
                 {value: "subgrupo", label: "Subgrupo PAC", tipo: "categorica"},
                 {value: "tipo_catmetropol", label: "Categoria Metropolitana", tipo: "categorica"},
+                {value: "populacao_total_censo_2022_maior_50000", label: "População 2022 >50 mil", tipo: "booleana"},
             ]
         },
         
@@ -99,6 +104,7 @@ export default function MapaSection() {
             map.addSource("distritos_2022", {type: "vector", tiles: [urlDistritos2022(filtros)], minzoom: 7, maxzoom: 20});
             map.addSource("municipios_2025", {type: "vector", tiles: [urlMunicipios2025(filtros)], minzoom: 5, maxzoom: 20});
             map.addSource("municipios_2022", {type: "vector", tiles: [urlMunicipios2022(filtros)], minzoom: 3, maxzoom: 20});
+            map.addSource("cidades", {type: "vector", tiles: [urlCidades(filtros)], minzoom: 7, maxzoom: 20});
             map.addSource("ufs", {type: "vector", tiles: [urlUfs(filtros)], minzoom: 3, maxzoom: 20});
             map.addSource("enderecos_2022", {type: "vector", tiles: [urlEnderecos2022(filtros)], minzoom: 12, maxzoom: 20});
             map.addSource("localidades_2022", {type: "vector", tiles: [urlLocalidades2022(filtros)], minzoom: 8, maxzoom: 20});
@@ -117,6 +123,7 @@ export default function MapaSection() {
             });
 
 
+            
             map.addLayer({
                 id: "informacoes_municipais",
                 type: "fill",
@@ -130,7 +137,7 @@ export default function MapaSection() {
             });
 
 
-
+            
             map.addLayer({
                 id: "setores_censitarios_2022",
                 type: "line",
@@ -216,6 +223,62 @@ export default function MapaSection() {
                         "Localidade Indígena","#880925",
                         "Localidade Quilombola","#442d2f",
                         "#e9e9e9"]
+                }
+            });
+
+
+            map.addLayer({
+                id: "localidades_2022_labels",
+                type: "symbol",
+                source: "localidades_2022", "source-layer": "pontos",
+                minzoom: 10,
+                layout: {visibility: layers.find(l=>l.id==="localidades_2022")?.visivel? "visible": "none",
+                    "text-field": ["get", "nome_localidade"],
+                    "text-size": ["interpolate", ["linear"], ["zoom"], 9, 9, 10, 10, 11, 11, 12, 12 ],
+                    "text-offset": [0, 1.2],
+                    "text-anchor": "top",
+                    "text-allow-overlap": false,
+                    "text-font": ["Open Sans Regular"]
+                },
+                paint: {
+                    "text-color": "#ffffff",
+                    "text-halo-color": "#000000",
+                    "text-halo-width": 1.5
+                }
+            });
+
+
+            map.addLayer({
+                id: "cidades",
+                type: "circle",
+                source: "cidades", "source-layer": "pontos",
+                layout:{visibility: layers.find(l=>l.id==="cidades")?.visivel? "visible": "none"},
+                paint: {
+                    "circle-radius": ["interpolate", ["linear"], ["zoom"], 7.0, 2.0, 8.0, 3.0, 9.0, 4.0, 10.0, 5.0, 11.0, 6.0],
+                    "circle-color": "#ffffff",
+                    "circle-stroke-width": 3,
+                    "circle-stroke-color": "#000000"
+                }
+            });
+
+
+            map.addLayer({
+                id: "cidades_labels",
+                type: "symbol",
+                source: "cidades", "source-layer": "pontos",
+                minzoom: 8,
+                layout: {visibility: layers.find(l=>l.id==="cidades")?.visivel? "visible": "none",
+                    "text-field": ["get", "nome"],
+                    "text-size": ["interpolate", ["linear"], ["zoom"], 7, 10, 8, 11, 9, 12],
+                    "text-offset": [0, 1.2],
+                    "text-anchor": "top",
+                    "text-allow-overlap": false,
+                    "text-font": ["Open Sans Regular"]
+                },
+                paint: {
+                    "text-color": "#ffffff",
+                    "text-halo-color": "#000000",
+                    "text-halo-width": 1.5
                 }
             });
 
@@ -358,10 +421,11 @@ export default function MapaSection() {
 
     useEffect(()=>{
         atualizarSource("municipios_2025", urlMunicipios2025({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, cod_catmetropol: filtros.cod_catmetropol}))
-        atualizarSource("municipios_2022", urlMunicipios2022({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, cod_catmetropol: filtros.cod_catmetropol, subgrupo: filtros.subgrupo, semiarido_2022: filtros.semiarido_2022, amazonia_legal: filtros.amazonia_legal, vale_jequetinhonha: filtros.vale_jequetinhonha}))
-        atualizarSource("distritos_2022", urlDistritos2022({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, cod_catmetropol: filtros.cod_catmetropol}))
-        atualizarSource("setores_censitarios_2022", urlSetoresCensitarios2022({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, cod_catmetropol: filtros.cod_catmetropol}))
-    }, [filtros.cod_uf, filtros.cod_municipio, filtros.cod_catmetropol, filtros.subgrupo, filtros.semiarido_2022, filtros.amazonia_legal, filtros.vale_jequetinhonha]);
+        atualizarSource("municipios_2022", urlMunicipios2022({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, cod_catmetropol: filtros.cod_catmetropol, semiarido_2022: filtros.semiarido_2022, amazonia_legal: filtros.amazonia_legal, vale_jequetinhonha: filtros.vale_jequetinhonha}))
+        atualizarSource("cidades", urlCidades({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, cod_catmetropol: filtros.cod_catmetropol, semiarido_2022: filtros.semiarido_2022, amazonia_legal: filtros.amazonia_legal, vale_jequetinhonha: filtros.vale_jequetinhonha}))
+        atualizarSource("distritos_2022", urlDistritos2022({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, cod_catmetropol: filtros.cod_catmetropol, semiarido_2022: filtros.semiarido_2022, amazonia_legal: filtros.amazonia_legal, vale_jequetinhonha: filtros.vale_jequetinhonha}))
+        atualizarSource("setores_censitarios_2022", urlSetoresCensitarios2022({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, cod_catmetropol: filtros.cod_catmetropol, semiarido_2022: filtros.semiarido_2022, amazonia_legal: filtros.amazonia_legal, vale_jequetinhonha: filtros.vale_jequetinhonha}))
+    }, [filtros.cod_uf, filtros.cod_municipio, filtros.cod_catmetropol, filtros.semiarido_2022, filtros.amazonia_legal, filtros.vale_jequetinhonha]);
     
     useEffect(()=>{
         atualizarSource("localidades_2022", urlLocalidades2022({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, cod_localidade: filtros.cod_localidade, cod_catmetropol: filtros.cod_catmetropol}))
@@ -372,8 +436,8 @@ export default function MapaSection() {
     }, [filtros.cod_uf, filtros.cod_municipio, filtros.cod_dsc_localidade, filtros.cod_catmetropol]);
 
     useEffect(()=>{
-        atualizarSource("geometrias_carteira_dsr", urlGeometriasCarteiraDsr({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento, cod_catmetropol: filtros.cod_catmetropol}))
-    }, [filtros.cod_uf, filtros.cod_municipio, filtros.nr_proposta, filtros.nr_instrumento, filtros.cod_catmetropol]);
+        atualizarSource("geometrias_carteira_dsr", urlGeometriasCarteiraDsr({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento, cod_catmetropol: filtros.cod_catmetropol, semiarido_2022: filtros.semiarido_2022, amazonia_legal: filtros.amazonia_legal, vale_jequetinhonha: filtros.vale_jequetinhonha}))
+    }, [filtros.cod_uf, filtros.cod_municipio, filtros.nr_proposta, filtros.nr_instrumento, filtros.cod_catmetropol, filtros.semiarido_2022, filtros.amazonia_legal, filtros.vale_jequetinhonha]);
     
 
 
@@ -450,15 +514,23 @@ export default function MapaSection() {
         const map = mapRef.current;
         if (!map || !map.getLayer(id)) return;
 
-        setLayers(prev => prev.map(layer => {
-        if (layer.id === id) {
-            const novaVis = !layer.visivel;
+        setLayers(prev => {
+            
+            const layerPrincipal = prev.find(l => l.id === id);
+            
+            if (!layerPrincipal) return prev;
+            
+            const novaVis = !layerPrincipal.visivel;
+            
+            return prev.map(layer => {
+                const deveAlterar = layer.id === id || layer.dependencias?.includes(id);
 
-            map.setLayoutProperty(id, "visibility", novaVis ? "visible" : "none");
-            return { ...layer, visivel: novaVis };
-        }
-        return layer;
-        }));
+                if (!deveAlterar) return layer;
+
+                if (map.getLayer(layer.id)) {map.setLayoutProperty(layer.id, "visibility", novaVis? "visible": "none");}
+                return {...layer, visivel: novaVis};
+            });
+        });
     }
     
     

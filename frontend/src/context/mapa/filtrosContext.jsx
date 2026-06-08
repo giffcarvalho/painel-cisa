@@ -22,7 +22,6 @@ export function FiltrosProvider({ children }) {
     cod_localidade: null,
     cod_dsc_localidade: null,
     cod_catmetropol: null,
-    subgrupo: null,
     semiarido_2022: null,
     amazonia_legal: null,
     vale_jequetinhonha: null,
@@ -38,7 +37,6 @@ export function FiltrosProvider({ children }) {
     localidades: [],
     localidadeEnderecos: [],
     categoriasMetropolitanas: [],
-    subgrupo: [{subgrupo:"G1"}, {subgrupo:"G2"}, {subgrupo:"G3"}],
     semiarido_2022: [{semiarido_2022:true}, {semiarido_2022:false}],
     amazonia_legal: [{amazonia_legal:true}, {amazonia_legal:false}],
     vale_jequetinhonha: [{vale_jequetinhonha:true}, {vale_jequetinhonha:false}],
@@ -161,6 +159,10 @@ export function FiltrosProvider({ children }) {
         novosFiltros.cod_localidade = null;
         novosFiltros.cod_dsc_localidade = null;
         novosFiltros.cod_catmetropol = null;
+        novosFiltros.semiarido_2022 = null;
+        novosFiltros.amazonia_legal = null;
+        novosFiltros.vale_jequetinhonha = null;
+
       }
 
       if (nome === "cod_municipio") {
@@ -168,9 +170,12 @@ export function FiltrosProvider({ children }) {
         novosFiltros.nr_instrumento = null;
         novosFiltros.cod_localidade = null;
         novosFiltros.cod_dsc_localidade = null;
+        novosFiltros.semiarido_2022 = null;
+        novosFiltros.amazonia_legal = null;
+        novosFiltros.vale_jequetinhonha = null;
       }
 
-      console.log(novosFiltros.subgrupo)
+      //console.log(novosFiltros.subgrupo)
 
       // dispara buscas usando SEMPRE o estado novo
       if (nome === "cod_uf") {
