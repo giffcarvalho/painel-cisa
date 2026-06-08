@@ -60,7 +60,6 @@ class FiltrosMapa:  #-- Dependência do FastAPI para agrupar todos os Query Para
             cod_localidade: list[int] | None = Query(None),
             cod_dsc_localidade: list[int] | None = Query(None),
             cod_catmetropol: list[int] | None = Query(None),
-            subgrupo: list[str] | None = Query(None),
             semiarido_2022: list[bool] | None = Query(None),
             amazonia_legal: list[bool] | None = Query(None),
             vale_jequetinhonha: list[bool] | None = Query(None),
@@ -72,7 +71,6 @@ class FiltrosMapa:  #-- Dependência do FastAPI para agrupar todos os Query Para
         self.cod_localidade = cod_localidade
         self.cod_dsc_localidade = cod_dsc_localidade
         self.cod_catmetropol = cod_catmetropol
-        self.subgrupo = subgrupo
         self.semiarido_2022 = semiarido_2022
         self.amazonia_legal = amazonia_legal
         self.vale_jequetinhonha = vale_jequetinhonha
@@ -92,7 +90,6 @@ def _build_where(filtros: FiltrosMapa, allowed: set[str] | None = None) -> tuple
         ("cod_localidade", filtros.cod_localidade, "cod_localidade", int, "bigint[]", "scalar"),
         ("cod_dsc_localidade", filtros.cod_dsc_localidade, "cod_dsc_localidade", int, "bigint[]", "scalar"),
         ("cod_catmetropol", filtros.cod_catmetropol, "cod_catmetropol", int, "int[]", "scalar"),
-        ("subgrupo", filtros.subgrupo, "subgrupo", None, "text[]", "scalar"),
         ("semiarido_2022", filtros.semiarido_2022, "semiarido_2022", bool, "boolean[]", "scalar"),
         ("amazonia_legal", filtros.amazonia_legal, "amazonia_legal", bool, "boolean[]", "scalar"),
         ("vale_jequetinhonha", filtros.vale_jequetinhonha, "vale_jequetinhonha", bool, "boolean[]", "scalar"),
@@ -728,7 +725,7 @@ async def get_municipios_2025(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
 @router.get("/distritos_2022/{z}/{x}/{y}.pbf", summary="Distritos 2022")
 async def get_distritos_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Depends(), db: AsyncSession = Depends(get_db)):
 
-    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio"})
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "semiarido_2022", "amazonia_legal", "vale_jequetinhonha"})
     
     base_where = """
         geom && ST_TileEnvelope(:z, :x, :y)
@@ -787,7 +784,7 @@ async def get_distritos_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Depe
 @router.get("/setores_censitarios_2022/{z}/{x}/{y}.pbf", summary="Setores Censitários 2022")
 async def get_setores_censitarios_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Depends(), db: AsyncSession = Depends(get_db)):
 
-    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio"})
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "semiarido_2022", "amazonia_legal", "vale_jequetinhonha"})
     
     base_where = """
         geom && ST_TileEnvelope(:z, :x, :y)
@@ -961,12 +958,69 @@ async def get_enderecos_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Depe
     )
 
 
+# Cidades
+@router.get("/cidades/{z}/{x}/{y}.pbf", summary="Cidades")
+async def get_cidades(z: int, x: int, y: int, filtros: FiltrosMapa = Depends(), db: AsyncSession = Depends(get_db)):
+
+    
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "semiarido_2022", "amazonia_legal", "vale_jequetinhonha"})
+    
+    base_where = """
+        geom_sede && ST_TileEnvelope(:z, :x, :y)
+        AND (
+            CAST(:cod_catmetropol AS int[]) IS NULL
+            OR EXISTS (
+                SELECT 1
+                FROM territorio.vw_categoria_metropolitana_municipio cm
+                WHERE cm.cod_municipio = bm.cod_municipio
+                AND cm.cod_catmetropol = ANY(CAST(:cod_catmetropol AS int[]))
+            )
+        )
+    """
+
+    if where_filtro:
+        base_where += f" AND {where_filtro}"
+    
+    params = {"z": z, "x": x, "y": y, "cod_catmetropol": filtros.cod_catmetropol}
+    params.update(params_filtro)
+
+
+    sql = f"""
+        SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom', 'cod_municipio') AS mvt
+        FROM (
+            SELECT
+                cod_municipio,
+                nome,
+                ST_AsMVTGeom(
+                    geom_sede,
+                    ST_TileEnvelope(:z, :x, :y),
+                    4096,
+                    256,
+                    true
+                ) AS geom
+            FROM territorio.vw_base_municipal bm
+            WHERE {base_where}
+        ) AS tile;
+    """
+    
+
+    result = await _execute_query(db, sql, params)
+    row = result.fetchone()
+    return Response(
+        content=row.mvt if row and row.mvt else b"",
+        media_type="application/x-protobuf",
+        headers={"Cache-Control": "public, max-age=300"}
+    )
+
+
+
+
 # municipios 2022
 @router.get("/municipios_2022/{z}/{x}/{y}.pbf", summary="Municípios 2022")
 async def get_municipios_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Depends(), db: AsyncSession = Depends(get_db)):
 
     
-    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "subgrupo", "semiarido_2022", "amazonia_legal", "vale_jequetinhonha"})
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "semiarido_2022", "amazonia_legal", "vale_jequetinhonha"})
     
     base_where = """
         geom_2022 && ST_TileEnvelope(:z, :x, :y)
@@ -1003,6 +1057,7 @@ async def get_municipios_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
                 deficit_banheiro_urbana_ibge,
                 subgrupo,
                 tipo_catmetropol,
+                populacao_total_censo_2022_maior_50000,
                 ST_AsMVTGeom(
                     ST_Simplify(
                         geom_2022,
@@ -1041,7 +1096,7 @@ async def get_municipios_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
 async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMapa = Depends(), db: AsyncSession = Depends(get_db)):
 
     
-    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "nr_proposta", "nr_instrumento"})
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "nr_proposta", "nr_instrumento", "semiarido_2022", "amazonia_legal", "vale_jequetinhonha"})
     
     base_where = """
         geom && ST_TileEnvelope(:z, :x, :y)
