@@ -2,6 +2,11 @@ import sharedStyles from './Manual.module.css'
 import styles from './ManualCarteiraDsr.module.css'
 import tutFiltros from '../../assets/tutFiltros.mp4'
 import indicadoresCarteiraDsr from '../../assets/indicadoresCarteiraDsr.png'
+import visGraficos from '../../assets/visGraficos.png'
+import visGraficoBarra from '../../assets/visGraficoBarra.mp4'
+import visGraficoMapa from '../../assets/visGraficoMapa.mp4'
+import visTabelaDet from '../../assets/visTabelaDet.mp4'
+import visExport from '../../assets/visExport.mp4'
 
 const topicIds = {
   'Objetivo da ferramenta': 'objetivo-da-ferramenta',
@@ -78,22 +83,80 @@ export default function ManualCarteiraDsr() {
               Os gráficos apresentam representações visuais dos dados da Carteira DSR, facilitando a identificação de padrões, distribuições e comparações
               entre diferentes grupos de informações. Eles permitem visualizar os dados sob diferentes perspectivas, contribuindo para análises mais rápidas e intuitivas.
             </p>
+
+            <figure className={styles.imageGraphFrame}>
+              <img src={visGraficos} className={styles.imageGraph} alt="Visualização dos gráficos da Carteira DSR" />
+            </figure>
+            
             <p>
               Os gráficos são interativos e respondem automaticamente aos filtros aplicados na página. Além disso, é possível utilizar os itens da legenda para ocultar
               ou exibir categorias específicas, ajustando a visualização conforme a necessidade da análise.
             </p>
+
+            <div className={styles.graphVideoGrid}>
+              <figure className={`${styles.videoBlock} ${styles.graphVideoBlock}`}>
+                <video className={`${styles.tutorialVideo} ${styles.graphVideo}`}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  controls
+                  aria-label="Demonstração da interação com o gráfico de barras"
+                >
+                  <source src={visGraficoBarra} type="video/mp4" />
+                  Seu navegador não suporta a reprodução de vídeo.
+                </video>
+
+                <figcaption className={styles.videoCaption}>
+                  Demonstração da interação com o gráfico de barras.
+                </figcaption>
+              </figure>
+
+              <figure className={`${styles.videoBlock} ${styles.graphVideoBlock}`}>
+                <video className={`${styles.tutorialVideo} ${styles.graphVideo}`}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  controls
+                  aria-label="Demonstração da visualização geográfica no mapa"
+                >
+                  <source src={visGraficoMapa} type="video/mp4" />
+                  Seu navegador não suporta a reprodução de vídeo.
+                </video>
+
+                <figcaption className={styles.videoCaption}>
+                  Demonstração da visualização geográfica no mapa.
+                </figcaption>
+              </figure>
+            </div>
           </section>
 
           <section id={topicIds['Tabela detalhada']} className={styles.manualTopic}>
             <h3>Tabela Detalhada</h3>
             <p>
-              A tabela detalhada apresenta os registros da Carteira DSR em formato tabular, permitindo consultar informações de forma mais específica e
-              complementar às visualizações gráficas da página.
-            </p>
-            <p>
               Para otimizar o carregamento e a navegação, a tabela permanece recolhida por padrão. Quando necessário, basta utilizar a opção "Exibir Tabela" para gerar e
               visualizar os dados. A tabela pode ser contultada tanto com filtros aplicados quanto sem filtros, refletindo o recorte de dados atualmente selecionado.
             </p>
+            <p>
+              A tabela detalhada apresenta os registros da Carteira DSR em formato tabular, permitindo consultar informações de forma mais específica e
+              complementar às visualizações gráficas da página.
+            </p>
+            <figure className={styles.videoBlock}>
+              <video className={`${styles.tutorialVideo} ${styles.tutorialVideoTable}`}
+              autoPlay
+              muted
+              loop
+              playsInline
+              controls
+              aria-label="Demonstração da interação com a tabela detalhada">
+                <source src={visTabelaDet} type="video/mp4" />
+                Seu navegador não suporta a reprodução de vídeo.
+              </video>
+              <figcaption className={styles.videoCaption}>
+                Demonstrção de interação com a tabela detalhada.
+              </figcaption>
+            </figure>
           </section>
 
           <section id={topicIds.Exportação} className={styles.manualTopic}>
@@ -108,6 +171,20 @@ export default function ManualCarteiraDsr() {
             <p>
               Todos os arquivos exportados consideram os filtros aplicados no momento da exportação.
             </p>
+            <figure className={styles.videoBlock}>
+              <video className={`${styles.tutorialVideo} ${styles.exportVideo}`}
+              autoPlay
+              muted
+              loop
+              playsInline
+              controls
+              aria-label="Demonstração de exportação dos dados.">
+                <source src={visExport} type="video/mp4" />
+              </video>
+              <figcaption className={styles.videoCaption}>
+                Demonstração de exportação dos dados.
+              </figcaption>
+            </figure>
           </section>
         </div>
       </section>
