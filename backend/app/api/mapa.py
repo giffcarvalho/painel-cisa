@@ -1055,8 +1055,17 @@ async def get_municipios_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
                 jenks_deficit_esgoto_urbana_ibge,
                 jenks_deficit_residuo_urbana_ibge,
                 jenks_deficit_banheiro_urbana_ibge,
+                deficit_agua_rural_ibge,
+                deficit_esgoto_rural_ibge,
+                deficit_residuo_rural_ibge,
+                deficit_banheiro_rural_ibge,
+                deficit_agua_urbana_ibge,
+                deficit_esgoto_urbana_ibge,
+                deficit_residuo_urbana_ibge,
+                deficit_banheiro_urbana_ibge,
                 subgrupo,
                 tipo_catmetropol,
+                populacao_total_censo_2022,
                 populacao_total_censo_2022_maior_50000,
                 ST_AsMVTGeom(
                     ST_Simplify(
@@ -1118,7 +1127,7 @@ async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMa
     params.update(params_filtro)
 
     sql = f"""
-        SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom', 'nr_instrumento') AS mvt
+        SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom') AS mvt
         FROM (
             SELECT
                 nr_instrumento,
@@ -1126,6 +1135,8 @@ async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMa
                 tipo_instrumento,
                 acao_padronizada,
                 componente,
+                objeto,
+                link_transferegov,
                 ST_AsMVTGeom(
                     geom,
                     ST_TileEnvelope(:z, :x, :y),
