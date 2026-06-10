@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Info , Wallet, FileWarning, CheckSquare, Map, Activity } from 'lucide-react'
+import { Info , Wallet, FileSearchCorner, Sprout, Map, Activity } from 'lucide-react'
 import styles from './Home.module.css'
 import marcaMcid from '../../assets/marca-mcid.png'
 
@@ -117,16 +117,16 @@ export default function Home() {
               <div className="flex flex-col gap-2 pl-2">
                 <div className="flex items-center justify-between py-2 opacity-50 cursor-not-allowed">
                   <div className="flex items-center gap-4">
-                    <FileWarning className="w-4 h-4 text-gray-400" />
-                    <span className="text-[14px] font-medium text-gray-500">Gestão de Suspensivas</span>
+                    <FileSearchCorner className="w-4 h-4 text-gray-400" />
+                    <span className="text-[14px] font-medium text-gray-500">Pesquisa Instrumento</span>
                   </div>
                   <span className={styles.badgeSoon}>Em breve</span>
                 </div>
 
                 <div className="flex items-center justify-between py-2 opacity-50 cursor-not-allowed">
                   <div className="flex items-center gap-4">
-                    <CheckSquare className="w-4 h-4 text-gray-400" />
-                    <span className="text-[14px] font-medium text-gray-500">Seleções Novo PAC</span>
+                    <Sprout className="w-4 h-4 text-gray-400" />
+                    <span className="text-[14px] font-medium text-gray-500">Saneamento Rural</span>
                   </div>
                   <span className={styles.badgeSoon}>Em breve</span>
                 </div>

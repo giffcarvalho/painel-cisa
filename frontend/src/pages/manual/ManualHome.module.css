@@ -1,0 +1,67 @@
+.homeStack {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.helpIntro {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.introBlock + .introBlock {
+  padding-top: 18px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.introBlock h2 {
+  margin: 10px 0 8px;
+  color: #25221d;
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.introBlock p {
+  margin: 0;
+  color: #5f574d;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.navigationDemo {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.navigationVideo {
+  display: block;
+  width: 100%;
+  max-width: 500px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+  background: #f8f7f5;
+}
+
+.videoCaption {
+  max-width: 760px;
+  color: #6f675c;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.sectionIcon {
+  width: 22px;
+  height: 22px;
+  color: #1351b4;
+}

@@ -1,10 +1,11 @@
 import { glossario, perguntasFrequentes } from './manualContent'
-import styles from './Manual.module.css'
+import sharedStyles from './Manual.module.css'
+import styles from './ManualInformacoesGerais.module.css'
 
 export default function ManualInformacoesGerais() {
   return (
-    <main className={styles.detailPage}>
-      <section className={styles.contentCard}>
+    <main className={sharedStyles.detailPage}>
+      <section className={sharedStyles.contentCard}>
         <h2>Informações Gerais</h2>
 
         <section id="duvidas-frequentes" className={styles.subsection}>

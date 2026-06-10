@@ -1,5 +1,6 @@
 import { mapaTopics } from './manualContent'
-import styles from './Manual.module.css'
+import sharedStyles from './Manual.module.css'
+import styles from './ManualMapaInterativo.module.css'
 
 const topicIds = {
   'Objetivo da ferramenta': 'objetivo-da-ferramenta',
@@ -12,8 +13,8 @@ const topicIds = {
 
 export default function ManualMapaInterativo() {
   return (
-    <main className={styles.detailPage}>
-      <section className={styles.contentCard}>
+    <main className={sharedStyles.detailPage}>
+      <section className={sharedStyles.contentCard}>
         <h2>Mapa Interativo</h2>
         <p>
           Esta página reunirá as orientações específicas sobre o uso do mapa,

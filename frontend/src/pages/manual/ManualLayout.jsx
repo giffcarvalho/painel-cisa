@@ -1,5 +1,6 @@
 import { ChevronDown, Map, Wallet } from 'lucide-react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { useState } from 'react'
 import styles from './Manual.module.css'
 
 const toolItems = [
@@ -19,7 +20,7 @@ const toolItems = [
 
 const summaryByPath = {
   '/manual': [
-    { href: '#sobre-este-manual', label: 'Sobre este manual' },
+    { href: '#sobre-este-manual', label: 'Sobre o portal' },
     { href: '#navegacao-no-portal', label: 'Como navegar pelo portal' },
   ],
   '/manual/carteira-dsr': [
@@ -49,6 +50,7 @@ export default function ManualLayout() {
   const { pathname } = useLocation()
   const currentSummary = summaryByPath[pathname] ?? summaryByPath['/manual']
   const isToolsActive = pathname === '/manual/carteira-dsr' || pathname === '/manual/mapa-interativo'
+  const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false)
 
   return (
     <div className={styles.page}>
@@ -68,30 +70,37 @@ export default function ManualLayout() {
           }
           >Início</NavLink>
 
-          <div className={styles.toolsMenu}>
+          <div className={`${styles.toolsMenu} ${isToolsMenuOpen ? styles.toolsMenuOpen : ''}`}
+            onMouseEnter={() => setIsToolsMenuOpen(true)}
+            onMouseLeave={() => setIsToolsMenuOpen(false)}>
             <button 
-              type="button" 
-              className={isToolsActive ? `${styles.tab} ${styles.activeTab}` : styles.tab}>
+              type="button"
+              className={isToolsActive ? `${styles.tab} ${styles.activeTab}` : styles.tab}
+              aria-haspopup="menu"
+              aria-expanded={isToolsMenuOpen}
+              onClick={() => setIsToolsMenuOpen((open) => !open)}>
                 Ferramentas <ChevronDown className={styles.tabIcon} aria-hidden="true" />
               </button>
 
-              <div className={styles.toolsDropdown}>
+              <div className={styles.toolsDropdown} role="menu">
                 {toolItems.map((item) => {
                   const Icon = item.icon
 
                   return (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    className={styles.toolDropdownItem}
-                  >
-                    <span>{item.label}</span>
-                    <span className={styles.toolTooltip}>
-                      <Icon className={styles.toolTooltipIcon} aria-hidden="true" />
-                      <strong>{item.label}</strong>
-                      <small>{item.description}</small>
-                    </span>
-                  </NavLink>
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      className={styles.toolDropdownItem}
+                      role="menuitem"
+                      onClick={() => setIsToolsMenuOpen(false)}
+                    >
+                      <span>{item.label}</span>
+                      <span className={styles.toolTooltip}>
+                        <Icon className={styles.toolTooltipIcon} aria-hidden="true" />
+                        <strong>{item.label}</strong>
+                        <small>{item.description}</small>
+                      </span>
+                    </NavLink>
                   )
                 })}
               </div>

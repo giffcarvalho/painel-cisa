@@ -65,42 +65,6 @@
   background: #f7faff;
 }
 
-.homeStack {
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-}
-
-.helpIntro {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  padding: 24px;
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 8px;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
-}
-
-.introBlock + .introBlock {
-  padding-top: 18px;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.introBlock h2 {
-  margin: 10px 0 8px;
-  color: #25221d;
-  font-size: 22px;
-  line-height: 1.25;
-}
-
-.introBlock p {
-  margin: 0;
-  color: #5f574d;
-  font-size: 15px;
-  line-height: 1.65;
-}
-
 .introPanel h2 {
   margin: 10px 0 8px;
   color: #25221d;
@@ -181,7 +145,6 @@
 }
 
 .cardIcon,
-.sectionIcon,
 .arrowIcon {
   width: 22px;
   height: 22px;
@@ -241,54 +204,11 @@
   line-height: 1.25;
 }
 
-.contentCard p,
-.topicCard p,
-.textBlock p {
+.contentCard p {
   margin: 0;
   color: #5f574d;
   font-size: 15px;
   line-height: 1.65;
-}
-
-.topicGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin-top: 20px;
-}
-
-.topicCard {
-  padding: 18px;
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 8px;
-}
-
-.topicCard h3,
-.subsection h3,
-.textBlock h4 {
-  margin: 0 0 8px;
-  color: #25221d;
-}
-
-.notice {
-  margin: 18px 0;
-  padding: 14px 16px;
-  border-left: 4px solid #1351b4;
-  border-radius: 6px;
-  background: #f7faff;
-  color: #514a42;
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-.subsection {
-  margin-top: 24px;
-}
-
-.textBlock {
-  padding: 16px 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 @media (max-width: 900px) {
@@ -296,8 +216,7 @@
     padding: 24px 16px;
   }
 
-  .cardGrid,
-  .topicGrid {
+  .cardGrid {
     grid-template-columns: 1fr;
   }
 
@@ -319,10 +238,11 @@
 
 .toolsMenu {
   position: relative;
+  padding-bottom: 8px;
+  margin-bottom: -8px;
 }
 
-.toolsMenu:hover .toolsDropdown,
-.toolsMenu:focus-within .toolsDropdown {
+.toolsMenuOpen .toolsDropdown {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
@@ -331,7 +251,7 @@
 
 .toolsDropdown {
   position: absolute;
-  top: calc(100% + 8px);
+  top: 100%;
   left: 0;
   z-index: 20;
   min-width: 190px;
@@ -469,3 +389,4 @@
   background: #f7faff;
   color: #1351b4;
 }
+

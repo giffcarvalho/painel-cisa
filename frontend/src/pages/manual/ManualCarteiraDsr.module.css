@@ -1,0 +1,136 @@
+.topicStack {
+  display: flex;
+  flex-direction: column;
+  margin-top: 24px;
+}
+
+.manualTopic {
+  padding: 24px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.manualTopic h3 {
+  margin: 0 0 8px;
+  color: #25221d;
+  font-weight: bold;
+}
+
+.manualTopic p {
+  margin: 0;
+  color: #5f574d;
+  font-size: 15px;
+  line-height: 1.65;
+  text-align: justify;
+}
+
+.manualTopic p + p {
+  margin-top: 20px;
+}
+
+.videoBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 24px auto 0;
+  width: 100%;
+}
+
+.tutorialVideo {
+  display: block;
+  flex-direction: 100%;
+  max-width: 850px;
+  aspect-ratio: 16 / 9;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+  background: #f8f7f5;
+}
+
+.videoCaption {
+  max-width: 760px;
+  margin: 0;
+  color: #6f675c;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.graphVideoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  width: 100%;
+  margin-top: 24px;
+}
+
+.tutorialVideoTable {
+  width: 100%;
+  max-width: 850px;
+  height: auto;
+  aspect-ratio: auto;
+  box-sizing: border-box;
+  object-fit: contain;
+  overflow: hidden;
+}
+
+.exportVideo {
+  width: min(100%, 500px);
+  height: auto;
+  aspect-ratio: auto;
+  box-sizing: border-box;
+  object-fit: contain;
+  overflow: hidden;
+}
+
+.graphVideoBlock {
+  min-width: 0;
+  margin: 0;
+}
+
+.graphVideo {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  object-fit: contain;
+}
+
+@media (max-width: 900px) {
+  .graphVideoGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.imageCaption {
+  max-width: 760px;
+  margin: 0;
+  color: #6f675c;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.imageKpiFrame {
+  margin: 24px auto 0;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.imageKpi {
+  display: block;
+  width: max(100%, 1600px);
+  max-width: none;
+  height: auto;
+}
+
+.imageGraphFrame {
+  margin: 24px auto 20px;
+  width: 100%;
+}
+
+.imageGraph {
+  display: block;
+  width: min(100%, 780px);
+  height: auto;
+  margin: 0 auto;
+}
