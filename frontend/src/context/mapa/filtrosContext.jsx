@@ -1,8 +1,16 @@
 import { createContext, useState, useEffect } from 'react'
-import { listarMunicipios, listarUfs, listarNrPropostas } from "../../api/mapa"
+import { 
+  listarMunicipios,
+  listarUfs,
+  listarNrPropostas,
+  listarNrInstrumentos,
+  listarLocalidades,
+  listarLocalidadeEnderecos,
+  listarCategoriasMetropolitanas
+} from "../../api/mapa"
+
 
 export const FiltrosContext = createContext();
-
 
 export function FiltrosProvider({ children }) {
 
@@ -10,6 +18,13 @@ export function FiltrosProvider({ children }) {
     cod_municipio: null,
     cod_uf: null,
     nr_proposta: null,
+    nr_instrumento: null,
+    cod_localidade: null,
+    cod_dsc_localidade: null,
+    cod_catmetropol: null,
+    semiarido_2022: null,
+    amazonia_legal: null,
+    vale_jequetinhonha: null,
   };
   
 
@@ -18,6 +33,13 @@ export function FiltrosProvider({ children }) {
     municipios: [],
     ufs: [],
     nrPropostas: [],
+    nrInstrumentos: [],
+    localidades: [],
+    localidadeEnderecos: [],
+    categoriasMetropolitanas: [],
+    semiarido_2022: [{semiarido_2022:true}, {semiarido_2022:false}],
+    amazonia_legal: [{amazonia_legal:true}, {amazonia_legal:false}],
+    vale_jequetinhonha: [{vale_jequetinhonha:true}, {vale_jequetinhonha:false}],
   });
 
   
@@ -36,13 +58,6 @@ export function FiltrosProvider({ children }) {
     
     const texto = String(q ?? "").trim();
 
-    const temUf = Array.isArray(cod_uf)? cod_uf.length > 0 : !!cod_uf;
-
-    if (!temUf && texto.length < 2) {
-      setListas(prev => ({...prev, municipios: []}));
-      return;
-    }
-
     if (texto.length > 0 && texto.length < 2) {
       return;
     }
@@ -53,35 +68,138 @@ export function FiltrosProvider({ children }) {
   }
 
   //esta função busca a lista de nr_propostas tendo como condição o texto digitado pelo usuário no filtro
-  async function buscarNrPropostas(q="") {
+  async function buscarNrPropostas(q="", cod_uf = filtros.cod_uf, cod_municipio = filtros.cod_municipio) {
     
     const texto = String(q ?? "").trim();
 
-    if (texto.length < 2) {
+    if (texto.length > 0 && texto.length < 2) {
       return;
     }
 
-    const data = await listarNrPropostas(texto);
+    const data = await listarNrPropostas(texto, cod_uf, cod_municipio);
     setListas(prev => ({...prev, nrPropostas: data}));
+  
+  }
+
+
+  //esta função busca a lista de nr_instrumento tendo como condição o texto digitado pelo usuário no filtro
+  async function buscarNrInstrumentos(q="", cod_uf = filtros.cod_uf, cod_municipio = filtros.cod_municipio) {
+    
+    const texto = String(q ?? "").trim();
+
+    if (texto.length > 0 && texto.length < 2) {
+      return;
+    }
+
+    const data = await listarNrInstrumentos(texto, cod_uf, cod_municipio);
+    setListas(prev => ({...prev, nrInstrumentos: data}));
+  
+  }
+
+
+  //esta função busca a lista de localidade tendo como condição o texto digitado pelo usuário no filtro
+  async function buscarLocalidades(q="", cod_uf = filtros.cod_uf, cod_municipio = filtros.cod_municipio) {
+    
+    const texto = String(q ?? "").trim();
+
+    if (texto.length > 0 && texto.length < 2) {
+      return;
+    }
+
+    const data = await listarLocalidades(texto, cod_uf, cod_municipio);
+    setListas(prev => ({...prev, localidades: data}));
+  
+  }
+
+
+  //esta função busca a lista de localidades dos enderecos tendo como condição o texto digitado pelo usuário no filtro
+  async function buscarLocalidadeEnderecos(q="", cod_uf = filtros.cod_uf, cod_municipio = filtros.cod_municipio) {
+    
+    const texto = String(q ?? "").trim();
+
+    if (texto.length > 0 && texto.length < 2) {
+      return;
+    }
+
+    const data = await listarLocalidadeEnderecos(texto, cod_uf, cod_municipio);
+    setListas(prev => ({...prev, localidadeEnderecos: data}));
+  
+  }
+
+
+  //esta função busca a lista das categorias metropolitanas tendo como condição o texto digitado pelo usuário no filtro
+  async function buscarCategoriasMetropolitanas(q="") {
+    
+    const texto = String(q ?? "").trim();
+
+    if (texto.length > 0 && texto.length < 2) {
+      return;
+    }
+
+    const data = await listarCategoriasMetropolitanas(texto);
+    setListas(prev => ({...prev, categoriasMetropolitanas: data}));
   
   }
 
 
 
 
-
   //essa função a chamada pelo onChange dos filtros, e chama setFiltros atualizando o estado filtros
   function atualizarFiltro(nome, valor) {
-    setFiltros((prev) => {
-      const novos = {...prev, [nome]: valor};
 
+    setFiltros(prev => {
+      
+      const novosFiltros = {...prev, [nome]: valor};
+      
+      // regras de limpeza
       if (nome === "cod_uf") {
-        novos.cod_municipio = null;
-        buscarMunicipios("", valor);
+        novosFiltros.cod_municipio = null;
+        novosFiltros.nr_proposta = null;
+        novosFiltros.nr_instrumento = null;
+        novosFiltros.cod_localidade = null;
+        novosFiltros.cod_dsc_localidade = null;
+        novosFiltros.cod_catmetropol = null;
+        novosFiltros.semiarido_2022 = null;
+        novosFiltros.amazonia_legal = null;
+        novosFiltros.vale_jequetinhonha = null;
+
       }
 
-    return novos;
+      if (nome === "cod_municipio") {
+        novosFiltros.nr_proposta = null;
+        novosFiltros.nr_instrumento = null;
+        novosFiltros.cod_localidade = null;
+        novosFiltros.cod_dsc_localidade = null;
+        novosFiltros.semiarido_2022 = null;
+        novosFiltros.amazonia_legal = null;
+        novosFiltros.vale_jequetinhonha = null;
+      }
+
+      //console.log(novosFiltros.subgrupo)
+
+      // dispara buscas usando SEMPRE o estado novo
+      if (nome === "cod_uf") {
+
+        buscarMunicipios("", novosFiltros.cod_uf);
+        buscarNrPropostas("", novosFiltros.cod_uf, novosFiltros.cod_municipio);
+        buscarNrInstrumentos("", novosFiltros.cod_uf, novosFiltros.cod_municipio);
+        buscarLocalidades("", novosFiltros.cod_uf, novosFiltros.cod_municipio);
+        buscarLocalidadeEnderecos("", novosFiltros.cod_uf, novosFiltros.cod_municipio);
+        buscarCategoriasMetropolitanas("", novosFiltros.cod_uf);
+      }
+
+
+      if (nome === "cod_municipio") {
+
+        buscarNrPropostas("", novosFiltros.cod_uf, novosFiltros.cod_municipio);
+        buscarNrInstrumentos("", novosFiltros.cod_uf, novosFiltros.cod_municipio);
+        buscarLocalidades("", novosFiltros.cod_uf, novosFiltros.cod_municipio);
+        buscarLocalidadeEnderecos("", novosFiltros.cod_uf, novosFiltros.cod_municipio);
+      }
+
+      return novosFiltros;
     });
+
   }
 
 
@@ -100,7 +218,11 @@ export function FiltrosProvider({ children }) {
         atualizarFiltro,
         limparFiltros,
         buscarMunicipios,
-        buscarNrPropostas
+        buscarNrPropostas,
+        buscarNrInstrumentos,
+        buscarLocalidades,
+        buscarLocalidadeEnderecos,
+        buscarCategoriasMetropolitanas,
       }}
     >
       {children}

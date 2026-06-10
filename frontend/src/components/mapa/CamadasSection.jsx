@@ -5,7 +5,9 @@ export default function CamadasSection({ layers, toggleLayer, alterarVariavel })
 
     return(
         <div className={estilos.camadas}>
-            {layers.map(layer => (
+            {layers
+                .filter(layer => layer.mostrarPainel !== false)
+                .map(layer => (
                 <div key={layer.id}>
 
                     <label>

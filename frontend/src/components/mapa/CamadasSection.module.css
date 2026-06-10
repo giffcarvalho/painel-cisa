@@ -1,10 +1,10 @@
  .camadas {
   position: absolute;
-  bottom: 80px;
+  bottom: 70px;
   left: 20px;
   width: 230px;
   padding: 10px;
-  background: rgb(241, 236, 236);
+  background: white;
   border-radius: 4px;
   box-shadow: 0 0 5px rgba(0,0,0,0.2);
   z-index: 1;
