@@ -24,6 +24,7 @@ import {
     urlBboxEnderecos,
     urlBboxCategoriasMetropolitanas,
 } from "@/api/mapa";
+import InputSection from "./InputSection";
 
 
 function gerarMatch(simbologia, propriedade, valorPadrao) {
@@ -136,6 +137,7 @@ export default function MapaSection() {
     const [painelCamadas, setPainelCamadas] = useState(false);
     const [painelFiltros, setPainelFiltros] = useState(false);
     const [zoomAtual, setZoomAtual] = useState(3);
+    const [coord, setCoord] = useState({ lat: "", long: "" });
     
 
     const {filtros} = useContext(FiltrosContext)
@@ -163,8 +165,8 @@ export default function MapaSection() {
             //{id: "labels", type: "raster", source: "labels"}
             ]
         },
-        center: [-47.9, -15.8], //centraliza o mapa nessas coordenadas ao carregar
-        zoom: 3                 //define o nível de zoom ao carregar 
+        center: [-47.9, -15.8], 
+        zoom: 3                 
         });
 
         map.on("zoomend", () => {setZoomAtual(map.getZoom());}); //captura o zoom atual do mapa e salva no estado zoomAtual
@@ -672,6 +674,44 @@ export default function MapaSection() {
     //--------------------------------------------------------------------------------------------
 
     
+    
+    // função que faz o fly até a coordenada digitada
+    const marcadorCoordRef = useRef(null);
+
+    function irParaCoordenada() {
+        
+        const latNum = Number(coord.lat.replace(",", ".").trim());
+        const longNum = Number(coord.long.replace(",", ".").trim());
+
+        if (isNaN(latNum) || isNaN(longNum)) {
+        alert("Coordenadas inválidas");
+        return;
+        }
+        
+        const map = mapRef.current;
+        if (!map) return;
+        
+        map.flyTo({
+        center: [longNum, latNum],
+        zoom: 13
+        });
+
+        // remove marcador anterior
+        if (marcadorCoordRef.current) {
+            marcadorCoordRef.current.remove();
+        }
+
+        // cria novo marcador
+        marcadorCoordRef.current = new maplibregl.Marker({
+            color: "#ff0000"
+        })
+
+        .setLngLat([longNum, latNum])
+        .addTo(map);
+    };
+    //--------------------------------------------------------------------------------------------
+
+
     return ( 
         <div className={estilos.mapa_box}>
             <button className={estilos.botaoFiltros} onClick={() => setPainelFiltros(!painelFiltros)}>Filtrar</button>
@@ -684,6 +724,7 @@ export default function MapaSection() {
             <button className={estilos.botaoCamadas} onClick={() => setPainelCamadas(!painelCamadas)}> <Layers className={estilos.LayersIcon}/> </button> 
             {painelCamadas && (<CamadasSection layers={layers} toggleLayer={toggleLayer} alterarVariavel={alterarVariavel}/>)}
             {painelCamadas && (<LegendaSection layers={layers} zoomAtual={zoomAtual}/>)}
+            <InputSection coord={coord} setCoord={setCoord} irParaCoordenada={irParaCoordenada}/>
             <div ref={mapContainer} className={estilos.mapContainer}/>
         </div>
     );
