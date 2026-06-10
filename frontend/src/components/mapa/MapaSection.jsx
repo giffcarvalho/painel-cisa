@@ -116,14 +116,14 @@ export default function MapaSection() {
             visivel: false,
             variavelSel: "",
             variaveis: [
-                {value: "jenks_deficit_agua_rural_ibge", label: "Déficit água rural", tipo: "percentual_invertido", legenda: [{valor: 5, label: "72,68 - 100%", cor: "#d62828"}, {valor: 4, label: "47,54 - 72,68%", cor: "#f77f00"}, {valor: 3, label: "27,07 - 47,54%", cor: "#ffe066"}, {valor: 2, label: "10,21 - 27,07%", cor: "#95d5b2"}, {valor: 1, label: "0 - 10,21%", cor: "#2d6a4f"},]},
-                {value: "jenks_deficit_esgoto_rural_ibge", label: "Déficit esgoto rural", tipo: "percentual_invertido", legenda: [{valor: 5, label: "86,61 - 100%", cor: "#d62828"}, {valor: 4, label: "68,81 - 86,61%", cor: "#f77f00"}, {valor: 3, label: "48,75 - 68,81%", cor: "#ffe066"}, {valor: 2, label: "25,45 - 48,75%", cor: "#95d5b2"}, {valor: 1, label: "0 - 25,45%", cor: "#2d6a4f"},]},
-                {value: "jenks_deficit_residuo_rural_ibge", label: "Déficit resíduos rural", tipo: "percentual_invertido", legenda: [{valor: 5, label: "83,13 - 100%", cor: "#d62828"}, {valor: 4, label: "64,57 - 83,13%", cor: "#f77f00"}, {valor: 3, label: "45,11 - 64,57%", cor: "#ffe066"}, {valor: 2, label: "23,18 - 45,11%", cor: "#95d5b2"}, {valor: 1, label: "0 - 23,18%", cor: "#2d6a4f"},]},
-                {value: "jenks_deficit_banheiro_rural_ibge", label: "Déficit banheiro rural", tipo: "percentual_invertido", legenda: [{valor: 5, label: "55,89 - 100%", cor: "#d62828"}, {valor: 4, label: "35,55 - 55,89%", cor: "#f77f00"}, {valor: 3, label: "17,57 - 35,55%", cor: "#ffe066"}, {valor: 2, label: "5,85 - 17,57%", cor: "#95d5b2"}, {valor: 1, label: "0 - 5,85%", cor: "#2d6a4f"},]},
-                {value: "jenks_deficit_agua_urbana_ibge", label: "Déficit água urbano", tipo: "percentual_invertido", legenda: [{valor: 5, label: "66,26 - 100%", cor: "#d62828"}, {valor: 4, label: "33,52 - 66,26%", cor: "#f77f00"}, {valor: 3, label: "15,40 - 33,52%", cor: "#ffe066"}, {valor: 2, label: "4,66 - 15,40%", cor: "#95d5b2"}, {valor: 1, label: "0 - 4,66%", cor: "#2d6a4f"},]},
-                {value: "jenks_deficit_esgoto_urbana_ibge", label: "Déficit esgoto urbano", tipo: "percentual_invertido", legenda: [{valor: 5, label: "79,52 - 100%", cor: "#d62828"}, {valor: 4, label: "54,66 - 79,52%", cor: "#f77f00"}, {valor: 3, label: "31,11 - 54,66%", cor: "#ffe066"}, {valor: 2, label: "12,16 - 31,11%", cor: "#95d5b2"}, {valor: 1, label: "0 - 12,16%", cor: "#2d6a4f"},]},
-                {value: "jenks_deficit_residuo_urbana_ibge", label: "Déficit resíduos urbano", tipo: "percentual_invertido", legenda: [{valor: 5, label: "38,29 - 100%", cor: "#d62828"}, {valor: 4, label: "18,86 - 38,29%", cor: "#f77f00"}, {valor: 3, label: "7,84 - 18,86%", cor: "#ffe066"}, {valor: 2, label: "2,39 - 7,84%", cor: "#95d5b2"}, {valor: 1, label: "0 - 2,39%", cor: "#2d6a4f"},]},
-                {value: "jenks_deficit_banheiro_urbana_ibge", label: "Déficit banheiro urbano", tipo: "percentual_invertido", legenda: [{valor: 5, label: "23,01 - 100%", cor: "#d62828"}, {valor: 4, label: "10,78 - 23,01%", cor: "#f77f00"}, {valor: 3, label: "4,64 - 10,78%", cor: "#ffe066"}, {valor: 2, label: "1,36 - 4,64%", cor: "#95d5b2"}, {valor: 1, label: "0 - 1,36%", cor: "#2d6a4f"},]},
+                {value: "jenks_deficit_agua_rural_ibge", label: "Déficit água rural - Censo 2022", tipo: "percentual_invertido", legenda: [{valor: 5, label: "72,68 - 100%", cor: "#d62828"}, {valor: 4, label: "47,54 - 72,68%", cor: "#f77f00"}, {valor: 3, label: "27,07 - 47,54%", cor: "#ffe066"}, {valor: 2, label: "10,21 - 27,07%", cor: "#95d5b2"}, {valor: 1, label: "0 - 10,21%", cor: "#2d6a4f"},]},
+                {value: "jenks_deficit_esgoto_rural_ibge", label: "Déficit esgoto rural - Censo 2022", tipo: "percentual_invertido", legenda: [{valor: 5, label: "86,61 - 100%", cor: "#d62828"}, {valor: 4, label: "68,81 - 86,61%", cor: "#f77f00"}, {valor: 3, label: "48,75 - 68,81%", cor: "#ffe066"}, {valor: 2, label: "25,45 - 48,75%", cor: "#95d5b2"}, {valor: 1, label: "0 - 25,45%", cor: "#2d6a4f"},]},
+                {value: "jenks_deficit_residuo_rural_ibge", label: "Déficit resíduos rural - Censo 2022", tipo: "percentual_invertido", legenda: [{valor: 5, label: "83,13 - 100%", cor: "#d62828"}, {valor: 4, label: "64,57 - 83,13%", cor: "#f77f00"}, {valor: 3, label: "45,11 - 64,57%", cor: "#ffe066"}, {valor: 2, label: "23,18 - 45,11%", cor: "#95d5b2"}, {valor: 1, label: "0 - 23,18%", cor: "#2d6a4f"},]},
+                {value: "jenks_deficit_banheiro_rural_ibge", label: "Déficit banheiro rural - Censo 2022", tipo: "percentual_invertido", legenda: [{valor: 5, label: "55,89 - 100%", cor: "#d62828"}, {valor: 4, label: "35,55 - 55,89%", cor: "#f77f00"}, {valor: 3, label: "17,57 - 35,55%", cor: "#ffe066"}, {valor: 2, label: "5,85 - 17,57%", cor: "#95d5b2"}, {valor: 1, label: "0 - 5,85%", cor: "#2d6a4f"},]},
+                {value: "jenks_deficit_agua_urbana_ibge", label: "Déficit água urbano - Censo 2022", tipo: "percentual_invertido", legenda: [{valor: 5, label: "66,26 - 100%", cor: "#d62828"}, {valor: 4, label: "33,52 - 66,26%", cor: "#f77f00"}, {valor: 3, label: "15,40 - 33,52%", cor: "#ffe066"}, {valor: 2, label: "4,66 - 15,40%", cor: "#95d5b2"}, {valor: 1, label: "0 - 4,66%", cor: "#2d6a4f"},]},
+                {value: "jenks_deficit_esgoto_urbana_ibge", label: "Déficit esgoto urbano - Censo 2022", tipo: "percentual_invertido", legenda: [{valor: 5, label: "79,52 - 100%", cor: "#d62828"}, {valor: 4, label: "54,66 - 79,52%", cor: "#f77f00"}, {valor: 3, label: "31,11 - 54,66%", cor: "#ffe066"}, {valor: 2, label: "12,16 - 31,11%", cor: "#95d5b2"}, {valor: 1, label: "0 - 12,16%", cor: "#2d6a4f"},]},
+                {value: "jenks_deficit_residuo_urbana_ibge", label: "Déficit resíduos urbano - Censo 2022", tipo: "percentual_invertido", legenda: [{valor: 5, label: "38,29 - 100%", cor: "#d62828"}, {valor: 4, label: "18,86 - 38,29%", cor: "#f77f00"}, {valor: 3, label: "7,84 - 18,86%", cor: "#ffe066"}, {valor: 2, label: "2,39 - 7,84%", cor: "#95d5b2"}, {valor: 1, label: "0 - 2,39%", cor: "#2d6a4f"},]},
+                {value: "jenks_deficit_banheiro_urbana_ibge", label: "Déficit banheiro urbano - Censo 2022", tipo: "percentual_invertido", legenda: [{valor: 5, label: "23,01 - 100%", cor: "#d62828"}, {valor: 4, label: "10,78 - 23,01%", cor: "#f77f00"}, {valor: 3, label: "4,64 - 10,78%", cor: "#ffe066"}, {valor: 2, label: "1,36 - 4,64%", cor: "#95d5b2"}, {valor: 1, label: "0 - 1,36%", cor: "#2d6a4f"},]},
                 {value: "subgrupo", label: "Subgrupo PAC", tipo: "categorica", legenda: [{valor: "G1", label: "G1", cor: "#d73027"}, {valor: "G2", label: "G2", cor: "#fc8d59"}, {valor: "G3", label: "G3", cor: "#049e91"}]},
                 {value: "tipo_catmetropol", label: "Categoria Metropolitana", tipo: "categorica", legenda: [{valor: "Não Possui", label: "Não Possui", cor: "#ffffff"}, {valor: "RM", label: "RM", cor: "#46f3df"}, {valor: "RIDE, RM", label: "RIDE, RM", cor: "#00515c"}, {valor: "RIDE", label: "RIDE", cor: "#0034df"}, {valor: "RAIDE", label: "RAIDE", cor: "#867d00"}, {valor: "Entorno Metropolitano", label: "Entorno Metropolitano", cor: "#f5b352"}, {valor: "Colar Metropolitano", label: "Colar Metropolitano", cor: "#fc2f8f"}, {valor: "Área de Expansão Metropolitana", label: "Área de Expansão Metropolitana", cor: "#d62828"}]},
                 {value: "populacao_total_censo_2022_maior_50000", label: "População 2022 >50 mil", tipo: "booleana", legenda: [{valor: false, label: "< 50 mil", cor: "#2a9d8f"}, {valor: true, label: "> 50 mil", cor: "#d62828"}]},
@@ -168,12 +168,14 @@ export default function MapaSection() {
         });
 
         map.on("zoomend", () => {setZoomAtual(map.getZoom());}); //captura o zoom atual do mapa e salva no estado zoomAtual
-        map.on("click", "informacoes_municipais", (e) => {
-            console.log(
-                e.features[0].properties.populacao_total_censo_2022_maior_50000,
-                typeof e.features[0].properties.populacao_total_censo_2022_maior_50000
-            );
-            });
+        //map.on("click", "informacoes_municipais", (e) => {
+        //    console.log(
+        //       e.features[0].properties.populacao_total_censo_2022_maior_50000,
+        //        typeof e.features[0].properties.populacao_total_censo_2022_maior_50000
+        //    );
+        //    });
+
+        map.addControl(new maplibregl.ScaleControl({maxWidth: 120, unit: "metric"}), "top-left");
 
         //adição das camadas. O primeiro bloco são as fontes (sources). O segundo bloco são as camadas (layers) já com a simbologia desejada
         //a ordem dos addLayers no código influencia na ordem de renderização. Os últimos layers ficam por cima no mapa
@@ -521,7 +523,7 @@ export default function MapaSection() {
         const map = mapRef.current;
         if (!map) return;
 
-        const camadas = [ "localidades_2022", "enderecos_2022", "setores_censitarios_2022_fill", "geometrias_carteira_dsr"];
+        const camadas = [ "enderecos_2022", "setores_censitarios_2022_fill", "geometrias_carteira_dsr", "informacoes_municipais"];
         
         function handleClick(e) {
             const features = map.queryRenderedFeatures(e.point, { layers: camadas });
@@ -530,23 +532,17 @@ export default function MapaSection() {
 
             const f = features[0];
             const props = f.properties;
-            //const layerConfig = layers.find(l => l.id === f.layer.id);
-            //const variavel = layerConfig?.variavelSel;
-
-            let html = `<strong>Camada:</strong> ${camadas[f.layer.id] || f.layer.id}<br/>`;
+            const layerConfig = layers.find(l => l.id === f.layer.id);
             
-            if (f.layer.id === "localidades_2022") {
-                html += `
-                Nome: ${props.nome_localidade}<br/>
-                Categoria: ${props.categoria_localidade}
-                `;
-            }
-
-                       
+            
+            //console.log(props);
+            
+            let html = "";
+            
             if (f.layer.id === "enderecos_2022") {
                 html += `
-                Localidade: ${props.dsc_localidade}<br>
-                Espécie: ${props.especie}
+                <strong> Espécie: </strong> ${props.especie}<br>
+                <strong> Localidade do endereço: </strong> ${props.dsc_localidade}
                 `;
             }
 
@@ -561,10 +557,30 @@ export default function MapaSection() {
 
             if (f.layer.id === "geometrias_carteira_dsr") {
                 html += `
-                <strong> Proposta: </strong> ${props.nr_proposta} <br>
-                <br/>
                 <strong> Ação </strong> <br>
-                ${props.acao_padronizada} 
+                ${props.acao_padronizada}<br/>
+                <br/>
+                <strong> Proposta: </strong> ${props.nr_proposta} <br>
+                <strong> Instrumento: </strong> ${props.nr_instrumento} <br>
+                <br/>
+                <strong> Objeto: </strong> ${props.objeto} <br>
+                <br/>
+                <a href="${props.link_transferegov}" target="_blank" rel="noopener noreferrer"> Link Transferegov </a>
+                `; 
+            }
+
+            if (f.layer.id === "informacoes_municipais") {
+                const variavel = layerConfig?.variavelSel;
+                const variavelOriginal = variavel?.replace(/^jenks_/, "");
+
+                html += `
+                <strong>Município:</strong> ${props.nome}<br>
+                <strong>População 2022:</strong> ${props.populacao_total_censo_2022}<br>
+                <strong>Subgrupo:</strong> ${props.subgrupo}<br>
+                ${
+                    variavelOriginal && props[variavelOriginal] != null
+                        ? `<br><strong>${variavelOriginal}:</strong> ${(props[variavelOriginal] * 100).toFixed(2)}%`: ""
+                }
                 `;
             }
 
