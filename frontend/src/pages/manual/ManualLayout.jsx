@@ -25,8 +25,8 @@ const summaryByPath = {
   ],
   '/manual/carteira-dsr': [
     { href: '#objetivo-da-ferramenta', label: 'Objetivo da ferramenta' },
-    { href: '#indicadores', label: 'Indicadores' },
     { href: '#filtros', label: 'Filtros' },
+    { href: '#indicadores', label: 'Indicadores' },
     { href: '#graficos', label: 'Gráficos' },
     { href: '#tabela-detalhada', label: 'Tabela detalhada' },
     { href: '#exportacao', label: 'Exportação' },

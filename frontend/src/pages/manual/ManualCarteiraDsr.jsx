@@ -10,8 +10,8 @@ import visExport from '../../assets/manual/visExport.mp4'
 
 const topicIds = {
   'Objetivo da ferramenta': 'objetivo-da-ferramenta',
-  Indicadores: 'indicadores',
   Filtros: 'filtros',
+  Indicadores: 'indicadores',
   Gráficos: 'graficos',
   'Tabela detalhada': 'tabela-detalhada',
   Exportação: 'exportacao',
@@ -40,9 +40,11 @@ export default function ManualCarteiraDsr() {
           <section id={topicIds.Filtros} className={styles.manualTopic}>
             <h3>Filtros</h3>
             <p>
-              Os filtros permitem refinar a visualização dos dados de acordo com critérios específicos. Ao selecionar um ou mais filtros, todos os indicadores, gráficos e tabelas da página
-              são atualizados automaticamente para refletir apenas as informações correspondentes ao recorte escolhido.  Essa funcionalidade possibilita análises mais detalhadas e comparações
-              entre diferentes grupos de dados.
+              Os filtros permitem refinar a visualização dos dados de acordo com critérios específicos. A seleção de filtros só é confirmada após o clique em Aplicar Filtros. 
+              Essa funcionalidade possibilita análises mais detalhadas e comparações entre diferentes grupos de dados.
+            </p>
+            <p>
+              O número exibido no botão Aplicar Filtros indica a quantidade de grupos de filtros ativos, e não necessariamente a quantidade total de opções selecionadas.
             </p>
             <figure className={styles.videoBlock}>
               <video className={styles.tutorialVideo}
@@ -64,11 +66,11 @@ export default function ManualCarteiraDsr() {
           <section id={topicIds.Indicadores} className={styles.manualTopic}>
             <h3>Indicadores</h3>
             <p>
-              Os indicadores apresentam uma visão resumida dos pricipais dados da Carteira DSR. Essas informações permitem acompanhar rapidamente métricas consolidadas
-              relacionadas aos isntrumentos cadastrados, municípios atendidos e valores envolvidos.
+              Os indicadores apresentam uma síntese do recorte atualmente aplicado. Eles informam a quantidade de instrumentos, a quantidade de municípios beneficiados e os 
+              principais valores financeiros relacionados aos instrumentos: valor global, repasse, contrapartida, empenhado, desembolsado e desbloqueado.
             </p>
             <p>
-              Os valores exibidos são atualizados automaticamente de acordo com os filtros selecionados, refletindo apenas os dados correspondentes ao recorte definido pelo usuário.
+              As abreviações mi e bi indicam, respectivamente, milhões e bilhões de reais. Os valores apresentados nos indicadores mudam conforme os filtros aplicados.
             </p>
             <figure className={styles.imageKpiFrame}>
               <img src={indicadoresCarteiraDsr} alt="KPIs" className={styles.imageKpi}/>
@@ -85,12 +87,10 @@ export default function ManualCarteiraDsr() {
             <figure className={styles.imageGraphFrame}>
               <img src={visGraficos} className={styles.imageGraph} alt="Visualização dos gráficos da Carteira DSR" />
             </figure>
-            
             <p>
-              Os gráficos são interativos e respondem automaticamente aos filtros aplicados na página. Além disso, é possível utilizar os itens da legenda para ocultar
+              Os gráficos são interativos e respondem aos filtros aplicados na página. Além disso, é possível utilizar os itens da legenda para ocultar
               ou exibir categorias específicas, ajustando a visualização conforme a necessidade da análise.
             </p>
-
             <div className={styles.graphVideoGrid}>
               <figure className={`${styles.videoBlock} ${styles.graphVideoBlock}`}>
                 <video className={`${styles.tutorialVideo} ${styles.graphVideo}`}
@@ -109,7 +109,6 @@ export default function ManualCarteiraDsr() {
                   Demonstração da interação com o gráfico de barras.
                 </figcaption>
               </figure>
-
               <figure className={`${styles.videoBlock} ${styles.graphVideoBlock}`}>
                 <video className={`${styles.tutorialVideo} ${styles.graphVideo}`}
                   autoPlay
@@ -128,13 +127,18 @@ export default function ManualCarteiraDsr() {
                 </figcaption>
               </figure>
             </div>
+            <p>
+              Na visualização geográfica, os pontos indicam as sedes dos municípios beneficiados. Eles não representam, necessariamente, a localização exata das obras
+              ou intervenções. Ao passar o cursor do mouse em cima dos pontos no mapa, as coordenadas são exibidas em um pop-up.
+            </p>
           </section>
 
           <section id={topicIds['Tabela detalhada']} className={styles.manualTopic}>
             <h3>Tabela Detalhada</h3>
             <p>
               Para otimizar o carregamento e a navegação, a tabela permanece recolhida por padrão. Quando necessário, basta utilizar a opção "Exibir Tabela" para gerar e
-              visualizar os dados. A tabela pode ser contultada tanto com filtros aplicados quanto sem filtros, refletindo o recorte de dados atualmente selecionado.
+              visualizar os dados. Ela apresenta os registros por páginas, com um limite de 50 itens por página, e possui rolagem para consulta das colunas.
+              A tabela pode ser contultada tanto com filtros aplicados quanto sem filtros, refletindo o recorte de dados atualmente selecionado.
             </p>
             <p>
               A tabela detalhada apresenta os registros da Carteira DSR em formato tabular, permitindo consultar informações de forma mais específica e
@@ -164,10 +168,8 @@ export default function ManualCarteiraDsr() {
             </p>
             <p>
               Os gráficos podem ser exportados como imagem ou em planilha Excel já formatada, preservando as informações correspondentes ao recorte de dados selecionado.
-              A tabela detalhada pode ser exportada em formato Excel, permitindo consultar e tratamentos adicionais dos dados fora do portal.
-            </p>
-            <p>
-              Todos os arquivos exportados consideram os filtros aplicados no momento da exportação.
+              A tabela detalhada pode ser exportada em formato Excel, permitindo consultar e tratamentos adicionais dos dados fora do portal. As exportações consideram os 
+              filtros aplicados no momento da geração do arquivo.
             </p>
             <figure className={styles.videoBlock}>
               <video className={`${styles.tutorialVideo} ${styles.exportVideo}`}
