@@ -22,14 +22,12 @@ export default function ManualCarteiraDsr() {
     <main className={sharedStyles.detailPage}>
       <section className={sharedStyles.contentCard}>
         <h2>Carteira DSR</h2>
-        <p>
-        
-        </p>
 
         <div className={styles.topicStack}>
           <section id={topicIds['Objetivo da ferramenta']} className={styles.manualTopic}>
             <h3>Objetivo da Ferramenta</h3>
-            <p>A Carteira DSR reúne informações consolidadas sobre os instrumentos de repasse vinculados ao Departamento de Saneamento Rural e de Pequenos Municípios.
+            <p>
+              A Carteira DSR reúne informações consolidadas sobre os instrumentos de repasse vinculados ao Departamento de Saneamento Rural e de Pequenos Municípios.
               A ferramenta foi desenvolvida para apoiar o acompanhamento e a análise dos investimentos, permitindo consultar dados financeiros, quantitativos e territoriais em um
               ambiente único.
             </p>

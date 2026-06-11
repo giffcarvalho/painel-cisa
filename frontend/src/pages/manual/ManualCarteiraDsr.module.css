@@ -39,7 +39,7 @@
 .tutorialVideo {
   display: block;
   flex-direction: 100%;
-  max-width: 850px;
+  max-width: 1150px;
   aspect-ratio: 16 / 9;
   border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 8px;
@@ -118,19 +118,27 @@
 
 .imageKpi {
   display: block;
-  width: max(100%, 1600px);
+  width: max(100%, 1450px);
   max-width: none;
   height: auto;
 }
 
 .imageGraphFrame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   margin: 24px auto 20px;
   width: 100%;
 }
 
 .imageGraph {
   display: block;
-  width: min(100%, 780px);
+  width: 100%;
+  max-width: 850px;
   height: auto;
-  margin: 0 auto;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+  background: #f8f7f5;
 }
