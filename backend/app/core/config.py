@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     DB_NAME: str
     
     APP_ENV: str = "development"
-    APP_TITLE: str = "Painel CISA – API"
+    APP_TITLE: str = "Portal DSR – API"
     APP_VERSION: str = "1.0.0"
 
     @computed_field
