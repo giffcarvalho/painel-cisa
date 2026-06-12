@@ -7,6 +7,7 @@ import visPopUp from '../../assets/manual/visPopUp.mp4'
 import visFiltros from '../../assets/manual/visFiltros.mp4'
 import visCamadas from '../../assets/manual/visCamadas.mp4'
 import visLegenda from '../../assets/manual/visLegenda.png'
+import tutNavegMapa from '../../assets/manual/tutNavegMapa.mp4'
 
 const topicIds = {
   'Objetivo da ferramenta': 'objetivo-da-ferramenta',
@@ -45,6 +46,27 @@ export default function ManualMapaInterativo() {
 
           <section id={topicIds['Navegação no Mapa']} className={styles.manualTopic}>
             <h3>Navegação no Mapa</h3>
+            <p>
+              Na página do Mapa Interativo, a abertura da barra lateral funciona de forma diferente das demais páginas do portal. Enquanto nas outras áreas a barra lateral
+              é expandida automaticamente ao passar o mouse sobre ela, no mapa essa abertura é feita pelo botão de menu, representado pelo ícone de três barras, localizado
+              no canto superior esquerdo.
+            </p>
+            <p>
+              Essa adaptação na página evita aberturas acidentais durante a interação, especialmente porque há botões e controles próximos à lateral da tela.
+            </p>
+            <figure className={`${styles.videoBlock} ${styles.videoBlockRetrato}`}>
+              <video className={`{${styles.tutorialVideo} ${styles.tutorialVideoRetrato}`} 
+              autoPlay
+              loop
+              muted
+              aria-label="Abertura e fechamento da barra lateral na página do Mapa Interativo.">
+                <source src={tutNavegMapa} type="video/mp4" />
+                Seu navegador não suporta a reprodução de vídeo.
+              </video>
+              <figcaption className={styles.videoCaption}>
+                Abertura e fechamento da barra lateral na página do Mapa Interativo.
+              </figcaption>
+            </figure>
             <p>
               A navegação no mapa funciona de forma semelhante a outros mapas digitais. Para movimentar a visualização, clique sobre o mapa e arraste para a direção 
               desejada. Para aproximar ou afastar, utilize a roda do mouse ou o gesto equivalente no dispositivo utilizado.

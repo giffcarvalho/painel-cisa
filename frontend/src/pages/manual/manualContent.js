@@ -38,7 +38,6 @@ export const mapaTopics = [
   'Filtros',
   'Camadas',
   'Legenda',
-  'Interpretação dos dados',
 ]
 
 export const perguntasFrequentes = [

@@ -99,10 +99,9 @@ export default function Home() {
                   <div className="flex flex-col">
                     <span className={styles.rowTitle}>Manual do Usuário</span>
                     <span className={styles.rowDesc}>
-                      Aprenda a explorar os módulos, aplicar filtros complexos e exportar relatórios.
+                      Aprenda a explorar os módulos, aplicar filtros e exportar relatórios.
                     </span>
                   </div>
-                  <span className={styles.badgeSoon}>Em breve</span>
                 </div>
 
                 <div className={styles.customArrow}>
