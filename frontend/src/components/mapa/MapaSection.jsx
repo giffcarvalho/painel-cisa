@@ -7,6 +7,7 @@ import CamadasSection from "./CamadasSection";
 import { FiltrosContext } from "../../context/mapa/filtrosContext";
 import FiltroPainel from "./FiltroPainel";
 import LegendaSection from "./LegendaSection";
+import DetalheSection from "./DetalheSection";
 import { 
     urlBboxUfs,
     urlDistritos2022,
@@ -103,7 +104,7 @@ export default function MapaSection() {
             ] 
         }},
         { id: "localidades_2022_labels", nome: "Nome das Localidades", visivel: true, dependencias: ["localidades_2022"], mostrarPainel: false },
-        { id: "geometrias_carteira_dsr", nome: "Carteira DSR", visivel: true, minzoom: 4, simbologia: {
+        { id: "geometrias_carteira_dsr", nome: "Carteira DSR", visivel: false, minzoom: 4, simbologia: {
             tipo: "categorica", simbolo: "ponto", atributo: "acao_padronizada", classes: [
                 {valor: "Saneamento Rural", label: "Saneamento Rural", cor: "#f8cdcd", strokeColor: "#0092be", strokeWidth: 3.0},
                 {valor: "Capacitação - PMSB", label: "Capacitação - PMSB", cor: "#f5df4d", strokeColor: "#0092be", strokeWidth: 3.0},
@@ -133,9 +134,10 @@ export default function MapaSection() {
         
     ]);
     
-    //estados
+    
     const [painelCamadas, setPainelCamadas] = useState(false);
     const [painelFiltros, setPainelFiltros] = useState(false);
+    const [painelDetalhe, setPainelDetalhe] = useState(false);
     const [zoomAtual, setZoomAtual] = useState(3);
     const [coord, setCoord] = useState({ lat: "", long: "" });
     
@@ -146,7 +148,8 @@ export default function MapaSection() {
     const API_URL = "http://localhost:8000/api/v1/mapa";
     const mapContainer = useRef(null);
     const mapRef = useRef(null);
-    
+    const coordRef = useRef(null);
+
     //useEffect de criação do mapa. As camadas adicionadas devem ficar dentro dele
     useEffect(() => {
         if (mapRef.current) return;
@@ -169,6 +172,9 @@ export default function MapaSection() {
         zoom: 3                 
         });
 
+        map.dragRotate.disable();
+        map.touchZoomRotate.disableRotation();
+        
         map.on("zoomend", () => {setZoomAtual(map.getZoom());}); //captura o zoom atual do mapa e salva no estado zoomAtual
         //map.on("click", "informacoes_municipais", (e) => {
         //    console.log(
@@ -176,6 +182,12 @@ export default function MapaSection() {
         //        typeof e.features[0].properties.populacao_total_censo_2022_maior_50000
         //    );
         //    });
+        
+        
+        map.on("mousemove", (e) => {
+            if (!coordRef.current) return;
+            coordRef.current.textContent = `Lat: ${e.lngLat.lat.toFixed(6)} | Lon: ${e.lngLat.lng.toFixed(6)}`;
+        });
 
         map.addControl(new maplibregl.ScaleControl({maxWidth: 120, unit: "metric"}), "top-left");
 
@@ -563,7 +575,6 @@ export default function MapaSection() {
                 ${props.acao_padronizada}<br/>
                 <br/>
                 <strong> Proposta: </strong> ${props.nr_proposta} <br>
-                <strong> Instrumento: </strong> ${props.nr_instrumento} <br>
                 <br/>
                 <strong> Objeto: </strong> ${props.objeto} <br>
                 <br/>
@@ -683,7 +694,14 @@ export default function MapaSection() {
         const latNum = Number(coord.lat.replace(",", ".").trim());
         const longNum = Number(coord.long.replace(",", ".").trim());
 
-        if (isNaN(latNum) || isNaN(longNum)) {
+        if (
+            coord.lat.trim() === "" ||
+            coord.long.trim() === "" ||
+            Number.isNaN(latNum) ||
+            Number.isNaN(longNum) ||
+            latNum < -90 || latNum > 90 ||
+            longNum < -180 || longNum > 180
+        ) {
         alert("Coordenadas inválidas");
         return;
         }
@@ -712,19 +730,52 @@ export default function MapaSection() {
     //--------------------------------------------------------------------------------------------
 
 
+    //função que limpa as coordenadas digitadas
+    function limparCoordenada() {
+
+        // limpa inputs
+        setCoord({ lat: "", long: "" });
+
+        // remove marcador
+        if (marcadorCoordRef.current) {
+            marcadorCoordRef.current.remove();
+            marcadorCoordRef.current = null;
+        }
+
+        // volta mapa para posição inicial
+        const map = mapRef.current;
+
+        if (map) {
+            map.flyTo({
+                center: [-47.9, -15.8],
+                zoom: 4
+            });
+        }
+    }
+    //--------------------------------------------------------------------------------------------
+
+    useEffect(() => {console.log("coord mudou");}, [coord]);
+    useEffect(() => {console.log("zoom mudou");}, [zoomAtual]);
+    useEffect(() => {console.log("filtros mudaram");}, [filtros]);
+
+
     return ( 
         <div className={estilos.mapa_box}>
             <button className={estilos.botaoFiltros} onClick={() => setPainelFiltros(!painelFiltros)}>Filtrar</button>
             {painelFiltros && 
                 <FiltroPainel
                     setPainelFiltros={setPainelFiltros}
+                    setPainelDetalhe={setPainelDetalhe}
+                    painelDetalhe={painelDetalhe}
                     layers={layers}
                 />
             }
             <button className={estilos.botaoCamadas} onClick={() => setPainelCamadas(!painelCamadas)}> <Layers className={estilos.LayersIcon}/> </button> 
             {painelCamadas && (<CamadasSection layers={layers} toggleLayer={toggleLayer} alterarVariavel={alterarVariavel}/>)}
             {painelCamadas && (<LegendaSection layers={layers} zoomAtual={zoomAtual}/>)}
-            <InputSection coord={coord} setCoord={setCoord} irParaCoordenada={irParaCoordenada}/>
+            <InputSection coord={coord} setCoord={setCoord} irParaCoordenada={irParaCoordenada} limparCoordenada={limparCoordenada}/>
+            <div ref={coordRef} className={estilos.coordenadasMouse}> Lat: -- | Lon: -- </div>
+            {(painelDetalhe && painelFiltros && filtros.cod_municipio) && (<DetalheSection setPainelDetalhe={setPainelDetalhe}/>)}
             <div ref={mapContainer} className={estilos.mapContainer}/>
         </div>
     );

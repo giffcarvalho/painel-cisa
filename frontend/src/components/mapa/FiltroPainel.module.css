@@ -59,6 +59,7 @@
 .areaBotoes {
     margin-top: auto;
     display: flex;
+    flex-direction: column;
     gap: 12px;
     padding: 16px;
     border-top: 1px solid #e5e7eb;
@@ -67,7 +68,6 @@
 
 
 .botaoLimpar {
-    flex: 1;
     padding-top: 8px;
     padding-bottom: 8px;
     background-color: white;
@@ -79,6 +79,23 @@
 
 
 .botaoLimpar:hover {
+    background-color: #eff6ff;
+    cursor: pointer;
+}
+
+
+.botaoDetalhe {
+    padding-top: 8px;
+    padding-bottom: 8px;
+    background-color: white;
+    border: 1px solid #d1d5db;
+    color: #1151b8;
+    font-weight: 500;
+    border-radius: 6px;
+}
+
+
+.botaoDetalhe:hover {
     background-color: #eff6ff;
     cursor: pointer;
 }

@@ -51,3 +51,18 @@
   height: 32px;
   transition: color .2s;
 }
+
+.coordenadasMouse {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: rgba(255,255,255,0.7);
+  color: rgb(71, 71, 71);
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: monospace;
+  pointer-events: none;
+}
