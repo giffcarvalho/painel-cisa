@@ -21,10 +21,16 @@
     border-radius: 4px;
     background: white;
     cursor: pointer;
+    margin-right: 5px;
 }
 
 
 .IrIcon {
    width: 16px;
    color: rgb(0, 30, 165);
+}
+
+.XIcon {
+   width: 16px;
+   color: rgb(199, 0, 10);
 }
