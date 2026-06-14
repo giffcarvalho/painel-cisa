@@ -19,6 +19,7 @@ from app.schemas.filtrosMapa import (
     LocalidadeItem, OpcoesFiltrosLocalidade,
     LocalidadeEnderecoItem, OpcoesFiltrosLocalidadeEndereco,
     CategoriaMetropolitanaItem, OpcoesFiltrosCategoriaMetropolitana,
+    InvestimentoSaneamentoItem, ListaInvestimentoSaneamento
 )
 
  
@@ -1127,7 +1128,7 @@ async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMa
     params.update(params_filtro)
 
     sql = f"""
-        SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom') AS mvt
+        SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom', 'nr_instrumento') AS mvt
         FROM (
             SELECT
                 nr_instrumento,
@@ -1159,136 +1160,53 @@ async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMa
     )
 
 
+# investimentos em saneamento
+@router.get("/investimento_saneamento", response_model=ListaInvestimentoSaneamento, summary="Lista dos instrumentos de saneamento")
+async def get_investimento_saneamento(
+    response: Response,
+    filtros: FiltrosMapa = Depends(),
+    q: Annotated[str | None, Query(max_length=100, description="Termo de busca.")] = None,  
+    limit: Annotated[int, Query(ge=1, le=100, description="Quantidade máxima de resultados.")] = 100,
+    db: AsyncSession = Depends(get_db)):
 
-
-
-
-#--------------------------------------------------------------------------------------------------------------
-# Endpoints p/ buscar classificações p/ mapas cloropléticos
-#--------------------------------------------------------------------------------------------------------------
-
-# classificação das classes cloropléticas do mapa usando quebra Jenks (lib jenkspy)
-cache_jenks: dict = {}
-cache_lock = Lock()
-CACHE_TTL = 3600
-CACHE_MAXSIZE = 128
-
-# controla intervalo de limpeza
-last_cleanup = 0
-CLEANUP_INTERVAL = 300  # 5 minutos
-
-
-def _cleanup_cache():
-
-    now = time.time()
-
-    with cache_lock:
-
-        expired_keys = [
-            key
-            for key, (_, expires_at) in cache_jenks.items()
-            if now >= expires_at
-        ]
-
-        for key in expired_keys:
-            del cache_jenks[key]
-
-        if len(cache_jenks) > CACHE_MAXSIZE:
-
-            oldest_keys = sorted(
-                cache_jenks.items(),
-                key=lambda item: item[1][1]
-            )
-
-            excess = len(cache_jenks) - CACHE_MAXSIZE
-
-            for key, _ in oldest_keys[:excess]:
-                del cache_jenks[key]
-
-
-# whitelist das colunas que serão usadas no mapa cloroplético
-COLUNAS = {
-    "deficit_agua_rural_ibge": "deficit_agua_rural_ibge",
-    "deficit_esgoto_rural_ibge": "deficit_esgoto_rural_ibge",
-    "deficit_residuo_rural_ibge": "deficit_residuo_rural_ibge",
-    "deficit_banheiro_rural_ibge": "deficit_banheiro_rural_ibge",
-    "deficit_agua_urbana_ibge": "deficit_agua_urbana_ibge",
-    "deficit_esgoto_urbana_ibge": "deficit_esgoto_urbana_ibge",
-    "deficit_residuo_urbana_ibge": "deficit_residuo_urbana_ibge",
-    "deficit_banheiro_urbana_ibge": "deficit_banheiro_urbana_ibge",
-}
+    response.headers["Cache-Control"] = "public, max-age=600"
     
-@router.get("/classificacao/{variavel}")
-async def get_classificacao(response: Response, variavel: str, classes: int = 5, db: AsyncSession = Depends(get_db)):
-
-    response.headers["Cache-Control"] = "public, max-age=3600"
-
-    
-    global last_cleanup
-    now = time.time()
-
-    # executa limpeza periódica
-    if now - last_cleanup > CLEANUP_INTERVAL:
-        _cleanup_cache()
-        last_cleanup = now
-
-    
-    if classes < 2 or classes > 9:
-        raise HTTPException(
-            status_code=400,
-            detail="Número de classes inválido."
-        )
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_municipio"})
 
 
-    coluna_sql = COLUNAS.get(variavel)
-    if not coluna_sql:
-        raise HTTPException(
-            status_code=400,
-            detail="Variável inválida."
-        )
-
-    cache_key = (variavel, classes)
-    with cache_lock:
-        cached = cache_jenks.get(cache_key)
-
-    if cached:
-        data, expires_at = cached
-        if now < expires_at:
-            return data
-        with cache_lock:
-            cache_jenks.pop(cache_key, None)
-
-    sql = f"""
-        SELECT {coluna_sql} AS valor
-        FROM territorio.vw_base_municipal
-        WHERE {coluna_sql} IS NOT NULL
+    sql = """
+        SELECT
+            id,
+            cod_municipio,
+            descricao,
+            orgao,
+            link_transferegov,
+            link_obrasgov            
+        FROM instrumento.vw_investimento_saneamento
     """
 
-    result = await _execute_query(db, sql)
+    params = {"limit": limit}
+    params.update(params_filtro)
+    clauses = []
 
-    valores = [
-        float(row.valor)
-        for row in result.fetchall()
-    ]
+    
+    if where_filtro: clauses.append(where_filtro)
 
-    if len(valores) < classes:
-        raise HTTPException(
-            status_code=400,
-            detail="Quantidade insuficiente de dados para classificação."
-        )
+    texto = (q or "").strip()
 
-    breaks = jenkspy.jenks_breaks(valores, n_classes=classes)
+    if texto:
+        clauses.append("orgao ILIKE :termo")
+        params["termo"] = f"%{texto}%"
 
-    resultado = {
-        "variavel": variavel,
-        "classes": classes,
-        "breaks": breaks
-    }
-
-    with cache_lock:
-        cache_jenks[cache_key] = (resultado, now + CACHE_TTL)
-
-    return resultado
+    if clauses:
+        sql += " WHERE " + " AND ".join(clauses)
 
 
+    sql += """
+        ORDER BY orgao
+        LIMIT :limit
+    """
+
+    result = await _execute_query(db, sql, params)
+    return ListaInvestimentoSaneamento(data=[InvestimentoSaneamentoItem(**row) for row in result.mappings().all()])
 

@@ -56,5 +56,14 @@ class OpcoesFiltrosCategoriaMetropolitana(BaseModel):
     data: list[CategoriaMetropolitanaItem]
 
 
+class InvestimentoSaneamentoItem(BaseModel):
+    id: str
+    cod_municipio: int
+    descricao: str
+    orgao: str | None = None
+    link_transferegov: str | None = None
+    link_obrasgov: str | None = None
 
+class ListaInvestimentoSaneamento(BaseModel):
+    data: list[InvestimentoSaneamentoItem]
     
