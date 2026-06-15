@@ -71,7 +71,7 @@ const ValoresAcaoChart = forwardRef(({ dados }, ref) => {
           ${params[0]?.axisValue || ''}
           ${linhas}
           <div style="margin-top: 6px; border-top: 1px solid #e5e7eb; padding-top: 6px;">
-            Total: ${formatCurrency(total, true)}
+            <strong>Total: ${formatCurrency(total, true)}</strong>
           </div>
         `
       }
