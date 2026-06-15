@@ -1,7 +1,7 @@
 import estilos from "./DetalheSection.module.css";
 import { useContext, useEffect, useState } from "react";
 import { FiltrosContext } from "../../context/mapa/filtrosContext";
-import { listarInvestimentoSaneamento } from "../../api/mapa";
+import { listarInvestimentoSaneamento, listarDadosMunicipios } from "../../api/mapa";
 import { X } from "lucide-react";
 
 
@@ -11,6 +11,7 @@ export default function DetalheSection ({ setPainelDetalhe }) {
    
     const {filtros} = useContext(FiltrosContext);
     const [investimentos, setInvestimentos] = useState([]);
+    const [dadosMunicipios, setDadosMunicipios] = useState(null);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -19,13 +20,18 @@ export default function DetalheSection ({ setPainelDetalhe }) {
 
             if (!filtros.cod_municipio) {
                 setInvestimentos([]);
+                setDadosMunicipios(null);
                 return;
             }
 
             try {
                 setLoading(true);
-                const dados = await listarInvestimentoSaneamento({cod_municipio: filtros.cod_municipio});
-                setInvestimentos(dados);
+                const [dadosInvestimentos, dadosMunicipios] = await Promise.all([
+                    listarInvestimentoSaneamento({cod_municipio: filtros.cod_municipio}),
+                    listarDadosMunicipios({cod_municipio: filtros.cod_municipio})
+                ]);
+                setInvestimentos(dadosInvestimentos);
+                setDadosMunicipios(dadosMunicipios[0] || null)
 
             } catch (erro) {
                 console.error(erro);
@@ -42,7 +48,7 @@ export default function DetalheSection ({ setPainelDetalhe }) {
     return(
         <div className={estilos.painelDetalhes} >
             <div className={estilos.cabecalho}>
-                <h1>Código do Município: {filtros.cod_municipio}</h1>
+                <h1>{dadosMunicipios?.nome}</h1>
                 <button
                     className={estilos.botaoX}
                     onClick={() => setPainelDetalhe(false)}>
@@ -51,7 +57,10 @@ export default function DetalheSection ({ setPainelDetalhe }) {
             </div>
             
             <div className={estilos.informacoesGerais}>
-                <p>dadasdas adasd adas </p>
+                <p>População (2022): <strong>{dadosMunicipios?.populacao_total_censo_2022}</strong></p>
+                <p>Categoria Metropolitana: <strong>{dadosMunicipios?.label_catmetropol}</strong></p>
+                <p>RM prioritária: <strong>{dadosMunicipios?.rm_prioritaria}</strong></p>
+                <p>Subgrupo PAC: <strong>{dadosMunicipios?.subgrupo}</strong></p>
             </div>
 
             {loading && <p>Carregando...</p>}
