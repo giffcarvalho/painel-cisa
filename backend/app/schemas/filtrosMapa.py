@@ -56,5 +56,26 @@ class OpcoesFiltrosCategoriaMetropolitana(BaseModel):
     data: list[CategoriaMetropolitanaItem]
 
 
+class InvestimentoSaneamentoItem(BaseModel):
+    id: str
+    cod_municipio: int
+    descricao: str
+    orgao: str | None = None
+    link_transferegov: str | None = None
+    link_obrasgov: str | None = None
 
+class ListaInvestimentoSaneamento(BaseModel):
+    data: list[InvestimentoSaneamentoItem]
     
+
+
+class DadosMunicipiosItem(BaseModel):
+    cod_municipio: int
+    nome: str
+    label_catmetropol: str | None = None
+    rm_prioritaria: str | None = None
+    subgrupo: str | None = None
+    populacao_total_censo_2022: int | None = None
+
+class ListaDadosMunicipios(BaseModel):
+    data: list[DadosMunicipiosItem]

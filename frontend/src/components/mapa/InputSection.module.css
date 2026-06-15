@@ -1,0 +1,36 @@
+.inputSection {
+    position: absolute;
+    top: 5px;
+    left: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: left;
+    height: 30px;
+    width: 20%;
+    z-index: 1;
+}
+
+
+.botaoCoordenadas {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    margin-right: 5px;
+}
+
+
+.IrIcon {
+   width: 16px;
+   color: rgb(0, 30, 165);
+}
+
+.XIcon {
+   width: 16px;
+   color: rgb(199, 0, 10);
+}

@@ -5,7 +5,8 @@ import { FiltrosContext } from "../../context/mapa/filtrosContext";
 import FiltroSelecaoUnica from "./FiltroSelecaoUnica";
 
 
-export default function FiltroPainel ({ setPainelFiltros, layers }) {
+
+export default function FiltroPainel ({ setPainelFiltros, layers, painelDetalhe, setPainelDetalhe }) {
     
     const {
         listas,
@@ -55,7 +56,9 @@ export default function FiltroPainel ({ setPainelFiltros, layers }) {
                         <Filter className={estilos.filterIcon}/>
                         <h2>Filtros do Mapa</h2>
                     </div>
-                    <button className={estilos.botaoX} onClick={() => setPainelFiltros(false)}>
+                    <button 
+                        className={estilos.botaoX}
+                        onClick={() => {setPainelFiltros(false), setPainelDetalhe(false)}}>
                         <X className={estilos.XFechar} />
                     </button>
                 </div>
@@ -207,6 +210,7 @@ export default function FiltroPainel ({ setPainelFiltros, layers }) {
                 </div>
 
                 <div className={estilos.areaBotoes}>
+                    {filtros.cod_municipio && (<button className={estilos.botaoDetalhe} onClick={() => setPainelDetalhe(!painelDetalhe)}>Detalhar Município</button>)} 
                     <button className={estilos.botaoLimpar} onClick={limparFiltros} >Limpar Filtros</button>
                 </div>
             </div>

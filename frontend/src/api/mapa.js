@@ -119,6 +119,23 @@ export async function listarCategoriasMetropolitanas(q="", limit = 50) {
 }
 
 
+export async function listarInvestimentoSaneamento(filtros = {}) {
+  
+  const res = await api.get("/mapa/investimento_saneamento", { params: toParams(filtros) });
+
+  return res.data.data;
+}
+
+
+export async function listarDadosMunicipios(filtros = {}) {
+  
+  const res = await api.get("/mapa/dados_municipios", { params: toParams(filtros) });
+
+  return res.data.data;
+}
+
+
+
 
 const API_URL = "http://localhost:8000/api/v1"
 
