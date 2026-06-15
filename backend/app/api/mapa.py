@@ -1067,6 +1067,7 @@ async def get_municipios_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
                 deficit_banheiro_urbana_ibge,
                 subgrupo,
                 tipo_catmetropol,
+                label_catmetropol,
                 populacao_total_censo_2022,
                 populacao_total_censo_2022_maior_50000,
                 ST_AsMVTGeom(
