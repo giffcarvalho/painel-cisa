@@ -1,5 +1,3 @@
-e agora?
-
 # Portal DSR
 
 ## Sobre o projeto
@@ -12,64 +10,66 @@ O sistema reúne indicadores, informações financeiras, instrumentos de repasse
 
 ### Implementadas
 
-- Página inicial para acesso aos módulos.
-- **Carteira DSR**:
-  - filtros combináveis;
-  - indicadores quantitativos e financeiros;
-  - gráficos por UF, ação, tipo de instrumento, fase e situação da contratação;
-  - visualização geográfica;
-  - tabela detalhada com paginação;
-  - exportação de gráficos em PNG e dados em XLSX.
-- **Mapa Interativo**:
-  - camadas territoriais e geoespaciais;
-  - filtros por UF, município, localidade, proposta e instrumento;
-  - filtros por recortes territoriais;
-  - legendas dinâmicas e consulta por pop-ups;
-  - reenquadramento automático conforme os filtros.
-- Manual do usuário integrado ao portal.
-- Documentação automática da API por Swagger e ReDoc.
+* Página inicial para acesso aos módulos.
+* **Carteira DSR**:
+
+  * filtros combináveis;
+  * indicadores quantitativos e financeiros;
+  * gráficos por UF, ação, tipo de instrumento, fase e situação da contratação;
+  * visualização geográfica;
+  * tabela detalhada com paginação;
+  * exportação de gráficos em PNG e dados em XLSX.
+* **Mapa Interativo**:
+
+  * camadas territoriais e geoespaciais;
+  * filtros por UF, município, localidade, proposta e instrumento;
+  * filtros por recortes territoriais;
+  * legendas dinâmicas e consulta por pop-ups;
+  * reenquadramento automático conforme os filtros.
+* Manual do usuário integrado ao portal.
+* Documentação automática da API disponível em `/docs` e `/redoc`.
 
 As rotas do frontend estão definidas em `frontend/src/router.jsx`:
 
-- `/`
-- `/carteira-dsr`
-- `/mapa`
-- `/manual`
+* `/`
+* `/carteira-dsr`
+* `/mapa`
+* `/manual`
 
 ### Em desenvolvimento
 
 Os seguintes módulos estão apresentados como “Em breve” em `frontend/src/pages/home/Home.jsx`:
 
-- Pesquisa Instrumento.
-- Saneamento Rural.
+* Pesquisa Instrumento.
+* Saneamento Rural.
 
 ## Tecnologias utilizadas
 
 ### Frontend
 
-- React 19.
-- Vite 8.
-- React Router.
-- TanStack React Query.
-- Axios.
-- Tailwind CSS e CSS Modules.
-- Apache ECharts.
-- MapLibre GL JS.
-- ExcelJS e FileSaver.
-- Lucide React.
+* React 19.
+* Vite 8.
+* React Router.
+* TanStack React Query.
+* Axios.
+* Tailwind CSS e CSS Modules.
+* Apache ECharts.
+* MapLibre GL JS.
+* ExcelJS e FileSaver.
+* Lucide React.
 
 Referência: `frontend/package.json`.
 
 ### Backend
 
-- Python.
-- FastAPI.
-- Uvicorn.
-- SQLAlchemy assíncrono.
-- Pydantic e Pydantic Settings.
-- asyncpg.
-- jenkspy.
-- PostgreSQL com recursos PostGIS.
+* Python.
+* FastAPI.
+* Uvicorn.
+* SQLAlchemy assíncrono.
+* Pydantic e Pydantic Settings.
+* asyncpg.
+* jenkspy.
+* PostgreSQL com recursos PostGIS.
 
 Referência: `backend/requirements.txt` e `backend/app/`.
 
@@ -102,11 +102,11 @@ Referência: `backend/requirements.txt` e `backend/app/`.
 
 ### Pré-requisitos
 
-- Node.js `^20.19.0` ou `>=22.12.0`, conforme `frontend/package-lock.json`.
-- npm.
-- Python 3.10 ou superior. Versão institucional homologada: **confirmar**.
-- Acesso a uma instância PostgreSQL com PostGIS.
-- Estruturas de banco consultadas pela aplicação previamente disponíveis.
+* Node.js `^20.19.0` ou `>=22.12.0`, conforme `frontend/package-lock.json`.
+* npm.
+* Python 3.10 ou superior.
+* Acesso a uma instância PostgreSQL com PostGIS.
+* Estruturas de banco consultadas pela aplicação previamente disponíveis no ambiente local ou institucional.
 
 ### Backend
 
@@ -132,10 +132,10 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 Recursos disponíveis durante o desenvolvimento:
 
-- API: `http://localhost:8000`
-- Verificação de funcionamento: `http://localhost:8000/health`
-- Swagger: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
+* API: `http://localhost:8000`
+* Verificação de funcionamento: `http://localhost:8000/health`
+* Swagger: `http://localhost:8000/docs`
+* ReDoc: `http://localhost:8000/redoc`
 
 Referências: `backend/app/main.py` e `backend/requirements.txt`.
 
@@ -155,7 +155,7 @@ O servidor de desenvolvimento utiliza a porta `5173`. As requisições iniciadas
 
 ### Backend
 
-Crie o arquivo `backend/.env` sem incluir valores sensíveis no controle de versão:
+Crie o arquivo `backend/.env` com as configurações locais de acesso ao banco de dados:
 
 ```env
 DB_HOST=
@@ -164,11 +164,13 @@ DB_USER=
 DB_PASSWORD=
 DB_NAME=
 APP_ENV=development
-APP_TITLE=
-APP_VERSION=
+APP_TITLE=Portal DSR – API
+APP_VERSION=1.0.0
 ```
 
 As configurações são carregadas em `backend/app/core/config.py`.
+
+Arquivos `.env` não devem ser versionados.
 
 ### Frontend
 
@@ -192,7 +194,7 @@ npm run build
 
 A build é gerada em `frontend/dist/`.
 
-Para validar localmente o resultado:
+Para validar localmente o resultado da build:
 
 ```bash
 npm run preview
@@ -200,7 +202,11 @@ npm run preview
 
 Os comandos estão definidos em `frontend/package.json`.
 
-A estratégia de execução do backend e de publicação do frontend em produção deve ser definida conforme a infraestrutura institucional.
+## Ambiente interno
+
+O Portal DSR foi planejado para uso interno no Ministério das Cidades, com execução em uma máquina local da rede institucional. O acesso pelos usuários é realizado por meio do endereço IP disponibilizado internamente.
+
+A aplicação depende de uma base PostgreSQL/PostGIS local, com tabelas e views previamente disponibilizadas no ambiente institucional. As credenciais de acesso devem ser configuradas localmente por meio de arquivo `.env`.
 
 ## Fluxo de desenvolvimento
 
@@ -220,48 +226,15 @@ npm run build
 7. Registrar commits objetivos, sem incluir arquivos de ambiente, credenciais ou artefatos locais.
 8. Submeter as alterações para revisão antes da integração à branch principal.
 
-Convenção de branches, processo de revisão e política de integração: **confirmar**.
+## Validação e manutenção
 
-Não foram identificados testes automatizados ou pipeline de integração contínua no projeto analisado.
+A validação inicial do sistema será realizada com a coordenação do setor. Após os ajustes decorrentes do feedback, o portal será disponibilizado aos demais usuários internos.
 
-## Pontos de atenção
-
-
-### Configuração para produção
-
-- Partes do módulo do mapa utilizam URLs locais fixas em `frontend/src/api/mapa.js`.
-- O CORS está configurado para endereços locais em `backend/app/main.py`.
-- `APP_ENV` não deve permanecer como `development` em produção, pois essa configuração habilita logs das consultas SQL.
-- Não foram identificadas configurações de implantação, containers ou servidor de aplicação para produção.
-- A infraestrutura de hospedagem, os domínios e a estratégia de publicação devem ser **confirmados**.
-
-### Banco de dados
-
-- A API consulta diretamente tabelas e views existentes no PostgreSQL/PostGIS.
-- Não foram identificados models ORM, migrações ou rotinas de criação dessas estruturas.
-- As permissões e estruturas necessárias devem ser previamente provisionadas pela equipe responsável pelo banco.
-- A rotina e a periodicidade de atualização das bases devem ser **confirmadas**.
-
-### Segurança e acesso
-
-- Não foi identificado mecanismo de autenticação ou autorização no código analisado.
-- O modelo de acesso ao ambiente interno deve ser **confirmado**.
-- Arquivos `.env`, credenciais e endereços internos não devem ser versionados ou publicados.
-- Dados exportados devem seguir as políticas institucionais de segurança da informação.
-
-### Serviços externos
-
-O mapa-base utiliza um serviço de imagens da Esri em `frontend/src/components/mapa/MapaSection.jsx`. A disponibilidade pela rede institucional e as condições de uso desse serviço devem ser **confirmadas**.
-
-### Qualidade e manutenção
-
-- Não foram identificados testes automatizados.
-- Não foi identificado pipeline de CI/CD.
-- A estratégia de testes, homologação, monitoramento e registro de erros deve ser **confirmada**.
+A manutenção do sistema será realizada pelos responsáveis do projeto, considerando ajustes evolutivos, correções e atualização da documentação conforme necessário.
 
 ## Autores
 
-**Ministério das Cidades**  
-Departamento de Saneamento Rural e de Pequenos Municípios
+**Ministério das Cidades**
+Coordenação de Informação em Saneamento Rural e em Pequenos Municípios
 
-Responsáveis técnicos e contatos institucionais: **confirmar**.
+Responsáveis: Giovana Carvalho e Andre Ide
