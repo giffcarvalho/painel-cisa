@@ -120,7 +120,7 @@ export async function listarCategoriasMetropolitanas(q="", limit = 50) {
 
 
 
-const API_URL = import.meta.env.VITE_API_URL ?? '/api/v1'
+const API_URL = new URL(import.meta.env.VITE_API_URL ?? "/api/v1", window.location.origin).toString().replace(/\/$/, "");
 
 export function urlBboxUfs(filtros={}) {
   const params = toParams(filtros);
