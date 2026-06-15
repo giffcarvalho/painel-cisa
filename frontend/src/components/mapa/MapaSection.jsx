@@ -549,7 +549,7 @@ export default function MapaSection() {
             const layerConfig = layers.find(l => l.id === f.layer.id);
             
             
-            //console.log(props);
+            console.log(props);
             
             let html = "";
             
@@ -583,18 +583,35 @@ export default function MapaSection() {
             }
 
             if (f.layer.id === "informacoes_municipais") {
-                const variavel = layerConfig?.variavelSel;
-                const variavelOriginal = variavel?.replace(/^jenks_/, "");
-
+                
                 html += `
-                <strong>Município:</strong> ${props.nome}<br>
-                <strong>População 2022:</strong> ${props.populacao_total_censo_2022}<br>
-                <strong>Subgrupo:</strong> ${props.subgrupo}<br>
-                ${
-                    variavelOriginal && props[variavelOriginal] != null
-                        ? `<br><strong>${variavelOriginal}:</strong> ${(props[variavelOriginal] * 100).toFixed(2)}%`: ""
-                }
+                    <strong>Município:</strong> ${props.nome}<br>
+                    <strong>População 2022:</strong> ${Number(props.populacao_total_censo_2022).toLocaleString("pt-BR")}<br>
+                    <strong>Categ. Metrop.:</strong> ${props.label_catmetropol}<br>
+                    <strong>Subgrupo:</strong> ${props.subgrupo}<br>
                 `;
+
+                const variavelConfig = layerConfig?.variaveis?.find(v => v.value === layerConfig?.variavelSel);
+
+                if (variavelConfig) {
+
+                    let valor;
+                    
+                    if (variavelConfig.tipo === "booleana") {
+                        valor = props[variavelConfig.value] ? "Sim" : "Não";
+                    }
+                    else if (variavelConfig.value.startsWith("jenks_")) {
+                        const campo = variavelConfig.value.replace(/^jenks_/, "");
+                        valor = props[campo] != null? `${(props[campo] * 100).toFixed(2)}%`: null;
+                    } else {
+                        valor = props[variavelConfig.value];
+                    }
+
+
+                    if (valor != null) {
+                        html += `<br><strong>${variavelConfig.label}:</strong> ${valor}`;
+                    }
+                }
             }
 
             
@@ -699,8 +716,8 @@ export default function MapaSection() {
             coord.long.trim() === "" ||
             Number.isNaN(latNum) ||
             Number.isNaN(longNum) ||
-            latNum < -90 || latNum > 90 ||
-            longNum < -180 || longNum > 180
+            latNum < -35 || latNum > 7 ||
+            longNum < -76 || longNum > -33
         ) {
         alert("Coordenadas inválidas");
         return;
@@ -754,9 +771,9 @@ export default function MapaSection() {
     }
     //--------------------------------------------------------------------------------------------
 
-    useEffect(() => {console.log("coord mudou");}, [coord]);
-    useEffect(() => {console.log("zoom mudou");}, [zoomAtual]);
-    useEffect(() => {console.log("filtros mudaram");}, [filtros]);
+    //useEffect(() => {console.log("coord mudou");}, [coord]);
+    //useEffect(() => {console.log("zoom mudou");}, [zoomAtual]);
+    //useEffect(() => {console.log("filtros mudaram");}, [filtros]);
 
 
     return ( 
