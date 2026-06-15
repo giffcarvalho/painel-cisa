@@ -57,7 +57,7 @@ export default function DetalheSection ({ setPainelDetalhe }) {
             </div>
             
             <div className={estilos.informacoesGerais}>
-                <p>População (2022): <strong>{dadosMunicipios?.populacao_total_censo_2022}</strong></p>
+                <p>População (2022): <strong>{dadosMunicipios?.populacao_total_censo_2022?.toLocaleString("pt-BR")}</strong></p>
                 <p>Categoria Metropolitana: <strong>{dadosMunicipios?.label_catmetropol}</strong></p>
                 <p>RM prioritária: <strong>{dadosMunicipios?.rm_prioritaria}</strong></p>
                 <p>Subgrupo PAC: <strong>{dadosMunicipios?.subgrupo}</strong></p>
