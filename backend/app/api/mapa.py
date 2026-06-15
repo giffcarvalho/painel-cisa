@@ -19,7 +19,8 @@ from app.schemas.filtrosMapa import (
     LocalidadeItem, OpcoesFiltrosLocalidade,
     LocalidadeEnderecoItem, OpcoesFiltrosLocalidadeEndereco,
     CategoriaMetropolitanaItem, OpcoesFiltrosCategoriaMetropolitana,
-    InvestimentoSaneamentoItem, ListaInvestimentoSaneamento
+    InvestimentoSaneamentoItem, ListaInvestimentoSaneamento,
+    DadosMunicipiosItem, ListaDadosMunicipios,
 )
 
  
@@ -1210,3 +1211,58 @@ async def get_investimento_saneamento(
     result = await _execute_query(db, sql, params)
     return ListaInvestimentoSaneamento(data=[InvestimentoSaneamentoItem(**row) for row in result.mappings().all()])
 
+
+
+# dados dos municipios
+@router.get("/dados_municipios", response_model=ListaDadosMunicipios, summary="Dados gerais dos municipios")
+async def get_dados_municipios(
+    response: Response,
+    filtros: FiltrosMapa = Depends(),
+    q: Annotated[str | None, Query(max_length=100, description="Termo de busca.")] = None,  
+    limit: Annotated[int, Query(ge=1, le=100, description="Quantidade máxima de resultados.")] = 100,
+    db: AsyncSession = Depends(get_db)):
+
+    response.headers["Cache-Control"] = "public, max-age=600"
+    
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_municipio"})
+
+
+    sql = """
+        SELECT
+            cod_municipio,
+            nome,
+            label_catmetropol,
+            CASE
+	            WHEN rm_prioritaria IS NULL OR rm_prioritaria IS FALSE THEN 'Não'
+	            WHEN rm_prioritaria IS TRUE THEN 'Sim'
+	            ELSE 'verificar'
+	        END AS rm_prioritaria,
+            subgrupo,
+            populacao_total_censo_2022
+        FROM territorio.vw_base_municipal
+    """
+
+    params = {"limit": limit}
+    params.update(params_filtro)
+    clauses = []
+
+    
+    if where_filtro: clauses.append(where_filtro)
+
+    texto = (q or "").strip()
+
+    if texto:
+        clauses.append("nome ILIKE :termo")
+        params["termo"] = f"%{texto}%"
+
+    if clauses:
+        sql += " WHERE " + " AND ".join(clauses)
+
+
+    sql += """
+        ORDER BY cod_municipio
+        LIMIT :limit
+    """
+
+    result = await _execute_query(db, sql, params)
+    return ListaDadosMunicipios(data=[DadosMunicipiosItem(**row) for row in result.mappings().all()])
