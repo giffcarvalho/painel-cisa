@@ -1,3 +1,67 @@
+/* TEXTOS E TÍTULOS */
+.topicStack {
+  display: flex;
+  flex-direction: column;
+  margin-top: 24px;
+}
+
+.manualTopic {
+  padding: 24px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.manualTopic h3 {
+  margin: 0 0 8px;
+  color: #25221d;
+  font-weight: bold;
+}
+
+.manualTopic h1 {
+  margin: 0 0 8px;
+  margin-top: 20px;
+  color: #25221d;
+}
+
+.manualTopic p {
+  margin: 0;
+  color: #5f574d;
+  font-size: 15px;
+  line-height: 1.65;
+  text-align: justify;
+}
+
+.manualTopic p + p {
+  margin-top: 20px;
+}
+
+/* SEÇÃO DE DÚVIDAS E GLOSSÁRIO */
+
+.manualTopicGloss {
+  margin: 0;
+  color: #5f574d;
+  font-size: 15px;
+  line-height: 1.65;
+  text-align: justify;
+}
+
+.manualTopicGloss h4 {
+  margin: 0;
+  color: #5f574d;
+  font-size: 15px;
+  line-height: 1.65;
+  text-align: justify;
+  font-weight: 700;
+}
+
+.manualTopicGloss p {
+  margin: 0;
+  color: #5f574d;
+  font-size: 15px;
+  line-height: 1.65;
+  text-align: justify;
+}
+
+/* BLOCO DE TEXTO AZUL */
 .notice {
   margin: 18px 0;
   padding: 14px 16px;
@@ -13,13 +77,4 @@
   margin-top: 24px;
 }
 
-.textBlock {
-  padding: 16px 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-}
 
-.subsection h3,
-.textBlock h4 {
-  margin: 0 0 8px;
-  color: #25221d;
-}

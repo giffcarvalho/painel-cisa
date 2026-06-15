@@ -137,7 +137,7 @@ export async function listarDadosMunicipios(filtros = {}) {
 
 
 
-const API_URL = "http://localhost:8000/api/v1"
+const API_URL = new URL(import.meta.env.VITE_API_URL ?? "/api/v1", window.location.origin).toString().replace(/\/$/, "");
 
 export function urlBboxUfs(filtros={}) {
   const params = toParams(filtros);

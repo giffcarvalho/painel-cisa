@@ -25,8 +25,8 @@ export const manualCards = [
 
 export const carteiraTopics = [
   'Objetivo da ferramenta',
-  'Indicadores',
   'Filtros',
+  'Indicadores',
   'Gráficos',
   'Tabela detalhada',
   'Exportação',
@@ -38,7 +38,6 @@ export const mapaTopics = [
   'Filtros',
   'Camadas',
   'Legenda',
-  'Interpretação dos dados',
 ]
 
 export const perguntasFrequentes = [

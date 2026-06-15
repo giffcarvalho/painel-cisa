@@ -22,17 +22,14 @@ export default function Home() {
           <header className="flex flex-col items-start">
             <div className={styles.badgeLabel}>
               <Activity className="w-3.5 h-3.5 text-cisa-primary" />
-              <span>Painel de Informações e Monitoramento</span>
+              <span>Painel de Informações</span>
             </div>
             
             <h1 className={styles.title}>
               Departamento de Saneamento Rural <br />
-              <span className="text-gray-400 font-medium tracking-normal">& Pequenos Municípios</span>
+              <span className="text-gray-400 font-medium tracking-normal">& de Pequenos Municípios</span>
             </h1>
-            
-            <p className={styles.subtitle}>
-              Acompanhe a execução física, financeira e o panorama geoespacial dos instrumentos de repasse.
-            </p>
+
           </header>
 
           <div className="mt-12 flex flex-col w-full">
@@ -99,10 +96,9 @@ export default function Home() {
                   <div className="flex flex-col">
                     <span className={styles.rowTitle}>Manual do Usuário</span>
                     <span className={styles.rowDesc}>
-                      Aprenda a explorar os módulos, aplicar filtros complexos e exportar relatórios.
+                      Aprenda a explorar os módulos, aplicar filtros e exportar relatórios.
                     </span>
                   </div>
-                  <span className={styles.badgeSoon}>Em breve</span>
                 </div>
 
                 <div className={styles.customArrow}>

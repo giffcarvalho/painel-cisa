@@ -25,8 +25,8 @@ const summaryByPath = {
   ],
   '/manual/carteira-dsr': [
     { href: '#objetivo-da-ferramenta', label: 'Objetivo da ferramenta' },
-    { href: '#indicadores', label: 'Indicadores' },
     { href: '#filtros', label: 'Filtros' },
+    { href: '#indicadores', label: 'Indicadores' },
     { href: '#graficos', label: 'Gráficos' },
     { href: '#tabela-detalhada', label: 'Tabela detalhada' },
     { href: '#exportacao', label: 'Exportação' },
@@ -37,12 +37,13 @@ const summaryByPath = {
     { href: '#filtros', label: 'Filtros' },
     { href: '#camadas', label: 'Camadas' },
     { href: '#legenda', label: 'Legenda' },
-    { href: '#interpretacao-dos-dados', label: 'Interpretação dos dados' },
   ],
   '/manual/informacoes-gerais': [
-    { href: '#duvidas-frequentes', label: 'Dúvidas frequentes' },
-    { href: '#glossario-basico', label: 'Glossário básico' },
-    { href: '#orientacoes-gerais', label: 'Orientações gerais' },
+    { href: '#sobre-os-dados', label: 'Sobre os dados' },
+    { href: '#atualizacao-das-informacoes', label: 'Atualização das informações' },
+    { href: '#filtros-e-resultados', label: 'Filtros e resultados' },
+    { href: '#exportacao-dos-dados', label: 'Exportação dos dados' },
+    { href: '#glossario', label: 'Glossário básico' },
   ],
 }
 

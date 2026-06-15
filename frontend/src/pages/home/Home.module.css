@@ -165,7 +165,7 @@
   position: fixed;
   right: clamp(24px, 4vw, 56px);
   bottom: clamp(20px, 4vh, 44px);
-  width: clamp(170px, 14vw, 280px);
+  width: clamp(260px, 20vw, 340px);
   height: auto;
   z-index: 20;
   opacity: 0.88;
