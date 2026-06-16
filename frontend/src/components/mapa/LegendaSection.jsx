@@ -6,8 +6,7 @@ export default function LegendaSection({layers, zoomAtual}) {
     
 
     const camadasComLegenda = layers.filter(layer => layer.visivel && layer.simbologia && zoomAtual >= (layer.minzoom ?? 0));
-    const informacoesMunicipais = layers.find(l => l.id === "informacoes_municipais");
-    const variavelAtual = informacoesMunicipais?.variaveis.find(v => v.value === informacoesMunicipais.variavelSel);
+    const camadasVariaveis = layers.filter(layer => layer.visivel && layer.variaveis && layer.variavelSel && zoomAtual >= (layer.minzoom ?? 0));
     
     return (
         <div className={estilos.legenda}>
@@ -67,19 +66,26 @@ export default function LegendaSection({layers, zoomAtual}) {
                 </div>
             ))}
 
-            {informacoesMunicipais?.visivel && variavelAtual?.legenda && (
-                <div>
-                    <h4>{variavelAtual.label}</h4>
-                    {variavelAtual.legenda.map(item => (
-                        <div key={String(item.label)}>
-                            <span className={estilos.poligono}
-                                style={{ background: item.cor }}
-                            />
-                            {String(item.label)}
-                        </div>
-                    ))}
-                </div>
-            )}
+            {camadasVariaveis.map(layer => {const variavelAtual = layer.variaveis.find(v => v.value === layer.variavelSel);
+
+                if (!variavelAtual?.legenda) return null;
+
+                return (
+                    <div key={layer.id}>
+                        <h4>{variavelAtual.label}</h4>
+
+                        {variavelAtual.legenda.map(item => (
+                            <div key={String(item.label)}>
+                                <span
+                                    className={estilos.poligono}
+                                    style={{ background: item.cor }}
+                                />
+                                {String(item.label)}
+                            </div>
+                        ))}
+                    </div>
+                );
+            })}
 
         </div>
     );
