@@ -20,7 +20,6 @@ class PesquisaInstrumentoBase(BaseModel):
 
 
 class PesquisaInstrumentoFiltrosResponse(BaseModel):
-    uf: list[str]
     nome_proponente: list[str]
     municipios_beneficiados: list[str]
     nr_instrumento: list[str]
