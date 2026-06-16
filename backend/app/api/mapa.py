@@ -817,6 +817,15 @@ async def get_setores_censitarios_2022(z: int, x: int, y: int, filtros: FiltrosM
                 situacao,
                 cod_sit::char(1) || ' - ' || situacao_detalhada as situacao_detalhada,
                 nome_municipio || '/' || sigla_uf as nome_municipio,
+                total_pessoas,
+                jenks_perc_agua_forma_nao_adequada,
+                jenks_perc_esgoto_tipo_nao_adequado,
+                jenks_perc_lixo_destino_nao_adequado,
+                jenks_perc_ban_sem_ban_exclusivo,
+                perc_agua_forma_nao_adequada,
+                perc_esgoto_tipo_nao_adequado,
+                perc_lixo_destino_nao_adequado,
+                perc_ban_sem_ban_exclusivo,
                 ST_AsMVTGeom(
                     ST_Simplify(
                         geom,
@@ -1134,6 +1143,7 @@ async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMa
         FROM (
             SELECT
                 nr_instrumento,
+                nr_instrumento::VARCHAR AS instrumento,
                 nr_proposta,
                 tipo_instrumento,
                 acao_padronizada,
