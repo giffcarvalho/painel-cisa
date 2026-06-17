@@ -236,7 +236,7 @@ export default function FichaInstrumentoPdf({ instrumento }) {
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.portal}>Portal DSR</Text>
+          <Text style={styles.portal}>Painel DSR</Text>
           <Text style={styles.department}>
             Departamento de Saneamento Rural e de Pequenos Municípios
           </Text>
