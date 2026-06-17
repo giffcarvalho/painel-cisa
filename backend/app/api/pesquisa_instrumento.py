@@ -298,6 +298,7 @@ async def get_instrumento_detalhe(
             situacao_atual,
             data_dados_transferegov,
             data_dados_caixa,
+            link_transferegov,
             operacao::text AS operacao
         FROM {MV}
         WHERE nr_instrumento::text = :nr_instrumento

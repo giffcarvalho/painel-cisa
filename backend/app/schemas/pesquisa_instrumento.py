@@ -91,4 +91,5 @@ class PesquisaInstrumentoDetalhe(PesquisaInstrumentoBase):
     situacao_atual: str | None = None
     data_dados_transferegov: date | None = None
     data_dados_caixa: date | None = None
+    link_transferegov: str | None = None
     operacao: str | None = None
