@@ -229,7 +229,7 @@ export default function MapaSection() {
                 type: "fill",
                 source: "municipios_2022", "source-layer": "poligonos",
                 layout:{visibility: informacoes_municipais?.visivel? "visible": "none"},
-                minzoom: informacoes_setores_censitarios?.minzoom,
+                minzoom: informacoes_municipais?.minzoom,
                 paint: {
                 "fill-color": "#e7e1e1",
                 "fill-opacity": 0.8
