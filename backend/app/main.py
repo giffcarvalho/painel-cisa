@@ -5,6 +5,7 @@ from app.core.config import settings
 from app.core.database import engine
 from app.api import carteira_dsr
 from app.api import mapa
+from app.api import pesquisa_instrumento
 from app.core.database import lifespan_db
  
  
@@ -51,6 +52,12 @@ app.include_router(
     mapa.router,
     prefix="/api/v1/mapa",
     tags=["Mapa"],
+)
+
+app.include_router(
+    pesquisa_instrumento.router,
+    prefix="/api/v1/pesquisa-instrumento",
+    tags=["Pesquisa Instrumento"],
 )
  
  

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Info , Wallet, FileSearchCorner, Sprout, Map, Activity } from 'lucide-react'
+import { Info , Wallet, Sprout, Map, Activity, FileSearch } from 'lucide-react'
 import styles from './Home.module.css'
 import marcaMcid from '../../assets/marca-mcid.png'
 
@@ -47,7 +47,7 @@ export default function Home() {
               <Link to="/carteira-dsr" className={`group ${styles.editorialRow}`}>
                 <div className="flex items-center gap-5">
                   <div className={styles.iconWrapperPrimary}>
-                    <Wallet className="w-[18px] h-[18px] text-[#1351B4]" />
+                    <Wallet className="w-[18px] h-[18px] text-gray-600 group-hover:text-gray-900 transition-colors" />
                   </div>
                   <div className="flex flex-col">
                     <span className={styles.rowTitle}>Carteira DSR</span>
@@ -87,7 +87,30 @@ export default function Home() {
 
               <div className="h-px w-5/12 ml-[76px] bg-black/[0.06] my-0.5 rounded-full" />
 
-              {/* Item 3: Manual do Usuário */}
+              {/* Item 3: Pesquisa Instrumento */}
+              *<Link to="/pesquisa-instrumento" className={`group ${styles.editorialRow}`}>
+                <div className="flex items-center gap-5">
+                  <div className={styles.iconWrapperSecondary}>
+                    <FileSearch className="w-[18px] h-[18px] text-gray-600 group-hover:text-gray-900 transition-colors" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className={styles.rowTitle}>Pesquisa Instrumento</span>
+                    <span className={styles.rowDesc}>
+                      Consulte instrumentos, propostas, valores e situação de execução.
+                    </span>
+                  </div>
+                  <span className={styles.badgeSoon}>Em desenvolvimento</span>
+                </div>
+
+                <div className={styles.customArrow}>
+                  <div className={styles.arrowTop}></div>
+                  <div className={styles.arrowBottom}></div>
+                </div>
+              </Link>
+
+              <div className="h-px w-5/12 ml-[76px] bg-black/[0.06] my-0.5 rounded-full" />
+
+              {/* Item 4: Manual do Usuário */}
               <Link to="/manual" className={`group ${styles.editorialRow}`}>
                 <div className="flex items-center gap-5">
                   <div className={styles.iconWrapperSecondary}>
@@ -111,14 +134,6 @@ export default function Home() {
 
               {/* Itens Futuros */}
               <div className="flex flex-col gap-2 pl-2">
-                <div className="flex items-center justify-between py-2 opacity-50 cursor-not-allowed">
-                  <div className="flex items-center gap-4">
-                    <FileSearchCorner className="w-4 h-4 text-gray-400" />
-                    <span className="text-[14px] font-medium text-gray-500">Pesquisa Instrumento</span>
-                  </div>
-                  <span className={styles.badgeSoon}>Em breve</span>
-                </div>
-
                 <div className="flex items-center justify-between py-2 opacity-50 cursor-not-allowed">
                   <div className="flex items-center gap-4">
                     <Sprout className="w-4 h-4 text-gray-400" />

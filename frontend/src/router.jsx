@@ -10,6 +10,7 @@ import ManualCarteiraDsr from './pages/manual/ManualCarteiraDsr'
 import ManualMapaInterativo from './pages/manual/ManualMapaInterativo'
 import ManualInformacoesGerais from './pages/manual/ManualInformacoesGerais'
 import MapLayout from './components/layout/MapLayout'
+import PesquisaInstrumento from './pages/pesquisa-instrumento/PesquisaInstrumento'
 
 const Mapa = lazy(() => import('@/pages/mapa/Mapa'))
 
@@ -35,6 +36,10 @@ export const router = createBrowserRouter([
       {
         path: 'carteira-dsr',
         element: <CarteiraDsr />,
+      },
+      {
+        path: 'pesquisa-instrumento',
+        element: <PesquisaInstrumento />,
       },
       {
         path: 'manual',

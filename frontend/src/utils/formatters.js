@@ -31,3 +31,17 @@ export function formatPercent(value) {
     maximumFractionDigits: 2,
   }).format(value)
 }
+
+// 75.23 → "75,23%"
+export function formatPercentualPontos(value) {
+  const number = Number(value)
+
+  if (value === null || value === undefined || value === '' || Number.isNaN(number)) {
+    return '—'
+  }
+
+  return `${number.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}%`
+}
