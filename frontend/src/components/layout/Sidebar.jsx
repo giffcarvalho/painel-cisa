@@ -9,7 +9,7 @@ export function Sidebar({ openOnClick = false }) {
     { to: '/', label: 'Menu Inicial', icon: House, exact: true },
     { to: '/carteira-dsr', label: 'Carteira DSR', icon: Wallet, exact: false },
     { to: '/mapa', label: 'Mapa Interativo', icon: Map, exact: false },
-    /*{ to: '/pesquisa-instrumento', label: 'Pesquisa Instrumento', icon: FileSearch, exact: false }, */
+    { to: '/pesquisa-instrumento', label: 'Pesquisa Instrumento', icon: FileSearch, exact: false },
     { to: '/manual', label: 'Manual do Usuário', icon: Info, exact: false },
   ]
 

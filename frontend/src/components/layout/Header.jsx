@@ -17,7 +17,7 @@ export function Header() {
         {/* Nome do Sistema */}
         <div className="flex flex-col justify-center">
           <span className="font-semibold text-[#25221d] text-[17px] tracking-tight leading-tight">
-            Portal DSR
+            Painel DSR
           </span>
           <span className="text-[11.5px] font-medium text-[#7b7265]">
             Departamento de Saneamento Rural e de Pequenos Municípios
