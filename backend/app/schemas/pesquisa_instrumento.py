@@ -18,10 +18,14 @@ class PesquisaInstrumentoBase(BaseModel):
             }
         return data
 
+class MunicipioBeneficiadoFiltroItem(BaseModel):
+    municipio: str
+    uf: str
+
 
 class PesquisaInstrumentoFiltrosResponse(BaseModel):
     nome_proponente: list[str]
-    municipios_beneficiados: list[str]
+    municipios_beneficiados: list[MunicipioBeneficiadoFiltroItem]
     nr_instrumento: list[str]
     nr_proposta: list[str]
     operacao: list[str]

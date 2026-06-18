@@ -63,9 +63,32 @@ def _build_where(filtros: FiltrosPesquisaInstrumento) -> tuple[str, dict]:
             if not value:
                 continue
 
-            key = f"municipios_beneficiados_{i}"
-            municipio_clauses.append(f"municipios_beneficiados ILIKE :{key}")
-            params[key] = f"%{value}%"
+            if "|" in value:
+                municipio, uf = value.split("|", 1)
+
+                municipio_key = f"municipio_beneficiado_{i}"
+                uf_key = f"uf_municipio_beneficiado_{i}"
+
+                municipio_clauses.append(f"""
+                    (
+                        EXISTS (
+                            SELECT 1
+                            FROM regexp_split_to_table(
+                                COALESCE(municipios_beneficiados, ''),
+                                '\\s*[,;/]\\s*'
+                            ) AS municipio
+                            WHERE NULLIF(trim(municipio), '') = :{municipio_key}
+                        )
+                        AND NULLIF(trim(uf), '') = :{uf_key}
+                    )
+                """)
+
+                params[municipio_key] = municipio.strip()
+                params[uf_key] = uf.strip()
+            else:
+                key = f"municipios_beneficiados_{i}"
+                municipio_clauses.append(f"municipios_beneficiados ILIKE :{key}")
+                params[key] = f"%{value}%"
 
         if municipio_clauses:
             clauses.append("(" + " OR ".join(municipio_clauses) + ")")
@@ -114,12 +137,16 @@ async def get_filtros(
             {where}
         ),
         municipios AS (
-            SELECT DISTINCT NULLIF(trim(municipio), '') AS municipio
+            SELECT DISTINCT
+                NULLIF(trim(municipio), '') AS municipio,
+                NULLIF(trim(uf), '') AS uf
             FROM base
             CROSS JOIN LATERAL regexp_split_to_table(
                 COALESCE(municipios_beneficiados, ''),
-                '\\s*[,;/]\\s*'
+                '\s*[,;/]\s*'
             ) AS municipio
+            WHERE NULLIF(trim(municipio), '') IS NOT NULL
+              AND NULLIF(trim(uf), '') IS NOT NULL 
         )
         SELECT
             COALESCE((
@@ -130,10 +157,15 @@ async def get_filtros(
                 FROM base
             ), ARRAY[]::text[]) AS nome_proponente,
             COALESCE((
-                SELECT array_remove(array_agg(municipio ORDER BY municipio), NULL)
-                FROM municipios
-                WHERE municipio IS NOT NULL
-            ), ARRAY[]::text[]) AS municipios_beneficiados,
+                    SELECT json_agg(
+                        json_build_object(
+                            'municipio', municipio,
+                            'uf', uf
+                        )
+                        ORDER BY municipio, uf
+                    )
+                    FROM municipios
+                ), '[]'::json) AS municipios_beneficiados,
             COALESCE((
                 SELECT array_remove(
                     array_agg(DISTINCT nr_instrumento::text ORDER BY nr_instrumento::text),

@@ -54,6 +54,22 @@ const incluirValorSelecionado = (opcoes, valor) => {
   ];
 };
 
+const normalizarMunicipiosBeneficiados = (opcoes) => {
+  if (!Array.isArray(opcoes)) return [];
+
+  return opcoes
+    .filter((opcao) => opcao?.municipio && opcao?.uf)
+    .map((opcao) => {
+      const municipio = String(opcao.municipio).trim();
+      const uf = String(opcao.uf).trim();
+
+      return {
+        value: `${municipio}|${uf}`,
+        label: `${municipio} - ${uf}`,
+      };
+    });
+};
+
 const normalizarBusca = (valor) =>
   String(valor ?? '')
     .normalize('NFD')
@@ -232,10 +248,16 @@ export default function FiltrosPesquisaInstrumento() {
 
       <div className={styles.filtersGrid}>
         {FILTROS.map((filtro) => {
-          const opcoes = incluirValorSelecionado(
-            normalizarOpcoes(data?.[filtro.campo]),
+          const opcoesBase = 
+            filtro.campo === 'municipios_beneficiados'
+              ? normalizarMunicipiosBeneficiados(data?.[filtro.campo])
+              : normalizarOpcoes(data?.[filtro.campo]);
+
+          const opcoes = incluirValorSelecionado (
+            opcoesBase,
             filtros[filtro.campo]
           );
+
           const isPrincipal = filtroPrincipal === filtro.campo;
 
           return (
