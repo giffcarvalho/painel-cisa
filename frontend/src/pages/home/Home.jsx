@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Info , Wallet, Sprout, Map, Activity, FileSearch } from 'lucide-react'
+import { Info , Wallet, Sprout, Map, Activity, FileSearch, PackageSearch } from 'lucide-react'
 import styles from './Home.module.css'
 import marcaMcid from '../../assets/marca-mcid.png'
 
@@ -109,7 +109,30 @@ export default function Home() {
 
               <div className="h-px w-5/12 ml-[76px] bg-black/[0.06] my-0.5 rounded-full" />
 
-              {/* Item 4: Manual do Usuário */}
+              {/* Item 4: Consulta Personalizada */}
+              <Link to="/consulta-personalizada" className={`group ${styles.editorialRow}`}>
+                <div className="flex items-center gap-5">
+                  <div className={styles.iconWrapperSecondary}>
+                    <PackageSearch className="w-[18px] h-[18px] text-gray-600 group-hover:text-gray-900 transition-colors" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className={styles.rowTitle}>Consulta Personalizada</span>
+                    <span className={styles.rowDesc}>
+                      Extração de dados.
+                    </span>
+                  </div>
+                  <span className={styles.badgeSoon}>Em desenvolvimento</span>
+                </div>
+
+                <div className={styles.customArrow}>
+                  <div className={styles.arrowTop}></div>
+                  <div className={styles.arrowBottom}></div>
+                </div>
+              </Link>
+
+              <div className="h-px w-5/12 ml-[76px] bg-black/[0.06] my-0.5 rounded-full" />
+
+              {/* Item 5: Manual do Usuário */}
               <Link to="/manual" className={`group ${styles.editorialRow}`}>
                 <div className="flex items-center gap-5">
                   <div className={styles.iconWrapperSecondary}>
