@@ -1,4 +1,4 @@
-"""Contratos do extrator de dados."""
+"""Contratos do Extrator de Dados."""
 
 from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator
@@ -12,7 +12,7 @@ class CampoCatalogo(BaseModel):
     column: str
     tipo_tabela: TipoTabela
     grupo: str
-    tipo_dado: Literal["text", "integer", "decimal", "currency",  "percent", "date", "boolean"]
+    tipo_dado: Literal["text", "integer", "decimal", "currency", "percent", "date", "boolean"]
     formato: Literal["text", "integer", "decimal", "brl", "percent", "date", "datetime", "boolean"]
     visivel: bool
     exportavel: bool
@@ -38,6 +38,16 @@ class FiltroOpcoesItem(BaseModel):
     opcoes: list[Any] = Field(default_factory=list)
     busca: bool = False
 
+class FiltroBuscaItem(BaseModel):
+    value: Any
+    label: str
+
+
+class FiltroBuscaResponse(BaseModel):
+    tipo_tabela: TipoTabela
+    campo: str
+    data: list[FiltroBuscaItem]
+
 class FiltrosResponse(BaseModel):
     tipo_tabela: TipoTabela
     data: list[FiltroOpcoesItem]
@@ -51,12 +61,12 @@ class ExtratorRequest(BaseModel):
     @classmethod
     def validar_field_ids_unicos(cls, value: list[str]) -> list[str]:
         clean = [item.strip() for item in value if item and item.strip()]
-        if not clean: 
+        if not clean:
             raise ValueError("Selecione pelo menos uma coluna.")
         if len(set(clean)) != len(clean):
             raise ValueError("A lista de colunas possui campos repetidos.")
         return clean
-    
+
 class PreviewRequest(ExtratorRequest):
     limit: int = Field(default=100, ge=1, le=500)
 
@@ -66,7 +76,7 @@ class PreviewResponse(BaseModel):
     limit: int
     columns: list[CampoCatalogo]
     data: list[dict[str, Any]]
-    metadados: dict[str,Any] = Field(default_factory=dict)
+    metadados: dict[str, Any] = Field(default_factory=dict)
 
 class ExportRequest(ExtratorRequest):
     formato: Literal["xlsx"] = "xlsx"
