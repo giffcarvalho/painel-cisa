@@ -1,8 +1,8 @@
 export const manualIntro = {
   apresentacao:
-    'O Portal DSR é uma plataforma interna do Ministério das Cidades destinada à consulta e análise de informações relacionadas ao Departamento de Saneamento Rural e Pequenos Municípios. O sistema reúne indicadores, instrumentos de repasse, dados territoriais e outras informações estratégicas em um ambiente único de consulta. Este manual agrupa orientações sobre as ferramentas disponíveis no portal. Utilize os guias específicos de cada módulo para compreender indicadores, filtros, gráficos, funcionalidades e conceitos utilizados nas análises.',
+    'O Painel DSR é uma plataforma interna do Ministério das Cidades destinada à consulta e análise de informações relacionadas ao Departamento de Saneamento Rural e Pequenos Municípios. O sistema reúne indicadores, instrumentos de repasse, dados territoriais e outras informações estratégicas em um ambiente único de consulta. Este manual agrupa orientações sobre as ferramentas disponíveis no painel. Utilize os guias específicos de cada módulo para compreender indicadores, filtros, gráficos, funcionalidades e conceitos utilizados nas análises.',
   navegacao:
-    'O acesso às funcionalidades do Portal DSR é realizado pelo menu lateral esquerdo. O menu permanece recolhido para ampliar a área útil de visualização e é expandido automaticamente quando o cursor do mouse é posicionado sobre ele. Para navegar entre os módulos, basta posicionar o cursor sobre o menu e selecionar a opção desejada.'
+    'O acesso às funcionalidades do Painel DSR é realizado pelo menu lateral esquerdo. O menu permanece recolhido para ampliar a área útil de visualização e é expandido automaticamente quando o cursor do mouse é posicionado sobre ele. Para navegar entre os módulos, basta posicionar o cursor sobre o menu e selecionar a opção desejada.'
 }
 
 export const manualCards = [
@@ -49,7 +49,7 @@ export const perguntasFrequentes = [
   {
     question: 'É possível exportar os dados?',
     answer:
-      'Sim. As ferramentas do portal podem oferecer opções de exportação conforme a funcionalidade disponível.',
+      'Sim. As ferramentas do painel podem oferecer opções de exportação conforme a funcionalidade disponível.',
   },
 ]
 
@@ -67,6 +67,6 @@ export const glossario = [
   {
     term: 'Carteira ativa',
     description:
-      'Conjunto de instrumentos considerados ativos para acompanhamento no portal.',
+      'Conjunto de instrumentos considerados ativos para acompanhamento no painel.',
   },
 ]

@@ -168,7 +168,7 @@ export default function ManualCarteiraDsr() {
             </p>
             <p>
               Os gráficos podem ser exportados como imagem ou em planilha Excel já formatada, preservando as informações correspondentes ao recorte de dados selecionado.
-              A tabela detalhada pode ser exportada em formato Excel, permitindo consultar e tratamentos adicionais dos dados fora do portal. As exportações consideram os 
+              A tabela detalhada pode ser exportada em formato Excel, permitindo consultar e tratamentos adicionais dos dados fora do painel. As exportações consideram os 
               filtros aplicados no momento da geração do arquivo.
             </p>
             <figure className={styles.videoBlock}>

@@ -124,7 +124,7 @@ export function Sidebar({ openOnClick = false }) {
           }
         `}
       >
-        Portal DSR v1.0
+        Painel DSR v1.0
       </div>
     </aside>
   )

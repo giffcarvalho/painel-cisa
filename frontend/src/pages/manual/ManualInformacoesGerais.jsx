@@ -15,7 +15,7 @@ export default function ManualInformacoesGerais() {
       <section className={sharedStyles.contentCard}>
         <h2>Informações Gerais</h2>
         <p>
-          Esta seção reúne informações complementares para auxiliar a leitura das informações exibidas no Portal DSR. As ferramentas do portal utilizam nossas bases de dados
+          Esta seção reúne informações complementares para auxiliar a leitura das informações exibidas no Painel DSR. As ferramentas do painel utilizam nossas bases de dados
         institucionais e apresentam os resultados conforme os filtros, recortes e parâmetros disponíveis em cada página.          
         </p>
 
@@ -23,7 +23,7 @@ export default function ManualInformacoesGerais() {
           <section className={styles.manualTopic} id={topicIds['Sobre os dados']}>
             <h3>Sobre os dados exibidos</h3>
             <p>
-              As informações apresentadas no portal dependem das bases utilizadas pelo Deprtamento e dos critérios definidos para cada ferramenta. Por isso, os números,
+              As informações apresentadas no painel dependem das bases utilizadas pelo Deprtamento e dos critérios definidos para cada ferramenta. Por isso, os números,
               mapas, gráficos e tabelas devem ser interpretados de acordo com o contexto da página consultada e com os filtros aplicados no momento da análise.
             </p>
             <p>
@@ -54,7 +54,7 @@ export default function ManualInformacoesGerais() {
           <section className={styles.manualTopic} id={topicIds['Exportação dos dados']}>
             <h3>Exportação de dados</h3>
             <p>
-              Algumas ferramentas do portal oferecem opções de exportação, permitindo salvar gráficos, tabelas ou dados em arquivos externos. Os arquivos exportados
+              Algumas ferramentas do painel oferecem opções de exportação, permitindo salvar gráficos, tabelas ou dados em arquivos externos. Os arquivos exportados
               consideram os filtros aplicados no momento da exportação e refletem o recorte visualizado pelo usuário.
             </p>
             <p>
