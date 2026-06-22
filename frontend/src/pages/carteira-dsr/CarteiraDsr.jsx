@@ -12,7 +12,8 @@ export default function CarteiraDsr() {
   const [mostrarTabela, setMostrarTabela] = useState(false)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
-  const { qtdeFiltrosAtivos } = useFiltros()
+  const { filtros, qtdeFiltrosAtivos } = useFiltros()
+  const tabelaKey = JSON.stringify(filtros)
 
   return (
     <div className={styles.container}>
@@ -76,7 +77,7 @@ export default function CarteiraDsr() {
             </button>
           </div>
         ) : (
-          <TabelaSection />
+          <TabelaSection key={tabelaKey} />
         )}
       </div>
       
