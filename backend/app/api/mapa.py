@@ -816,6 +816,7 @@ async def get_setores_censitarios_2022(z: int, x: int, y: int, filtros: FiltrosM
                 cod_sit,
                 situacao,
                 cod_sit::char(1) || ' - ' || situacao_detalhada as situacao_detalhada,
+                cod_municipio,
                 nome_municipio || '/' || sigla_uf as nome_municipio,
                 total_pessoas,
                 jenks_perc_agua_forma_nao_adequada,
@@ -1057,6 +1058,7 @@ async def get_municipios_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
         FROM (
             SELECT
                 cod_municipio,
+                cod_municipio as cod_ibge,
                 nome,
                 jenks_deficit_agua_rural_ibge,
                 jenks_deficit_esgoto_rural_ibge,
