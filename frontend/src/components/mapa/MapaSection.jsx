@@ -583,6 +583,7 @@ export default function MapaSection() {
             if (f.layer.id === "setores_censitarios_2022_fill") {
                 html += `
                 <strong> Município: </strong> ${props.nome_municipio} <br>
+                <strong> Código IBGE: </strong> ${props.cod_municipio} <br>
                 <br/>
                 <strong> ${props.situacao} </strong> <br>
                 ${props.situacao_detalhada}
@@ -608,7 +609,7 @@ export default function MapaSection() {
                 
                 html += `
                     <strong>Situação:</strong> ${props.situacao}<br>
-                    <strong>Município:</strong> ${props.nome_municipio}<br>
+                    <strong>Município:</strong> ${props.nome_municipio}<br> 
                     <strong>População no setor:</strong> ${Number(props.total_pessoas).toLocaleString("pt-BR")}<br>
                 `;
 
@@ -641,6 +642,7 @@ export default function MapaSection() {
                 
                 html += `
                     <strong>Município:</strong> ${props.nome}<br>
+                    <strong> Código IBGE: </strong> ${props.cod_ibge} <br>
                     <strong>População 2022:</strong> ${Number(props.populacao_total_censo_2022).toLocaleString("pt-BR")}<br>
                     <strong>Categ. Metrop.:</strong> ${props.label_catmetropol}<br>
                     <strong>Subgrupo:</strong> ${props.subgrupo}<br>
