@@ -201,9 +201,22 @@ async def get_lista_nr_propostas(
 
 
     sql = """
+        WITH uniao AS (
         SELECT
-            DISTINCT(nr_proposta)            
+            nr_proposta,
+            cod_uf,
+            cod_municipio
         FROM instrumento.vw_geometrias_carteira_dsr
+        WHERE nr_proposta IS NOT NULL
+        UNION
+        SELECT
+            nr_proposta,
+            cod_uf,
+            cod_municipio
+        FROM instrumento.vw_geometrias_carteira_drf
+        WHERE nr_proposta IS NOT NULL
+        )
+        SELECT DISTINCT(nr_proposta) FROM uniao
     """
 
     params = {"limit": limit}
@@ -479,26 +492,36 @@ async def get_bbox_carteira_dsr(filtros: FiltrosMapa = Depends(), db: AsyncSessi
     where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "nr_proposta", "nr_instrumento"})
 
     sql = f"""
-        SELECT
-            ST_XMin(ext) AS xmin,
-            ST_YMin(ext) AS ymin,
-            ST_XMax(ext) AS xmax,
-            ST_YMax(ext) AS ymax
-        FROM (
-            SELECT ST_Extent(ST_Transform(geom, 4326)) AS ext
+        WITH 
+        uniao AS (
+            SELECT cod_tci, nr_proposta, nr_instrumento, cod_uf, cod_municipio, geom
             FROM instrumento.vw_geometrias_carteira_dsr
+            UNION
+            SELECT cod_tci, nr_proposta, nr_instrumento::INT, cod_uf, cod_municipio, geom
+            FROM instrumento.vw_geometrias_carteira_drf
+        ),
+        filtrado AS (
+            SELECT *
+            FROM uniao
+            {f"WHERE {where_filtro}" if where_filtro else ""}
+        ),
+        bbox AS (
+            SELECT ST_Extent(ST_Transform(geom, 4326)) AS box
+            FROM filtrado
+        )
+        SELECT
+            ST_XMin(box) AS xmin,
+            ST_YMin(box) AS ymin,
+            ST_XMax(box) AS xmax,
+            ST_YMax(box) AS ymax
+        FROM bbox
     """
-    if where_filtro:
-        sql += f"""
-            WHERE {where_filtro}
-        """
 
-    sql += """) t"""
-
-        
+            
     result = await _execute_query(db, sql, params_filtro)
     row = result.mappings().first()
     return row
+
 
 
 # bounding box das localidades
@@ -1144,6 +1167,8 @@ async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMa
         SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom', 'nr_instrumento') AS mvt
         FROM (
             SELECT
+                cod_tci_num,
+                cod_tci,
                 nr_instrumento,
                 nr_instrumento::VARCHAR AS instrumento,
                 nr_proposta,
@@ -1152,6 +1177,7 @@ async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMa
                 componente,
                 objeto,
                 link_transferegov,
+                link_saci,
                 ST_AsMVTGeom(
                     geom,
                     ST_TileEnvelope(:z, :x, :y),
@@ -1172,6 +1198,70 @@ async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMa
         media_type="application/x-protobuf",
         headers={"Cache-Control": "public, max-age=300"}
     )
+
+
+
+# geometrias da carteira drf
+@router.get("/geometrias_carteira_drf/{z}/{x}/{y}.pbf", summary="Geometrias da Carteira DRF")
+async def get_geometrias_carteira_drf(z: int, x: int, y: int, filtros: FiltrosMapa = Depends(), db: AsyncSession = Depends(get_db)):
+
+    
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "nr_proposta", "nr_instrumento", "semiarido_2022", "amazonia_legal", "vale_jequetinhonha"})
+    
+    base_where = """
+        geom && ST_TileEnvelope(:z, :x, :y)
+        AND (
+            CAST(:cod_catmetropol AS int[]) IS NULL
+            OR EXISTS (
+                SELECT 1
+                FROM territorio.vw_categoria_metropolitana_municipio cm
+                WHERE cm.cod_municipio = ct.cod_municipio
+                AND cm.cod_catmetropol = ANY(CAST(:cod_catmetropol AS int[]))
+            )
+        )
+    """
+
+    if where_filtro:
+        base_where += f" AND {where_filtro}"
+    
+    params = {"z": z, "x": x, "y": y, "cod_catmetropol": filtros.cod_catmetropol}
+    params.update(params_filtro)
+
+    sql = f"""
+        SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom', 'cod_tci_num') AS mvt
+        FROM (
+            SELECT
+                cod_tci_num,
+                cod_tci,
+                nr_instrumento,
+                nr_proposta,
+                tipo_instrumento,
+                acao_padronizada,
+                objeto,
+                link_transferegov,
+                link_saci,
+                ST_AsMVTGeom(
+                    geom,
+                    ST_TileEnvelope(:z, :x, :y),
+                    4096,
+                    256,
+                    true
+                ) AS geom
+            FROM instrumento.vw_geometrias_carteira_drf ct
+            WHERE {base_where}
+        ) AS tile;
+    """
+    
+
+    result = await _execute_query(db, sql, params)
+    row = result.fetchone()
+    return Response(
+        content=row.mvt if row and row.mvt else b"",
+        media_type="application/x-protobuf",
+        headers={"Cache-Control": "public, max-age=300"}
+    )
+
+
 
 
 # investimentos em saneamento
