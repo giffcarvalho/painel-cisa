@@ -22,7 +22,7 @@ export default function ExtratorPreviewPdf({ tipoTabelaLabel, columns, rows }) {
   return (
     <Document>
       <Page size="A4" orientation="landscape" style={styles.page}>
-        <Text style={styles.title}>Portal DSR</Text>
+        <Text style={styles.title}>Painel DSR</Text>
         <Text style={styles.subtitle}>
           Extrator de Dados - {tipoTabelaLabel} - Previa visivel
         </Text>

@@ -109,7 +109,7 @@ export default function Home() {
 
               <div className="h-px w-5/12 ml-[76px] bg-black/[0.06] my-0.5 rounded-full" />
 
-              {/* Item 4: Consulta Personalizada 
+              {/* Item 4: Consulta Personalizada */}
               <Link to="/consulta-personalizada" className={`group ${styles.editorialRow}`}>
                 <div className="flex items-center gap-5">
                   <div className={styles.iconWrapperSecondary}>
@@ -118,10 +118,9 @@ export default function Home() {
                   <div className="flex flex-col">
                     <span className={styles.rowTitle}>Consulta Personalizada</span>
                     <span className={styles.rowDesc}>
-                      Extração de dados.
+                      Monte consultas personalizadas a partir das bases do Painel DSR.
                     </span>
                   </div>
-                  <span className={styles.badgeSoon}>Em desenvolvimento</span>
                 </div>
 
                 <div className={styles.customArrow}>
@@ -130,7 +129,7 @@ export default function Home() {
                 </div>
               </Link>
 
-              <div className="h-px w-5/12 ml-[76px] bg-black/[0.06] my-0.5 rounded-full" />*/}
+              <div className="h-px w-5/12 ml-[76px] bg-black/[0.06] my-0.5 rounded-full" />
 
               {/* Item 5: Manual do Usuário */}
               <Link to="/manual" className={`group ${styles.editorialRow}`}>

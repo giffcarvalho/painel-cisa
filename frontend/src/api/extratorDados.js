@@ -36,15 +36,17 @@ export const extratorDadosApi = {
   },
 
   getCatalogo: async (tipoTabela) => {
-    const { data } = await api.get('/extrator-dados/catalogo', {
-      params: { tipo_tabela: tipoTabela },
-    })
-    return data
+  const { data } = await api.get('/extrator-dados/catalogo', {
+    params: { tipo_tabela: tipoTabela },
+    headers: { 'Cache-Control': 'no-cache' },
+  })
+  return data
   },
 
   getFiltros: async (tipoTabela) => {
     const { data } = await api.get('/extrator-dados/filtros', {
       params: { tipo_tabela: tipoTabela },
+      headers: { 'Cache-Control': 'no-cache' },
     })
     return data
   },

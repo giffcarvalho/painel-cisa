@@ -14,7 +14,8 @@ export function useCatalogoExtrator(tipoTabela) {
     queryKey: ['extrator-dados', 'catalogo', tipoTabela],
     queryFn: () => extratorDadosApi.getCatalogo(tipoTabela),
     enabled: Boolean(tipoTabela),
-    staleTime: 60 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: 'always',
   })
 }
 
@@ -23,7 +24,8 @@ export function useFiltrosExtrator(tipoTabela) {
     queryKey: ['extrator-dados', 'filtros', tipoTabela],
     queryFn: () => extratorDadosApi.getFiltros(tipoTabela),
     enabled: Boolean(tipoTabela),
-    staleTime: 30 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: 'always',
   })
 }
 

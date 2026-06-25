@@ -229,7 +229,7 @@ export default function FiltrosExtrator({
       numero="2"
       titulo="Recorte dos dados"
       descricao="Aplique filtros para delimitar o universo da tabela.">
-      <div className={styles.buttonCluster} style={{ justifyContent: 'flex-start', marginBottom: 12 }}>
+      <div className={`${styles.buttonCluster} ${styles.filterActionCluster}`}>
         <button
           type="button"
           className={styles.ghostButton}
@@ -280,7 +280,7 @@ export default function FiltrosExtrator({
       )}
 
       {filtrosAvancados.length > 0 && (
-        <div className={styles.buttonCluster} style={{ justifyContent: 'flex-start', marginTop: 14 }}>
+        <div className={`${styles.buttonCluster} ${styles.advancedFiltersAction}`}>
           <button
             type="button"
             className={styles.ghostButton}

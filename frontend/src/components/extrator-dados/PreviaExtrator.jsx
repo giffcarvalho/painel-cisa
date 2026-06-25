@@ -14,7 +14,7 @@ const formatBoolean = (value) => {
 }
 
 const formatCell = (value, column) => {
-  if (value === null || value === undefined || value === '') return '—'
+  if (value === null || value === undefined || value === '') return '-'
   if (column?.formato === 'brl') return formatCurrency(Number(value))
   if (column?.formato === 'date' || column?.formato === 'datetime') return formatDate(value)
   if (column?.formato === 'percent') return formatPercentualPontos(value)
@@ -35,20 +35,19 @@ export default function PreviaExtrator({
   previewDisabled,
   exportDisabled,
   filtrosAtivosCount = 0,
+  previewGerada = false,
+  maxColumns = 80,
 }) {
   const rows = preview?.data || []
   const columns = preview?.columns || selectedColumns
+  const exportacaoDisponivel = previewGerada && Boolean(preview)
 
   return (
     <section className={`${styles.panel} ${styles.previewPanel}`}>
       <div className={styles.panelHeader}>
-        <div className={styles.previewSummary}>
-          <span>{selectedColumns.length} coluna(s) selecionada(s)</span>
-          <span>{filtrosAtivosCount} filtro(s) aplicado(s)</span>
-        </div>
         <div>
-          <h2>4. Prévia e exportação</h2>
-          <p>Confira as primeiras 50 linhas antes de baixar a planilha.</p>
+          <h2>Prévia da consulta</h2>
+          <p>A tabela é gerada somente depois que a configuração for selecionada.</p>
         </div>
 
         <div className={styles.buttonCluster}>
@@ -57,25 +56,64 @@ export default function PreviaExtrator({
             Gerar prévia
           </button>
 
-          <button type="button" className={styles.successButton} disabled={exportDisabled} onClick={onExport}>
-            {isExporting ? <Loader2 className={styles.spinIcon} /> : <Download size={16} />}
-            Exportar Excel
-          </button>
+          {exportacaoDisponivel && (
+            <button type="button" className={styles.successButton} disabled={exportDisabled} onClick={onExport}>
+              {isExporting ? <Loader2 className={styles.spinIcon} /> : <Download size={16} />}
+              Exportar Excel
+            </button>
+          )}
         </div>
       </div>
 
+      <div className={styles.previewSummary}>
+        <span>{selectedColumns.length} coluna(s) selecionada(s)</span>
+        <span>{filtrosAtivosCount} filtro(s) aplicado(s)</span>
+      </div>
+
       {!tipoTabela ? (
-        <div className={styles.emptyState}>Escolha o tipo de tabela para começar.</div>
+        <div className={styles.emptyState}>
+          <div className={styles.emptyStateContent}>
+            <strong>Escolha uma base para começar.</strong>
+            <span>Depois selecione as colunas e gere uma prévia.</span>
+          </div>
+        </div>
       ) : selectedColumns.length === 0 ? (
-        <div className={styles.emptyState}>Selecione pelo menos uma coluna.</div>
+        <div className={styles.emptyState}>
+          <div className={styles.emptyStateContent}>
+            <strong>Selecione ao menos uma coluna para gerar a prévia.</strong>
+            <span>A prévia será habilitada quando a seleção estiver válida.</span>
+          </div>
+        </div>
+      ) : selectedColumns.length > maxColumns ? (
+        <div className={styles.emptyState}>
+          <div className={styles.emptyStateContent}>
+            <strong>Há colunas selecionadas acima do limite.</strong>
+            <span>Reduza a seleção para no máximo {maxColumns} colunas.</span>
+          </div>
+        </div>
       ) : isLoading ? (
-        <div className={styles.emptyState}>Carregando prévia...</div>
+        <div className={styles.emptyState}>
+          <div className={styles.emptyStateContent}>
+            <strong>Gerando prévia...</strong>
+            <span>Buscando as primeiras linhas da consulta.</span>
+          </div>
+        </div>
       ) : error ? (
         <div className={styles.errorBox}>Erro ao carregar prévia: {getErrorMessage(error)}</div>
-      ) : !preview ? (
-        <div className={styles.emptyState}>Clique em Gerar prévia para visualizar os dados.</div>
+      ) : !previewGerada || !preview ? (
+        <div className={styles.emptyState}>
+          <div className={styles.emptyStateContent}>
+            <strong>Configure a consulta antes de visualizar a tabela.</strong>
+            <span>A exportação ficará disponível depois que a prévia for gerada.</span>
+          </div>
+        </div>
       ) : rows.length === 0 ? (
-        <div className={styles.emptyState}>Nenhum resultado encontrado para os filtros selecionados.</div>
+        <div className={styles.emptyState}>
+          <div className={styles.emptyStateContent}>
+            <strong>Nenhum resultado encontrado.</strong>
+            <span>Revise os filtros ou a base selecionada.</span>
+          </div>
+        </div>
       ) : (
         <>
           <div className={styles.previewMeta}>

@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import ResumoConfiguracao from '@/components/extrator-dados/ResumoConfiguracao'
-import ModelosCampos from '@/components/extrator-dados/ModelosCampos'
 import {
   useCatalogoExtrator,
   useExportarExcelExtrator,
@@ -14,20 +13,22 @@ import SelecaoColunas from '@/components/extrator-dados/SelecaoColunas'
 import PreviaExtrator from '@/components/extrator-dados/PreviaExtrator'
 import styles from './ConsultaPersonalizada.module.css'
 
+const MAX_COLUNAS_EXPORTACAO = 80
+
 const TIPOS_FALLBACK = [
   {
     id: 'municipio',
-    label: 'Por município',
+    label: 'Por Município',
     descricao: 'Cada linha representa um município.',
   },
   {
     id: 'setor_censitario',
-    label: 'Por setor censitário',
+    label: 'Por Setor Censitário',
     descricao: 'Cada linha representa um setor censitário.',
   },
   {
     id: 'instrumento',
-    label: 'Por instrumento DSR',
+    label: 'Por Instrumento DSR',
     descricao: 'Cada linha representa um instrumento, proposta ou registro da Carteira DSR.',
   },
 ]
@@ -60,59 +61,13 @@ const downloadBlob = (response, fallbackName) => {
   window.URL.revokeObjectURL(url)
 }
 
-const MODELOS_CAMPOS = {
-  resumo_territorial: {
-    label: 'Resumo territorial',
-    descricao: 'Município, UF, região, população, domicílios e indicadores principais.',
-    termos: ['nome', 'sigla_uf', 'regiao', 'populacao', 'domicilios', 'dppo_total', 'deficit'],
-  },
-  carteira_dsr: {label: 'Carteira DSR',
-    descricao: 'Instrumento, proposta, fase, situação, valores e datas.',
-    termos: ['instrumento', 'proposta', 'fase', 'situacao', 'valor', 'data', 'carteira'],
-  },
-  agua_esgoto: {
-    label: 'Água e esgoto',
-    descricao: 'Indicadores de abastecimento, esgotamento e atendimento.',
-    termos: ['agua', 'esgoto'],
-  },
-  completo: {label: 'Completo',
-    descricao: 'Inclui campos principais e complementares da base escolhida.',
-    termos: [],
-  },
-  personalizado: {
-    label: 'Personalizado',
-    descricao: 'Escolher manualmente coluna por coluna.',
-    termos: [],
-  },
-}
-
 const contarFiltrosAtivos = (filtros = {}) =>
   Object.values(filtros).filter((value) => Array.isArray(value) && value.length > 0).length
 
-const selecionarCamposPorModelo = (campos, modeloId) => {
-  const camposVisiveis = campos.filter((campo) => campo.visivel)
-
-  if (modeloId === 'personalizado') return []
-  if (modeloId === 'completo') return camposVisiveis.map((campo) => campo.id)
-
-  const modelo = MODELOS_CAMPOS[modeloId]
-  if (!modelo) return campos.filter((campo) => campo.padrao).map((campo) => campo.id)
-
-  const selecionados = camposVisiveis.filter((campo) => {
-    const base = `${campo.column} ${campo.label} ${campo.grupo}`.toLocaleLowerCase('pt-BR')
-    return campo.padrao || modelo.termos.some((termo) => base.includes(termo))
-  })
-
-  return selecionados.map((campo) => campo.id)
-}
-
 export default function ConsultaPersonalizada() {
-  const [tipoTabela, setTipoTabela] = useState('municipio')
+  const [tipoTabela, setTipoTabela] = useState('')
   const [filtros, setFiltros] = useState({})
   const [fieldIds, setFieldIds] = useState([])
-
-  const [modeloCamposSelecionado, setModeloCamposSelecionado] = useState('resumo_territorial')
-  const [mostrarSelecaoManual, setMostrarSelecaoManual] = useState(false)
   const [filtrosAvancadosAbertos, setFiltrosAvancadosAbertos] = useState(false)
   const [previewGerada, setPreviewGerada] = useState(false)
 
@@ -143,38 +98,12 @@ export default function ConsultaPersonalizada() {
     [fieldIds, filtros, tipoTabela]
   )
 
-  const selecionarCamposPadrao = () => {
-    setFieldIds(campos.filter((campo) => campo.padrao).map((campo) => campo.id))
-  }
-
-  const handleSelecionarModeloCampos = (modeloId) => {
-    setModeloCamposSelecionado(modeloId)
-    previaMutation.reset()
-    exportMutation.reset()
-    setPreviewGerada(false)
-
-    if (modeloId === 'personalizado') {
-      setMostrarSelecaoManual(true)
-      return
-    }
-
-    setMostrarSelecaoManual(false)
-    setFieldIds(selecionarCamposPorModelo(campos, modeloId))
-  }
-
-  useEffect(() => {
-    if (!campos.length) return
-    setFieldIds(campos.filter((campo) => campo.padrao).map((campo) => campo.id))
-  }, [tipoTabela, catalogoQuery.dataUpdatedAt])
-
   const trocarTipoTabela = (nextTipoTabela) => {
     setTipoTabela(nextTipoTabela)
     setFiltros({})
     setFieldIds([])
     previaMutation.reset()
     exportMutation.reset()
-    setModeloCamposSelecionado('resumo_territorial')
-    setMostrarSelecaoManual(false)
     setFiltrosAvancadosAbertos(false)
     setPreviewGerada(false)
   }
@@ -193,8 +122,12 @@ export default function ConsultaPersonalizada() {
     setPreviewGerada(false)
   }
 
+  const selecionarCamposPadrao = () => {
+    atualizarColunas(campos.filter((campo) => campo.padrao).map((campo) => campo.id))
+  }
+
   const gerarPrevia = () => {
-    if (!tipoTabela || fieldIds.length === 0) return
+    if (!tipoTabela || fieldIds.length === 0 || fieldIds.length > MAX_COLUNAS_EXPORTACAO) return
 
     previaMutation.mutate(
       {
@@ -208,7 +141,7 @@ export default function ConsultaPersonalizada() {
   }
 
   const exportarExcel = async () => {
-    if (!tipoTabela || fieldIds.length === 0) return
+    if (!tipoTabela || fieldIds.length === 0 || fieldIds.length > MAX_COLUNAS_EXPORTACAO) return
 
     const response = await exportMutation.mutateAsync({
       ...payload,
@@ -220,13 +153,12 @@ export default function ConsultaPersonalizada() {
 
   return (
     <main className={styles.page}>
-      <header className={styles.hero}>
+      <header className={styles.header}>
         <div>
-          <span className={styles.eyebrow}>Portal DSR</span>
-          <h1>Extrator de Dados</h1>
+          <h1>Consulta Personalizada</h1>
           <p>
-            Monte tabelas personalizadas sem precisar consultar banco de dados.
-            Escolha a unidade da tabela, aplique filtros, selecione colunas e gere uma prévia antes de exportar.
+            Monte uma tabela a partir das bases do Painel DSR, selecione colunas por tema,
+            aplique filtros e gere uma prévia antes da exportação.
           </p>
         </div>
 
@@ -237,62 +169,75 @@ export default function ConsultaPersonalizada() {
         />
       </header>
 
-      <TipoTabelaCards
-        tipos={tipos}
-        value={tipoTabela}
-        onChange={trocarTipoTabela}
-        isLoading={tiposQuery.isLoading}
-        isError={tiposQuery.isError}
-      />
-
-      <FiltrosExtrator
-        tipoTabela={tipoTabela}
-        filtrosDisponiveis={filtrosDisponiveis}
-        value={filtros}
-        onChange={atualizarFiltros}
-        onClear={() => atualizarFiltros({})}
-        isLoading={filtrosQuery.isLoading}
-        isError={filtrosQuery.isError}
-        avancadosAbertos={filtrosAvancadosAbertos}
-        onToggleAvancados={() => setFiltrosAvancadosAbertos((current) => !current)}
-      />
-
-      <ModelosCampos
-        modelos={MODELOS_CAMPOS}
-        value={modeloCamposSelecionado}
-        onChange={handleSelecionarModeloCampos}
-        selectedCount={fieldIds.length}
-        onAjustar={() => setMostrarSelecaoManual(true)}
-      />
-
-      {mostrarSelecaoManual && (
-        <SelecaoColunas
-          campos={campos}
-          selected={fieldIds}
-          onChange={atualizarColunas}
-          onSelectDefaults={selecionarCamposPadrao}
-          onClear={() => atualizarColunas ([])}
-          isLoading={catalogoQuery.isLoading}
-          isError={catalogoQuery.isError}
+      <div className={styles.queryBar}>
+        <TipoTabelaCards
+          tipos={tipos}
+          value={tipoTabela}
+          onChange={trocarTipoTabela}
+          isLoading={tiposQuery.isLoading}
+          isError={tiposQuery.isError}
         />
-      )}
+      </div>
 
-      <PreviaExtrator
-        tipoTabela={tipoTabela}
-        selectedColumns={selectedColumns}
-        preview={previaMutation.data}
-        isLoading={previaMutation.isPending}
-        error={previaMutation.error}
-        onPreview={gerarPrevia}
-        onExport={exportarExcel}
-        isExporting={exportMutation.isPending}
-        exportError={exportMutation.error}
-        previewDisabled={!tipoTabela || fieldIds.length === 0 || previaMutation.isPending || catalogoQuery.isLoading}
-        exportDisabled={!previewGerada || !tipoTabela || fieldIds.length === 0 || exportMutation.isPending || catalogoQuery.isLoading}
-        filtros={filtros}
-        filtrosAtivosCount={contarFiltrosAtivos(filtros)}
-        previewGerada={previewGerada}
-      />
+      <section className={styles.workbench}>
+        <aside className={styles.configRail} aria-label="Filtros da consulta">
+          <FiltrosExtrator
+            tipoTabela={tipoTabela}
+            filtrosDisponiveis={filtrosDisponiveis}
+            value={filtros}
+            onChange={atualizarFiltros}
+            onClear={() => atualizarFiltros({})}
+            isLoading={filtrosQuery.isLoading}
+            isError={filtrosQuery.isError}
+            avancadosAbertos={filtrosAvancadosAbertos}
+            onToggleAvancados={() => setFiltrosAvancadosAbertos((current) => !current)}
+          />
+        </aside>
+
+        <div className={styles.mainColumn}>
+          <SelecaoColunas
+            tipoTabela={tipoTabela}
+            campos={campos}
+            selected={fieldIds}
+            onChange={atualizarColunas}
+            onSelectDefaults={selecionarCamposPadrao}
+            onClear={() => atualizarColunas([])}
+            isLoading={catalogoQuery.isLoading}
+            isError={catalogoQuery.isError}
+            maxColumns={MAX_COLUNAS_EXPORTACAO}
+          />
+
+          <PreviaExtrator
+            tipoTabela={tipoTabela}
+            selectedColumns={selectedColumns}
+            preview={previaMutation.data}
+            isLoading={previaMutation.isPending}
+            error={previaMutation.error}
+            onPreview={gerarPrevia}
+            onExport={exportarExcel}
+            isExporting={exportMutation.isPending}
+            exportError={exportMutation.error}
+            previewDisabled={
+              !tipoTabela ||
+              fieldIds.length === 0 ||
+              fieldIds.length > MAX_COLUNAS_EXPORTACAO ||
+              previaMutation.isPending ||
+              catalogoQuery.isLoading
+            }
+            exportDisabled={
+              !previewGerada ||
+              !tipoTabela ||
+              fieldIds.length === 0 ||
+              fieldIds.length > MAX_COLUNAS_EXPORTACAO ||
+              exportMutation.isPending ||
+              catalogoQuery.isLoading
+            }
+            filtrosAtivosCount={contarFiltrosAtivos(filtros)}
+            previewGerada={previewGerada}
+            maxColumns={MAX_COLUNAS_EXPORTACAO}
+          />
+        </div>
+      </section>
     </main>
   )
 }

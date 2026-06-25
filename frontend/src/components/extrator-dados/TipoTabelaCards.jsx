@@ -1,24 +1,21 @@
-import { Building2, Check, FileText, MapPinned } from 'lucide-react'
+import { Check } from 'lucide-react'
 import SecaoEtapa from './SecaoEtapa'
 import styles from './ExtratorDados.module.css'
 
 const DETAILS = {
   municipio: {
-    icon: Building2,
     titulo: 'Município',
     texto: 'Tabela territorial agregada.',
     linha: '1 município',
     ideal: 'indicadores territoriais',
   },
   setor_censitario: {
-    icon: MapPinned,
-    titulo: 'Setor censitário',
+    titulo: 'Setor Censitário',
     texto: 'Tabela detalhada por setor.',
     linha: '1 setor censitário',
     ideal: 'análises censitárias e urbano/rural',
   },
   instrumento: {
-    icon: FileText,
     titulo: 'Instrumento DSR',
     texto: 'Tabela por proposta, instrumento ou registro.',
     linha: '1 instrumento/proposta/registro',
@@ -46,20 +43,12 @@ export default function TipoTabelaCards({ tipos, value, onChange, isLoading, isE
               onClick={() => onChange(tipo.id)}
             >
               <span className={styles.tipoCardTop}>
-                <Icon size={18} />
                 <strong>{detail.titulo}</strong>
-                {active && <Check size={16} />}
+                {active && <Check size={13} aria-hidden="true" />}
               </span>
 
               <span className={styles.tipoCardText}>{detail.texto}</span>
               <span className={styles.tipoCardLine}>Cada linha representa: {detail.linha}</span>
-
-              {active && (
-                <span className={styles.tipoCardDetails}>
-                  <span>Ideal para: {detail.ideal}</span>
-                  {tipo.view && <span>Fonte principal: {tipo.view}</span>}
-                </span>
-              )}
             </button>
           )
         })}
