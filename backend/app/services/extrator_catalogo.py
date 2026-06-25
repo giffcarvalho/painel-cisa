@@ -741,7 +741,3 @@ def listar_campos(tipo_tabela: str) -> list[dict]:
         for field in FIELD_CATALOG
         if field["tipo_tabela"] == tipo_tabela
     ]
-
-
-def obter_campo(field_id: str) -> dict | None:
-    return FIELD_BY_ID.get(field_id)

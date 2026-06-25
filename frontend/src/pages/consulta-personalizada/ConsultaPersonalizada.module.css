@@ -190,28 +190,6 @@
   font-size: 18px;
 }
 
-.tipoGrid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.tipoCard {
-  display: inline-flex;
-  min-height: 34px;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 0 11px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #374151;
-  text-align: left;
-  cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
-
 .tipoCard:hover {
   border-color: #9ca3af;
   background: #f9fafb;
@@ -221,17 +199,6 @@
   border-color: #2563eb;
   background: #eff6ff;
   color: #1d4ed8;
-}
-
-.tipoTitle {
-  color: inherit;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.tipoDescription,
-.tipoHint {
-  display: none;
 }
 
 .buttonCluster {
@@ -940,8 +907,7 @@
   line-height: 1.4;
 }
 
-.errorBox,
-.inlineError {
+.errorBox {
   margin-top: 12px;
   padding: 12px;
   border: 1px solid #fecaca;
@@ -950,12 +916,6 @@
   color: #b91c1c;
   font-size: 13px;
   font-weight: 700;
-}
-
-.miniState {
-  margin-bottom: 12px;
-  color: #6b7280;
-  font-size: 13px;
 }
 
 .spinIcon {

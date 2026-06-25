@@ -7,19 +7,16 @@ const DETAILS = {
     titulo: 'Município',
     texto: 'Tabela territorial agregada.',
     linha: '1 município',
-    ideal: 'indicadores territoriais',
   },
   setor_censitario: {
     titulo: 'Setor Censitário',
     texto: 'Tabela detalhada por setor.',
     linha: '1 setor censitário',
-    ideal: 'análises censitárias e urbano/rural',
   },
   instrumento: {
     titulo: 'Instrumento DSR',
     texto: 'Tabela por proposta, instrumento ou registro.',
     linha: '1 instrumento/proposta/registro',
-    ideal: 'acompanhamento da Carteira DSR',
   },
 }
 
@@ -32,7 +29,6 @@ export default function TipoTabelaCards({ tipos, value, onChange, isLoading, isE
       <div className={styles.tipoGridCompact}>
         {tipos.map((tipo) => {
           const detail = DETAILS[tipo.id] || DETAILS.municipio
-          const Icon = detail.icon
           const active = tipo.id === value
 
           return (
