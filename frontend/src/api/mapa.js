@@ -227,3 +227,9 @@ export function urlGeometriasCarteiraDsr(filtros={}) {
   const params = toParams(filtros);
   return `${API_URL}/mapa/geometrias_carteira_dsr/{z}/{x}/{y}.pbf?${params}`
 }
+
+
+export function urlGeometriasCarteiraDrf(filtros={}) {
+  const params = toParams(filtros);
+  return `${API_URL}/mapa/geometrias_carteira_drf/{z}/{x}/{y}.pbf?${params}`
+}
