@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Info , Wallet, Sprout, Map, Activity, FileSearch, PackageSearch } from 'lucide-react'
 import styles from './Home.module.css'
-import marcaMcid from '../../assets/marca-mcid.png'
+import marcaMcid from '../../assets/marca-mcid-atz.png'
 
 export default function Home() {
   return (

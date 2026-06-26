@@ -1,4 +1,4 @@
-import logoMcid from '../../assets/logo-mcid.png';
+import logoMcid from '../../assets/teste.png';
 
 export function Header() {
   return (
@@ -8,7 +8,7 @@ export function Header() {
         <img
           src={logoMcid}
           alt="Ministério das Cidades"
-          className="h-9 w-auto object-contain"
+          className="h-13 w-auto object-contain"
         />
 
         {/* Divisor Visual Suave */}
