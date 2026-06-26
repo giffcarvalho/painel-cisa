@@ -57,6 +57,7 @@ export default function DetalheSection ({ setPainelDetalhe }) {
             </div>
             
             <div className={estilos.informacoesGerais}>
+                <p>Código IBGE: <strong>{dadosMunicipios?.cod_municipio}</strong></p>
                 <p>População (2022): <strong>{dadosMunicipios?.populacao_total_censo_2022?.toLocaleString("pt-BR")}</strong></p>
                 <p>Categoria Metropolitana: <strong>{dadosMunicipios?.label_catmetropol}</strong></p>
                 <p>RM prioritária: <strong>{dadosMunicipios?.rm_prioritaria}</strong></p>
