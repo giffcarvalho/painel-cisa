@@ -20,6 +20,7 @@ import {
     urlUfs,
     urlBboxMunicipios,
     urlGeometriasCarteiraDsr,
+    urlGeometriasCarteiraDrf,
     urlBboxCarteiraDsr,
     urlBboxLocalidades,
     urlBboxEnderecos,
@@ -104,13 +105,25 @@ export default function MapaSection() {
             ] 
         }},
         { id: "localidades_2022_labels", nome: "Nome das Localidades", visivel: true, dependencias: ["localidades_2022"], mostrarPainel: false },
-        { id: "geometrias_carteira_dsr", nome: "Carteira DSR", visivel: false, minzoom: 4, simbologia: {
-            tipo: "categorica", simbolo: "ponto", atributo: "acao_padronizada", classes: [
+        { id: "geometrias_carteira_dsr", nome: "Carteira ativa DSR", visivel: false, minzoom: 3, simbologia: {
+            tipo: "categorica", simbolo: "ponto", atributo: "modalidade", classes: [
                 {valor: "Saneamento Rural", label: "Saneamento Rural", cor: "#f8cdcd", strokeColor: "#0092be", strokeWidth: 3.0},
                 {valor: "Capacitação - PMSB", label: "Capacitação - PMSB", cor: "#f5df4d", strokeColor: "#0092be", strokeWidth: 3.0},
                 {valor: "Abastecimento de Água", label: "Abastecimento de Água", cor: "#0071bd", strokeColor: "#0092be", strokeWidth: 3.0},
                 {valor: "Esgotamento Sanitário", label: "Esgotamento Sanitário", cor: "#96710b", strokeColor: "#0092be", strokeWidth: 3.0},
                 {valor: "MSD", label: "MSD", cor: "#c800e2", strokeColor: "#0092be", strokeWidth: 3.0},
+            ] 
+        }},
+        { id: "geometrias_carteira_drf", nome: "Carteira ativa DRF", visivel: false, minzoom: 3, simbologia: {
+            tipo: "categorica", simbolo: "ponto", atributo: "modalidade", classes: [
+                {valor: "Desenvolvimento Institucional", label: "Desenvolvimento Institucional", cor: "#f8cdcd", strokeColor: "#ff5cdc", strokeWidth: 3.0},
+                {valor: "Redução e Controle de Perdas", label: "Redução e Controle de Perdas", cor: "#f5df4d", strokeColor: "#ff5cdc", strokeWidth: 3.0},
+                {valor: "Estudos e Projetos", label: "Estudos e Projetos", cor: "#17e904", strokeColor: "#ff5cdc", strokeWidth: 3.0},
+                {valor: "Esgotamento Sanitário", label: "Esgotamento Sanitário", cor: "#96710b", strokeColor: "#ff5cdc", strokeWidth: 3.0},
+                {valor: "Saneamento Integrado", label: "Saneamento Integrado", cor: "#c800e2", strokeColor: "#ff5cdc", strokeWidth: 3.0},
+                {valor: "Abastecimento de Água", label: "Abastecimento de Água", cor: "#0071bd", strokeColor: "#ff5cdc", strokeWidth: 3.0},
+                {valor: "Manejo de Resíduos Sólidos", label: "Manejo de Resíduos Sólidos", cor: "#006c7a", strokeColor: "#ff5cdc", strokeWidth: 3.0},
+                {valor: "Manejo de Águas Pluviais", label: "Manejo de Águas Pluviais", cor: "#7f7a80", strokeColor: "#ff5cdc", strokeWidth: 3.0},
             ] 
         }},
         { id: "informacoes_municipais", 
@@ -207,7 +220,8 @@ export default function MapaSection() {
             map.addSource("ufs", {type: "vector", tiles: [urlUfs(filtros)], minzoom: 3, maxzoom: 20});
             map.addSource("enderecos_2022", {type: "vector", tiles: [urlEnderecos2022(filtros)], minzoom: 13, maxzoom: 20});
             map.addSource("localidades_2022", {type: "vector", tiles: [urlLocalidades2022(filtros)], minzoom: 9, maxzoom: 20});
-            map.addSource("geometrias_carteira_dsr", {type: "vector", tiles: [urlGeometriasCarteiraDsr(filtros)], minzoom: 4, maxzoom: 20});
+            map.addSource("geometrias_carteira_dsr", {type: "vector", tiles: [urlGeometriasCarteiraDsr(filtros)], minzoom: 3, maxzoom: 20});
+            map.addSource("geometrias_carteira_drf", {type: "vector", tiles: [urlGeometriasCarteiraDrf(filtros)], minzoom: 3, maxzoom: 20});
 
 
             
@@ -395,13 +409,28 @@ export default function MapaSection() {
                 id: "geometrias_carteira_dsr",
                 type: "circle",
                 source: "geometrias_carteira_dsr", "source-layer": "pontos",
-                layout:{visibility: layers.find(l=>l.id==="geometrias_carteira_dsr")?.visivel? "visible": "none"},
+                layout:{visibility: carteira?.visivel? "visible": "none"},
                 minzoom: carteira?.minzoom,
                 paint: {
                     "circle-radius": ["interpolate", ["linear"], ["zoom"], 4.0, 2.0, 5.0, 3.0, 6.0, 4.0, 7.0, 5.0, 8.0, 6.0],
                     "circle-color": gerarMatch(carteira?.simbologia, "cor", "#000000"),
                     "circle-stroke-color": gerarMatch(carteira?.simbologia, "strokeColor", "#000000"),
                     "circle-stroke-width": gerarMatch(carteira?.simbologia, "strokeWidth", 0),
+                }
+            });
+
+            const carteira_drf = layers.find(l => l.id === "geometrias_carteira_drf");
+            map.addLayer({
+                id: "geometrias_carteira_drf",
+                type: "circle",
+                source: "geometrias_carteira_drf", "source-layer": "pontos",
+                layout:{visibility: carteira_drf?.visivel? "visible": "none"},
+                minzoom: carteira_drf?.minzoom,
+                paint: {
+                    "circle-radius": ["interpolate", ["linear"], ["zoom"], 4.0, 2.0, 5.0, 3.0, 6.0, 4.0, 7.0, 5.0, 8.0, 6.0],
+                    "circle-color": gerarMatch(carteira_drf?.simbologia, "cor", "#000000"),
+                    "circle-stroke-color": gerarMatch(carteira_drf?.simbologia, "strokeColor", "#000000"),
+                    "circle-stroke-width": gerarMatch(carteira_drf?.simbologia, "strokeWidth", 0),
                 }
             });
 
@@ -421,13 +450,13 @@ export default function MapaSection() {
         
         async function aplicarZoom() {
             
-            if (!filtros.cod_uf && !filtros.cod_municipio && !filtros.nr_proposta && !filtros.nr_instrumento && !filtros.cod_localidade && !filtros.cod_dsc_localidade && !filtros.cod_catmetropol) {
+            if (!filtros.cod_uf && !filtros.cod_municipio && !filtros.nr_proposta && !filtros.nr_instrumento && !filtros.modalidade && !filtros.cod_tci && !filtros.cod_localidade && !filtros.cod_dsc_localidade && !filtros.cod_catmetropol) {
                 map.flyTo({ center: [-47.9, -15.8], zoom: 3 });
                 return;
             }
 
-            if (filtros.nr_proposta || filtros.nr_instrumento) {
-                const res = await fetch(urlBboxCarteiraDsr({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento}));
+            if (filtros.nr_proposta || filtros.nr_instrumento || filtros.cod_tci || filtros.modalidade) {
+                const res = await fetch(urlBboxCarteiraDsr({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento, cod_tci: filtros.cod_tci, modalidade: filtros.modalidade}));
                 const { xmin, ymin, xmax, ymax } = await res.json();
                                 
                 if (xmin == null) 
@@ -438,7 +467,7 @@ export default function MapaSection() {
                     return
                 }
 
-                map.fitBounds([[xmin,ymin],[xmax,ymax]], {padding:40, maxZoom:11})
+                map.fitBounds([[xmin,ymin],[xmax,ymax]], {padding:40, maxZoom:8})
                 
                 return
                 
@@ -457,7 +486,7 @@ export default function MapaSection() {
                     return
                 }
 
-                map.fitBounds([[xmin,ymin],[xmax,ymax]], {padding:40, maxZoom:14})
+                map.fitBounds([[xmin,ymin],[xmax,ymax]], {padding:40, maxZoom:13})
                 
                 return
                 
@@ -476,7 +505,7 @@ export default function MapaSection() {
                     return
                 }
 
-                map.fitBounds([[xmin,ymin],[xmax,ymax]], {padding:40, maxZoom:14})
+                map.fitBounds([[xmin,ymin],[xmax,ymax]], {padding:40, maxZoom:13})
                 
                 return
                 
@@ -510,7 +539,7 @@ export default function MapaSection() {
             map.once("load", aplicarZoom)
         };
 
-    }, [filtros.cod_uf, filtros.cod_municipio, filtros.nr_proposta, filtros.nr_instrumento, filtros.cod_localidade, filtros.cod_dsc_localidade, filtros.cod_catmetropol]);
+    }, [filtros.cod_uf, filtros.cod_municipio, filtros.nr_proposta, filtros.nr_instrumento, filtros.cod_tci, filtros.modalidade, filtros.cod_localidade, filtros.cod_dsc_localidade, filtros.cod_catmetropol]);
   
 
 
@@ -545,8 +574,9 @@ export default function MapaSection() {
     }, [filtros.cod_uf, filtros.cod_municipio, filtros.cod_dsc_localidade, filtros.cod_catmetropol]);
 
     useEffect(()=>{
-        atualizarSource("geometrias_carteira_dsr", urlGeometriasCarteiraDsr({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento, cod_catmetropol: filtros.cod_catmetropol, semiarido_2022: filtros.semiarido_2022, amazonia_legal: filtros.amazonia_legal, vale_jequetinhonha: filtros.vale_jequetinhonha}))
-    }, [filtros.cod_uf, filtros.cod_municipio, filtros.nr_proposta, filtros.nr_instrumento, filtros.cod_catmetropol, filtros.semiarido_2022, filtros.amazonia_legal, filtros.vale_jequetinhonha]);
+        atualizarSource("geometrias_carteira_dsr", urlGeometriasCarteiraDsr({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento, cod_tci: filtros.cod_tci, modalidade: filtros.modalidade, cod_catmetropol: filtros.cod_catmetropol, semiarido_2022: filtros.semiarido_2022, amazonia_legal: filtros.amazonia_legal, vale_jequetinhonha: filtros.vale_jequetinhonha}))
+        atualizarSource("geometrias_carteira_drf", urlGeometriasCarteiraDrf({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento, cod_tci: filtros.cod_tci, modalidade: filtros.modalidade, cod_catmetropol: filtros.cod_catmetropol, semiarido_2022: filtros.semiarido_2022, amazonia_legal: filtros.amazonia_legal, vale_jequetinhonha: filtros.vale_jequetinhonha}))
+    }, [filtros.cod_uf, filtros.cod_municipio, filtros.nr_proposta, filtros.nr_instrumento, filtros.cod_tci, filtros.modalidade, filtros.cod_catmetropol, filtros.semiarido_2022, filtros.amazonia_legal, filtros.vale_jequetinhonha]);
     
 
 
@@ -557,7 +587,7 @@ export default function MapaSection() {
         const map = mapRef.current;
         if (!map) return;
 
-        const camadas = [ "enderecos_2022", "setores_censitarios_2022_fill", "geometrias_carteira_dsr", "informacoes_municipais", "informacoes_setores_censitarios"];
+        const camadas = [ "enderecos_2022", "setores_censitarios_2022_fill", "geometrias_carteira_dsr", "geometrias_carteira_drf", "informacoes_municipais", "informacoes_setores_censitarios"];
         
         function handleClick(e) {
             const features = map.queryRenderedFeatures(e.point, { layers: camadas });
@@ -583,6 +613,7 @@ export default function MapaSection() {
             if (f.layer.id === "setores_censitarios_2022_fill") {
                 html += `
                 <strong> Município: </strong> ${props.nome_municipio} <br>
+                <strong> Código IBGE: </strong> ${props.cod_municipio} <br>
                 <br/>
                 <strong> ${props.situacao} </strong> <br>
                 ${props.situacao_detalhada}
@@ -591,15 +622,34 @@ export default function MapaSection() {
 
             if (f.layer.id === "geometrias_carteira_dsr") {
                 html += `
-                <strong> Ação </strong> <br>
-                ${props.acao_padronizada}<br/>
+                <strong> Modalidade </strong> <br>
+                ${props.modalidade}<br/>
                 <br/>
-                <strong> Proposta: </strong> ${props.nr_proposta} <br>
-                <strong> Instrumento: </strong> ${props.instrumento} <br>
+                ${props.nr_proposta != null? `<strong> Proposta: </strong> ${props.nr_proposta} <br>`: ""}
+                ${props.nr_instrumento != null? `<strong> Instrumento: </strong> ${props.nr_instrumento} <br>`: ""}
+                ${props.cod_tci != null? `<strong> Código TCI: </strong> ${props.cod_tci} <br>`: ""}
                 <br/>
                 <strong> Objeto: </strong> ${props.objeto} <br>
                 <br/>
-                <a href="${props.link_transferegov}" target="_blank" rel="noopener noreferrer"> Link Transferegov </a>
+                ${props.link_transferegov? `<a href="${props.link_transferegov}" target="_blank" rel="noopener noreferrer">Link Transferegov</a><br>`: ""}
+                ${props.link_saci? `<a href="${props.link_saci}" target="_blank" rel="noopener noreferrer">Link Saci</a>`: ""}
+                `; 
+            }
+
+
+            if (f.layer.id === "geometrias_carteira_drf") {
+                html += `
+                <strong> Modalidade </strong> <br>
+                ${props.modalidade}<br/>
+                <br/>
+                ${props.nr_proposta != null? `<strong> Proposta: </strong> ${props.nr_proposta} <br>`: ""}
+                ${props.nr_instrumento != null? `<strong> Instrumento: </strong> ${props.nr_instrumento} <br>`: ""}
+                ${props.cod_tci != null? `<strong> Código TCI: </strong> ${props.cod_tci} <br>`: ""}
+                <br/>
+                <strong> Objeto: </strong> ${props.objeto} <br>
+                <br/>
+                ${props.link_transferegov? `<a href="${props.link_transferegov}" target="_blank" rel="noopener noreferrer">Link Transferegov</a><br>`: ""}
+                ${props.link_saci? `<a href="${props.link_saci}" target="_blank" rel="noopener noreferrer">Link Saci</a>`: ""}
                 `; 
             }
 
@@ -608,7 +658,7 @@ export default function MapaSection() {
                 
                 html += `
                     <strong>Situação:</strong> ${props.situacao}<br>
-                    <strong>Município:</strong> ${props.nome_municipio}<br>
+                    <strong>Município:</strong> ${props.nome_municipio}<br> 
                     <strong>População no setor:</strong> ${Number(props.total_pessoas).toLocaleString("pt-BR")}<br>
                 `;
 
@@ -641,6 +691,7 @@ export default function MapaSection() {
                 
                 html += `
                     <strong>Município:</strong> ${props.nome}<br>
+                    <strong> Código IBGE: </strong> ${props.cod_ibge} <br>
                     <strong>População 2022:</strong> ${Number(props.populacao_total_censo_2022).toLocaleString("pt-BR")}<br>
                     <strong>Categ. Metrop.:</strong> ${props.label_catmetropol}<br>
                     <strong>Subgrupo:</strong> ${props.subgrupo}<br>

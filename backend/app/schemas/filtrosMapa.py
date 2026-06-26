@@ -32,6 +32,20 @@ class OpcoesFiltrosNrInstrumento(BaseModel):
     data: list[NrInstrumentoItem]
 
 
+class CodTciItem(BaseModel):
+    cod_tci: str
+
+class OpcoesFiltrosCodTci(BaseModel):
+    data: list[CodTciItem]
+
+
+class ModalidadeItem(BaseModel):
+    modalidade: str
+
+class OpcoesFiltrosModalidade(BaseModel):
+    data: list[ModalidadeItem]
+
+
 class LocalidadeItem(BaseModel):
     cod_localidade: int
     nome_localidade: str

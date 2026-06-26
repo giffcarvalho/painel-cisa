@@ -14,6 +14,8 @@ export default function FiltroPainel ({ setPainelFiltros, layers, painelDetalhe,
         buscarMunicipios,
         buscarNrPropostas,
         buscarNrInstrumentos,
+        buscarCodTci,
+        buscarModalidade,
         buscarLocalidades,
         buscarLocalidadeEnderecos,
         buscarCategoriasMetropolitanas,
@@ -25,7 +27,7 @@ export default function FiltroPainel ({ setPainelFiltros, layers, painelDetalhe,
     //verifica se as camadas estão visíveis, pois a existência de alguns filtros dependem da camada a ser filtrada estar ligada
     const localidadesVisivel = layers.find(l => l.id === "localidades_2022")?.visivel;
     const enderecosVisivel = layers.find(l => l.id === "enderecos_2022")?.visivel;
-    const carteiraVisivel = layers.find(l => l.id === "geometrias_carteira_dsr")?.visivel;
+    const carteiraVisivel = layers.find(l => l.id === "geometrias_carteira_dsr")?.visivel || layers.find(l => l.id === "geometrias_carteira_drf")?.visivel;
     const informacoesMunicipaisVisivel = layers.find(l => l.id === "informacoes_municipais")?.visivel;
 
     useEffect(() => {
@@ -39,6 +41,8 @@ export default function FiltroPainel ({ setPainelFiltros, layers, painelDetalhe,
     if (!carteiraVisivel) {
         atualizarFiltro("nr_proposta", null);
         atualizarFiltro("nr_instrumento", null);
+        atualizarFiltro("cod_tci", null);
+        atualizarFiltro("modalidade", null);
     }
     if (!informacoesMunicipaisVisivel) {
         atualizarFiltro("cod_catmetropol", null);
@@ -124,7 +128,7 @@ export default function FiltroPainel ({ setPainelFiltros, layers, painelDetalhe,
 
                     
 
-                    {(layers.find(l => l.id === "geometrias_carteira_dsr")?.visivel) && (
+                    {(layers.find(l => l.id === "geometrias_carteira_dsr")?.visivel || layers.find(l => l.id === "geometrias_carteira_drf")?.visivel) && (
                         <>
                             <FiltroSelecaoUnica
                                 key='nrInstrumento'
@@ -149,6 +153,32 @@ export default function FiltroPainel ({ setPainelFiltros, layers, painelDetalhe,
                                 getLabel={(nr)=>nr.nr_proposta}
                                 onBuscar={(texto) => buscarNrPropostas(texto)}
                                 onChange={(valor)=> atualizarFiltro("nr_proposta", valor)}
+                            />
+
+
+                            <FiltroSelecaoUnica
+                                key='codTci'
+                                id='codTci'
+                                label='Código TCI - SACI'
+                                valorAtual={filtros.cod_tci}
+                                opcoes={listas.codTci}
+                                getValue={(nr)=>nr.cod_tci}
+                                getLabel={(nr)=>nr.cod_tci}
+                                onBuscar={(texto) => buscarCodTci(texto)}
+                                onChange={(valor)=> atualizarFiltro("cod_tci", valor)}
+                            />
+
+
+                            <FiltroSelecaoUnica
+                                key='modalidade'
+                                id='modalidade'
+                                label='Modalidade'
+                                valorAtual={filtros.modalidade}
+                                opcoes={listas.modalidade}
+                                getValue={(nr)=>nr.modalidade}
+                                getLabel={(nr)=>nr.modalidade}
+                                onBuscar={(texto) => buscarModalidade(texto)}
+                                onChange={(valor)=> atualizarFiltro("modalidade", valor)}
                             />
                         </>
                     )}
