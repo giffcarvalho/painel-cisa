@@ -75,6 +75,38 @@ export async function listarNrInstrumentos(q="", cod_uf, cod_municipio, limit = 
 }
 
 
+export async function listarCodTci(q="", cod_uf, cod_municipio, limit = 100) {
+  
+  const params = { q, limit }
+
+  const temMunicipio = Array.isArray(cod_municipio)? cod_municipio.length > 0: cod_municipio != null && cod_municipio !== "";
+  if (temMunicipio) {params.cod_municipio = cod_municipio;}
+
+  const temUf = Array.isArray(cod_uf)? cod_uf.length > 0: cod_uf != null && cod_uf !== "";
+  if (temUf) {params.cod_uf = cod_uf;}
+
+  const res = await api.get("/mapa/filtros/cod_tci", { params });
+  
+  return res.data.data;
+}
+
+
+export async function listarModalidade(q="", cod_uf, cod_municipio, limit = 100) {
+  
+  const params = { q, limit }
+
+  const temMunicipio = Array.isArray(cod_municipio)? cod_municipio.length > 0: cod_municipio != null && cod_municipio !== "";
+  if (temMunicipio) {params.cod_municipio = cod_municipio;}
+
+  const temUf = Array.isArray(cod_uf)? cod_uf.length > 0: cod_uf != null && cod_uf !== "";
+  if (temUf) {params.cod_uf = cod_uf;}
+
+  const res = await api.get("/mapa/filtros/modalidade", { params });
+  
+  return res.data.data;
+}
+
+
 
 export async function listarLocalidades(q="", cod_uf, cod_municipio, limit = 50) {
   
