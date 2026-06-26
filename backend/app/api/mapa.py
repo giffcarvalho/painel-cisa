@@ -16,6 +16,8 @@ from app.schemas.filtrosMapa import (
     MunicipioItem, OpcoesFiltrosMunicipio,
     NrPropostaItem, OpcoesFiltrosNrProposta,
     NrInstrumentoItem, OpcoesFiltrosNrInstrumento,
+    CodTciItem, OpcoesFiltrosCodTci,
+    ModalidadeItem, OpcoesFiltrosModalidade,
     LocalidadeItem, OpcoesFiltrosLocalidade,
     LocalidadeEnderecoItem, OpcoesFiltrosLocalidadeEndereco,
     CategoriaMetropolitanaItem, OpcoesFiltrosCategoriaMetropolitana,
@@ -59,6 +61,8 @@ class FiltrosMapa:  #-- Dependência do FastAPI para agrupar todos os Query Para
             cod_municipio: list[int] | None = Query(None),
             nr_proposta: list[str] | None = Query(None),
             nr_instrumento: list[int] | None = Query(None),
+            cod_tci: list[str] | None = Query(None),
+            modalidade: list[str] | None = Query(None),
             cod_localidade: list[int] | None = Query(None),
             cod_dsc_localidade: list[int] | None = Query(None),
             cod_catmetropol: list[int] | None = Query(None),
@@ -70,6 +74,8 @@ class FiltrosMapa:  #-- Dependência do FastAPI para agrupar todos os Query Para
         self.cod_municipio = cod_municipio
         self.nr_proposta = nr_proposta
         self.nr_instrumento = nr_instrumento
+        self.cod_tci = cod_tci
+        self.modalidade = modalidade
         self.cod_localidade = cod_localidade
         self.cod_dsc_localidade = cod_dsc_localidade
         self.cod_catmetropol = cod_catmetropol
@@ -89,6 +95,8 @@ def _build_where(filtros: FiltrosMapa, allowed: set[str] | None = None) -> tuple
         ("cod_municipio", filtros.cod_municipio, "cod_municipio", int, "int[]", "scalar"),
         ("nr_proposta", filtros.nr_proposta, "nr_proposta", None, "text[]", "scalar"),
         ("nr_instrumento", filtros.nr_instrumento, "nr_instrumento", int, "int[]", "scalar"),
+        ("cod_tci", filtros.cod_tci, "cod_tci", None, "text[]", "scalar"),
+        ("modalidade", filtros.modalidade, "modalidade", None, "text[]", "scalar"),
         ("cod_localidade", filtros.cod_localidade, "cod_localidade", int, "bigint[]", "scalar"),
         ("cod_dsc_localidade", filtros.cod_dsc_localidade, "cod_dsc_localidade", int, "bigint[]", "scalar"),
         ("cod_catmetropol", filtros.cod_catmetropol, "cod_catmetropol", int, "int[]", "scalar"),
@@ -260,9 +268,22 @@ async def get_lista_nr_instrumentos(
     where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio"})
 
     sql = """
+        WITH uniao AS (
         SELECT
-            DISTINCT(nr_instrumento)            
+            nr_instrumento,
+            cod_uf,
+            cod_municipio
         FROM instrumento.vw_geometrias_carteira_dsr
+        WHERE nr_instrumento IS NOT NULL
+        UNION
+        SELECT
+            nr_instrumento,
+            cod_uf,
+            cod_municipio
+        FROM instrumento.vw_geometrias_carteira_drf
+        WHERE nr_instrumento IS NOT NULL
+        )
+        SELECT DISTINCT(nr_instrumento) FROM uniao
     """
 
     params = {"limit": limit}
@@ -288,6 +309,126 @@ async def get_lista_nr_instrumentos(
 
     result = await _execute_query(db, sql, params)
     return OpcoesFiltrosNrInstrumento(data=[NrInstrumentoItem(**row) for row in result.mappings().all()])
+
+
+
+# opções do filtro de cod_tci
+@router.get("/filtros/cod_tci", response_model=OpcoesFiltrosCodTci, summary="Lista dos números de Códigos TCI. Identificador dos instrumentos no SACI")
+async def get_lista_cod_tci(
+    response: Response,
+    filtros: FiltrosMapa = Depends(),
+    q: Annotated[str | None, Query(max_length=100, description="Termo de busca do código TCI.")] = None,  
+    limit: Annotated[int, Query(ge=1, le=100, description="Quantidade máxima de resultados.")] = 100,
+    db: AsyncSession = Depends(get_db)):
+
+    response.headers["Cache-Control"] = "public, max-age=600"
+    
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio"})
+
+
+    sql = """
+        WITH uniao AS (
+        SELECT
+            cod_tci,
+            cod_uf,
+            cod_municipio
+        FROM instrumento.vw_geometrias_carteira_dsr
+        WHERE cod_tci IS NOT NULL
+        UNION
+        SELECT
+            cod_tci,
+            cod_uf,
+            cod_municipio
+        FROM instrumento.vw_geometrias_carteira_drf
+        WHERE cod_tci IS NOT NULL
+        )
+        SELECT DISTINCT(cod_tci) FROM uniao
+    """
+
+    params = {"limit": limit}
+    params.update(params_filtro)
+    clauses = []
+
+    
+    if where_filtro: clauses.append(where_filtro)
+
+    texto = (q or "").strip()
+
+    if texto:
+        clauses.append("cod_tci ILIKE :termo")
+        params["termo"] = f"%{texto}%"
+
+    if clauses:
+        sql += " WHERE " + " AND ".join(clauses)
+
+
+    sql += """
+        ORDER BY cod_tci
+        LIMIT :limit
+    """
+
+    result = await _execute_query(db, sql, params)
+    return OpcoesFiltrosCodTci(data=[CodTciItem(**row) for row in result.mappings().all()])
+
+
+# opções do filtro de modalidade
+@router.get("/filtros/modalidade", response_model=OpcoesFiltrosModalidade, summary="Lista das modalidades dos instrumentos de repasse")
+async def get_lista_modalidade(
+    response: Response,
+    filtros: FiltrosMapa = Depends(),
+    q: Annotated[str | None, Query(max_length=100, description="Termo de busca da modalidade.")] = None,  
+    limit: Annotated[int, Query(ge=1, le=100, description="Quantidade máxima de resultados.")] = 100,
+    db: AsyncSession = Depends(get_db)):
+
+    response.headers["Cache-Control"] = "public, max-age=600"
+    
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio"})
+
+
+    sql = """
+        WITH uniao AS (
+        SELECT
+            modalidade,
+            cod_uf,
+            cod_municipio
+        FROM instrumento.vw_geometrias_carteira_dsr
+        WHERE modalidade IS NOT NULL
+        UNION
+        SELECT
+            modalidade,
+            cod_uf,
+            cod_municipio
+        FROM instrumento.vw_geometrias_carteira_drf
+        WHERE modalidade IS NOT NULL
+        )
+        SELECT DISTINCT(modalidade) FROM uniao
+    """
+
+    params = {"limit": limit}
+    params.update(params_filtro)
+    clauses = []
+
+    
+    if where_filtro: clauses.append(where_filtro)
+
+    texto = (q or "").strip()
+
+    if texto:
+        clauses.append("modalidade ILIKE :termo")
+        params["termo"] = f"%{texto}%"
+
+    if clauses:
+        sql += " WHERE " + " AND ".join(clauses)
+
+
+    sql += """
+        ORDER BY modalidade
+        LIMIT :limit
+    """
+
+    result = await _execute_query(db, sql, params)
+    return OpcoesFiltrosModalidade(data=[ModalidadeItem(**row) for row in result.mappings().all()])
+
 
 
 # opções do filtro de localidade
@@ -489,15 +630,15 @@ async def get_bbox_municipios(filtros: FiltrosMapa = Depends(), db: AsyncSession
 @router.get("/bbox_carteira_dsr", summary="Bounding box das coordenadas da Carteira DSR")
 async def get_bbox_carteira_dsr(filtros: FiltrosMapa = Depends(), db: AsyncSession = Depends(get_db)):
 
-    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "nr_proposta", "nr_instrumento"})
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "nr_proposta", "nr_instrumento", "cod_tci", "modalidade"})
 
     sql = f"""
         WITH 
         uniao AS (
-            SELECT cod_tci, nr_proposta, nr_instrumento, cod_uf, cod_municipio, geom
+            SELECT cod_tci, nr_proposta, nr_instrumento, modalidade, cod_uf, cod_municipio, geom
             FROM instrumento.vw_geometrias_carteira_dsr
             UNION
-            SELECT cod_tci, nr_proposta, nr_instrumento::INT, cod_uf, cod_municipio, geom
+            SELECT cod_tci, nr_proposta, nr_instrumento, modalidade, cod_uf, cod_municipio, geom
             FROM instrumento.vw_geometrias_carteira_drf
         ),
         filtrado AS (
@@ -522,7 +663,7 @@ async def get_bbox_carteira_dsr(filtros: FiltrosMapa = Depends(), db: AsyncSessi
     row = result.mappings().first()
     return row
 
-
+ 
 
 # bounding box das localidades
 @router.get("/bbox_localidades", summary="Bounding box das localidades")
@@ -1142,7 +1283,7 @@ async def get_municipios_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
 async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMapa = Depends(), db: AsyncSession = Depends(get_db)):
 
     
-    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "nr_proposta", "nr_instrumento", "semiarido_2022", "amazonia_legal", "vale_jequetinhonha"})
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "nr_proposta", "nr_instrumento", "cod_tci", "modalidade", "semiarido_2022", "amazonia_legal", "vale_jequetinhonha"})
     
     base_where = """
         geom && ST_TileEnvelope(:z, :x, :y)
@@ -1164,16 +1305,15 @@ async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMa
     params.update(params_filtro)
 
     sql = f"""
-        SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom', 'nr_instrumento') AS mvt
+        SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom', 'cod_tci_num') AS mvt
         FROM (
             SELECT
                 cod_tci_num,
                 cod_tci,
                 nr_instrumento,
-                nr_instrumento::VARCHAR AS instrumento,
                 nr_proposta,
                 tipo_instrumento,
-                acao_padronizada,
+                modalidade,
                 componente,
                 objeto,
                 link_transferegov,
@@ -1206,7 +1346,7 @@ async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMa
 async def get_geometrias_carteira_drf(z: int, x: int, y: int, filtros: FiltrosMapa = Depends(), db: AsyncSession = Depends(get_db)):
 
     
-    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "nr_proposta", "nr_instrumento", "semiarido_2022", "amazonia_legal", "vale_jequetinhonha"})
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "nr_proposta", "nr_instrumento", "cod_tci", "modalidade", "semiarido_2022", "amazonia_legal", "vale_jequetinhonha"})
     
     base_where = """
         geom && ST_TileEnvelope(:z, :x, :y)
@@ -1236,7 +1376,7 @@ async def get_geometrias_carteira_drf(z: int, x: int, y: int, filtros: FiltrosMa
                 nr_instrumento,
                 nr_proposta,
                 tipo_instrumento,
-                acao_padronizada,
+                modalidade,
                 objeto,
                 link_transferegov,
                 link_saci,
