@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { House, Wallet, Map, Menu, Info, FileSearch } from 'lucide-react'
+import { House, Wallet, Map, Menu, Info, FileSearch, PackageSearch } from 'lucide-react'
 
 export function Sidebar({ openOnClick = false }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -10,9 +10,10 @@ export function Sidebar({ openOnClick = false }) {
     { to: '/carteira-dsr', label: 'Carteira DSR', icon: Wallet, exact: false },
     { to: '/mapa', label: 'Mapa Interativo', icon: Map, exact: false },
     { to: '/pesquisa-instrumento', label: 'Pesquisa Instrumento', icon: FileSearch, exact: false },
+    { to: '/consulta-personalizada', label: 'Consulta Personalizada', icon: PackageSearch, exact: false },
     { to: '/manual', label: 'Manual do Usuário', icon: Info, exact: false },
   ]
-
+  
   return (
     <aside
       className={`
@@ -123,7 +124,7 @@ export function Sidebar({ openOnClick = false }) {
           }
         `}
       >
-        Portal DSR v1.0
+        Painel DSR v1.0
       </div>
     </aside>
   )

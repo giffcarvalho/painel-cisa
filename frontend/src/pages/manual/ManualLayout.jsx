@@ -20,8 +20,8 @@ const toolItems = [
 
 const summaryByPath = {
   '/manual': [
-    { href: '#sobre-este-manual', label: 'Sobre o portal' },
-    { href: '#navegacao-no-portal', label: 'Como navegar pelo portal' },
+    { href: '#sobre-este-manual', label: 'Sobre o painel' },
+    { href: '#navegacao-no-painel', label: 'Como navegar pelo painel' },
   ],
   '/manual/carteira-dsr': [
     { href: '#objetivo-da-ferramenta', label: 'Objetivo da ferramenta' },
@@ -57,9 +57,9 @@ export default function ManualLayout() {
     <div className={styles.page}>
       <div className={styles.container}>
         <header className={styles.header}>
-          <span className={styles.eyebrow}>Portal DSR</span>
+          <span className={styles.eyebrow}>Painel DSR</span>
           <h1>Manual do Usuário</h1>
-          <p>Central de ajuda para consulta rápida das ferramentas do portal.</p>
+          <p>Central de ajuda para consulta rápida das ferramentas do painel.</p>
         </header>
 
         <nav className={styles.tabs} aria-label="Seções do manual">

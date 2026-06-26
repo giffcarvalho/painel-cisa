@@ -236,7 +236,7 @@ export default function FichaInstrumentoPdf({ instrumento }) {
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.portal}>Portal DSR</Text>
+          <Text style={styles.portal}>Painel DSR</Text>
           <Text style={styles.department}>
             Departamento de Saneamento Rural e de Pequenos Municípios
           </Text>
@@ -311,7 +311,7 @@ export default function FichaInstrumentoPdf({ instrumento }) {
         </Section>
 
         <View style={styles.footer} fixed>
-          <Text>Portal DSR - Ficha gerada em {dataEmissao}</Text>
+          <Text>Painel DSR - Ficha gerada em {dataEmissao}</Text>
           <Text render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`} />
         </View>
       </Page>

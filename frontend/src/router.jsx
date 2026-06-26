@@ -11,6 +11,7 @@ import ManualMapaInterativo from './pages/manual/ManualMapaInterativo'
 import ManualInformacoesGerais from './pages/manual/ManualInformacoesGerais'
 import MapLayout from './components/layout/MapLayout'
 import PesquisaInstrumento from './pages/pesquisa-instrumento/PesquisaInstrumento'
+import ConsultaPersonalizada from './pages/consulta-personalizada/ConsultaPersonalizada'
 
 const Mapa = lazy(() => import('@/pages/mapa/Mapa'))
 
@@ -40,6 +41,10 @@ export const router = createBrowserRouter([
       {
         path: 'pesquisa-instrumento',
         element: <PesquisaInstrumento />,
+      },
+      {
+        path: 'consulta-personalizada',
+        element: <ConsultaPersonalizada />,
       },
       {
         path: 'manual',

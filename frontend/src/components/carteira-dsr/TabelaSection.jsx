@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Loader2, AlertCircle, FileSpreadsheet, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useTabelaQuery } from '@/hooks/useCarteiraDsr'
 import { useFiltros } from '@/context/carteira-Dsr/useFiltros'
@@ -71,18 +71,20 @@ export default function TabelaSection() {
   const tamanhoPagina = 50 // Reduzido para 50 para equilibrar as 45 colunas
   const { filtros } = useFiltros()
 
-  useEffect(() => {
-    setPagina(1)
-  }, [filtros])
-
   const { data, isLoading, isError, isFetching } = useTabelaQuery(pagina, tamanhoPagina)
   const [isExporting, setIsExporting] = useState(false)
 
   const handleExportExcel = async () => {
     try {
       setIsExporting(true)
-      const response = await carteiraDsrApi.getTabela(filtros, 1, 500)
+      const response = await carteiraDsrApi.getTabelaExportacao(filtros)
+      const totalExportacao = response.data.total || 0
       const dadosBrutos = response.data.data || []
+
+      if (dadosBrutos.length !== totalExportacao) {
+        alert(`Exportação bloqueada: foram recebidos ${dadosBrutos.length} de ${totalExportacao} registros. Nenhum arquivo parcial foi baixado.`)
+        return
+      }
 
       const columnsConfig = CONFIG_COLUNAS.map(col => ({
         header: col.label,
@@ -106,6 +108,7 @@ export default function TabelaSection() {
       })
     } catch (error) {
       console.error('Falha ao exportar excel:', error)
+      alert(error.response?.data?.detail || 'Não foi possível exportar a tabela. Nenhum arquivo parcial foi baixado.')
     } finally {
       setIsExporting(false)
     }

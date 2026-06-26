@@ -7,6 +7,7 @@ from app.api import carteira_dsr
 from app.api import mapa
 from app.api import pesquisa_instrumento
 from app.core.database import lifespan_db
+from app.api import extrator_dados
  
  
 @asynccontextmanager
@@ -59,7 +60,12 @@ app.include_router(
     prefix="/api/v1/pesquisa-instrumento",
     tags=["Pesquisa Instrumento"],
 )
- 
+
+app.include_router(
+    extrator_dados.router,
+    prefix="/api/v1/extrator-dados",
+    tags=["Extrator de Dados"],
+)
  
 @app.get("/health", tags=["Infra"])
 async def health_check():

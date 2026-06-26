@@ -35,6 +35,8 @@ CAMPOS_BUSCA_FILTROS = {
     "nr_proposta_selecao_pac": "nr_proposta_selecao_pac::text",
 }
 
+MAX_EXPORTACAO_TABELA = 10000
+
 async def _execute_query(db: AsyncSession, sql: str, params: dict | None = None) -> CursorResult: #--Executa a query com tratamento de erro para evitar que exceções brutas do banco vazem.
     try:
         return await db.execute(text(sql), params or {})
@@ -453,19 +455,35 @@ async def get_tabela(
     filtros: FiltrosCarteiraDSR = Depends(),
     pagina: Annotated[int, Query(ge=1, description="Número da página (começa em 1).")] = 1,
     tamanho_pagina: Annotated[int, Query(ge=1, le=500, description="Itens por página.")] = 100,
+    exportacao: Annotated[bool, Query(description="Quando true, retorna todos os registros filtrados dentro do limite seguro de exportação.")] = False,
     db: AsyncSession = Depends(get_db)
 ):
     response.headers["Cache-Control"] = "private, max-age=300"
     where, params = _build_where(filtros)
-
-    offset = (pagina - 1) * tamanho_pagina
-    data_params = {**params, "limit": tamanho_pagina, "offset": offset}
 
     count_sql = f"""
         SELECT COUNT(DISTINCT nr_instrumento)
         FROM {MV}
         {where}
     """
+
+    count_result = await _execute_query(db, count_sql, params)
+    total = count_result.scalar_one()
+
+    if exportacao and total > MAX_EXPORTACAO_TABELA:
+        raise HTTPException(
+            status_code=413,
+            detail=f"A exportação possui {total} registros. Refine os filtros para exportar até {MAX_EXPORTACAO_TABELA} registros."
+        )
+
+    if exportacao:
+        offset = 0
+        tamanho_consulta = total
+    else:
+        offset = (pagina - 1) * tamanho_pagina
+        tamanho_consulta = tamanho_pagina
+
+    data_params = {**params, "limit": tamanho_consulta, "offset": offset}
 
     data_sql = f"""
         SELECT DISTINCT ON (nr_instrumento)
@@ -539,12 +557,11 @@ async def get_tabela(
         LIMIT :limit OFFSET :offset
     """
 
-    count_result = await _execute_query(db, count_sql, params)
     data_result = await _execute_query(db, data_sql, data_params)
 
     return TabelaResponse(
-        total=count_result.scalar_one(),
-        pagina=pagina,
-        tamanho_pagina=tamanho_pagina,
+        total=total,
+        pagina=1 if exportacao else pagina,
+        tamanho_pagina=tamanho_consulta,
         data=[dict(r) for r in data_result.mappings().all()],
     )

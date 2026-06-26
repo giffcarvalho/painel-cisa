@@ -29,11 +29,17 @@ export const carteiraDsrApi = {
   getSituacaoCont:  (filtros) => api.get('/carteira-dsr/graficos/situacao-contratacao', { params: toParams(filtros) }),
   getMapaCoropl:    (filtros) => api.get('/carteira-dsr/graficos/mapa-coropletico', { params: toParams(filtros) }),
   getMapaPontos:    (filtros) => api.get('/carteira-dsr/mapa-pontos', { params: toParams(filtros) }),
-  getTabela: (filtros, pagina = 1, tamanho = 100) => {
+   getTabela: (filtros, pagina = 1, tamanho = 100) => {
     const params = toParams(filtros)
     params.append('pagina', pagina)
     params.append('tamanho_pagina', tamanho)
     
+    return api.get('/carteira-dsr/tabela', { params })
+  },
+  getTabelaExportacao: (filtros) => {
+    const params = toParams(filtros)
+    params.append('exportacao', 'true')
+
     return api.get('/carteira-dsr/tabela', { params })
   },
   buscarFiltro: (campo, q, limit = 50) =>

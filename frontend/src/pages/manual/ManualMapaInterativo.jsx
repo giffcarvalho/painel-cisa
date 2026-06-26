@@ -47,7 +47,7 @@ export default function ManualMapaInterativo() {
           <section id={topicIds['Navegação no Mapa']} className={styles.manualTopic}>
             <h3>Navegação no Mapa</h3>
             <p>
-              Na página do Mapa Interativo, a abertura da barra lateral funciona de forma diferente das demais páginas do portal. Enquanto nas outras áreas a barra lateral
+              Na página do Mapa Interativo, a abertura da barra lateral funciona de forma diferente das demais páginas do painel. Enquanto nas outras áreas a barra lateral
               é expandida automaticamente ao passar o mouse sobre ela, no mapa essa abertura é feita pelo botão de menu, representado pelo ícone de três barras, localizado
               no canto superior esquerdo.
             </p>
