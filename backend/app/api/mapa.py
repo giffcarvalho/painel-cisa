@@ -205,13 +205,16 @@ async def get_lista_nr_propostas(
 
     response.headers["Cache-Control"] = "public, max-age=600"
     
-    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio"})
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "nr_instrumento", "cod_tci", "modalidade"})
 
 
     sql = """
         WITH uniao AS (
         SELECT
             nr_proposta,
+            nr_instrumento,
+            cod_tci,
+            modalidade,
             cod_uf,
             cod_municipio
         FROM instrumento.vw_geometrias_carteira_dsr
@@ -219,6 +222,9 @@ async def get_lista_nr_propostas(
         UNION
         SELECT
             nr_proposta,
+            nr_instrumento,
+            cod_tci,
+            modalidade,
             cod_uf,
             cod_municipio
         FROM instrumento.vw_geometrias_carteira_drf
@@ -265,19 +271,25 @@ async def get_lista_nr_instrumentos(
 
     response.headers["Cache-Control"] = "public, max-age=600"
 
-    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio"})
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "nr_proposta", "cod_tci", "modalidade"})
 
     sql = """
         WITH uniao AS (
         SELECT
+            nr_proposta,
             nr_instrumento,
+            cod_tci,
+            modalidade,
             cod_uf,
             cod_municipio
         FROM instrumento.vw_geometrias_carteira_dsr
         WHERE nr_instrumento IS NOT NULL
         UNION
         SELECT
+            nr_proposta,
             nr_instrumento,
+            cod_tci,
+            modalidade,
             cod_uf,
             cod_municipio
         FROM instrumento.vw_geometrias_carteira_drf
@@ -323,20 +335,26 @@ async def get_lista_cod_tci(
 
     response.headers["Cache-Control"] = "public, max-age=600"
     
-    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio"})
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "nr_proposta", "nr_instrumento", "modalidade"})
 
 
     sql = """
         WITH uniao AS (
         SELECT
+            nr_proposta,
+            nr_instrumento,
             cod_tci,
+            modalidade,
             cod_uf,
             cod_municipio
         FROM instrumento.vw_geometrias_carteira_dsr
         WHERE cod_tci IS NOT NULL
         UNION
         SELECT
+            nr_proposta,
+            nr_instrumento,
             cod_tci,
+            modalidade,
             cod_uf,
             cod_municipio
         FROM instrumento.vw_geometrias_carteira_drf
@@ -382,12 +400,15 @@ async def get_lista_modalidade(
 
     response.headers["Cache-Control"] = "public, max-age=600"
     
-    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio"})
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "nr_proposta", "nr_instrumento", "cod_tci", })
 
 
     sql = """
         WITH uniao AS (
         SELECT
+            nr_proposta,
+            nr_instrumento,
+            cod_tci,
             modalidade,
             cod_uf,
             cod_municipio
@@ -395,6 +416,9 @@ async def get_lista_modalidade(
         WHERE modalidade IS NOT NULL
         UNION
         SELECT
+            nr_proposta,
+            nr_instrumento,
+            cod_tci,
             modalidade,
             cod_uf,
             cod_municipio
@@ -1243,6 +1267,7 @@ async def get_municipios_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
                 subgrupo,
                 tipo_catmetropol,
                 label_catmetropol,
+                rm_prioritaria,
                 populacao_total_censo_2022,
                 populacao_total_censo_2022_maior_50000,
                 ST_AsMVTGeom(

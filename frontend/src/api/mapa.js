@@ -43,7 +43,7 @@ export async function listarMunicipios(q="", cod_uf, limit = 100) {
 }
 
 
-export async function listarNrPropostas(q="", cod_uf, cod_municipio, limit = 100) {
+export async function listarNrPropostas(q="", cod_uf, cod_municipio, nr_instrumento, cod_tci, modalidade, limit = 100) {
   
   const params = { q, limit }
 
@@ -52,6 +52,15 @@ export async function listarNrPropostas(q="", cod_uf, cod_municipio, limit = 100
 
   const temUf = Array.isArray(cod_uf)? cod_uf.length > 0: cod_uf != null && cod_uf !== "";
   if (temUf) {params.cod_uf = cod_uf;}
+
+  const temInstrumento = Array.isArray(nr_instrumento)? nr_instrumento.length > 0: nr_instrumento != null && nr_instrumento !== "";
+  if (temInstrumento) {params.nr_instrumento = nr_instrumento;}
+
+  const temTci = Array.isArray(cod_tci)? cod_tci.length > 0: cod_tci != null && cod_tci !== "";
+  if (temTci) {params.cod_tci = cod_tci;}
+
+  const temModalidade = Array.isArray(modalidade)? modalidade.length > 0: modalidade != null && modalidade !== "";
+  if (temModalidade) {params.modalidade = modalidade;}
 
   const res = await api.get("/mapa/filtros/nr_propostas", { params });
   
@@ -59,7 +68,7 @@ export async function listarNrPropostas(q="", cod_uf, cod_municipio, limit = 100
 }
 
 
-export async function listarNrInstrumentos(q="", cod_uf, cod_municipio, limit = 100) {
+export async function listarNrInstrumentos(q="", cod_uf, cod_municipio, nr_proposta, cod_tci, modalidade, limit = 100) {
   
   const params = { q, limit }
 
@@ -68,6 +77,15 @@ export async function listarNrInstrumentos(q="", cod_uf, cod_municipio, limit = 
 
   const temUf = Array.isArray(cod_uf)? cod_uf.length > 0: cod_uf != null && cod_uf !== "";
   if (temUf) {params.cod_uf = cod_uf;}
+
+  const temProposta = Array.isArray(nr_proposta)? nr_proposta.length > 0: nr_proposta != null && nr_proposta !== "";
+  if (temProposta) {params.nr_proposta = nr_proposta;}
+
+  const temTci = Array.isArray(cod_tci)? cod_tci.length > 0: cod_tci != null && cod_tci !== "";
+  if (temTci) {params.cod_tci = cod_tci;}
+
+  const temModalidade = Array.isArray(modalidade)? modalidade.length > 0: modalidade != null && modalidade !== "";
+  if (temModalidade) {params.modalidade = modalidade;}
 
   const res = await api.get("/mapa/filtros/nr_instrumentos", { params });
   
@@ -75,7 +93,7 @@ export async function listarNrInstrumentos(q="", cod_uf, cod_municipio, limit = 
 }
 
 
-export async function listarCodTci(q="", cod_uf, cod_municipio, limit = 100) {
+export async function listarCodTci(q="", cod_uf, cod_municipio, nr_instrumento, nr_proposta, modalidade, limit = 100) {
   
   const params = { q, limit }
 
@@ -84,6 +102,15 @@ export async function listarCodTci(q="", cod_uf, cod_municipio, limit = 100) {
 
   const temUf = Array.isArray(cod_uf)? cod_uf.length > 0: cod_uf != null && cod_uf !== "";
   if (temUf) {params.cod_uf = cod_uf;}
+
+  const temInstrumento = Array.isArray(nr_instrumento)? nr_instrumento.length > 0: nr_instrumento != null && nr_instrumento !== "";
+  if (temInstrumento) {params.nr_instrumento = nr_instrumento;}
+  
+  const temProposta = Array.isArray(nr_proposta)? nr_proposta.length > 0: nr_proposta != null && nr_proposta !== "";
+  if (temProposta) {params.nr_proposta = nr_proposta;}
+
+  const temModalidade = Array.isArray(modalidade)? modalidade.length > 0: modalidade != null && modalidade !== "";
+  if (temModalidade) {params.modalidade = modalidade;}
 
   const res = await api.get("/mapa/filtros/cod_tci", { params });
   
@@ -91,7 +118,7 @@ export async function listarCodTci(q="", cod_uf, cod_municipio, limit = 100) {
 }
 
 
-export async function listarModalidade(q="", cod_uf, cod_municipio, limit = 100) {
+export async function listarModalidade(q="", cod_uf, cod_municipio, nr_instrumento, nr_proposta, cod_tci, limit = 100) {
   
   const params = { q, limit }
 
@@ -100,6 +127,15 @@ export async function listarModalidade(q="", cod_uf, cod_municipio, limit = 100)
 
   const temUf = Array.isArray(cod_uf)? cod_uf.length > 0: cod_uf != null && cod_uf !== "";
   if (temUf) {params.cod_uf = cod_uf;}
+
+  const temInstrumento = Array.isArray(nr_instrumento)? nr_instrumento.length > 0: nr_instrumento != null && nr_instrumento !== "";
+  if (temInstrumento) {params.nr_instrumento = nr_instrumento;}
+  
+  const temProposta = Array.isArray(nr_proposta)? nr_proposta.length > 0: nr_proposta != null && nr_proposta !== "";
+  if (temProposta) {params.nr_proposta = nr_proposta;}
+
+  const temTci = Array.isArray(cod_tci)? cod_tci.length > 0: cod_tci != null && cod_tci !== "";
+  if (temTci) {params.cod_tci = cod_tci;}
 
   const res = await api.get("/mapa/filtros/modalidade", { params });
   

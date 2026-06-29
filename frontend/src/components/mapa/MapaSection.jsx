@@ -107,23 +107,23 @@ export default function MapaSection() {
         { id: "localidades_2022_labels", nome: "Nome das Localidades", visivel: true, dependencias: ["localidades_2022"], mostrarPainel: false },
         { id: "geometrias_carteira_dsr", nome: "Carteira ativa DSR", visivel: false, minzoom: 3, simbologia: {
             tipo: "categorica", simbolo: "ponto", atributo: "modalidade", classes: [
-                {valor: "Saneamento Rural", label: "Saneamento Rural", cor: "#f8cdcd", strokeColor: "#0092be", strokeWidth: 3.0},
-                {valor: "Capacitação - PMSB", label: "Capacitação - PMSB", cor: "#f5df4d", strokeColor: "#0092be", strokeWidth: 3.0},
-                {valor: "Abastecimento de Água", label: "Abastecimento de Água", cor: "#0071bd", strokeColor: "#0092be", strokeWidth: 3.0},
-                {valor: "Esgotamento Sanitário", label: "Esgotamento Sanitário", cor: "#96710b", strokeColor: "#0092be", strokeWidth: 3.0},
-                {valor: "MSD", label: "MSD", cor: "#c800e2", strokeColor: "#0092be", strokeWidth: 3.0},
+                {valor: "Saneamento Rural", label: "Saneamento Rural", cor: "#f8cdcd", strokeColor: "#0092be", strokeWidth: 2.0},
+                {valor: "Capacitação - PMSB", label: "Capacitação - PMSB", cor: "#f5df4d", strokeColor: "#0092be", strokeWidth: 2.0},
+                {valor: "Abastecimento de Água", label: "Abastecimento de Água", cor: "#0071bd", strokeColor: "#0092be", strokeWidth: 2.0},
+                {valor: "Esgotamento Sanitário", label: "Esgotamento Sanitário", cor: "#96710b", strokeColor: "#0092be", strokeWidth: 2.0},
+                {valor: "MSD", label: "MSD", cor: "#c800e2", strokeColor: "#0092be", strokeWidth: 2.0},
             ] 
         }},
         { id: "geometrias_carteira_drf", nome: "Carteira ativa DRF", visivel: false, minzoom: 3, simbologia: {
             tipo: "categorica", simbolo: "ponto", atributo: "modalidade", classes: [
-                {valor: "Desenvolvimento Institucional", label: "Desenvolvimento Institucional", cor: "#f8cdcd", strokeColor: "#ff5cdc", strokeWidth: 3.0},
-                {valor: "Redução e Controle de Perdas", label: "Redução e Controle de Perdas", cor: "#f5df4d", strokeColor: "#ff5cdc", strokeWidth: 3.0},
-                {valor: "Estudos e Projetos", label: "Estudos e Projetos", cor: "#17e904", strokeColor: "#ff5cdc", strokeWidth: 3.0},
-                {valor: "Esgotamento Sanitário", label: "Esgotamento Sanitário", cor: "#96710b", strokeColor: "#ff5cdc", strokeWidth: 3.0},
-                {valor: "Saneamento Integrado", label: "Saneamento Integrado", cor: "#c800e2", strokeColor: "#ff5cdc", strokeWidth: 3.0},
-                {valor: "Abastecimento de Água", label: "Abastecimento de Água", cor: "#0071bd", strokeColor: "#ff5cdc", strokeWidth: 3.0},
-                {valor: "Manejo de Resíduos Sólidos", label: "Manejo de Resíduos Sólidos", cor: "#006c7a", strokeColor: "#ff5cdc", strokeWidth: 3.0},
-                {valor: "Manejo de Águas Pluviais", label: "Manejo de Águas Pluviais", cor: "#7f7a80", strokeColor: "#ff5cdc", strokeWidth: 3.0},
+                {valor: "Desenvolvimento Institucional", label: "Desenvolvimento Institucional", cor: "#f8cdcd", strokeColor: "#ff5cdc", strokeWidth: 2.0},
+                {valor: "Redução e Controle de Perdas", label: "Redução e Controle de Perdas", cor: "#f5df4d", strokeColor: "#ff5cdc", strokeWidth: 2.0},
+                {valor: "Estudos e Projetos", label: "Estudos e Projetos", cor: "#17e904", strokeColor: "#ff5cdc", strokeWidth: 2.0},
+                {valor: "Esgotamento Sanitário", label: "Esgotamento Sanitário", cor: "#96710b", strokeColor: "#ff5cdc", strokeWidth: 2.0},
+                {valor: "Saneamento Integrado", label: "Saneamento Integrado", cor: "#c800e2", strokeColor: "#ff5cdc", strokeWidth: 2.0},
+                {valor: "Abastecimento de Água", label: "Abastecimento de Água", cor: "#0071bd", strokeColor: "#ff5cdc", strokeWidth: 2.0},
+                {valor: "Manejo de Resíduos Sólidos", label: "Manejo de Resíduos Sólidos", cor: "#ee8712", strokeColor: "#ff5cdc", strokeWidth: 2.0},
+                {valor: "Manejo de Águas Pluviais", label: "Manejo de Águas Pluviais", cor: "#7f7a80", strokeColor: "#ff5cdc", strokeWidth: 2.0},
             ] 
         }},
         { id: "informacoes_municipais", 
@@ -166,15 +166,13 @@ export default function MapaSection() {
     const [painelDetalhe, setPainelDetalhe] = useState(false);
     const [zoomAtual, setZoomAtual] = useState(3);
     const [coord, setCoord] = useState({ lat: "", long: "" });
-    
-
     const {filtros} = useContext(FiltrosContext)
-
-
-    const API_URL = "http://localhost:8000/api/v1/mapa";
+    //const API_URL = "http://localhost:8000/api/v1/mapa";
     const mapContainer = useRef(null);
     const mapRef = useRef(null);
     const coordRef = useRef(null);
+    const ultimaRequisicaoZoom = useRef(0);
+    //console.log("Render mapa", filtros.cod_municipio);
 
     //useEffect de criação do mapa. As camadas adicionadas devem ficar dentro dele
     useEffect(() => {
@@ -187,11 +185,9 @@ export default function MapaSection() {
             version: 8,
             sources: {
             satellite: {type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: "Esri"},
-            //labels: {type: "raster", tiles: ["https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png"], tileSize: 256},
             },
             layers: [
             {id: "satellite", type: "raster", source: "satellite"},
-            //{id: "labels", type: "raster", source: "labels"}
             ]
         },
         center: [-47.9, -15.8], 
@@ -447,66 +443,72 @@ export default function MapaSection() {
     useEffect(() => {
         const map = mapRef.current;
         if (!map) return;
-        
+                
         async function aplicarZoom() {
-            
+            const requestId = ++ultimaRequisicaoZoom.current;
+                        
             if (!filtros.cod_uf && !filtros.cod_municipio && !filtros.nr_proposta && !filtros.nr_instrumento && !filtros.modalidade && !filtros.cod_tci && !filtros.cod_localidade && !filtros.cod_dsc_localidade && !filtros.cod_catmetropol) {
+                if (requestId !== ultimaRequisicaoZoom.current)
+                    return;
                 map.flyTo({ center: [-47.9, -15.8], zoom: 3 });
                 return;
             }
-
             if (filtros.nr_proposta || filtros.nr_instrumento || filtros.cod_tci || filtros.modalidade) {
                 const res = await fetch(urlBboxCarteiraDsr({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento, cod_tci: filtros.cod_tci, modalidade: filtros.modalidade}));
+                if (requestId !== ultimaRequisicaoZoom.current)
+                    return;
                 const { xmin, ymin, xmax, ymax } = await res.json();
-                                
                 if (xmin == null) 
                     return
-
                 if (xmin === xmax && ymin === ymax) {
+                    if (requestId !== ultimaRequisicaoZoom.current)
+                        return;
                     map.flyTo({center:[xmin,ymin], zoom:11})
                     return
                 }
-
+                if (requestId !== ultimaRequisicaoZoom.current)
+                    return;
                 map.fitBounds([[xmin,ymin],[xmax,ymax]], {padding:40, maxZoom:8})
-                
-                return
-                
+                 return
             }
 
 
             if (filtros.cod_dsc_localidade) {
                 const res = await fetch(urlBboxEnderecos({cod_uf:filtros.cod_uf, cod_municipio:filtros.cod_municipio, cod_dsc_localidade:filtros.cod_dsc_localidade}));
+                if (requestId !== ultimaRequisicaoZoom.current)
+                    return;
                 const { xmin, ymin, xmax, ymax } = await res.json();
-                                
                 if (xmin == null) 
                     return
-
                 if (xmin === xmax && ymin === ymax) {
+                    if (requestId !== ultimaRequisicaoZoom.current)
+                        return;
                     map.flyTo({center:[xmin,ymin], zoom:14})
                     return
                 }
-
+                if (requestId !== ultimaRequisicaoZoom.current)
+                    return;
                 map.fitBounds([[xmin,ymin],[xmax,ymax]], {padding:40, maxZoom:13})
-                
                 return
-                
             }
 
 
             if (filtros.cod_localidade) {
                 const res = await fetch(urlBboxLocalidades({cod_uf:filtros.cod_uf, cod_municipio:filtros.cod_municipio, cod_localidade:filtros.cod_localidade}));
+                if (requestId !== ultimaRequisicaoZoom.current)
+                    return;
                 const { xmin, ymin, xmax, ymax } = await res.json();
-                                
-                if (xmin == null) 
+                 if (xmin == null) 
                     return
-
                 if (xmin === xmax && ymin === ymax) {
+                    if (requestId !== ultimaRequisicaoZoom.current)
+                    return;
                     map.flyTo({center:[xmin,ymin], zoom:14})
                     return
                 }
-
+                if (requestId !== ultimaRequisicaoZoom.current)
+                    return;
                 map.fitBounds([[xmin,ymin],[xmax,ymax]], {padding:40, maxZoom:13})
-                
                 return
                 
             }
@@ -514,30 +516,41 @@ export default function MapaSection() {
 
             if (filtros.cod_catmetropol) {
                 const res = await fetch(urlBboxCategoriasMetropolitanas({cod_catmetropol: filtros.cod_catmetropol}));
+                if (requestId !== ultimaRequisicaoZoom.current)
+                    return;
                 const { xmin, ymin, xmax, ymax } = await res.json();
+                if (requestId !== ultimaRequisicaoZoom.current)
+                    return;
                 map.fitBounds([[xmin, ymin], [xmax, ymax]], { padding: 40 });
             }
 
         
             if (filtros.cod_municipio) {
                 const res = await fetch(urlBboxMunicipios({cod_municipio: filtros.cod_municipio}));
+                if (requestId !== ultimaRequisicaoZoom.current)
+                    return;
                 const { xmin, ymin, xmax, ymax } = await res.json();
+                if (requestId !== ultimaRequisicaoZoom.current)
+                    return;
                 map.fitBounds([[xmin, ymin], [xmax, ymax]], { padding: 40 });
-                return;
             }
 
             if (filtros.cod_uf) {
                 const res = await fetch(urlBboxUfs({cod_uf: filtros.cod_uf}));
+                if (requestId !== ultimaRequisicaoZoom.current)
+                    return;
                 const { xmin, ymin, xmax, ymax } = await res.json();
+                if (requestId !== ultimaRequisicaoZoom.current)
+                    return;
                 map.fitBounds([[xmin, ymin], [xmax, ymax]], { padding: 40 });
             }
         }
 
-        if (map.isStyleLoaded()) {
-            aplicarZoom();
-        } else {
-            map.once("load", aplicarZoom)
-        };
+        if (!mapRef.current)
+        return;
+
+        aplicarZoom();
+        
 
     }, [filtros.cod_uf, filtros.cod_municipio, filtros.nr_proposta, filtros.nr_instrumento, filtros.cod_tci, filtros.modalidade, filtros.cod_localidade, filtros.cod_dsc_localidade, filtros.cod_catmetropol]);
   
@@ -694,6 +707,7 @@ export default function MapaSection() {
                     <strong> Código IBGE: </strong> ${props.cod_ibge} <br>
                     <strong>População 2022:</strong> ${Number(props.populacao_total_censo_2022).toLocaleString("pt-BR")}<br>
                     <strong>Categ. Metrop.:</strong> ${props.label_catmetropol}<br>
+                    <strong>RM Prioritária:</strong>${props.rm_prioritaria == null? " -": props.rm_prioritaria? "Sim": "Não"}<br>
                     <strong>Subgrupo:</strong> ${props.subgrupo}<br>
                 `;
 
