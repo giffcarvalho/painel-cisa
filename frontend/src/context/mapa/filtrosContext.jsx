@@ -74,7 +74,7 @@ export function FiltrosProvider({ children }) {
   }
 
   //esta função busca a lista de nr_propostas tendo como condição o texto digitado pelo usuário no filtro
-  async function buscarNrPropostas(q="", cod_uf = filtros.cod_uf, cod_municipio = filtros.cod_municipio) {
+  async function buscarNrPropostas(q="", cod_uf = filtros.cod_uf, cod_municipio = filtros.cod_municipio, nr_instrumento = filtros.nr_instrumento, cod_tci = filtros.cod_tci, modalidade = filtros.modalidade) {
     
     const texto = String(q ?? "").trim();
 
@@ -82,14 +82,14 @@ export function FiltrosProvider({ children }) {
       return;
     }
 
-    const data = await listarNrPropostas(texto, cod_uf, cod_municipio);
+    const data = await listarNrPropostas(texto, cod_uf, cod_municipio, nr_instrumento, cod_tci, modalidade);
     setListas(prev => ({...prev, nrPropostas: data}));
   
   }
 
 
   //esta função busca a lista de nr_instrumento tendo como condição o texto digitado pelo usuário no filtro
-  async function buscarNrInstrumentos(q="", cod_uf = filtros.cod_uf, cod_municipio = filtros.cod_municipio) {
+  async function buscarNrInstrumentos(q="", cod_uf = filtros.cod_uf, cod_municipio = filtros.cod_municipio, nr_proposta = filtros.nr_proposta, cod_tci = filtros.cod_tci, modalidade = filtros.modalidade) {
     
     const texto = String(q ?? "").trim();
 
@@ -97,14 +97,14 @@ export function FiltrosProvider({ children }) {
       return;
     }
 
-    const data = await listarNrInstrumentos(texto, cod_uf, cod_municipio);
+    const data = await listarNrInstrumentos(texto, cod_uf, cod_municipio, nr_proposta, cod_tci, modalidade);
     setListas(prev => ({...prev, nrInstrumentos: data}));
   
   }
 
 
   //esta função busca a lista de cod_tci tendo como condição o texto digitado pelo usuário no filtro
-  async function buscarCodTci(q="", cod_uf = filtros.cod_uf, cod_municipio = filtros.cod_municipio) {
+  async function buscarCodTci(q="", cod_uf = filtros.cod_uf, cod_municipio = filtros.cod_municipio, nr_instrumento = filtros.nr_instrumento, nr_proposta = filtros.nr_proposta, modalidade = filtros.modalidade) {
     
     const texto = String(q ?? "").trim();
 
@@ -112,14 +112,14 @@ export function FiltrosProvider({ children }) {
       return;
     }
 
-    const data = await listarCodTci(texto, cod_uf, cod_municipio);
+    const data = await listarCodTci(texto, cod_uf, cod_municipio, nr_instrumento, nr_proposta, modalidade);
     setListas(prev => ({...prev, codTci: data}));
   
   }
 
 
   //esta função busca a lista de modalidade tendo como condição o texto digitado pelo usuário no filtro
-  async function buscarModalidade(q="", cod_uf = filtros.cod_uf, cod_municipio = filtros.cod_municipio) {
+  async function buscarModalidade(q="", cod_uf = filtros.cod_uf, cod_municipio = filtros.cod_municipio, nr_instrumento = filtros.nr_instrumento, nr_proposta = filtros.nr_proposta, cod_tci = filtros.cod_tci) {
     
     const texto = String(q ?? "").trim();
 
@@ -127,7 +127,7 @@ export function FiltrosProvider({ children }) {
       return;
     }
 
-    const data = await listarModalidade(texto, cod_uf, cod_municipio);
+    const data = await listarModalidade(texto, cod_uf, cod_municipio, nr_instrumento, nr_proposta, cod_tci);
     setListas(prev => ({...prev, modalidade: data}));
 
   
@@ -218,15 +218,16 @@ export function FiltrosProvider({ children }) {
 
       //console.log(novosFiltros.subgrupo)
       //console.log(listas.modalidade)
+      //console.log(novosFiltros.cod_municipio);
 
       // dispara buscas usando SEMPRE o estado novo
       if (nome === "cod_uf") {
 
         buscarMunicipios("", novosFiltros.cod_uf);
-        buscarNrPropostas("", novosFiltros.cod_uf, novosFiltros.cod_municipio);
-        buscarNrInstrumentos("", novosFiltros.cod_uf, novosFiltros.cod_municipio);
-        buscarCodTci("", novosFiltros.cod_uf, novosFiltros.cod_municipio);
-        buscarModalidade("", novosFiltros.cod_uf, novosFiltros.cod_municipio);
+        buscarNrPropostas("", novosFiltros.cod_uf, novosFiltros.cod_municipio, novosFiltros.nr_instrumento, novosFiltros.cod_tci, novosFiltros.modalidade);
+        buscarNrInstrumentos("", novosFiltros.cod_uf, novosFiltros.cod_municipio, novosFiltros.nr_proposta, novosFiltros.cod_tci, novosFiltros.modalidade);
+        buscarCodTci("", novosFiltros.cod_uf, novosFiltros.cod_municipio, novosFiltros.nr_instrumento, novosFiltros.nr_proposta, novosFiltros.modalidade);
+        buscarModalidade("", novosFiltros.cod_uf, novosFiltros.cod_municipio, novosFiltros.nr_instrumento, novosFiltros.nr_proposta, novosFiltros.cod_tci);
         buscarLocalidades("", novosFiltros.cod_uf, novosFiltros.cod_municipio);
         buscarLocalidadeEnderecos("", novosFiltros.cod_uf, novosFiltros.cod_municipio);
         buscarCategoriasMetropolitanas("", novosFiltros.cod_uf);
@@ -235,18 +236,50 @@ export function FiltrosProvider({ children }) {
 
       if (nome === "cod_municipio") {
 
-        buscarNrPropostas("", novosFiltros.cod_uf, novosFiltros.cod_municipio);
-        buscarNrInstrumentos("", novosFiltros.cod_uf, novosFiltros.cod_municipio);
-        buscarCodTci("", novosFiltros.cod_uf, novosFiltros.cod_municipio);
-        buscarModalidade("", novosFiltros.cod_uf, novosFiltros.cod_municipio);
+        buscarNrPropostas("", novosFiltros.cod_uf, novosFiltros.cod_municipio, novosFiltros.nr_instrumento, novosFiltros.cod_tci, novosFiltros.modalidade);
+        buscarNrInstrumentos("", novosFiltros.cod_uf, novosFiltros.cod_municipio, novosFiltros.nr_proposta, novosFiltros.cod_tci, novosFiltros.modalidade);
+        buscarCodTci("", novosFiltros.cod_uf, novosFiltros.cod_municipio, novosFiltros.nr_instrumento, novosFiltros.nr_proposta, novosFiltros.modalidade);
+        buscarModalidade("", novosFiltros.cod_uf, novosFiltros.cod_municipio, novosFiltros.nr_instrumento, novosFiltros.nr_proposta, novosFiltros.cod_tci);
         buscarLocalidades("", novosFiltros.cod_uf, novosFiltros.cod_municipio);
         buscarLocalidadeEnderecos("", novosFiltros.cod_uf, novosFiltros.cod_municipio);
+      }
+
+
+      if (nome === "nr_proposta") {
+
+        buscarNrInstrumentos("", novosFiltros.cod_uf, novosFiltros.cod_municipio, novosFiltros.nr_proposta, novosFiltros.cod_tci, novosFiltros.modalidade);
+        buscarCodTci("", novosFiltros.cod_uf, novosFiltros.cod_municipio, novosFiltros.nr_instrumento, novosFiltros.nr_proposta, novosFiltros.modalidade);
+        buscarModalidade("", novosFiltros.cod_uf, novosFiltros.cod_municipio, novosFiltros.nr_instrumento, novosFiltros.nr_proposta, novosFiltros.cod_tci);
+      }
+
+
+      if (nome === "nr_instrumento") {
+
+        buscarNrPropostas("", novosFiltros.cod_uf, novosFiltros.cod_municipio, novosFiltros.nr_instrumento, novosFiltros.cod_tci, novosFiltros.modalidade);
+        buscarCodTci("", novosFiltros.cod_uf, novosFiltros.cod_municipio, novosFiltros.nr_instrumento, novosFiltros.nr_proposta, novosFiltros.modalidade);
+        buscarModalidade("", novosFiltros.cod_uf, novosFiltros.cod_municipio, novosFiltros.nr_instrumento, novosFiltros.nr_proposta, novosFiltros.cod_tci);
+      }
+
+
+      if (nome === "cod_tci") {
+
+        buscarNrPropostas("", novosFiltros.cod_uf, novosFiltros.cod_municipio, novosFiltros.nr_instrumento, novosFiltros.cod_tci, novosFiltros.modalidade);
+        buscarNrInstrumentos("", novosFiltros.cod_uf, novosFiltros.cod_municipio, novosFiltros.nr_proposta, novosFiltros.cod_tci, novosFiltros.modalidade);
+        buscarModalidade("", novosFiltros.cod_uf, novosFiltros.cod_municipio, novosFiltros.nr_instrumento, novosFiltros.nr_proposta, novosFiltros.cod_tci);
+      }
+
+
+      if (nome === "modalidade") {
+
+        buscarNrPropostas("", novosFiltros.cod_uf, novosFiltros.cod_municipio, novosFiltros.nr_instrumento, novosFiltros.cod_tci, novosFiltros.modalidade);
+        buscarNrInstrumentos("", novosFiltros.cod_uf, novosFiltros.cod_municipio, novosFiltros.nr_proposta, novosFiltros.cod_tci, novosFiltros.modalidade);
+        buscarCodTci("", novosFiltros.cod_uf, novosFiltros.cod_municipio, novosFiltros.nr_instrumento, novosFiltros.nr_proposta, novosFiltros.modalidade);
       }
 
       return novosFiltros;
     });
 
-  }
+  } 
 
 
   //essa função limpa os filtros ao chamar setFiltros inserindo os valore em branco
