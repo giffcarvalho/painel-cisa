@@ -1,10 +1,17 @@
 import axios from 'axios'
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
+
+if (window.location.protocol === 'https:' && API_BASE_URL.startsWith('http://')) {
+  throw new Error('VITE_API_URL insegura em produção HTTPS. Use /api/v1 ou uma URL https://.')
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? '/api/v1',
+  baseURL: API_BASE_URL,
   timeout: 30000,
   headers: { 'Content-Type': 'application/json' }
 })
+
 
 // Interceptor de resposta: trata erros globalmente
 api.interceptors.response.use(
