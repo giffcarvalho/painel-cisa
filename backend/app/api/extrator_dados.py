@@ -6,7 +6,7 @@ import io
 import logging
 from datetime import date, datetime
 from typing import Any
-
+from urllib.parse import quote
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import StreamingResponse
@@ -35,7 +35,7 @@ except ImportError:  # pragma: no cover
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-MAX_EXPORT_ROWS = 50000
+MAX_EXPORT_ROWS = 110000
 
 AZUL_LABEL = "1F497D"
 AZUL_TABELA = "1F4E78"
@@ -860,9 +860,14 @@ async def post_exportar_excel(payload: ExportRequest, db: AsyncSession = Depends
     buffer.seek(0)
 
     filename = f"extrator_dados_{payload.tipo_tabela}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    quoted_filename = quote(filename)
 
     return StreamingResponse(
         buffer,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{filename}"; filename*=UTF-8\'\'{quoted_filename}'
+            )
+        },
     )
