@@ -52,6 +52,17 @@ const getFileName = (response, fallback) => {
   return match?.[1] || fallback
 }
 
+const COLUNAS_OBRIGATORIAS_POR_TIPO = {
+  municipio: ['municipio.cod_municipio', 'municipio.nome_municipio'],
+  setor_censitario: ['setor_censitario.cod_setor'],
+  instrumento: ['instrumento.nr_instrumento'],
+}
+
+const getRequiredFieldIds = (tipoTabela) => COLUNAS_OBRIGATORIAS_POR_TIPO[tipoTabela] || []
+
+const normalizarFieldIdsConsulta = (tipoTabela, fieldIds = []) =>
+  Array.from(new Set([...getRequiredFieldIds(tipoTabela), ...fieldIds]))
+
 const downloadBlob = (response, fallbackName) => {
   const contentType =
     response.headers?.['content-type'] ||
@@ -97,18 +108,25 @@ export default function ConsultaPersonalizada() {
   const tipoSelecionado = tipos.find((tipo) => tipo.id === tipoTabela)
   const tipoLabel = tipoSelecionado?.label || 'Tipo de tabela'
 
+  const requiredFieldIds = useMemo(() => getRequiredFieldIds(tipoTabela), [tipoTabela])
+
+  const fieldIdsConsulta = useMemo(
+    () => normalizarFieldIdsConsulta(tipoTabela, fieldIds),
+    [fieldIds, tipoTabela]
+  )
+
   const selectedColumns = useMemo(
-    () => fieldIds.map((id) => campos.find((campo) => campo.id === id)).filter(Boolean),
-    [campos, fieldIds]
+    () => fieldIdsConsulta.map((id) => campos.find((campo) => campo.id === id)).filter(Boolean),
+    [campos, fieldIdsConsulta]
   )
 
   const payload = useMemo(
     () => ({
       tipo_tabela: tipoTabela,
-      field_ids: fieldIds,
+      field_ids: fieldIdsConsulta,
       filtros: limparObjeto(filtros),
     }),
-    [fieldIds, filtros, tipoTabela]
+    [fieldIdsConsulta, filtros, tipoTabela]
   )
 
   const setorCensitarioSemUf =
@@ -122,7 +140,7 @@ export default function ConsultaPersonalizada() {
   const trocarTipoTabela = (nextTipoTabela) => {
     setTipoTabela(nextTipoTabela)
     setFiltros({})
-    setFieldIds([])
+    setFieldIds(normalizarFieldIdsConsulta(nextTipoTabela, []))
     previaMutation.reset()
     contagemMutation.reset()
     exportExcelMutation.reset()
@@ -141,7 +159,7 @@ export default function ConsultaPersonalizada() {
   }
 
   const atualizarColunas = (nextFieldIds) => {
-    setFieldIds(nextFieldIds)
+    setFieldIds(normalizarFieldIdsConsulta(tipoTabela, nextFieldIds))
     previaMutation.reset()
     contagemMutation.reset()
     exportExcelMutation.reset()
@@ -157,8 +175,8 @@ export default function ConsultaPersonalizada() {
     if (
       !tipoTabela ||
       setorCensitarioSemUf ||
-      fieldIds.length === 0 ||
-      fieldIds.length > MAX_COLUNAS_EXPORTACAO
+      fieldIdsConsulta.length === 0 ||
+      fieldIdsConsulta.length > MAX_COLUNAS_EXPORTACAO
     ) return
 
     setPreviewGerada(false)
@@ -180,8 +198,8 @@ export default function ConsultaPersonalizada() {
       !tipoTabela ||
       setorCensitarioSemUf ||
       excelBloqueadoPorVolume ||
-      fieldIds.length === 0 ||
-      fieldIds.length > MAX_COLUNAS_EXPORTACAO
+      fieldIdsConsulta.length === 0 ||
+      fieldIdsConsulta.length > MAX_COLUNAS_EXPORTACAO
     ) return
 
     const format = 'excel'
@@ -217,8 +235,8 @@ export default function ConsultaPersonalizada() {
     if (
       !tipoTabela ||
       setorCensitarioSemUf ||
-      fieldIds.length === 0 ||
-      fieldIds.length > MAX_COLUNAS_EXPORTACAO
+      fieldIdsConsulta.length === 0 ||
+      fieldIdsConsulta.length > MAX_COLUNAS_EXPORTACAO
     ) return
 
     const format = 'csv'
@@ -264,7 +282,7 @@ export default function ConsultaPersonalizada() {
         <ResumoConfiguracao
           base={tipoLabel}
           filtrosAtivos={contarFiltrosAtivos(filtros)}
-          colunasSelecionadas={fieldIds.length}
+          colunasSelecionadas={fieldIdsConsulta.length}
         />
       </header>
 
@@ -297,7 +315,8 @@ export default function ConsultaPersonalizada() {
           <SelecaoColunas
             tipoTabela={tipoTabela}
             campos={campos}
-            selected={fieldIds}
+            selected={fieldIdsConsulta}
+            requiredFieldIds={requiredFieldIds}
             onChange={atualizarColunas}
             onSelectDefaults={selecionarCamposPadrao}
             onClear={() => atualizarColunas([])}
@@ -322,8 +341,8 @@ export default function ConsultaPersonalizada() {
             previewDisabled={
               !tipoTabela ||
               setorCensitarioSemUf ||
-              fieldIds.length === 0 ||
-              fieldIds.length > MAX_COLUNAS_EXPORTACAO ||
+              fieldIdsConsulta.length === 0 ||
+              fieldIdsConsulta.length > MAX_COLUNAS_EXPORTACAO ||
               previaMutation.isPending ||
               contagemMutation.isPending ||
               catalogoQuery.isLoading
@@ -333,8 +352,8 @@ export default function ConsultaPersonalizada() {
               !tipoTabela ||
               setorCensitarioSemUf ||
               excelBloqueadoPorVolume ||
-              fieldIds.length === 0 ||
-              fieldIds.length > MAX_COLUNAS_EXPORTACAO ||
+              fieldIdsConsulta.length === 0 ||
+              fieldIdsConsulta.length > MAX_COLUNAS_EXPORTACAO ||
               exportExcelMutation.isPending ||
               exportCsvMutation.isPending ||
               catalogoQuery.isLoading
@@ -343,8 +362,8 @@ export default function ConsultaPersonalizada() {
               !previewGerada ||
               !tipoTabela ||
               setorCensitarioSemUf ||
-              fieldIds.length === 0 ||
-              fieldIds.length > MAX_COLUNAS_EXPORTACAO ||
+              fieldIdsConsulta.length === 0 ||
+              fieldIdsConsulta.length > MAX_COLUNAS_EXPORTACAO ||
               exportExcelMutation.isPending ||
               exportCsvMutation.isPending ||
               catalogoQuery.isLoading

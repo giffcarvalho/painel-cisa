@@ -17,6 +17,7 @@ class CampoCatalogo(BaseModel):
     visivel: bool
     exportavel: bool
     padrao: bool
+    obrigatorio: bool = False
     descricao: str = ""
 
 class TipoTabelaItem(BaseModel):

@@ -15,7 +15,13 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
-from app.services.extrator_catalogo import FIELD_BY_ID, TIPOS_TABELA, listar_campos
+from app.services.extrator_catalogo import (
+    COLUNAS_OBRIGATORIAS,
+    FIELD_BY_ID,
+    TIPOS_TABELA,
+    listar_campos,
+    listar_field_ids_obrigatorios,
+)
 from app.schemas.extrator_dados import (
     CatalogoResponse,
     CountRequest,
@@ -37,6 +43,8 @@ except ImportError:  # pragma: no cover
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+MAX_FIELD_IDS = 80
 
 EXCEL_MAX_ROWS = 13000
 CSV_BATCH_SIZE = 1000
@@ -320,10 +328,45 @@ async def _csv_stream_rows(stream_result, campos: list[dict]):
         buffer.seek(0)
         buffer.truncate(0)
 
+def _normalizar_field_ids(tipo_tabela: str, field_ids: list[str]) -> list[str]:
+    obrigatorios = listar_field_ids_obrigatorios(tipo_tabela)
+    return list(dict.fromkeys([*obrigatorios, *field_ids]))
+
+
+def _ordem_campo(tipo_tabela: str, campo: dict) -> int:
+    colunas_obrigatorias = set(COLUNAS_OBRIGATORIAS.get(tipo_tabela, []))
+
+    if campo["column"] in colunas_obrigatorias:
+        return 0
+
+    if campo["tipo_dado"] == "currency" or campo["formato"] == "brl":
+        return 3
+
+    if campo["papel_semantico"] == "dimensao":
+        return 1
+
+    return 2
+
+
+def _ordenar_campos(tipo_tabela: str, campos: list[dict]) -> list[dict]:
+    return sorted(
+        campos,
+        key=lambda campo: _ordem_campo(tipo_tabela, campo),
+    )
+
+
 def _campos_solicitados(tipo_tabela: str, field_ids: list[str]) -> list[dict]:
+    field_ids_normalizados = _normalizar_field_ids(tipo_tabela, field_ids)
+
+    if len(field_ids_normalizados) > MAX_FIELD_IDS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"A consulta pode ter no máximo {MAX_FIELD_IDS} colunas, incluindo as colunas obrigatórias.",
+        )
+
     campos: list[dict] = []
 
-    for field_id in field_ids:
+    for field_id in field_ids_normalizados:
         campo = FIELD_BY_ID.get(field_id)
         if not campo or campo["tipo_tabela"] != tipo_tabela or not campo["exportavel"]:
             raise HTTPException(
@@ -332,7 +375,7 @@ def _campos_solicitados(tipo_tabela: str, field_ids: list[str]) -> list[dict]:
             )
         campos.append(campo)
 
-    return campos
+    return _ordenar_campos(tipo_tabela, campos)
 
 def _build_select(campos: list[dict]) -> str:
     return ",\n            ".join(
@@ -569,7 +612,7 @@ async def buscar_filtro(
     value_expr = config.get("sql", campo)
 
     if campo == "cod_municipio":
-        nome_col = "nome" if tipo_tabela == "municipio" else "nome_municipio"
+        nome_col = "nome_municipio"
 
         if tipo_tabela == "municipio":
             label_expr = nome_col
@@ -613,10 +656,6 @@ async def post_previa(payload: PreviewRequest, db: AsyncSession = Depends(get_db
     _validar_setor_censitario_com_uf(payload.tipo_tabela, payload.filtros)
 
     campos = _campos_solicitados(payload.tipo_tabela, payload.field_ids)
-    campos = sorted(
-        campos,
-        key=lambda campo: 0 if campo["papel_semantico"] == "dimensao" else 1,
-    )
     select_sql = _build_select(campos)
     where, params = _build_where(payload.tipo_tabela, payload.filtros)
 
