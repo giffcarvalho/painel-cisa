@@ -41,6 +41,10 @@ CAMPOS_IGNORADOS = {
         "jenks_deficit_residuo_urbana_ibge",
         "jenks_deficit_banheiro_urbana_ibge",
         "uf",
+        "snis_populacao_total_2022",
+        "snis_populacao_adequada_agua",
+        "snis_populacao_adequada_esgoto",
+        "snis_populacao_coleta_regular",
         "geom_sede",
         "geom_2022",
     },
@@ -54,6 +58,7 @@ CAMPOS_IGNORADOS = {
     },
     "instrumento": {
         "normal",
+        "classificacao_tempo",
     },
 }
 
@@ -67,6 +72,7 @@ CAMPOS_PADRAO = {
         "amazonia_legal",
         "populacao_total_censo_2022",
         "populacao_rural_censo_2022",
+        "populacao_urbana_censo_2022",
         "dppo_rural",
         "deficit_agua_rural_ibge",
         "deficit_esgoto_rural_ibge",
@@ -92,31 +98,31 @@ CAMPOS_PADRAO = {
         "nr_instrumento",
         "nr_proposta",
         "tipo_instrumento",
-        "ano_proposta",
         "acao_padronizada",
-        "nome_proponente",
+        "componente",
         "uf",
         "municipios_beneficiados",
+        "carteira_ativa",
+        "situacao_contratacao",
+        "situacao_obra",
         "valor_global",
         "valor_repasse",
+        "valor_empenhado",
         "valor_desembolsado",
-        "situacao_contratacao",
-        "fase_instrumento",
-        "carteira_ativa",
     },
 }
 
 
 CAMPOS_CATALOGADOS = {
     "municipio": {
-        "Identificação territorial": [
+        "Identificação": [
             ("cod_municipio", "Código do município"),
             ("nome", "Nome do município"),
             ("cod_uf", "Código da UF"),
             ("sigla_uf", "Sigla da UF"),
+            ("regiao", "Região"),
         ],
         "Território": [
-            ("regiao", "Região"),
             ("tipo_catmetropol", "Tipo de categoria metropolitana"),
             ("categoria_metropolitana", "Categoria metropolitana"),
             ("label_catmetropol", "Rótulo da categoria metropolitana"),
@@ -127,7 +133,7 @@ CAMPOS_CATALOGADOS = {
             ("vale_jequetinhonha", "Vale do Jequitinhonha"),
             ("elegivel_pac_rural_2025", "Elegível ao PAC Rural 2025"),
         ],
-        "Indicadores socioeconômicos": [
+        "Indicadores/Índices municipais": [
             ("idhm_2010", "IDHM 2010"),
             ("indice_firjan_2016", "Índice FIRJAN 2016"),
             ("capag_municipal", "CAPAG municipal"),
@@ -242,12 +248,6 @@ CAMPOS_CATALOGADOS = {
             ("deficit_banheiro_urbana_ibge", "Déficit de banheiro urbano — IBGE"),
             ("ranking_sem_banheiro_exclusivo_rural_ibge", "Ranking sem banheiro de uso exclusivo rural — IBGE"),
         ],
-        "SNIS": [
-            ("snis_populacao_total_2022", "População total SNIS 2022"),
-            ("snis_populacao_adequada_agua", "População com água adequada — SNIS"),
-            ("snis_populacao_adequada_esgoto", "População com esgoto adequado — SNIS"),
-            ("snis_populacao_coleta_regular", "População com coleta regular — SNIS"),
-        ],
         "SINISA — População e domicílios": [
             ("sinisa_populacao_total_2023", "População total SINISA 2023"),
             ("sinisa_populacao_urbana_residente", "População urbana residente — SINISA"),
@@ -325,8 +325,8 @@ CAMPOS_CATALOGADOS = {
             ("natureza_juridica_prestadores_esgoto", "Natureza jurídica dos prestadores de esgoto"),
             ("area_atuacao_prestadores_esgoto", "Área de atuação dos prestadores de esgoto"),
         ],
-        "Vulnerabilidade e CadÚnico": [
-            ("referencia", "Referência"),
+        "CadÚnico": [
+            ("referencia", "Mês de Referência - Cadúnico"),
             ("qtde_familias_baixa_renda_urbana", "Quantidade de famílias de baixa renda urbana"),
             ("qtde_familias_baixa_renda_rural", "Quantidade de famílias de baixa renda rural"),
             ("qtde_familias_esgoto_nbf_rede", "Quantidade de famílias não beneficiárias do Bolsa Família com esgotamento sanitário por rede geral"),
@@ -478,7 +478,7 @@ CAMPOS_CATALOGADOS = {
         ],
     },
     "instrumento": {
-        "Identificação do instrumento": [
+        "Identificação básica": [
             ("nr_instrumento", "Número do instrumento"),
             ("nr_proposta", "Número da proposta"),
             ("operacao", "Operação"),
@@ -486,36 +486,36 @@ CAMPOS_CATALOGADOS = {
             ("nr_reservado", "Número reservado"),
             ("ano_proposta", "Ano da proposta"),
             ("tipo_instrumento", "Tipo de instrumento"),
-            ("objeto", "Objeto"),
-            ("categoria", "Categoria"),
+            ("novo_pac", "Novo PAC"),
+            ("acao_orcamentaria", "Ação orçamentária"),
+            ("componente", "Componente"),
+            ("acao_padronizada", "Ação padronizada"),
+            ("coordenacao", "Coordenação"),
         ],
-        "Proponente": [
+        "Identificação do Proponente": [
             ("nome_proponente", "Nome do proponente"),
-        ],
-        "Território": [
             ("uf", "UF"),
+        ],
+        "Público Beneficiado": [
             ("qtde_municipios", "Quantidade de municípios"),
             ("municipios_beneficiados", "Municípios beneficiados"),
             ("qtde_comunidades_rurais_beneficiadas", "Quantidade de comunidades rurais beneficiadas"),
             ("comunidades_rurais_beneficiadas", "Comunidades rurais beneficiadas"),
             ("qtde_familias_beneficiadas", "Quantidade de famílias beneficiadas"),
         ],
-        "SINISA — Prestadores de serviço": [
-            ("prestador_agua_sinisa", "Prestador de água — SINISA"),
-            ("prestador_esgoto_sinisa", "Prestador de esgoto — SINISA"),
-        ],
-        "Carteira DSR": [
-            ("novo_pac", "Novo PAC"),
-            ("acao_orcamentaria", "Ação orçamentária"),
-            ("componente", "Componente"),
-            ("acao_padronizada", "Ação padronizada"),
-            ("carteira_ativa", "Carteira ativa"),
-            ("coordenacao", "Coordenação"),
-        ],
-        "Valores financeiros": [
+        "Informações do Instrumento": [
+            ("objeto", "Objeto"),
+            ("categoria", "Categoria"),
+            ("status", "Status"),
+            ("dia_assin_conv", "Data de assinatura do convênio"),
+            ("dia_inic_vigenc_conv", "Data de início da vigência do convênio"),
+            ("dia_fim_vigenc_conv", "Data de fim da vigência do convênio"),
+            ("dias_termino_vigencia", "Dias para término da vigência"),
+            ("termino_vigencia", "Término da vigência"),
             ("valor_global", "Valor global"),
             ("valor_repasse", "Valor de repasse"),
             ("valor_contrapartida", "Valor de contrapartida"),
+            ("nivel", "Nível"),
             ("valor_empenhado", "Valor empenhado"),
             ("valor_a_empenhar", "Valor a empenhar"),
             ("valor_desembolsado", "Valor desembolsado"),
@@ -535,22 +535,9 @@ CAMPOS_CATALOGADOS = {
             ("saldo_empenho", "Saldo de empenho"),
             ("necessidade_empenho_proxima_parcela", "Necessidade de empenho da próxima parcela"),
         ],
-        "Datas e prazos": [
-            ("dia_assin_conv", "Data de assinatura do convênio"),
-            ("dia_inic_vigenc_conv", "Data de início da vigência do convênio"),
-            ("dia_fim_vigenc_conv", "Data de fim da vigência do convênio"),
-            ("dias_termino_vigencia", "Dias para término da vigência"),
-            ("termino_vigencia", "Término da vigência"),
-        ],
-        "Situação e fase": [
-            ("status", "Status"),
-            ("nivel", "Nível"),
+        "Cláusula Suspensiva": [
             ("situacao_contratacao", "Situação da contratação"),
             ("liminar_judicial", "Liminar judicial"),
-            ("situacao_atual", "Situação atual"),
-            ("fase_instrumento", "Fase do instrumento"),
-        ],
-        "Suspensivas e paralisação": [
             ("motivo_suspensao", "Motivo da suspensão"),
             ("data_suspensiva", "Data da suspensiva"),
             ("dias_prazo_suspensiva", "Dias de prazo da suspensiva"),
@@ -564,21 +551,15 @@ CAMPOS_CATALOGADOS = {
             ("suspensiva_artigo_50", "Suspensiva do artigo 50"),
             ("suspensiva_outra", "Outra suspensiva"),
             ("data_retirada_suspensiva", "Data de retirada da suspensiva"),
-            ("data_condicao_suspensiva", "Data da condição suspensiva"),
-            ("paralisada", "Paralisada"),
-            ("principal_motivo_paralisacao", "Principal motivo da paralisação"),
-            ("detalhamento_motivo_paralisacao", "Detalhamento do motivo da paralisação"),
-            ("descricao_motivo_paralisacao", "Descrição do motivo da paralisação"),
-            ("data_paralisacao", "Data da paralisação"),
-            ("dias_sem_evolucao", "Dias sem evolução"),
-            ("classificacao_tempo", "Classificação de tempo"),
         ],
-        "Projeto e licitação": [
+        "Projeto Básico": [
             ("situacao_projeto", "Situação do projeto"),
             ("data_primeiro_envio_projeto", "Data do primeiro envio do projeto"),
             ("data_ultima_versao_lae", "Data da última versão LAE"),
             ("situacao_ultima_versao_lae", "Situação da última versão LAE"),
             ("data_aceite_projeto", "Data de aceite do projeto"),
+        ],
+        "Licitações": [
             ("qtde_licitacoes_maior_10_porc", "Quantidade de licitações maiores que 10%"),
             ("qtde_licitacoes_maior_10_porc_enviada", "Quantidade de licitações maiores que 10% enviadas"),
             ("data_primeira_publicacao_licitacao", "Data da primeira publicação da licitação"),
@@ -588,7 +569,7 @@ CAMPOS_CATALOGADOS = {
             ("qtde_licitacoes_sem_contrato_15", "Quantidade de licitações sem contrato há 15 dias"),
             ("qtde_licitacoes_sem_contrato_30", "Quantidade de licitações sem contrato há 30 dias"),
         ],
-        "Obra e execução": [
+        "AIO e Execução": [
             ("data_solicitacao_aio", "Data de solicitação da AIO"),
             ("data_atendimento_equipe_aio", "Data de atendimento da equipe AIO"),
             ("data_atendimento_executiva_aio", "Data de atendimento da executiva AIO"),
@@ -599,27 +580,40 @@ CAMPOS_CATALOGADOS = {
             ("previsao_duracao_obra", "Previsão de duração da obra"),
             ("data_fim_periodo_ultima_medicao", "Data de fim do período da última medição"),
             ("qtde_dias_sem_medicao", "Quantidade de dias sem medição"),
+            ("data_primeiro_pagamento", "Data do primeiro pagamento"),
+            ("data_ultimo_pagamento", "Data do último pagamento"),
+            ("valor_pago", "Valor pago"),
+        ],
+        "Informações da Mandatária - BD Gestores": [
             ("situacao_contrato", "Situação do contrato"),
             ("situacao_obra", "Situação da obra"),
             ("percentual_fisico_informado", "Percentual físico informado"),
             ("percentual_fisico_aferido", "Percentual físico aferido"),
-            ("data_termino_obra", "Data de término da obra"),
-        ],
-        "Pagamentos e desbloqueios": [
-            ("data_primeiro_pagamento", "Data do primeiro pagamento"),
-            ("data_ultimo_pagamento", "Data do último pagamento"),
-            ("valor_pago", "Valor pago"),
             ("percentual_financeiro_desbloqueado", "Percentual financeiro desbloqueado"),
             ("valor_desbloqueado", "Valor desbloqueado"),
             ("data_ultimo_bm", "Data do último BM"),
             ("data_ultima_vistoria", "Data da última vistoria"),
             ("data_ultimo_desbloqueio", "Data do último desbloqueio"),
             ("data_ultima_obtv", "Data da última OBTV"),
+            ("carteira_ativa", "Carteira ativa"),
+            ("data_termino_obra", "Data de término da obra"),
+            ("situacao_atual", "Situação atual"),
+            ("paralisada", "Paralisada"),
+            ("principal_motivo_paralisacao", "Principal motivo da paralisação"),
+            ("detalhamento_motivo_paralisacao", "Detalhamento do motivo da paralisação"),
+            ("descricao_motivo_paralisacao", "Descrição do motivo da paralisação"),
+            ("data_paralisacao", "Data da paralisação"),
+            ("dias_sem_evolucao", "Dias sem evolução"),
         ],
-        "Links e atualização": [
+        "Fase de Execução": [
+            ("fase_instrumento", "Fase do instrumento"),
+        ],
+        "SINISA — Prestadores de serviço": [
+            ("prestador_agua_sinisa", "Prestador de água — SINISA"),
+            ("prestador_esgoto_sinisa", "Prestador de esgoto — SINISA"),
+        ],
+        "Links e Datas de Atualização": [
             ("link_transferegov", "Link do Transferegov"),
-        ],
-        "Dados de atualização": [
             ("data_dados_transferegov", "Data dos dados do Transferegov"),
             ("data_dados_caixa", "Data dos dados da Caixa"),
         ],
