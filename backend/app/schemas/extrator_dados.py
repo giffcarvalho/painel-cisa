@@ -72,11 +72,22 @@ class PreviewRequest(ExtratorRequest):
 
 class PreviewResponse(BaseModel):
     tipo_tabela: TipoTabela
-    total_estimado: int
+    total_estimado: int | None = None
     limit: int
+    has_more: bool = False
     columns: list[CampoCatalogo]
     data: list[dict[str, Any]]
     metadados: dict[str, Any] = Field(default_factory=dict)
 
+class CountRequest(BaseModel):
+    tipo_tabela: TipoTabela
+    filtros: dict[str, list[Any] | Any] = Field(default_factory=dict)
+
+class CountResponse(BaseModel):
+    tipo_tabela: TipoTabela
+    total_registros: int
+    limite_excel: int
+    excel_permitido: bool
+
 class ExportRequest(ExtratorRequest):
-    formato: Literal["xlsx"] = "xlsx"
+    formato: Literal["xlsx", "csv"] = "xlsx"

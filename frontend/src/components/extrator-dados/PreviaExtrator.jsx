@@ -1,4 +1,4 @@
-import { Download, Eye, Loader2 } from 'lucide-react'
+import { Download, Eye, FileText, Loader2 } from 'lucide-react'
 import { formatCurrency, formatDate, formatPercentualPontos } from '@/utils/formatters'
 import styles from '../../pages/consulta-personalizada/ConsultaPersonalizada.module.css'
 
@@ -29,11 +29,19 @@ export default function PreviaExtrator({
   isLoading,
   error,
   onPreview,
-  onExport,
-  isExporting,
-  exportError,
+  onExportExcel,
+  onExportCsv,
+  isExportingExcel,
+  isExportingCsv,
+  exportExcelError,
+  exportCsvError,
   previewDisabled,
-  exportDisabled,
+  exportExcelDisabled,
+  exportCsvDisabled,
+  totalRegistros,
+  excelMaxRows = 13000,
+  setorCensitarioSemUf = false,
+  ufObrigatoriaMessage,
   filtrosAtivosCount = 0,
   previewGerada = false,
   maxColumns = 80,
@@ -41,6 +49,12 @@ export default function PreviaExtrator({
   const rows = preview?.data || []
   const columns = preview?.columns || selectedColumns
   const exportacaoDisponivel = previewGerada && Boolean(preview)
+
+  const totalFormatado =
+    typeof totalRegistros === 'number' ? totalRegistros.toLocaleString('pt-BR') : null
+
+  const excelBloqueadoPorVolume =
+    typeof totalRegistros === 'number' && totalRegistros > excelMaxRows
 
   return (
     <section className={`${styles.panel} ${styles.previewPanel}`}>
@@ -57,10 +71,27 @@ export default function PreviaExtrator({
           </button>
 
           {exportacaoDisponivel && (
-            <button type="button" className={styles.successButton} disabled={exportDisabled} onClick={onExport}>
-              {isExporting ? <Loader2 className={styles.spinIcon} /> : <Download size={16} />}
-              Exportar Excel
-            </button>
+            <>
+              <button
+                type="button"
+                className={styles.successButton}
+                disabled={exportExcelDisabled}
+                onClick={onExportExcel}
+              >
+                {isExportingExcel ? <Loader2 className={styles.spinIcon} /> : <Download size={16} />}
+                Exportar Excel
+              </button>
+
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                disabled={exportCsvDisabled}
+                onClick={onExportCsv}
+              >
+                {isExportingCsv ? <Loader2 className={styles.spinIcon} /> : <FileText size={16} />}
+                Exportar CSV
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -75,6 +106,13 @@ export default function PreviaExtrator({
           <div className={styles.emptyStateContent}>
             <strong>Escolha uma base para começar.</strong>
             <span>Depois selecione as colunas e gere uma prévia.</span>
+          </div>
+        </div>
+      ) : setorCensitarioSemUf ? (
+        <div className={styles.emptyState}>
+          <div className={styles.emptyStateContent}>
+            <strong>UF obrigatória para setor censitário.</strong>
+            <span>{ufObrigatoriaMessage}</span>
           </div>
         </div>
       ) : selectedColumns.length === 0 ? (
@@ -117,8 +155,15 @@ export default function PreviaExtrator({
       ) : (
         <>
           <div className={styles.previewMeta}>
-            {preview.total_estimado} registro(s) encontrado(s). Exibindo até {preview.limit}.
+            {totalFormatado && <> Total do recorte: {totalFormatado} registro(s). Exibindo até {preview.limit} linhas. </>} 
           </div>
+
+          {excelBloqueadoPorVolume && (
+            <div className={styles.warningBox}>
+              <p>A exportação em Excel está disponível para recortes com até {excelMaxRows.toLocaleString('pt-BR')} registros.</p>
+              <p>Nesse caso, utilize a exportação em CSV.</p>
+            </div>
+          )}
 
           <div className={styles.tableScroller}>
             <table className={styles.previewTable}>
@@ -143,9 +188,15 @@ export default function PreviaExtrator({
         </>
       )}
 
-      {exportError && (
+      {exportExcelError && (
         <div className={styles.errorBox}>
-          Erro ao exportar Excel: {getErrorMessage(exportError)}
+          Erro ao exportar Excel: {getErrorMessage(exportExcelError)}
+        </div>
+      )}
+
+      {exportCsvError && (
+        <div className={styles.errorBox}>
+          Erro ao exportar CSV: {getErrorMessage(exportCsvError)}
         </div>
       )}
     </section>

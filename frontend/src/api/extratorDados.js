@@ -71,6 +71,14 @@ export const extratorDadosApi = {
     return data
   },
 
+  contarRegistros: async (payload) => {
+    const { data } = await api.post('/extrator-dados/contar', {
+      tipo_tabela: payload.tipo_tabela,
+      filtros: limparFiltros(payload.filtros),
+    })
+    return data
+  },
+
   exportarExcel: async (payload) => {
     try {
       return await api.post(
@@ -79,7 +87,23 @@ export const extratorDadosApi = {
           ...payload,
           filtros: limparFiltros(payload.filtros),
         },
-        { responseType: 'blob' }
+        { responseType: 'blob', timeout: 120000 }
+      )
+    } catch (error) {
+      await normalizarErroBlob(error)
+    }
+  },
+
+  exportarCsv: async (payload) => {
+    try {
+      return await api.post(
+        '/extrator-dados/exportar/csv',
+        {
+          ...payload,
+          formato: 'csv',
+          filtros: limparFiltros(payload.filtros),
+        },
+        { responseType: 'blob', timeout: 120000 }
       )
     } catch (error) {
       await normalizarErroBlob(error)

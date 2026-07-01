@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import csv
 import io
 import logging
 from datetime import date, datetime
 from typing import Any
-
+from urllib.parse import quote
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import StreamingResponse
@@ -17,6 +18,8 @@ from app.core.database import get_db
 from app.services.extrator_catalogo import FIELD_BY_ID, TIPOS_TABELA, listar_campos
 from app.schemas.extrator_dados import (
     CatalogoResponse,
+    CountRequest,
+    CountResponse,
     ExportRequest,
     FiltroBuscaResponse,
     FiltrosResponse,
@@ -35,7 +38,13 @@ except ImportError:  # pragma: no cover
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-MAX_EXPORT_ROWS = 50000
+EXCEL_MAX_ROWS = 13000
+CSV_BATCH_SIZE = 1000
+
+SETOR_CENSITARIO_UF_MESSAGE = (
+    "Para consultar setores censitários, selecione ao menos uma UF."
+    "Essa regra evita consultas muito grandes e melhora a estabilidade da exportação."
+)
 
 AZUL_LABEL = "1F497D"
 AZUL_TABELA = "1F4E78"
@@ -263,6 +272,53 @@ def _normalizar_lista(value: Any) -> list[Any]:
     if isinstance(value, list):
         return [item for item in value if item not in (None, "")]
     return [value]
+
+def _validar_setor_censitario_com_uf(tipo_tabela: str, filtros: dict[str, Any]) -> None:
+    if tipo_tabela != "setor_censitario":
+        return
+
+    if not _normalizar_lista((filtros or {}).get("sigla_uf")):
+        raise HTTPException(status_code=400, detail=SETOR_CENSITARIO_UF_MESSAGE)
+
+
+async def _stream_query(db: AsyncSession, sql: str, params: dict | None = None):
+    try:
+        return await db.stream(text(sql), params or {})
+    except SQLAlchemyError as exc:
+        logger.exception("Erro no banco de dados do Extrator: %s", exc)
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao consultar a base de dados.",
+        )
+
+
+def _csv_value(value: Any) -> Any:
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return "Sim" if value else "Não"
+    if isinstance(value, datetime):
+        return value.strftime("%Y-%m-%d %H:%M:%S")
+    if isinstance(value, date):
+        return value.isoformat()
+    return value
+
+
+async def _csv_stream_rows(stream_result, campos: list[dict]):
+    buffer = io.StringIO(newline="")
+    writer = csv.writer(buffer, delimiter=";", lineterminator="\n")
+
+    buffer.write("\ufeff")
+    writer.writerow([campo["label"] for campo in campos])
+    yield buffer.getvalue().encode("utf-8")
+    buffer.seek(0)
+    buffer.truncate(0)
+
+    async for row in stream_result.mappings():
+        writer.writerow([_csv_value(row.get(campo["id"])) for campo in campos])
+        yield buffer.getvalue().encode("utf-8")
+        buffer.seek(0)
+        buffer.truncate(0)
 
 def _campos_solicitados(tipo_tabela: str, field_ids: list[str]) -> list[dict]:
     campos: list[dict] = []
@@ -554,6 +610,8 @@ async def buscar_filtro(
 
 @router.post("/previa", response_model=PreviewResponse)
 async def post_previa(payload: PreviewRequest, db: AsyncSession = Depends(get_db)):
+    _validar_setor_censitario_com_uf(payload.tipo_tabela, payload.filtros)
+
     campos = _campos_solicitados(payload.tipo_tabela, payload.field_ids)
     campos = sorted(
         campos,
@@ -562,10 +620,9 @@ async def post_previa(payload: PreviewRequest, db: AsyncSession = Depends(get_db
     select_sql = _build_select(campos)
     where, params = _build_where(payload.tipo_tabela, payload.filtros)
 
-    total = await _count_rows(db, payload.tipo_tabela, where, params)
     metadados = await _metadata(db, payload.tipo_tabela, where, params)
 
-    data_params = {**params, "limit": payload.limit}
+    data_params = {**params, "limit": payload.limit + 1}
 
     result = await _execute_query(
         db,
@@ -580,13 +637,31 @@ async def post_previa(payload: PreviewRequest, db: AsyncSession = Depends(get_db
         data_params,
     )
 
+    rows = [dict(row) for row in result.mappings().all()]
+    has_more = len(rows) > payload.limit
+
     return {
         "tipo_tabela": payload.tipo_tabela,
-        "total_estimado": total,
+        "total_estimado": None,
         "limit": payload.limit,
+        "has_more": has_more,
         "columns": campos,
-        "data": jsonable_encoder([dict(row) for row in result.mappings().all()]),
+        "data": jsonable_encoder(rows[:payload.limit]),
         "metadados": metadados,
+    }
+
+@router.post("/contar", response_model=CountResponse)
+async def post_contar(payload: CountRequest, db: AsyncSession = Depends(get_db)):
+    _validar_setor_censitario_com_uf(payload.tipo_tabela, payload.filtros)
+
+    where, params = _build_where(payload.tipo_tabela, payload.filtros)
+    total = await _count_rows(db, payload.tipo_tabela, where, params)
+
+    return {
+        "tipo_tabela": payload.tipo_tabela,
+        "total_registros": total,
+        "limite_excel": EXCEL_MAX_ROWS,
+        "excel_permitido": total <= EXCEL_MAX_ROWS,
     }
 
 @router.post("/exportar/excel")
@@ -597,17 +672,22 @@ async def post_exportar_excel(payload: ExportRequest, db: AsyncSession = Depends
             detail="A dependencia openpyxl nao esta instalada no backend.",
         )
 
+    _validar_setor_censitario_com_uf(payload.tipo_tabela, payload.filtros)
+
     campos = _campos_solicitados(payload.tipo_tabela, payload.field_ids)
     select_sql = _build_select(campos)
     where, params = _build_where(payload.tipo_tabela, payload.filtros)
 
     total = await _count_rows(db, payload.tipo_tabela, where, params)
-    if total > MAX_EXPORT_ROWS:
+    if total > EXCEL_MAX_ROWS:
         raise HTTPException(
             status_code=413,
-            detail=f"A exportacao possui {total} linhas. Refine os filtros ou limite a extracao a ate {MAX_EXPORT_ROWS} linhas.",
+            detail=(
+                f"O recorte atual possui {total} registros. "
+                f"A exportacao em Excel esta disponivel apenas para recortes com ate {EXCEL_MAX_ROWS} registros. "
+                "Para volumes maiores, use a exportacao em CSV."
+            ),
         )
-
     metadados = await _metadata(db, payload.tipo_tabela, where, params)
 
     result = await _execute_query(
@@ -865,4 +945,37 @@ async def post_exportar_excel(payload: ExportRequest, db: AsyncSession = Depends
         buffer,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+@router.post("/exportar/csv")
+async def post_exportar_csv(payload: ExportRequest, db: AsyncSession = Depends(get_db)):
+    _validar_setor_censitario_com_uf(payload.tipo_tabela, payload.filtros)
+
+    campos = _campos_solicitados(payload.tipo_tabela, payload.field_ids)
+    select_sql = _build_select(campos)
+    where, params = _build_where(payload.tipo_tabela, payload.filtros)
+
+    stream_result = await _stream_query(
+        db,
+        f"""
+        SELECT
+            {select_sql}
+        FROM {_view(payload.tipo_tabela)}
+        {where}
+        ORDER BY {_order_by(payload.tipo_tabela)}
+        """,
+        params,
+    )
+
+    filename = f"extrator_dados_{payload.tipo_tabela}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    quoted_filename = quote(filename)
+
+    return StreamingResponse(
+        _csv_stream_rows(stream_result, campos),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{filename}"; filename*=UTF-8\'\'{quoted_filename}'
+            )
+        },
     )

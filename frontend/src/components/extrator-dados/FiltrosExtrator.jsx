@@ -243,6 +243,12 @@ export default function FiltrosExtrator({
 
       {isLoading && <div className={styles.stateLine}>Carregando filtros...</div>}
       {isError && <div className={styles.errorBox}>Não foi possível carregar os filtros.</div>}
+      
+      {tipoTabela === 'setor_censitario' && (!Array.isArray(value.sigla_uf) || value.sigla_uf.length === 0) && (
+        <div className={styles.warningBox}>
+          Para consultas por setores censitários, selecione ao menos uma UF.
+        </div>
+      )}
 
       {filtrosAtivos.length > 0 && (
         <div className={styles.filterSummary}>
