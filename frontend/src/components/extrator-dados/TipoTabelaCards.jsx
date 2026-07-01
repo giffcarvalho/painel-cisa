@@ -14,7 +14,7 @@ const DETAILS = {
     linha: '1 setor censitário',
   },
   instrumento: {
-    titulo: 'Instrumento DSR',
+    titulo: 'Carteira DSR',
     texto: 'Tabela por proposta, instrumento ou registro.',
     linha: '1 instrumento/proposta/registro',
   },

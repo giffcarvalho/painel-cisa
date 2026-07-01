@@ -940,6 +940,7 @@ async def post_exportar_excel(payload: ExportRequest, db: AsyncSession = Depends
     buffer.seek(0)
 
     filename = f"extrator_dados_{payload.tipo_tabela}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    quoted_filename = quote(filename)
 
     return StreamingResponse(
         buffer,
