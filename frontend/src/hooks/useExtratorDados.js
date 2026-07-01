@@ -40,6 +40,12 @@ export function useBuscaFiltroExtrator(tipoTabela, campo, termo, enabled = true)
   })
 }
 
+export function useContarRegistrosExtrator() {
+  return useMutation({
+    mutationFn: extratorDadosApi.contarRegistros,
+  })
+}
+
 export function usePreviaExtrator() {
   return useMutation({
     mutationFn: extratorDadosApi.gerarPrevia,
@@ -49,5 +55,11 @@ export function usePreviaExtrator() {
 export function useExportarExcelExtrator() {
   return useMutation({
     mutationFn: extratorDadosApi.exportarExcel,
+  })
+}
+
+export function useExportarCsvExtrator() {
+  return useMutation({
+    mutationFn: extratorDadosApi.exportarCsv,
   })
 }

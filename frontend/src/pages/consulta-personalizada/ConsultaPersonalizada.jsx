@@ -6,6 +6,8 @@ import {
   useFiltrosExtrator,
   usePreviaExtrator,
   useTipoTabelaExtrator,
+  useContarRegistrosExtrator,
+  useExportarCsvExtrator,
 } from '@/hooks/useExtratorDados'
 import TipoTabelaCards from '@/components/extrator-dados/TipoTabelaCards'
 import FiltrosExtrator from '@/components/extrator-dados/FiltrosExtrator'
@@ -14,6 +16,9 @@ import PreviaExtrator from '@/components/extrator-dados/PreviaExtrator'
 import styles from './ConsultaPersonalizada.module.css'
 
 const MAX_COLUNAS_EXPORTACAO = 80
+const EXCEL_MAX_ROWS = 13000
+const SETOR_CENSITARIO_UF_MESSAGE =
+  'Para consultar setores censitários, selecione ao menos uma UF. Essa regra evita consultas muito grandes e melhora a estabilidade da exportação.'
 
 const TIPOS_FALLBACK = [
   {
@@ -75,12 +80,15 @@ export default function ConsultaPersonalizada() {
   const [fieldIds, setFieldIds] = useState([])
   const [filtrosAvancadosAbertos, setFiltrosAvancadosAbertos] = useState(false)
   const [previewGerada, setPreviewGerada] = useState(false)
+  const [exportNotice, setExportNotice] = useState(null)
 
   const tiposQuery = useTipoTabelaExtrator()
   const catalogoQuery = useCatalogoExtrator(tipoTabela)
   const filtrosQuery = useFiltrosExtrator(tipoTabela)
+  const contagemMutation = useContarRegistrosExtrator()
   const previaMutation = usePreviaExtrator()
-  const exportMutation = useExportarExcelExtrator()
+  const exportExcelMutation = useExportarExcelExtrator()
+  const exportCsvMutation = useExportarCsvExtrator()
 
   const tipos = tiposQuery.data?.data?.length ? tiposQuery.data.data : TIPOS_FALLBACK
   const campos = catalogoQuery.data?.data || []
@@ -103,12 +111,22 @@ export default function ConsultaPersonalizada() {
     [fieldIds, filtros, tipoTabela]
   )
 
+  const setorCensitarioSemUf =
+    tipoTabela === 'setor_censitario' &&
+    (!Array.isArray(filtros.sigla_uf) || filtros.sigla_uf.length === 0)
+
+  const totalRegistros = contagemMutation.data?.total_registros ?? null
+  const excelBloqueadoPorVolume =
+    typeof totalRegistros === 'number' && totalRegistros > EXCEL_MAX_ROWS
+
   const trocarTipoTabela = (nextTipoTabela) => {
     setTipoTabela(nextTipoTabela)
     setFiltros({})
     setFieldIds([])
     previaMutation.reset()
-    exportMutation.reset()
+    contagemMutation.reset()
+    exportExcelMutation.reset()
+    exportCsvMutation.reset()
     setFiltrosAvancadosAbertos(false)
     setPreviewGerada(false)
   }
@@ -116,14 +134,18 @@ export default function ConsultaPersonalizada() {
   const atualizarFiltros = (nextFiltros) => {
     setFiltros(nextFiltros)
     previaMutation.reset()
-    exportMutation.reset()
+    contagemMutation.reset()
+    exportExcelMutation.reset()
+    exportCsvMutation.reset()
     setPreviewGerada(false)
   }
 
   const atualizarColunas = (nextFieldIds) => {
     setFieldIds(nextFieldIds)
     previaMutation.reset()
-    exportMutation.reset()
+    contagemMutation.reset()
+    exportExcelMutation.reset()
+    exportCsvMutation.reset()
     setPreviewGerada(false)
   }
 
@@ -131,29 +153,101 @@ export default function ConsultaPersonalizada() {
     atualizarColunas(campos.filter((campo) => campo.padrao).map((campo) => campo.id))
   }
 
-  const gerarPrevia = () => {
-    if (!tipoTabela || fieldIds.length === 0 || fieldIds.length > MAX_COLUNAS_EXPORTACAO) return
+  const gerarPrevia = async () => {
+    if (
+      !tipoTabela ||
+      setorCensitarioSemUf ||
+      fieldIds.length === 0 ||
+      fieldIds.length > MAX_COLUNAS_EXPORTACAO
+    ) return
 
-    previaMutation.mutate(
-      {
+    setPreviewGerada(false)
+
+    try {
+      await contagemMutation.mutateAsync(payload)
+      await previaMutation.mutateAsync({
         ...payload,
         limit: 50,
-      },
-      {
-        onSuccess: () => setPreviewGerada(true),
-      }
-    )
+      })
+      setPreviewGerada(true)
+    } catch {
+      setPreviewGerada(false)
+    }
   }
 
   const exportarExcel = async () => {
-    if (!tipoTabela || fieldIds.length === 0 || fieldIds.length > MAX_COLUNAS_EXPORTACAO) return
+    if (
+      !tipoTabela ||
+      setorCensitarioSemUf ||
+      excelBloqueadoPorVolume ||
+      fieldIds.length === 0 ||
+      fieldIds.length > MAX_COLUNAS_EXPORTACAO
+    ) return
 
-    const response = await exportMutation.mutateAsync({
-      ...payload,
-      formato: 'xlsx',
+    const format = 'excel'
+
+    setExportNotice({
+      type: 'loading',
+      format,
+      title: 'Gerando Excel',
+      message:
+        'O arquivo está sendo preparado. Exportações com muitos registros podem levar alguns segundos.',
     })
 
-    downloadBlob(response, `extrator_dados_${tipoTabela}.xlsx`)
+    try {
+      const response = await exportExcelMutation.mutateAsync({
+        ...payload,
+        formato: 'xlsx',
+      })
+
+      downloadBlob(response, `extrator_dados_${tipoTabela}.xlsx`)
+      setExportNotice(null)
+    } catch {
+      setExportNotice({
+        type: 'error',
+        format,
+        title: 'Não foi possível gerar o arquivo',
+        message:
+          'Tente reduzir o recorte, selecionar menos colunas ou usar CSV para volumes maiores.',
+      })
+    }
+  }
+
+  const exportarCsv = async () => {
+    if (
+      !tipoTabela ||
+      setorCensitarioSemUf ||
+      fieldIds.length === 0 ||
+      fieldIds.length > MAX_COLUNAS_EXPORTACAO
+    ) return
+
+    const format = 'csv'
+
+    setExportNotice({
+      type: 'loading',
+      format,
+      title: 'Gerando CSV',
+      message:
+        'O arquivo está sendo preparado no servidor. Exportações com muitos registros podem levar alguns segundos.',
+    })
+
+    try {
+      const response = await exportCsvMutation.mutateAsync({
+        ...payload,
+        formato: 'csv',
+      })
+
+      downloadBlob(response, `extrator_dados_${tipoTabela}.csv`)
+      setExportNotice(null)
+    } catch {
+      setExportNotice({
+        type: 'error',
+        format,
+        title: 'Não foi possível gerar o arquivo',
+        message:
+          'Tente reduzir o recorte, selecionar menos colunas ou usar CSV para volumes maiores.',
+      })
+    }
   }
 
   return (
@@ -216,33 +310,87 @@ export default function ConsultaPersonalizada() {
             tipoTabela={tipoTabela}
             selectedColumns={selectedColumns}
             preview={previaMutation.data}
-            isLoading={previaMutation.isPending}
-            error={previaMutation.error}
+            isLoading={previaMutation.isPending || contagemMutation.isPending}
+            error={previaMutation.error || contagemMutation.error}
             onPreview={gerarPrevia}
-            onExport={exportarExcel}
-            isExporting={exportMutation.isPending}
-            exportError={exportMutation.error}
+            onExportExcel={exportarExcel}
+            onExportCsv={exportarCsv}
+            isExportingExcel={exportExcelMutation.isPending}
+            isExportingCsv={exportCsvMutation.isPending}
+            exportExcelError={exportExcelMutation.error}
+            exportCsvError={exportCsvMutation.error}
             previewDisabled={
               !tipoTabela ||
+              setorCensitarioSemUf ||
               fieldIds.length === 0 ||
               fieldIds.length > MAX_COLUNAS_EXPORTACAO ||
               previaMutation.isPending ||
+              contagemMutation.isPending ||
               catalogoQuery.isLoading
             }
-            exportDisabled={
+            exportExcelDisabled={
               !previewGerada ||
               !tipoTabela ||
+              setorCensitarioSemUf ||
+              excelBloqueadoPorVolume ||
               fieldIds.length === 0 ||
               fieldIds.length > MAX_COLUNAS_EXPORTACAO ||
-              exportMutation.isPending ||
+              exportExcelMutation.isPending ||
+              exportCsvMutation.isPending ||
               catalogoQuery.isLoading
             }
+            exportCsvDisabled={
+              !previewGerada ||
+              !tipoTabela ||
+              setorCensitarioSemUf ||
+              fieldIds.length === 0 ||
+              fieldIds.length > MAX_COLUNAS_EXPORTACAO ||
+              exportExcelMutation.isPending ||
+              exportCsvMutation.isPending ||
+              catalogoQuery.isLoading
+            }
+            totalRegistros={totalRegistros}
+            excelMaxRows={EXCEL_MAX_ROWS}
+            setorCensitarioSemUf={setorCensitarioSemUf}
+            ufObrigatoriaMessage={SETOR_CENSITARIO_UF_MESSAGE}
             filtrosAtivosCount={contarFiltrosAtivos(filtros)}
             previewGerada={previewGerada}
             maxColumns={MAX_COLUNAS_EXPORTACAO}
           />
         </div>
       </section>
+
+      {exportNotice && (
+        <div className={styles.exportModalOverlay} role="presentation">
+          <div
+            className={`${styles.exportModal} ${
+              exportNotice.type === 'error' ? styles.exportModalError : ''
+            }`}
+            role={exportNotice.type === 'error' ? 'alertdialog' : 'dialog'}
+            aria-modal="true"
+            aria-labelledby="export-modal-title"
+            aria-describedby="export-modal-description"
+          >
+            {exportNotice.type === 'loading' && (
+              <span className={styles.exportModalSpinner} aria-hidden="true" />
+            )}
+
+            <h2 id="export-modal-title">{exportNotice.title}</h2>
+            <p id="export-modal-description">{exportNotice.message}</p>
+
+            {exportNotice.type === 'error' && (
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={() => setExportNotice(null)}
+              >
+                Fechar
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
     </main>
   )
 }
