@@ -27,13 +27,13 @@ export default function ManualCarteiraDsr() {
           <section id={topicIds['Objetivo da ferramenta']} className={styles.manualTopic}>
             <h3>Objetivo da Ferramenta</h3>
             <p>
-              A Carteira DSR reúne informações consolidadas sobre os instrumentos de repasse vinculados ao Departamento de Saneamento Rural e de Pequenos Municípios.
-              A ferramenta foi desenvolvida para apoiar o acompanhamento e a análise dos investimentos, permitindo consultar dados financeiros, quantitativos e territoriais em um
+              A Carteira DSR reúne informações consolidadas sobre os instrumentos de repasse que estão sob responsabilidade do Departamento de Saneamento Rural e de Pequenos Municípios.
+              A ferramenta foi desenvolvida para apoiar o acompanhamento e a análise dos instrumentos de repasse, permitindo consultar, de forma consolidade, os dados financeiros, quantitativos e territoriais em um
               ambiente único.
             </p>
             <p>
               Por meio dos indicadores, filtros, gráficos e tabelas disponíveis, é possível explorar diferentes recortes dos dados e obter uma visão geral da execução e distribuição dos 
-              recursos.
+              instrumentos de repasse.
             </p>
           </section>
 
@@ -64,9 +64,9 @@ export default function ManualCarteiraDsr() {
           </section>
 
           <section id={topicIds.Indicadores} className={styles.manualTopic}>
-            <h3>Indicadores</h3>
+            <h3>Cards</h3>
             <p>
-              Os indicadores apresentam uma síntese do recorte atualmente aplicado. Eles informam a quantidade de instrumentos, a quantidade de municípios beneficiados e os 
+              Os cards apresentam uma síntese do recorte atualmente aplicado. Eles informam a quantidade de instrumentos, a quantidade de municípios beneficiados e os 
               principais valores financeiros relacionados aos instrumentos: valor global, repasse, contrapartida, empenhado, desembolsado e desbloqueado.
             </p>
             <p>
@@ -127,9 +127,10 @@ export default function ManualCarteiraDsr() {
                 </figcaption>
               </figure>
             </div>
+            <br/>
             <p>
               Na visualização geográfica, os pontos indicam as sedes dos municípios beneficiados. Eles não representam, necessariamente, a localização exata das obras
-              ou intervenções. Ao passar o cursor do mouse em cima dos pontos no mapa, as coordenadas são exibidas em um pop-up.
+              ou intervenções. Ao passar o cursor do mouse em cima dos pontos no mapa, as coordenadas são exibidas em um pop-up. Para uma visualização geográfica mais detalhada, acesse o mapa interativo.
             </p>
           </section>
 
@@ -142,7 +143,7 @@ export default function ManualCarteiraDsr() {
             </p>
             <p>
               A tabela detalhada apresenta os registros da Carteira DSR em formato tabular, permitindo consultar informações de forma mais específica e
-              complementar às visualizações gráficas da página.
+              complementar às visualizações gráficas da página. Para geração de uma tabela mais personalizada utilize a página Consulta Personalizada.
             </p>
             <figure className={styles.videoBlock}>
               <video className={`${styles.tutorialVideo} ${styles.tutorialVideoTable}`}
