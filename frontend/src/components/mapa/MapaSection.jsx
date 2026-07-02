@@ -2,7 +2,7 @@ import estilos from "./MapaSection.module.css";
 import { useEffect, useRef, useState, useContext } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { Layers } from "lucide-react";
+import { Layers, List, Filter } from "lucide-react";
 import CamadasSection from "./CamadasSection";
 import { FiltrosContext } from "../../context/mapa/filtrosContext";
 import FiltroPainel from "./FiltroPainel";
@@ -63,8 +63,8 @@ export default function MapaSection() {
     
     //este estado armazena a visibilidade, simbologia e as variaveis das camadas
     const [layers, setLayers] = useState([
-        { id: "ufs", nome: "Limites Estaduais", visivel: true, minzoom: 3, simbologia: {tipo: "simples", simbolo: "linha", cor: "#c9c9c9"}},
-        { id: "municipios_2022", nome: "Limites Municipais 2022", visivel: true, minzoom: 6, simbologia: {tipo: "simples", simbolo: "linha", cor: "#ffffff"}},
+        { id: "ufs", nome: "Limites Estaduais", visivel: true, minzoom: 3, simbologia: {tipo: "simples", simbolo: "linha", cor: "#acaaaa"}},
+        { id: "municipios_2022", nome: "Limites Municipais 2022", visivel: true, minzoom: 6, simbologia: {tipo: "simples", simbolo: "linha", cor: "#c9c9c9"}},
         { id: "cidades", nome: "Cidades", visivel: true, minzoom: 8, simbologia: {tipo: "simples", simbolo: "ponto", cor: "#ffffff", strokeColor: "#000000", strokeWidth: 3}},
         { id: "cidades_labels", nome: "Nome das Cidades", visivel: true, dependencias: ["cidades"], mostrarPainel: false },
         { id: "distritos_2022", nome: "Distritos 2022", visivel: true, minzoom: 7, simbologia: {tipo: "simples", simbolo: "linha", cor: "#9608b3"}},
@@ -162,12 +162,12 @@ export default function MapaSection() {
     
     
     const [painelCamadas, setPainelCamadas] = useState(false);
+    const [painelLegenda, setPainelLegenda] = useState(false);
     const [painelFiltros, setPainelFiltros] = useState(false);
     const [painelDetalhe, setPainelDetalhe] = useState(false);
     const [zoomAtual, setZoomAtual] = useState(3);
     const [coord, setCoord] = useState({ lat: "", long: "" });
     const {filtros} = useContext(FiltrosContext)
-    //const API_URL = "http://localhost:8000/api/v1/mapa";
     const mapContainer = useRef(null);
     const mapRef = useRef(null);
     const coordRef = useRef(null);
@@ -447,14 +447,14 @@ export default function MapaSection() {
         async function aplicarZoom() {
             const requestId = ++ultimaRequisicaoZoom.current;
                         
-            if (!filtros.cod_uf && !filtros.cod_municipio && !filtros.nr_proposta && !filtros.nr_instrumento && !filtros.modalidade && !filtros.cod_tci && !filtros.cod_localidade && !filtros.cod_dsc_localidade && !filtros.cod_catmetropol) {
+            if (!filtros.cod_uf && !filtros.cod_municipio && !filtros.nr_proposta && !filtros.nr_instrumento && !filtros.cod_tci && !filtros.cod_localidade && !filtros.cod_dsc_localidade && !filtros.cod_catmetropol) {
                 if (requestId !== ultimaRequisicaoZoom.current)
                     return;
                 map.flyTo({ center: [-47.9, -15.8], zoom: 3 });
                 return;
             }
-            if (filtros.nr_proposta || filtros.nr_instrumento || filtros.cod_tci || filtros.modalidade) {
-                const res = await fetch(urlBboxCarteiraDsr({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento, cod_tci: filtros.cod_tci, modalidade: filtros.modalidade}));
+            if (filtros.nr_proposta || filtros.nr_instrumento || filtros.cod_tci) {
+                const res = await fetch(urlBboxCarteiraDsr({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento, cod_tci: filtros.cod_tci}));
                 if (requestId !== ultimaRequisicaoZoom.current)
                     return;
                 const { xmin, ymin, xmax, ymax } = await res.json();
@@ -555,7 +555,7 @@ export default function MapaSection() {
         aplicarZoom();
         
 
-    }, [filtros.cod_uf, filtros.cod_municipio, filtros.nr_proposta, filtros.nr_instrumento, filtros.cod_tci, filtros.modalidade, filtros.cod_localidade, filtros.cod_dsc_localidade, filtros.cod_catmetropol]);
+    }, [filtros.cod_uf, filtros.cod_municipio, filtros.nr_proposta, filtros.nr_instrumento, filtros.cod_tci, filtros.cod_localidade, filtros.cod_dsc_localidade, filtros.cod_catmetropol]);
   
 
 
@@ -902,7 +902,7 @@ export default function MapaSection() {
 
     return ( 
         <div className={estilos.mapa_box}>
-            <button className={estilos.botaoFiltros} onClick={() => setPainelFiltros(!painelFiltros)}>Filtrar</button>
+            <button className={estilos.botaoFiltros} onClick={() => setPainelFiltros(!painelFiltros)}> <Filter className={estilos.Icon}/> <p className={estilos.IconTexto}> Filtros</p> </button>
             {painelFiltros && 
                 <FiltroPainel
                     setPainelFiltros={setPainelFiltros}
@@ -911,9 +911,10 @@ export default function MapaSection() {
                     layers={layers}
                 />
             }
-            <button className={estilos.botaoCamadas} onClick={() => setPainelCamadas(!painelCamadas)}> <Layers className={estilos.LayersIcon}/> </button> 
-            {painelCamadas && (<CamadasSection layers={layers} toggleLayer={toggleLayer} alterarVariavel={alterarVariavel}/>)}
-            {painelCamadas && (<LegendaSection layers={layers} zoomAtual={zoomAtual}/>)}
+            <button className={estilos.botaoCamadas} onClick={() => setPainelCamadas(!painelCamadas)}> <Layers className={estilos.Icon}/> <p className={estilos.IconTexto}> Camadas</p> </button>
+            <button className={estilos.botaoLegenda} onClick={() => setPainelLegenda(!painelLegenda)}> <List className={estilos.Icon}/> <p className={estilos.IconTexto}> Legenda</p> </button>  
+            {painelCamadas && (<CamadasSection layers={layers} toggleLayer={toggleLayer} alterarVariavel={alterarVariavel} setPainelCamadas={setPainelCamadas}/>)}
+            {painelLegenda && (<LegendaSection layers={layers} zoomAtual={zoomAtual} setPainelLegenda={setPainelLegenda} painelCamadas={painelCamadas}/>)}
             <InputSection coord={coord} setCoord={setCoord} irParaCoordenada={irParaCoordenada} limparCoordenada={limparCoordenada}/>
             <div ref={coordRef} className={estilos.coordenadasMouse}> Lat: -- | Lon: -- </div>
             {(painelDetalhe && painelFiltros && filtros.cod_municipio) && (<DetalheSection setPainelDetalhe={setPainelDetalhe}/>)}
