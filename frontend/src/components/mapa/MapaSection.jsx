@@ -522,6 +522,7 @@ export default function MapaSection() {
                 if (requestId !== ultimaRequisicaoZoom.current)
                     return;
                 map.fitBounds([[xmin, ymin], [xmax, ymax]], { padding: 40 });
+                return
             }
 
         
@@ -533,6 +534,7 @@ export default function MapaSection() {
                 if (requestId !== ultimaRequisicaoZoom.current)
                     return;
                 map.fitBounds([[xmin, ymin], [xmax, ymax]], { padding: 40 });
+                return
             }
 
             if (filtros.cod_uf) {
@@ -543,6 +545,7 @@ export default function MapaSection() {
                 if (requestId !== ultimaRequisicaoZoom.current)
                     return;
                 map.fitBounds([[xmin, ymin], [xmax, ymax]], { padding: 40 });
+                return
             }
         }
 
