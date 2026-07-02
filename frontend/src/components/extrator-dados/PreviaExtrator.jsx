@@ -128,7 +128,7 @@ export default function PreviaExtrator({
         <div className={styles.emptyState}>
           <div className={styles.emptyStateContent}>
             <strong>Há colunas selecionadas acima do limite.</strong>
-            <span>Reduza a seleção para no máximo {maxColumns} colunas.</span>
+            <span>Para visualizar a prévia, reduza a seleção para no máximo {maxColumns} colunas.</span>
           </div>
         </div>
       ) : isLoading ? (
