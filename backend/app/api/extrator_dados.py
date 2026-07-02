@@ -6,6 +6,7 @@ import csv
 import io
 import logging
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Any
 from urllib.parse import quote
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
@@ -44,9 +45,9 @@ except ImportError:  # pragma: no cover
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-MAX_FIELD_IDS = 80
-
+MAX_FIELD_IDS_PREVIA = 80
 EXCEL_MAX_ROWS = 13000
+EXCEL_MAX_COLUMNS = 80
 CSV_BATCH_SIZE = 1000
 
 SETOR_CENSITARIO_UF_MESSAGE = (
@@ -358,12 +359,6 @@ def _ordenar_campos(tipo_tabela: str, campos: list[dict]) -> list[dict]:
 def _campos_solicitados(tipo_tabela: str, field_ids: list[str]) -> list[dict]:
     field_ids_normalizados = _normalizar_field_ids(tipo_tabela, field_ids)
 
-    if len(field_ids_normalizados) > MAX_FIELD_IDS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"A consulta pode ter no máximo {MAX_FIELD_IDS} colunas, incluindo as colunas obrigatórias.",
-        )
-
     campos: list[dict] = []
 
     for field_id in field_ids_normalizados:
@@ -656,6 +651,11 @@ async def post_previa(payload: PreviewRequest, db: AsyncSession = Depends(get_db
     _validar_setor_censitario_com_uf(payload.tipo_tabela, payload.filtros)
 
     campos = _campos_solicitados(payload.tipo_tabela, payload.field_ids)
+    if len(campos) > MAX_FIELD_IDS_PREVIA:
+        raise HTTPException(
+            status_code=400,
+            detail=f"A prévia pode ter no máximo {MAX_FIELD_IDS_PREVIA} colunas."
+        )
     select_sql = _build_select(campos)
     where, params = _build_where(payload.tipo_tabela, payload.filtros)
 
@@ -714,6 +714,12 @@ async def post_exportar_excel(payload: ExportRequest, db: AsyncSession = Depends
     _validar_setor_censitario_com_uf(payload.tipo_tabela, payload.filtros)
 
     campos = _campos_solicitados(payload.tipo_tabela, payload.field_ids)
+    if len(campos) > EXCEL_MAX_COLUMNS:
+        raise HTTPException(
+            status_code=413,
+            detail=(f"A exportação em Excel está disponível apenas para consultas com até {EXCEL_MAX_COLUMNS} colunas."
+                    "Para consultas mais largas, use a exportação em CSV."),
+        )
     select_sql = _build_select(campos)
     where, params = _build_where(payload.tipo_tabela, payload.filtros)
 
@@ -916,7 +922,10 @@ async def post_exportar_excel(payload: ExportRequest, db: AsyncSession = Depends
                 min_col=idx,
                 max_col=idx,
             ):
-                cells[0].number_format = "0.00%"
+                cell = cells[0]
+                if isinstance(cell.value, (int, float, Decimal)):
+                    cell.value = cell.value / 100
+                cell.number_format = "0.00%"
 
     # Esta seção fica fora do laço de formatação: cria uma única linha final.
     if colunas_totalizaveis:

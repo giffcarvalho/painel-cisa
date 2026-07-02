@@ -44,6 +44,7 @@ export default function SelecaoColunas({
   requiredFieldIds = [],
   onChange,
   onSelectDefaults,
+  onSelectAll,
   onClear,
   isLoading,
   isError,
@@ -129,7 +130,7 @@ export default function SelecaoColunas({
 
         <div className={styles.selectionCounter}>
           <strong>{selected.length}</strong>
-          <span>de {maxColumns} colunas</span>
+          <span>selecionadas</span>
         </div>
       </div>
 
@@ -150,6 +151,14 @@ export default function SelecaoColunas({
           <button type="button" className={styles.secondaryButton} onClick={onSelectDefaults}>
             Selecionar campos principais
           </button>
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            disabled={!camposVisiveis.length}
+            onClick={onSelectAll}
+          >
+            Selecionar todos os campos
+          </button>
           <button type="button" className={styles.ghostButton} disabled={!selected.length} onClick={onClear}>
             Limpar seleção
           </button>
@@ -158,8 +167,7 @@ export default function SelecaoColunas({
 
       {acimaDoLimite && (
         <div className={styles.inlineWarning}>
-          O backend aceita no máximo {maxColumns} colunas por consulta. Remova {selected.length - maxColumns}
-          {' '}coluna(s) para gerar a prévia.
+          A prévia em tela aceita no máximo {maxColumns} colunas. A seleção completa será mantida apenas para exportação.
         </div>
       )}
 

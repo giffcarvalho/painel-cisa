@@ -15,8 +15,10 @@ import SelecaoColunas from '@/components/extrator-dados/SelecaoColunas'
 import PreviaExtrator from '@/components/extrator-dados/PreviaExtrator'
 import styles from './ConsultaPersonalizada.module.css'
 
-const MAX_COLUNAS_EXPORTACAO = 80
-const EXCEL_MAX_ROWS = 13000
+const LIMITE_COLUNAS_PREVIA = 80
+const LIMITE_LINHAS_EXCEL = 13000
+const LIMITE_COLUNAS_EXCEL = 80
+
 const SETOR_CENSITARIO_UF_MESSAGE =
   'Para consultar setores censitários, selecione ao menos uma UF. Essa regra evita consultas muito grandes e melhora a estabilidade da exportação.'
 
@@ -134,8 +136,17 @@ export default function ConsultaPersonalizada() {
     (!Array.isArray(filtros.sigla_uf) || filtros.sigla_uf.length === 0)
 
   const totalRegistros = contagemMutation.data?.total_registros ?? null
-  const excelBloqueadoPorVolume =
-    typeof totalRegistros === 'number' && totalRegistros > EXCEL_MAX_ROWS
+  const excelBloqueadoPorLinhas =
+    typeof totalRegistros === 'number' && totalRegistros > LIMITE_LINHAS_EXCEL
+
+  const excelBloqueadoPorColunas =
+    fieldIdsConsulta.length > LIMITE_COLUNAS_EXCEL
+
+  const excelBloqueado =
+    excelBloqueadoPorLinhas || excelBloqueadoPorColunas
+
+  const csvDisponivel =
+    previewGerada || fieldIdsConsulta.length > LIMITE_COLUNAS_PREVIA
 
   const trocarTipoTabela = (nextTipoTabela) => {
     setTipoTabela(nextTipoTabela)
@@ -171,12 +182,20 @@ export default function ConsultaPersonalizada() {
     atualizarColunas(campos.filter((campo) => campo.padrao).map((campo) => campo.id))
   }
 
+  const selecionarTodosCampos = () => {
+    atualizarColunas(
+      campos
+        .filter((campo) => campo.visivel && campo.exportavel)
+        .map((campo) => campo.id)
+    )
+  }
+
   const gerarPrevia = async () => {
     if (
       !tipoTabela ||
       setorCensitarioSemUf ||
       fieldIdsConsulta.length === 0 ||
-      fieldIdsConsulta.length > MAX_COLUNAS_EXPORTACAO
+      fieldIdsConsulta.length > LIMITE_COLUNAS_PREVIA
     ) return
 
     setPreviewGerada(false)
@@ -197,9 +216,8 @@ export default function ConsultaPersonalizada() {
     if (
       !tipoTabela ||
       setorCensitarioSemUf ||
-      excelBloqueadoPorVolume ||
-      fieldIdsConsulta.length === 0 ||
-      fieldIdsConsulta.length > MAX_COLUNAS_EXPORTACAO
+      excelBloqueado ||
+      fieldIdsConsulta.length === 0
     ) return
 
     const format = 'excel'
@@ -235,8 +253,7 @@ export default function ConsultaPersonalizada() {
     if (
       !tipoTabela ||
       setorCensitarioSemUf ||
-      fieldIdsConsulta.length === 0 ||
-      fieldIdsConsulta.length > MAX_COLUNAS_EXPORTACAO
+      fieldIdsConsulta.length === 0
     ) return
 
     const format = 'csv'
@@ -319,10 +336,11 @@ export default function ConsultaPersonalizada() {
             requiredFieldIds={requiredFieldIds}
             onChange={atualizarColunas}
             onSelectDefaults={selecionarCamposPadrao}
+            onSelectAll={selecionarTodosCampos}
             onClear={() => atualizarColunas([])}
             isLoading={catalogoQuery.isLoading}
             isError={catalogoQuery.isError}
-            maxColumns={MAX_COLUNAS_EXPORTACAO}
+            maxColumns={LIMITE_COLUNAS_PREVIA}
           />
 
           <PreviaExtrator
@@ -342,7 +360,7 @@ export default function ConsultaPersonalizada() {
               !tipoTabela ||
               setorCensitarioSemUf ||
               fieldIdsConsulta.length === 0 ||
-              fieldIdsConsulta.length > MAX_COLUNAS_EXPORTACAO ||
+              fieldIdsConsulta.length > LIMITE_COLUNAS_PREVIA ||
               previaMutation.isPending ||
               contagemMutation.isPending ||
               catalogoQuery.isLoading
@@ -351,30 +369,34 @@ export default function ConsultaPersonalizada() {
               !previewGerada ||
               !tipoTabela ||
               setorCensitarioSemUf ||
-              excelBloqueadoPorVolume ||
+              excelBloqueado ||
               fieldIdsConsulta.length === 0 ||
-              fieldIdsConsulta.length > MAX_COLUNAS_EXPORTACAO ||
               exportExcelMutation.isPending ||
               exportCsvMutation.isPending ||
               catalogoQuery.isLoading
             }
             exportCsvDisabled={
-              !previewGerada ||
+              !csvDisponivel ||
               !tipoTabela ||
               setorCensitarioSemUf ||
               fieldIdsConsulta.length === 0 ||
-              fieldIdsConsulta.length > MAX_COLUNAS_EXPORTACAO ||
               exportExcelMutation.isPending ||
               exportCsvMutation.isPending ||
               catalogoQuery.isLoading
             }
             totalRegistros={totalRegistros}
-            excelMaxRows={EXCEL_MAX_ROWS}
+            excelMaxRows={LIMITE_LINHAS_EXCEL}
             setorCensitarioSemUf={setorCensitarioSemUf}
             ufObrigatoriaMessage={SETOR_CENSITARIO_UF_MESSAGE}
             filtrosAtivosCount={contarFiltrosAtivos(filtros)}
             previewGerada={previewGerada}
-            maxColumns={MAX_COLUNAS_EXPORTACAO}
+            exportacaoDisponivel={
+              Boolean(tipoTabela) &&
+              !setorCensitarioSemUf &&
+              fieldIdsConsulta.length > 0 &&
+              csvDisponivel
+            }
+            maxColumns={LIMITE_COLUNAS_PREVIA}
           />
         </div>
       </section>

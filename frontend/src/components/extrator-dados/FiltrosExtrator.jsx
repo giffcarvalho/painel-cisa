@@ -204,7 +204,7 @@ function MultiFilter({ tipoTabela, filtro, selected = [], onChange }) {
 const FILTROS_PRINCIPAIS = {
   municipio: ['sigla_uf', 'cod_municipio', 'regiao', 'semiarido_2022', 'amazonia_legal', 'vale_jequetinhonha'],
   setor_censitario: ['sigla_uf', 'cod_municipio', 'regiao', 'situacao', 'situacao_detalhada', 'tipo'],
-  instrumento: ['uf', 'nome_proponente', 'nr_instrumento', 'nr_proposta', 'fase_instrumento', 'situacao_contratacao', 'tipo_instrumento'],
+  instrumento: ['nr_instrumento', 'nr_proposta', 'acao_padronizada', 'uf', 'situacao_contratacao', 'tipo_instrumento', 'carteira_ativa'],
 }
 
 function FiltroItem({ tipoTabela, filtro, value, updateFiltro }) {
@@ -255,7 +255,9 @@ export default function FiltrosExtrator({
       filtrosDisponiveis.find((filtro) => filtro.campo === campo)?.label || campo
 
     const principaisIds = FILTROS_PRINCIPAIS[tipoTabela] || []
-    const filtrosPrincipais = filtrosDisponiveis.filter((filtro) => principaisIds.includes(filtro.campo))
+    const filtrosPrincipais = principaisIds
+      .map((campo) => filtrosDisponiveis.find((filtro) => filtro.campo === campo))
+      .filter(Boolean)
     const filtrosAvancados = filtrosDisponiveis.filter((filtro) => !principaisIds.includes(filtro.campo))
 
   return (
