@@ -3,7 +3,6 @@
   bottom: 75px;
   left: 20px;
   width: 250px;
-  padding: 10px;
   background: white;
   border-radius: 4px;
   box-shadow: 0 0 5px rgba(0,0,0,0.2);
@@ -11,6 +10,46 @@
   overflow: hidden;
 }
 
+.camadaCabecalho {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px;
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+
+.titulo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.botaoX {
+    padding: 4px;
+    color: #6b7280;
+    border-radius: 9999px;
+}
+
+.botaoX:hover {
+    background-color: #f6f3f3;
+}
+
+.XFechar {
+    width: 16px;
+    height: 16px;
+}
+
+.conteudo {
+    display: block;
+    padding: 10px;
+}
 
 .camadas label {
   display: flex;

@@ -482,6 +482,7 @@ CAMPOS_CATALOGADOS = {
             ("nr_instrumento", "Número do instrumento"),
             ("nr_proposta", "Número da proposta"),
             ("operacao", "Operação"),
+            ("cod_tci", "Código TCI - Saci"),
             ("nr_proposta_selecao_pac", "Número da proposta na seleção PAC"),
             ("nr_reservado", "Número reservado"),
             ("ano_proposta", "Ano da proposta"),
@@ -614,6 +615,7 @@ CAMPOS_CATALOGADOS = {
         ],
         "Links e Datas de Atualização": [
             ("link_transferegov", "Link do Transferegov"),
+            ("link_saci", "Link do Saci"),
             ("data_dados_transferegov", "Data dos dados do Transferegov"),
             ("data_dados_caixa", "Data dos dados da Caixa"),
         ],

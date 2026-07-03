@@ -1,15 +1,75 @@
 .legenda {
   position: absolute;
   bottom: 75px;
-  left: 280px;
   width: 250px;
-  padding: 10px;
   max-height: 700px;
   background: white;
   border-radius: 4px;
   z-index: 1;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0;
+} 
+
+.comCamadas {
+    left: 280px;
 }
+
+.semCamadas {
+    left: 80px;
+}
+
+
+.legendaCabecalho {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px;
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+
+.titulo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.botaoX {
+    padding: 4px;
+    color: #6b7280;
+    border-radius: 9999px;
+}
+
+.botaoX:hover {
+    background-color: #f6f3f3;
+}
+
+.XFechar {
+    width: 16px;
+    height: 16px;
+}
+
+.conteudo {
+    display: block;
+    padding: 10px;
+}
+
+
+.itemLegenda {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
+    font-size: 11px;
+}
+
 
 .legenda h4 {
     font-size: 12px;
@@ -17,13 +77,6 @@
     margin-top: 5px;
 }
 
-.legenda div div {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 2px;
-    font-size: 11px;
-}
 
 .ponto {
     width: 12px;
