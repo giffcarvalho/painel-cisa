@@ -15,15 +15,15 @@ export default function ManualInformacoesGerais() {
       <section className={sharedStyles.contentCard}>
         <h2>Informações Gerais</h2>
         <p>
-          Esta seção reúne informações complementares para auxiliar a leitura das informações exibidas no Painel DSR. As ferramentas do painel utilizam nossas bases de dados
-        institucionais e apresentam os resultados conforme os filtros, recortes e parâmetros disponíveis em cada página.          
+          Esta seção reúne informações complementares para auxiliar a leitura das informações exibidas no Painel DSR. As ferramentas do painel utilizam as bases de dados
+        do DSR e apresentam os resultados conforme os filtros, recortes e parâmetros disponíveis em cada página.          
         </p>
 
         <div className={styles.topicStack}>
           <section className={styles.manualTopic} id={topicIds['Sobre os dados']}>
             <h3>Sobre os dados exibidos</h3>
             <p>
-              As informações apresentadas no painel dependem das bases utilizadas pelo Deprtamento e dos critérios definidos para cada ferramenta. Por isso, os números,
+              As informações apresentadas no painel dependem das bases utilizadas pelo Departamento e dos critérios definidos para cada ferramenta. Por isso, os números,
               mapas, gráficos e tabelas devem ser interpretados de acordo com o contexto da página consultada e com os filtros aplicados no momento da análise.
             </p>
             <p>

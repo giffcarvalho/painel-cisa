@@ -654,7 +654,7 @@ async def get_bbox_municipios(filtros: FiltrosMapa = Depends(), db: AsyncSession
 @router.get("/bbox_carteira_dsr", summary="Bounding box das coordenadas da Carteira DSR")
 async def get_bbox_carteira_dsr(filtros: FiltrosMapa = Depends(), db: AsyncSession = Depends(get_db)):
 
-    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "nr_proposta", "nr_instrumento", "cod_tci", "modalidade"})
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "nr_proposta", "nr_instrumento", "cod_tci"})
 
     sql = f"""
         WITH 
@@ -822,10 +822,10 @@ async def get_ufs(z: int, x: int, y: int, filtros: FiltrosMapa = Depends(), db: 
                         geom,
                         CASE
                             WHEN :z <= 6 THEN 2000
-                            WHEN :z <= 7 THEN 1000
-                            WHEN :z <= 8 THEN 500
-                            WHEN :z <= 9 THEN 300
-                            ELSE 0
+                            WHEN :z <= 7 THEN 1200
+                            WHEN :z <= 8 THEN 700
+                            WHEN :z <= 9 THEN 400
+                            ELSE 100
                         END,
                         false
                     ),
@@ -885,10 +885,10 @@ async def get_municipios_2025(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
                     ST_Simplify(
                         geom_2025,
                         CASE
-                            WHEN :z <= 7 THEN 1000
-                            WHEN :z <= 8 THEN 500
-                            WHEN :z <= 9 THEN 300
-                            ELSE 0
+                            WHEN :z <= 7 THEN 1200
+                            WHEN :z <= 8 THEN 700
+                            WHEN :z <= 9 THEN 400
+                            ELSE 100
                         END,
                         false
                     ),
@@ -945,9 +945,9 @@ async def get_distritos_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Depe
                     ST_Simplify(
                         geom,
                         CASE
-                            WHEN :z <= 8 THEN 500 
-                            WHEN :z <= 9 THEN 300
-                            ELSE 0
+                            WHEN :z <= 8 THEN 700 
+                            WHEN :z <= 9 THEN 400
+                            ELSE 100
                         END,
                         false
                     ),
@@ -1019,8 +1019,8 @@ async def get_setores_censitarios_2022(z: int, x: int, y: int, filtros: FiltrosM
                     ST_Simplify(
                         geom,
                         CASE
-                            WHEN :z <= 8 THEN 500 
-                            WHEN :z <= 9 THEN 300
+                            WHEN :z <= 8 THEN 700 
+                            WHEN :z <= 9 THEN 400
                             ELSE 0
                         END,
                         false
@@ -1274,10 +1274,10 @@ async def get_municipios_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
                     ST_Simplify(
                         geom_2022,
                         CASE
-                            WHEN :z <= 7 THEN 1000
-                            WHEN :z <= 8 THEN 500
-                            WHEN :z <= 9 THEN 300
-                            ELSE 0
+                            WHEN :z <= 7 THEN 1200
+                            WHEN :z <= 8 THEN 700
+                            WHEN :z <= 9 THEN 400
+                            ELSE 100
                         END,
                         false
                     ),

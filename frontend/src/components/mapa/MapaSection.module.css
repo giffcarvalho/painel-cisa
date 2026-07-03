@@ -14,14 +14,15 @@
   position: absolute;
   top: 15px;
   right: 15px;
-  width: 65px;
-  height: 35px;
+  width: 50px;
+  height: 50px;
   border: none;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   border-radius: 5px;
-  color: blue;
+  color: #0019a7;
   font-weight: 500;
   background: white;
   cursor: pointer;
@@ -36,6 +37,7 @@
   width: 50px;
   height: 50px;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   border-radius: 5px;
@@ -44,13 +46,35 @@
   z-index: 1;
 }
 
+.botaoLegenda {
+  position: absolute;
+  bottom: 20px;
+  left: 80px;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border-radius: 5px;
+  background: rgb(255, 255, 255);
+  cursor: pointer;
+  z-index: 1;
+}
 
-.LayersIcon {
-  color: #0326ea;
-  width: 32px;
-  height: 32px;
+.Icon {
+  color: #0019a7;
+  width: 25px;
+  height: 25px;
   transition: color .2s;
 }
+
+.IconTexto {
+  color: #0019a7;
+  font-size: 11px;
+  font-weight: 600;
+}
+
 
 .coordenadasMouse {
   position: absolute;

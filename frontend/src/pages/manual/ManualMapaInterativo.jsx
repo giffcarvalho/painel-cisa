@@ -29,7 +29,7 @@ export default function ManualMapaInterativo() {
             <h3>Objetivo da Ferramenta</h3>
             <p>
               O Mapa Interativo permite visualizar informações territoriais, dados da Carteira DSR e indicadores municipais diretamente sobre o mapa. 
-              A ferramenta auxilia na análise espacial dos dados, permitindo observar onde determinadas informações estão localizadas e como se distribuem no território.
+              A ferramenta auxilia na visualização dos aspectos geográficos dos dados, permitindo observar padrões de distribuição sobre o território.
             </p>
             <p>
               Por meio do mapa, é possível consultar limites territoriais, cidades, localidades, endereços, setores censitários, pontos relacionados à Carteira DSR e 
