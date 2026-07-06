@@ -797,11 +797,11 @@ export default function MapaSection() {
 
                 if (!layer.variaveis) continue;
                 if (!map.getLayer(layer.id)) continue;
-                if (!layer.variavelSel) continue;
+                if (!layer.variavelSel) {map.setPaintProperty(layer.id, "fill-color", "#e7e1e1"); continue;}
 
                 const variavelConfig = layer.variaveis.find(v => v.value === layer.variavelSel);
                 
-                if (!variavelConfig) continue;
+                if (!variavelConfig) {map.setPaintProperty(layer.id, "fill-color", "#e7e1e1"); continue;}
 
                 if (variavelConfig.tipo === "booleana") {
                     map.setPaintProperty(layer.id, "fill-color", [
