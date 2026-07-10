@@ -27,6 +27,7 @@ import {
     urlBboxCategoriasMetropolitanas,
 } from "@/api/mapa";
 import InputSection from "./InputSection";
+import { useMapa } from "@/hooks/useMapa";
 
 
 function gerarMatch(simbologia, propriedade, valorPadrao) {
@@ -167,43 +168,24 @@ export default function MapaSection() {
     const [painelDetalhe, setPainelDetalhe] = useState(false);
     const [zoomAtual, setZoomAtual] = useState(3);
     const [coord, setCoord] = useState({ lat: "", long: "" });
-    const {filtros} = useContext(FiltrosContext)
+    const {filtros} = useContext(FiltrosContext);
     const mapContainer = useRef(null);
-    const mapRef = useRef(null);
+    const mapRef = useMapa(mapContainer);
     const coordRef = useRef(null);
     const ultimaRequisicaoZoom = useRef(0);
     //console.log("Render mapa", filtros.cod_municipio);
 
     //useEffect de criação do mapa. As camadas adicionadas devem ficar dentro dele
     useEffect(() => {
-        if (mapRef.current) return;
-
-        //criação do mapa básico com a imagem de fundo e labels básicas
-        const map = new maplibregl.Map({
-        container: mapContainer.current,
-        style: {
-            version: 8,
-            sources: {
-            satellite: {type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: "Esri"},
-            },
-            layers: [
-            {id: "satellite", type: "raster", source: "satellite"},
-            ]
-        },
-        center: [-47.9, -15.8], 
-        zoom: 3                 
-        });
-
-        map.dragRotate.disable();
-        map.touchZoomRotate.disableRotation();
+        const map = mapRef.current;
+        if (!map) return;
+    
         map.on("zoomend", () => {setZoomAtual(map.getZoom());}); //captura o zoom atual do mapa e salva no estado zoomAtual
         
         map.on("mousemove", (e) => {
             if (!coordRef.current) return;
             coordRef.current.textContent = `Lat: ${e.lngLat.lat.toFixed(6)} | Lon: ${e.lngLat.lng.toFixed(6)}`;
         });
-
-        map.addControl(new maplibregl.ScaleControl({maxWidth: 120, unit: "metric"}), "top-left");
 
         //adição das camadas. O primeiro bloco são as fontes (sources). O segundo bloco são as camadas (layers) já com a simbologia desejada
         //a ordem dos addLayers no código influencia na ordem de renderização. Os últimos layers ficam por cima no mapa
