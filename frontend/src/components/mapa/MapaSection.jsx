@@ -647,6 +647,11 @@ export default function MapaSection() {
                 <br/>
                 <strong> Objeto: </strong> ${props.objeto} <br>
                 <br/>
+                ${props.valor_global != null? `<strong> Valor Global: </strong> ${Number(props.valor_global).toLocaleString("pt-BR")} <br>`: ""}
+                ${props.valor_repasse != null? `<strong> Valor Repasse: </strong> ${Number(props.valor_repasse).toLocaleString("pt-BR")} <br>`: ""}
+                ${props.situacao_projeto != null? `<strong> Situacao do Projeto: </strong> ${props.situacao_projeto} <br>`: ""}
+                ${props.situacao_obra != null? `<strong> Situacao da Obra: </strong> ${props.situacao_obra} <br>`: ""}
+                <br/>
                 ${props.link_transferegov? `<a href="${props.link_transferegov}" target="_blank" rel="noopener noreferrer">Link Transferegov</a><br>`: ""}
                 ${props.link_saci? `<a href="${props.link_saci}" target="_blank" rel="noopener noreferrer">Link Saci</a>`: ""}
                 `; 
@@ -797,11 +802,11 @@ export default function MapaSection() {
 
                 if (!layer.variaveis) continue;
                 if (!map.getLayer(layer.id)) continue;
-                if (!layer.variavelSel) continue;
+                if (!layer.variavelSel) {map.setPaintProperty(layer.id, "fill-color", "#e7e1e1"); continue;}
 
                 const variavelConfig = layer.variaveis.find(v => v.value === layer.variavelSel);
                 
-                if (!variavelConfig) continue;
+                if (!variavelConfig) {map.setPaintProperty(layer.id, "fill-color", "#e7e1e1"); continue;}
 
                 if (variavelConfig.tipo === "booleana") {
                     map.setPaintProperty(layer.id, "fill-color", [
