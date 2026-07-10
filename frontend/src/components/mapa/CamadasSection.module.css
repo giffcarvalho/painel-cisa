@@ -3,6 +3,7 @@
   bottom: 75px;
   left: 20px;
   width: 250px;
+  max-height: calc(100vh - 75px - 45px);
   background: white;
   border-radius: 4px;
   box-shadow: 0 0 5px rgba(0,0,0,0.2);

@@ -1341,6 +1341,10 @@ async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMa
                 modalidade,
                 componente,
                 objeto,
+                valor_global,
+                valor_repasse,
+                situacao_projeto,
+                situacao_obra,
                 link_transferegov,
                 link_saci,
                 ST_AsMVTGeom(
