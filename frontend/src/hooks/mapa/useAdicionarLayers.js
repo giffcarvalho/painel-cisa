@@ -227,8 +227,18 @@ export function useAdicionarLayers(mapRef, layers, filtros) {
                 paint: {
                     "circle-radius": ["interpolate", ["linear"], ["zoom"], 4.0, 2.0, 5.0, 3.0, 6.0, 4.0, 7.0, 5.0, 8.0, 6.0],
                     "circle-color": gerarMatch(carteira?.simbologia, "cor", "#000000"),
-                    "circle-stroke-color": gerarMatch(carteira?.simbologia, "strokeColor", "#000000"),
-                    "circle-stroke-width": gerarMatch(carteira?.simbologia, "strokeWidth", 0),
+                    "circle-stroke-color": [
+                        "case",
+                        ["boolean", ["feature-state", "selected"], false],
+                        "#ffff00",
+                        gerarMatch(carteira?.simbologia, "strokeColor", "#000000")
+                    ],
+                    "circle-stroke-width": [
+                        "case", 
+                        ["boolean", ["feature-state", "selected"], false],
+                        ["+", gerarMatch(carteira?.simbologia, "strokeWidth", 0), 3],
+                        gerarMatch(carteira?.simbologia, "strokeWidth", 0)
+                    ]
                 }
             });
 
