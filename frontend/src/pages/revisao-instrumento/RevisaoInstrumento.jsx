@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, ChevronDown, Plus, Save, Search, Send, Trash2, X } from 'lucide-react'
+import { Check, ChevronDown, Plus, Save, Search, Send, X } from 'lucide-react'
 import { revisaoInstrumentoApi } from '@/api/revisaoInstrumento'
 import styles from './RevisaoInstrumento.module.css'
 
@@ -27,12 +27,10 @@ const ACOES_LOCALIDADE_EXISTENTE = [
   { value: 'corrigir', label: 'Corrigir' },
 ]
 
-const AVALIACOES_OBRA = [
-  { value: 'nao_avaliada', label: 'Não analisada' },
-  { value: 'compativel', label: 'Sem conflito aparente' },
+const RELACOES_INSTRUMENTO = [
+  { value: 'nao_analisada', label: 'Não analisada' },
+  { value: 'sem_conflito_aparente', label: 'Sem conflito aparente' },
   { value: 'possivel_sobreposicao', label: 'Possível sobreposição' },
-  { value: 'nao_compativel', label: 'Não relacionada' },
-  { value: 'precisa_analise', label: 'Requer análise complementar' },
 ]
 
 const MUNICIPIO_NOVO_INICIAL = {
@@ -40,6 +38,12 @@ const MUNICIPIO_NOVO_INICIAL = {
   nome: '',
   uf: '',
 }
+
+const CONFIRMACOES_STATUS = [
+  { value: 'nao_confirmada', label: 'Não confirmada' },
+  { value: 'sem_conflito', label: 'Sem conflito' },
+  { value: 'sobreposicao_confirmada', label: 'Sobreposição confirmada' },
+]
 
 const LOCALIDADE_NOVA_INICIAL = {
   nome_localidade_informada: '',
@@ -83,49 +87,58 @@ function numeroOuNull(value) {
   return Number.isNaN(numero) ? null : numero
 }
 
+function normalizarRelacaoInstrumento(value) {
+  return RELACOES_INSTRUMENTO.some((option) => option.value === value)
+    ? value
+    : 'nao_analisada'
+}
+
+function normalizarConfirmacaoStatus(relacaoInstrumento, value) {
+  if (relacaoInstrumento === 'nao_analisada') return null
+
+  return CONFIRMACOES_STATUS.some((option) => option.value === value)
+    ? value
+    : 'nao_confirmada'
+}
+
+function normalizarObra(obra) {
+  const relacaoInstrumento = normalizarRelacaoInstrumento(obra.relacao_instrumento)
+
+  return {
+    ...obra,
+    relacao_instrumento: relacaoInstrumento,
+    confirmacao_status: normalizarConfirmacaoStatus(
+      relacaoInstrumento,
+      obra.confirmacao_status
+    ),
+  }
+}
+
+function formatarDataConferencia(value) {
+  if (!value) return 'Ainda não conferida'
+
+  const dataParte = String(value).split(/[T ]/)[0]
+  const [ano, mes, dia] = dataParte.split('-')
+
+  if (!ano || !mes || !dia) return 'Ainda não conferida'
+
+  return `Última conferência em ${dia}/${mes}/${ano}`
+}
+
 function copiarMunicipios(municipios = []) {
   return municipios.map((municipio) => ({
     ...municipio,
-    revisado: Boolean(municipio.revisado),
+    revisao_municipio_conferida_em: municipio.revisao_municipio_conferida_em ?? null,
+    localidades_conferidas_em: municipio.localidades_conferidas_em ?? null,
+    obras_conferidas_em: municipio.obras_conferidas_em ?? null,
+    revisao_municipio_alterada: false,
+    localidades_alteradas: false,
+    obras_alteradas: false,
     localidades: municipio.localidades ?? [],
-    obras_saneamento: municipio.obras_saneamento ?? [],
+    obras_saneamento: (municipio.obras_saneamento ?? []).map(normalizarObra),
   }))
 }
 
-function getLabelAcao(options, value) {
-  return options.find((option) => option.value === value)?.label ?? valorOuTraco(value)
-}
-
-function temTexto(value) {
-  return Boolean(String(value ?? '').trim())
-}
-
-function getStatusMunicipio(municipio) {
-  if (municipio.revisado) {
-    return 'Revisado'
-  }
-
-  const municipioRevisado =
-    (municipio.acao_sugerida && municipio.acao_sugerida !== 'manter') ||
-    temTexto(municipio.justificativa)
-
-  const localidadeRevisada = municipio.localidades.some(
-    (localidade) =>
-      (localidade.acao_sugerida && localidade.acao_sugerida !== 'manter') ||
-      temTexto(localidade.justificativa) ||
-      localidade.origem_registro === 'adicionado_tecnico'
-  )
-
-  const obraRevisada = municipio.obras_saneamento.some(
-    (obra) =>
-      (obra.avaliacao && obra.avaliacao !== 'nao_avaliada') ||
-      temTexto(obra.justificativa)
-  )
-
-  return municipioRevisado || localidadeRevisada || obraRevisada
-    ? 'Em revisão'
-    : 'Pendente de Revisão'
-}
 
 export default function RevisaoInstrumento() {
   const [identificador, setIdentificador] = useState('')
@@ -209,14 +222,6 @@ export default function RevisaoInstrumento() {
     )
   }
 
-  const marcarMunicipioRevisado = (index) => {
-    setMunicipios((current) =>
-      current.map((municipio, municipioIndex) =>
-        municipioIndex === index ? { ...municipio, revisado: true } : municipio
-      )
-    )
-  }
-
   const alternarJustificativaLocalidade = (chave) => {
     setJustificativasLocalidadeAbertas((current) => ({
       ...current,
@@ -285,7 +290,6 @@ export default function RevisaoInstrumento() {
         origem_registro: 'adicionado_tecnico',
         acao_sugerida: 'adicionar',
         justificativa: '',
-        revisado: false,
         localidades: localidadesNovoMunicipio.map((localidade) => ({
           cod_municipio: codMunicipio,
           cod_comunidade_rural: null,
@@ -397,9 +401,35 @@ export default function RevisaoInstrumento() {
 
         return {
           ...municipio,
-          obras_saneamento: municipio.obras_saneamento.map((obra, obraAtualIndex) =>
-            obraAtualIndex === obraIndex ? { ...obra, [campo]: valor } : obra
-          ),
+          obras_alteradas: true,
+          obras_saneamento: municipio.obras_saneamento.map((obra, obraAtualIndex) => {
+            if (obraAtualIndex !== obraIndex) return obra
+
+            if (campo === 'relacao_instrumento') {
+              const relacaoInstrumento = normalizarRelacaoInstrumento(valor)
+
+              return {
+                ...obra,
+                relacao_instrumento: relacaoInstrumento,
+                confirmacao_status: normalizarConfirmacaoStatus(
+                  relacaoInstrumento,
+                  obra.confirmacao_status
+                ),
+              }
+            }
+
+            if (campo === 'confirmacao_status') {
+              return {
+                ...obra,
+                confirmacao_status: normalizarConfirmacaoStatus(
+                  obra.relacao_instrumento,
+                  valor
+                ),
+              }
+            }
+
+            return { ...obra, [campo]: valor }
+          }),
         }
       })
     )
@@ -498,7 +528,11 @@ export default function RevisaoInstrumento() {
         orgao: obra.orgao,
         link_transferegov: obra.link_transferegov,
         link_obrasgov: obra.link_obrasgov,
-        avaliacao: obra.avaliacao,
+        relacao_instrumento: normalizarRelacaoInstrumento(obra.relacao_instrumento),
+        confirmacao_status: normalizarConfirmacaoStatus(
+          normalizarRelacaoInstrumento(obra.relacao_instrumento),
+          obra.confirmacao_status
+        ),
         justificativa: obra.justificativa?.trim() || null,
       })),
     })),
@@ -513,6 +547,9 @@ export default function RevisaoInstrumento() {
 
     try {
       const data = await revisaoInstrumentoApi.salvarRevisao(montarPayload(status))
+      if (Array.isArray(data.municipios)) {
+        setMunicipios(copiarMunicipios(data.municipios))
+      }
       setMessage(`${data.mensagem} ID da revisão: ${data.id_revisao}.`)
       setMessageType('success')
     } catch (err) {
@@ -717,7 +754,6 @@ export default function RevisaoInstrumento() {
                     )
 
                     const isAberto = municipioAberto === municipio.cod_municipio
-                    const statusMunicipio = getStatusMunicipio(municipio)
 
                     return (
                       <article
@@ -751,17 +787,6 @@ export default function RevisaoInstrumento() {
                                 </span>
                                 <span>{municipio.localidades.length} localidade(s)</span>
                                 <span>{municipio.obras_saneamento.length} outra(s) obra(s)</span>
-                                <span
-                                  className={
-                                    statusMunicipio === 'Revisado'
-                                      ? styles.statusDone
-                                      : statusMunicipio === 'Em revisão'
-                                        ? styles.statusReview
-                                        : styles.statusPending
-                                  }
-                                >
-                                  {statusMunicipio}
-                                </span>
                               </div>
 
                               {municipio.origem_registro === 'adicionado_tecnico' && (
@@ -802,7 +827,13 @@ export default function RevisaoInstrumento() {
                                 </div>
                               ) : (
                                 <div className={styles.municipioAcaoLinha}>
-                                  <span>Revisão do Município:</span>
+                                  <div className={styles.sectionHeader}>
+                                    <span className={styles.sectionHeaderTitle}>Revisão do Município</span>
+                                    <span className={styles.sectionHeaderSeparator} aria-hidden="true"/>
+                                    <span className={styles.sectionHeaderMeta}>
+                                      {formatarDataConferencia(municipio.revisao_municipio_conferida_em)}
+                                    </span>
+                                  </div>
                                   <div
                                     className={styles.municipioAcaoInline}
                                     role="group"
@@ -855,7 +886,13 @@ export default function RevisaoInstrumento() {
                             </div>
 
                             <div className={`${styles.subsection} ${styles.obrasSection}`}>
-                              <h3>Localidades beneficiadas</h3>
+                              <div className={styles.sectionHeader}>
+                                <h3>Localidades Beneficiadas</h3>
+                                <span className={styles.sectionHeaderSeparator} aria-hidden="true"/>
+                                <span className={styles.sectionHeaderMeta}>
+                                  {formatarDataConferencia(municipio.localidades_conferidas_em)}
+                                </span>
+                              </div>
 
                               <div className={styles.tableScroller}>
                                 <table className={`${styles.table} ${styles.localidadesTable}`}>
@@ -1133,7 +1170,13 @@ export default function RevisaoInstrumento() {
 
                             <div className={styles.revisaoDuasColunas}>
                               <div className={`${styles.subsection} ${styles.localidadesSection}`}>
-                                <h3>Obras Identificadas no Município</h3>
+                                <div className={styles.sectionHeader}>
+                                  <h3>Obras Identificadas no Município</h3>
+                                  <span className={styles.sectionHeaderSeparator} aria-hidden="true"/>
+                                  <span className={styles.sectionHeaderMeta}>
+                                    {formatarDataConferencia(municipio.obras_conferidas_em)}
+                                  </span>
+                                </div>
 
                                 <div className={styles.tableScroller}>
                                   <table className={`${styles.table} ${styles.obrasTable}`}>
@@ -1142,6 +1185,7 @@ export default function RevisaoInstrumento() {
                                         <th className={styles.colunaObra}>Obra</th>
                                         <th>Órgão Responsável</th>
                                         <th>Relação com o Instrumento</th>
+                                        <th>Confirmação de Status</th>
                                         <th>Observação</th>
                                         <th>Links</th>
                                       </tr>
@@ -1150,7 +1194,7 @@ export default function RevisaoInstrumento() {
                                     <tbody>
                                       {municipio.obras_saneamento.length === 0 ? (
                                         <tr>
-                                          <td colSpan={5} className={styles.emptyCell}>
+                                          <td colSpan={6} className={styles.emptyCell}>
                                             Nenhuma obra de saneamento encontrada.
                                           </td>
                                         </tr>
@@ -1170,25 +1214,48 @@ export default function RevisaoInstrumento() {
                                               <td>{valorOuTraco(obra.orgao)}</td>
                                               <td>
                                                 <select
-                                                  value={obra.avaliacao}
+                                                  value={obra.relacao_instrumento}
                                                   onChange={(event) =>
                                                     atualizarObra(
                                                       municipioIndex,
                                                       obraIndex,
-                                                      'avaliacao',
+                                                      'relacao_instrumento',
                                                       event.target.value
                                                     )
                                                   }
                                                 >
-                                                  {AVALIACOES_OBRA.map((avaliacao) => (
+                                                  {RELACOES_INSTRUMENTO.map((relacao) => (
                                                     <option
-                                                      key={avaliacao.value}
-                                                      value={avaliacao.value}
+                                                      key={relacao.value}
+                                                      value={relacao.value}
                                                     >
-                                                      {avaliacao.label}
+                                                      {relacao.label}
                                                     </option>
                                                   ))}
                                                 </select>
+                                              </td>
+                                              <td>
+                                                {obra.relacao_instrumento === 'nao_analisada' ? (
+                                                  valorOuTraco(null)
+                                                ) : (
+                                                  <select
+                                                    value={obra.confirmacao_status ?? 'nao_confirmada'}
+                                                    onChange={(event) => 
+                                                      atualizarObra(
+                                                        municipioIndex,
+                                                        obraIndex,
+                                                        'confirmacao_status',
+                                                        event.target.value
+                                                      )
+                                                    }
+                                                  >
+                                                    {CONFIRMACOES_STATUS.map((confirmacao) => (
+                                                      <option key={confirmacao.value} value={confirmacao.value}>
+                                                        {confirmacao.label}
+                                                      </option>
+                                                    ))}
+                                                  </select>
+                                                )}
                                               </td>
                                               <td>
                                                 {mostrarJustificativaObra ? (
@@ -1263,17 +1330,6 @@ export default function RevisaoInstrumento() {
                                   </table>
                                 </div>
                               </div>
-                            </div>
-
-                            <div className={styles.municipioReviewActions}>
-                              <button
-                                type="button"
-                                className={styles.secondaryButton}
-                                onClick={() => marcarMunicipioRevisado(municipioIndex)}
-                              >
-                                <Check size={16} />
-                                Marcar como revisado
-                              </button>
                             </div>
                           </div>
                         )}

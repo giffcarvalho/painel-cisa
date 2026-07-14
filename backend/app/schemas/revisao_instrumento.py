@@ -10,12 +10,15 @@ TipoInstrumento = Literal["contrato_repasse", "termo_compromisso", "ted"]
 OrigemRegistro = Literal["base_atual", "adicionado_tecnico"]
 AcaoMunicipio = Literal["manter", "remover", "adicionar"]
 AcaoLocalidade = Literal["manter", "remover", "adicionar", "corrigir"]
-AvaliacaoObra = Literal[
-    "nao_avaliada",
-    "compativel",
-    "nao_compativel",
+RelacaoInstrumentoObra = Literal[
+    "nao_analisada",
+    "sem_conflito_aparente",
     "possivel_sobreposicao",
-    "precisa_analise",
+]
+ConfirmacaoStatusObra = Literal[
+    "nao_confirmada",
+    "sem_conflito",
+    "sobreposicao_confirmada",
 ]
 StatusRevisao = Literal["rascunho", "enviado"]
 
@@ -79,8 +82,22 @@ class ObraSaneamentoRevisaoItem(RevisaoInstrumentoBase):
     link_transferegov: str | None = None
     link_obrasgov: str | None = None
 
-    avaliacao: AvaliacaoObra = "nao_avaliada"
+    relacao_instrumento: RelacaoInstrumentoObra = "nao_analisada"
+    confirmacao_status: ConfirmacaoStatusObra | None = None
     justificativa: str | None = None
+
+    @model_validator(mode="after")
+    def validar_confirmacao_status(self):
+        if self.relacao_instrumento == "nao_analisada":
+            self.confirmacao_status = None
+            return self
+
+        if self.confirmacao_status is None:
+            raise ValueError(
+                "confirmacao_status é obrigatório quando relacao_instrumento exige confirmação."
+            )
+
+        return self
 
 
 class MunicipioRevisaoItem(RevisaoInstrumentoBase):
@@ -91,6 +108,13 @@ class MunicipioRevisaoItem(RevisaoInstrumentoBase):
     origem_registro: OrigemRegistro = "base_atual"
     acao_sugerida: AcaoMunicipio = "manter"
     justificativa: str | None = None
+    revisao_municipio_conferida_em: datetime | None = None
+    localidades_conferidas_em: datetime | None = None
+    obras_conferidas_em: datetime | None = None
+
+    revisao_municipio_alterada: bool = False
+    localidades_alteradas: bool = False
+    obras_alteradas: bool = False
 
     localidades: list[LocalidadeRevisaoItem] = Field(default_factory=list)
     obras_saneamento: list[ObraSaneamentoRevisaoItem] = Field(default_factory=list)
@@ -117,3 +141,4 @@ class RevisaoInstrumentoSalvoResponse(RevisaoInstrumentoBase):
     criado_em: datetime
     atualizado_em: datetime
     enviado_em: datetime | None = None
+    municipios: list[MunicipioRevisaoItem] = Field(default_factory=list)

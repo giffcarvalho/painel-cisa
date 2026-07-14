@@ -60,7 +60,7 @@ class FiltrosMapa:  #-- Dependência do FastAPI para agrupar todos os Query Para
             cod_uf: list[int] | None = Query(None), 
             cod_municipio: list[int] | None = Query(None),
             nr_proposta: list[str] | None = Query(None),
-            nr_instrumento: list[int] | None = Query(None),
+            nr_instrumento: list[str] | None = Query(None),
             cod_tci: list[str] | None = Query(None),
             modalidade: list[str] | None = Query(None),
             cod_localidade: list[int] | None = Query(None),
@@ -94,7 +94,7 @@ def _build_where(filtros: FiltrosMapa, allowed: set[str] | None = None) -> tuple
         ("cod_uf", filtros.cod_uf, "cod_uf", int, "int[]", "scalar"),                          
         ("cod_municipio", filtros.cod_municipio, "cod_municipio", int, "int[]", "scalar"),
         ("nr_proposta", filtros.nr_proposta, "nr_proposta", None, "text[]", "scalar"),
-        ("nr_instrumento", filtros.nr_instrumento, "nr_instrumento", int, "int[]", "scalar"),
+        ("nr_instrumento", filtros.nr_instrumento, "nr_instrumento", None, "text[]", "scalar"),
         ("cod_tci", filtros.cod_tci, "cod_tci", None, "text[]", "scalar"),
         ("modalidade", filtros.modalidade, "modalidade", None, "text[]", "scalar"),
         ("cod_localidade", filtros.cod_localidade, "cod_localidade", int, "bigint[]", "scalar"),
@@ -115,13 +115,15 @@ def _build_where(filtros: FiltrosMapa, allowed: set[str] | None = None) -> tuple
         
         params[param_key] = [cast_python(v) if cast_python else v for v in values]
 
+        sql_col = "nr_instrumento::text" if col == "nr_instrumento" else col
+
         if tipo == "scalar":
             clauses.append(
-                f"{col} = ANY(CAST(:{param_key} AS {sql_array_type}))"
+                f"{sql_col} = ANY(CAST(:{param_key} AS {sql_array_type}))"
             )
         elif tipo == "array_overlap":
             clauses.append(
-                f"{col} && CAST(:{param_key} AS {sql_array_type})"
+                f"{sql_col} && CAST(:{param_key} AS {sql_array_type})"
             )
 
     where = (" AND ".join(clauses)) if clauses else ""
@@ -212,7 +214,7 @@ async def get_lista_nr_propostas(
         WITH uniao AS (
         SELECT
             nr_proposta,
-            nr_instrumento,
+            nr_instrumento::text AS nr_instrumento,
             cod_tci,
             modalidade,
             cod_uf,
@@ -222,7 +224,7 @@ async def get_lista_nr_propostas(
         UNION
         SELECT
             nr_proposta,
-            nr_instrumento,
+            nr_instrumento::text AS nr_instrumento,
             cod_tci,
             modalidade,
             cod_uf,
@@ -277,7 +279,7 @@ async def get_lista_nr_instrumentos(
         WITH uniao AS (
         SELECT
             nr_proposta,
-            nr_instrumento,
+            nr_instrumento::text AS nr_instrumento,
             cod_tci,
             modalidade,
             cod_uf,
@@ -287,7 +289,7 @@ async def get_lista_nr_instrumentos(
         UNION
         SELECT
             nr_proposta,
-            nr_instrumento,
+            nr_instrumento::text AS nr_instrumento,
             cod_tci,
             modalidade,
             cod_uf,
@@ -342,7 +344,7 @@ async def get_lista_cod_tci(
         WITH uniao AS (
         SELECT
             nr_proposta,
-            nr_instrumento,
+            nr_instrumento::text AS nr_instrumento,
             cod_tci,
             modalidade,
             cod_uf,
@@ -352,7 +354,7 @@ async def get_lista_cod_tci(
         UNION
         SELECT
             nr_proposta,
-            nr_instrumento,
+            nr_instrumento::text AS nr_instrumento,
             cod_tci,
             modalidade,
             cod_uf,
@@ -407,7 +409,7 @@ async def get_lista_modalidade(
         WITH uniao AS (
         SELECT
             nr_proposta,
-            nr_instrumento,
+            nr_instrumento::text AS nr_instrumento,
             cod_tci,
             modalidade,
             cod_uf,
@@ -417,7 +419,7 @@ async def get_lista_modalidade(
         UNION
         SELECT
             nr_proposta,
-            nr_instrumento,
+            nr_instrumento::text AS nr_instrumento,
             cod_tci,
             modalidade,
             cod_uf,
@@ -659,10 +661,10 @@ async def get_bbox_carteira_dsr(filtros: FiltrosMapa = Depends(), db: AsyncSessi
     sql = f"""
         WITH 
         uniao AS (
-            SELECT cod_tci, nr_proposta, nr_instrumento, modalidade, cod_uf, cod_municipio, geom
+            SELECT cod_tci, nr_proposta, nr_instrumento::text AS nr_instrumento, modalidade, cod_uf, cod_municipio, geom
             FROM instrumento.vw_geometrias_carteira_dsr
             UNION
-            SELECT cod_tci, nr_proposta, nr_instrumento, modalidade, cod_uf, cod_municipio, geom
+            SELECT cod_tci, nr_proposta, nr_instrumento::text AS nr_instrumento, modalidade, cod_uf, cod_municipio, geom
             FROM instrumento.vw_geometrias_carteira_drf
         ),
         filtrado AS (

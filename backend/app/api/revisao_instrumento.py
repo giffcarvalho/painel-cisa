@@ -343,7 +343,8 @@ async def _buscar_obras_saneamento(
             orgao=row["orgao"],
             link_transferegov=row["link_transferegov"],
             link_obrasgov=row["link_obrasgov"],
-            avaliacao="nao_avaliada",
+            relacao_instrumento="nao_analisada",
+            confirmacao_status=None,
         )
         for row in result.mappings().all()
     ]
@@ -483,9 +484,10 @@ async def salvar_revisao_instrumento(
 
         revisao = revisao_result.mappings().one()
         id_revisao = revisao["id_revisao"]
-
+        municipios_salvos = []
+        
         for municipio in payload.municipios:
-            await db.execute(
+            municipio_result = await db.execute(
                 text(
                     """
                     INSERT INTO painel_dsr.tb_revisao_instrumento_municipio (
@@ -493,15 +495,34 @@ async def salvar_revisao_instrumento(
                         cod_municipio,
                         origem_registro,
                         acao_sugerida,
-                        justificativa
+                        justificativa,
+                        revisao_municipio_conferida_em,
+                        localidades_conferidas_em,
+                        obras_conferidas_em
                     )
                     VALUES (
                         :id_revisao,
                         :cod_municipio,
                         :origem_registro,
                         :acao_sugerida,
-                        :justificativa
+                        :justificativa,
+                        CASE
+                            WHEN :revisao_municipio_alterada THEN NOW()
+                            ELSE :revisao_municipio_conferida_em
+                        END,
+                        CASE
+                            WHEN :localidades_alteradas THEN NOW()
+                            ELSE :localidades_conferidas_em
+                        END,
+                        CASE
+                            WHEN :obras_alteradas THEN NOW()
+                            ELSE :obras_conferidas_em
+                        END
                     )
+                    RETURNING
+                        revisao_municipio_conferida_em,
+                        localidades_conferidas_em,
+                        obras_conferidas_em
                     """
                 ),
                 {
@@ -510,7 +531,31 @@ async def salvar_revisao_instrumento(
                     "origem_registro": municipio.origem_registro,
                     "acao_sugerida": municipio.acao_sugerida,
                     "justificativa": municipio.justificativa,
+                    "revisao_municipio_conferida_em": municipio.revisao_municipio_conferida_em,
+                    "localidades_conferidas_em": municipio.localidades_conferidas_em,
+                    "obras_conferidas_em": municipio.obras_conferidas_em,
+                    "revisao_municipio_alterada": municipio.revisao_municipio_alterada,
+                    "localidades_alteradas": municipio.localidades_alteradas,
+                    "obras_alteradas": municipio.obras_alteradas,
                 },
+            )
+
+            municipio_datas = municipio_result.mappings().one()
+            municipios_salvos.append(
+                municipio.model_copy(
+                    update={
+                        "revisao_municipio_conferida_em": municipio_datas[
+                            "revisao_municipio_conferida_em"
+                        ],
+                        "localidades_conferidas_em": municipio_datas[
+                            "localidades_conferidas_em"
+                        ],
+                        "obras_conferidas_em": municipio_datas["obras_conferidas_em"],
+                        "revisao_municipio_alterada": False,
+                        "localidades_alteradas": False,
+                        "obras_alteradas": False,
+                    }
+                )
             )
 
             for localidade in municipio.localidades:
@@ -568,7 +613,8 @@ async def salvar_revisao_instrumento(
                             orgao,
                             link_transferegov,
                             link_obrasgov,
-                            avaliacao,
+                            relacao_instrumento,
+                            confirmacao_status,
                             justificativa
                         )
                         VALUES (
@@ -579,7 +625,8 @@ async def salvar_revisao_instrumento(
                             :orgao,
                             :link_transferegov,
                             :link_obrasgov,
-                            :avaliacao,
+                            :relacao_instrumento,
+                            :confirmacao_status,
                             :justificativa
                         )
                         """
@@ -592,7 +639,8 @@ async def salvar_revisao_instrumento(
                         "orgao": obra.orgao,
                         "link_transferegov": obra.link_transferegov,
                         "link_obrasgov": obra.link_obrasgov,
-                        "avaliacao": obra.avaliacao,
+                        "relacao_instrumento": obra.relacao_instrumento,
+                        "confirmacao_status": obra.confirmacao_status,
                         "justificativa": obra.justificativa,
                     },
                 )
@@ -606,6 +654,7 @@ async def salvar_revisao_instrumento(
             criado_em=revisao["criado_em"],
             atualizado_em=revisao["atualizado_em"],
             enviado_em=revisao["enviado_em"],
+            municipios=municipios_salvos,
         )
 
     except SQLAlchemyError as exc:
