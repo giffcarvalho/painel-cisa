@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { House, Wallet, Map, Menu, Info, FileSearch, PackageSearch } from 'lucide-react'
+import { House, Wallet, Map, Menu, Info, FileSearch, PackageSearch, ClipboardList, ClipboardCheck } from 'lucide-react'
 
 export function Sidebar({ openOnClick = false }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -11,6 +11,8 @@ export function Sidebar({ openOnClick = false }) {
     { to: '/mapa', label: 'Mapa Interativo', icon: Map, exact: false },
     { to: '/pesquisa-instrumento', label: 'Pesquisa Instrumento', icon: FileSearch, exact: false },
     { to: '/consulta-personalizada', label: 'Consulta Personalizada', icon: PackageSearch, exact: false },
+    { to: '/revisao-instrumento', label: 'Revisão Instrumento', icon: ClipboardCheck, exact: false },
+    { to: '/teste-envios', label: 'Envios de Teste', icon: ClipboardList, exact: false },
     { to: '/manual', label: 'Manual do Usuário', icon: Info, exact: false },
   ]
   

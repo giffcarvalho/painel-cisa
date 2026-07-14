@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     APP_TITLE: str = "Painel DSR – API"
     APP_VERSION: str = "1.0.0"
+    AUTH_SECRET_KEY: str = "trocar-esta-chave-em-ambiente-real"
 
     @computed_field
     @property

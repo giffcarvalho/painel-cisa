@@ -1,0 +1,989 @@
+.page {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  color: #111827;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.header h1 {
+  margin: 0;
+  color: #111827;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.header p {
+  max-width: 820px;
+  margin: 8px 0 0;
+  color: #4b5563;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.mainGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 32%);
+  gap: 20px;
+  align-items: start;
+}
+
+.leftColumn,
+.rightColumn {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.searchPanel,
+.panel,
+.municipioCard {
+  min-width: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.searchPanel {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 16px;
+}
+
+.searchPanel label,
+.reviewGrid label,
+.addGrid label,
+.addLocalidadeGrid label {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.searchPanel input,
+.reviewGrid input,
+.reviewGrid select,
+.reviewGrid textarea,
+.addGrid input,
+.addLocalidadeGrid input,
+.table input,
+.table select,
+.table textarea,
+.textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  font: inherit;
+  font-size: 13px;
+}
+
+.searchPanel input,
+.reviewGrid input,
+.reviewGrid select,
+.addGrid input,
+.addLocalidadeGrid input,
+.table input,
+.table select {
+  min-height: 38px;
+  padding: 0 10px;
+}
+
+.reviewGrid textarea,
+.table textarea,
+.textarea {
+  resize: vertical;
+  padding: 10px;
+}
+
+.searchPanel input:focus,
+.reviewGrid input:focus,
+.reviewGrid select:focus,
+.reviewGrid textarea:focus,
+.addGrid input:focus,
+.addLocalidadeGrid input:focus,
+.table input:focus,
+.table select:focus,
+.table textarea:focus,
+.textarea:focus {
+  border-color: #2563eb;
+  outline: 0;
+  box-shadow: 0 0 0 1px #2563eb;
+}
+
+.searchPanel button,
+.addGrid button,
+.addLocalidadeGrid button,
+.primaryButton,
+.secondaryButton,
+.iconButton,
+.reviewButton {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.localidadesTable {
+  min-width: 760px;
+}
+
+.obrasTable {
+  min-width: 760px;
+}
+
+.segmentedControlCompact {
+  max-width: 100%;
+}
+
+.segmentedButtonCompact {
+  min-height: 32px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.familiasCell {
+  display: flex;
+  min-width: 130px;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.familiasCell span,
+.mutedText {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.familiasCell input {
+  max-width: 110px;
+}
+
+.addLocalidadeGrid {
+  grid-template-columns: minmax(220px, 1fr) minmax(140px, 180px) auto auto;
+}
+
+.searchPanel button,
+.primaryButton {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a8a;
+  padding: 0 14px;
+}
+
+.searchPanel button:hover:not(:disabled),
+.primaryButton:hover:not(:disabled) {
+  border-color: #93c5fd;
+  background: #dbeafe;
+}
+
+.secondaryButton,
+.addGrid button,
+.addLocalidadeGrid button,
+.reviewButton {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  padding: 0 14px;
+}
+
+.secondaryButton:hover:not(:disabled),
+.addGrid button:hover:not(:disabled),
+.addLocalidadeGrid button:hover:not(:disabled),
+.reviewButton:hover:not(:disabled) {
+  background: #f9fafb;
+}
+
+.iconButton {
+  width: 38px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  padding: 0;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.panel {
+  padding: 16px;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.panelHeader h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.readonlyGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  row-gap: 14px;
+  margin: 0;
+}
+
+.readonlyGrid div {
+  grid-column: span 1;
+  min-width: 0;
+}
+
+.readonlyGrid .fullItem {
+  grid-column: 1 / -1;
+}
+
+.readonlyGrid .compactItem {
+  max-width: 90px;
+}
+
+.readonlyGrid dt {
+  margin: 0 0 5px;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.readonlyGrid dd {
+  min-width: 0;
+  margin: 0;
+  color: #111827;
+  font-size: 14px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.fullItem {
+  grid-column: 1 / -1;
+}
+
+.addGrid {
+  display: grid;
+  grid-template-columns: minmax(120px, 160px) minmax(180px, 1fr) minmax(70px, 90px) auto auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.addGrid button {
+  width: fit-content;
+}
+
+.addMunicipioLocalidades {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.addMunicipioLocalidades h3 {
+  margin: 0;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.addMunicipioLocalidadeRow {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(140px, 180px) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.localidadesTemporarias {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.localidadesTemporarias li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+  padding: 8px 10px;
+  color: #374151;
+  font-size: 13px;
+}
+
+.localidadesTemporarias button {
+  min-height: auto;
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.municipiosList {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.municipioCard {
+  overflow: hidden;
+}
+
+.municipioCardAberto {
+  border-color: #d1d5db;
+  background: #fcfcfd;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.municipioSummary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px 16px;
+  padding: 14px 16px;
+  cursor: pointer;
+}
+
+.municipioSummary:focus {
+  outline: 0;
+}
+
+.municipioSummary:focus-visible {
+  outline: 2px solid #6b7280;
+  outline-offset: -2px;
+}
+
+.municipioSummary:hover {
+  background: #f9fafb;
+}
+
+.municipioTitleGroup {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.municipioTitleLine {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+
+.municipioTitleGroup h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 18px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.municipioTitleGroup p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.officialLinks {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.officialLink {
+  color: #1d4ed8;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.officialLink:hover {
+  color: #1e40af;
+}
+
+.addedChip {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.fieldGroup {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.municipioAcaoLinha {
+  display: inline-flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.municipioAcaoInline {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.municipioAcaoButton {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #4b5563;
+  padding: 0 3px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.municipioAcaoButton:hover {
+  color: #111827;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.municipioAcaoButtonActive {
+  color: #111827;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.municipioAcaoSeparator {
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.acaoTextualInline {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #f9fafb;
+  white-space: nowrap;
+}
+
+.acaoTextualItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.acaoTextualButton {
+  appearance: none;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #4b5563;
+  padding: 3px 6px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.acaoTextualButton:hover {
+  background: #eef2ff;
+  color: #1d4ed8;
+}
+
+.acaoTextualButtonActive {
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 10%);
+}
+
+.acaoTextualSeparator {
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.localidadeCell {
+  display: flex;
+  min-width: 180px;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.summaryMeta {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.summaryMeta span {
+  min-height: 28px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  background: #f9fafb;
+  color: #374151;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.summaryMeta .statusPending {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.summaryMeta .statusReview {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.summaryMeta .statusDone {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.summaryActions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.addMunicipioToggle {
+  width: fit-content;
+  align-self: flex-start;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.municipioContent {
+  padding: 0 16px 16px;
+}
+
+.reviewGrid {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) minmax(280px, 1fr);
+  gap: 12px 20px;
+  align-items: start;
+}
+
+.justificativaMunicipio {
+  grid-column: 2;
+}
+
+.subsection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.subsection h3 {
+  margin: 0;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.revisaoDuasColunas {
+  display: block;
+  margin-top: 18px;
+}
+
+.revisaoDuasColunas .subsection {
+  margin-top: 0;
+}
+
+.municipioReviewActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.localidadesSection,
+.obrasSection {
+  min-width: 0;
+}
+
+.table.localidadesTable {
+  min-width: 620px;
+  font-size: 12.5px;
+}
+
+.table.obrasTable {
+  min-width: 620px;
+  table-layout: fixed;
+  font-size: 12.5px;
+}
+
+.obrasTable .colunaObra {
+  width: 24%;
+  max-width: 220px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+
+.localidadesTable th,
+.localidadesTable td {
+  padding: 7px 8px;
+  border-bottom-color: #eef2f7;
+}
+
+.localidadesTable textarea {
+  min-height: 58px;
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.table .justificativaToggle {
+  display: inline-flex;
+  width: 28px;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #374151;
+  padding: 0;
+  cursor: pointer;
+}
+
+.table .justificativaToggle:hover {
+  background: #f9fafb;
+  color: #111827;
+}
+
+.justificativaAberta {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) 28px;
+  gap: 6px;
+  align-items: start;
+}
+
+.justificativaFechar {
+  display: inline-flex;
+  width: 28px;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #6b7280;
+  padding: 0;
+  cursor: pointer;
+}
+
+.justificativaFechar:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.acaoLocalidadeItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.acaoLocalidadeLink {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #1d4ed8;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.acaoLocalidadeLink:hover {
+  color: #1e40af;
+}
+
+.acaoLocalidadeLinkActive {
+  color: #111827;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.acaoLocalidadeSeparator {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.addLocalidadeToggle {
+  width: fit-content;
+  min-height: 32px;
+  align-self: flex-start;
+  padding: 0 10px;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.addLocalidadeGrid {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(120px, 160px) auto auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.addLocalidadeGrid button {
+  width: fit-content;
+  min-height: 32px;
+  padding: 0 10px;
+}
+
+.tableScroller {
+  width: 100%;
+  overflow: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th,
+.table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  vertical-align: top;
+}
+
+.table th {
+  background: #f9fafb;
+  color: #374151;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.table td {
+  color: #374151;
+}
+
+.emptyCell,
+.emptyState {
+  padding: 24px 12px;
+  color: #6b7280;
+  text-align: center;
+}
+
+.emptyState {
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.addLocalidadeGrid {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(140px, 180px) auto auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.linksColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.linksColumn a {
+  color: #1d4ed8;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.footerActions {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 14px 0 0;
+  background: #f8f7f5;
+}
+
+.errorBox,
+.successBox {
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.errorBox {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.successBox {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+@media (max-width: 1180px) {
+  .readonlyGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .readonlyGrid div,
+  .readonlyGrid .compactItem {
+    grid-column: span 1;
+    max-width: none;
+  }
+
+  .readonlyGrid .fullItem {
+    grid-column: 1 / -1;
+  }
+
+  .addGrid,
+  .reviewGrid,
+  .addLocalidadeGrid,
+  .addMunicipioLocalidadeRow {
+    grid-template-columns: 1fr;
+  }
+
+  .justificativaMunicipio {
+    grid-column: 1;
+  }
+
+  .revisaoDuasColunas {
+   grid-template-columns: 1fr;
+  }
+
+  .mainGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .rightColumn {
+    order: 2;
+  }
+
+  .leftColumn {
+    order: 1;
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding: 16px;
+  }
+
+  .header,
+  .footerActions {
+    flex-direction: column;
+  }
+
+  .municipioSummary {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryActions {
+    justify-content: flex-end;
+  }
+
+  .reviewButton {
+    flex: 0 0 auto;
+  }
+
+  .searchPanel,
+  .readonlyGrid,
+  .addGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .searchPanel button,
+  .primaryButton,
+  .secondaryButton {
+    width: 100%;
+  }
+}

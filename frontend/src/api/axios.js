@@ -12,6 +12,15 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' }
 })
 
+api.interceptors.request.use((config) => {
+  const token = sessionStorage.getItem('dsr_teste_access_token')
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+
+  return config
+})
 
 // Interceptor de resposta: trata erros globalmente
 api.interceptors.response.use(
