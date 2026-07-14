@@ -8,55 +8,13 @@ import { FiltrosContext } from "../../context/mapa/filtrosContext";
 import FiltroPainel from "./FiltroPainel";
 import LegendaSection from "./LegendaSection";
 import DetalheSection from "./DetalheSection";
-import { 
-    urlBboxUfs,
-    urlDistritos2022,
-    urlEnderecos2022,
-    urlCidades,
-    urlLocalidades2022,
-    urlMunicipios2022,
-    urlMunicipios2025,
-    urlSetoresCensitarios2022,
-    urlUfs,
-    urlBboxMunicipios,
-    urlGeometriasCarteiraDsr,
-    urlGeometriasCarteiraDrf,
-    urlBboxCarteiraDsr,
-    urlBboxLocalidades,
-    urlBboxEnderecos,
-    urlBboxCategoriasMetropolitanas,
-} from "@/api/mapa";
 import InputSection from "./InputSection";
-
-
-function gerarMatch(simbologia, propriedade, valorPadrao) {
-
-    if (!simbologia?.classes) {
-        return valorPadrao;
-    }
-
-    const match = ["match", ["get", simbologia.atributo]];
-    simbologia.classes.forEach(classe => {
-        match.push(classe.valor);
-        match.push(classe[propriedade]);
-    });
-
-    match.push(valorPadrao);
-    return match;
-}
-
-function gerarMatchLegenda(atributo, legenda) {
-
-    const match = ["match", ["get", atributo]];
-
-    legenda.forEach(item => {
-        match.push(item.valor);
-        match.push(item.cor);
-    });
-
-    match.push("#e7e1e1");
-    return match;
-}
+import { useCriarMapa } from "@/hooks/mapa/useCriarMapa";
+import { useAdicionarLayers } from "@/hooks/mapa/useAdicionarLayers";
+import { useAplicarZoom } from "@/hooks/mapa/useAplicarZoom";
+import { useAtualizarSources } from "@/hooks/mapa/useAtualizarSources";
+import { useTrocarSimbologia } from "@/hooks/mapa/useTrocarSimbologia";
+import { useClicar } from "@/hooks/mapa/useClicar";
 
 
 export default function MapaSection() { 
@@ -143,6 +101,10 @@ export default function MapaSection() {
                 {value: "subgrupo", label: "Subgrupo PAC", tipo: "categorica", legenda: [{valor: "G1", label: "G1", cor: "#d73027"}, {valor: "G2", label: "G2", cor: "#fc8d59"}, {valor: "G3", label: "G3", cor: "#049e91"}]},
                 {value: "tipo_catmetropol", label: "Categoria Metropolitana", tipo: "categorica", legenda: [{valor: "Não Possui", label: "Não Possui", cor: "#ffffff"}, {valor: "RM", label: "RM", cor: "#46f3df"}, {valor: "RIDE, RM", label: "RIDE, RM", cor: "#00515c"}, {valor: "RIDE", label: "RIDE", cor: "#0034df"}, {valor: "RAIDE", label: "RAIDE", cor: "#867d00"}, {valor: "Entorno Metropolitano", label: "Entorno Metropolitano", cor: "#f5b352"}, {valor: "Colar Metropolitano", label: "Colar Metropolitano", cor: "#fc2f8f"}, {valor: "Área de Expansão Metropolitana", label: "Área de Expansão Metropolitana", cor: "#d62828"}]},
                 {value: "populacao_total_censo_2022_maior_50000", label: "População 2022 >50 mil", tipo: "booleana", legenda: [{valor: false, label: "< 50 mil", cor: "#2a9d8f"}, {valor: true, label: "> 50 mil", cor: "#d62828"}]},
+                {value: "sinisa_adimplencia_gestao_municipal", label: "SINISA - Adimplência Gestão Municipal", tipo: "categorica", legenda: [{valor: "adimplente", label: "Adimplente", cor: "#2a9d8f"}, {valor: "inadimplente", label: "Inadimplente", cor: "#d62828"}]},
+                {value: "sinisa_adimplencia_agua", label: "SINISA - Adimplência Água", tipo: "categorica", legenda: [{valor: "adimplente", label: "Adimplente", cor: "#2a9d8f"}, {valor: "inadimplente", label: "Inadimplente", cor: "#d62828"}]},
+                {value: "sinisa_adimplencia_esgoto", label: "SINISA - Adimplência Esgoto", tipo: "categorica", legenda: [{valor: "adimplente", label: "Adimplente", cor: "#2a9d8f"}, {valor: "inadimplente", label: "Inadimplente", cor: "#d62828"}]},
+                {value: "sinisa_declarou_possuir_pmsb", label: "SINISA - Possui PMSB", tipo: "categorica", legenda: [{valor: "sim", label: "Sim", cor: "#2a9d8f"}, {valor: "em elaboração", label: "Em elaboração", cor: "#fc8d59"}, {valor: "sem resposta", label: "Sem resposta", cor: "#d62828"}]},
             ]
         },
         { id: "informacoes_setores_censitarios", 
@@ -160,604 +122,47 @@ export default function MapaSection() {
         
     ]);
     
-    
+    const {filtros} = useContext(FiltrosContext);
     const [painelCamadas, setPainelCamadas] = useState(false);
     const [painelLegenda, setPainelLegenda] = useState(false);
     const [painelFiltros, setPainelFiltros] = useState(false);
     const [painelDetalhe, setPainelDetalhe] = useState(false);
     const [zoomAtual, setZoomAtual] = useState(3);
     const [coord, setCoord] = useState({ lat: "", long: "" });
-    const {filtros} = useContext(FiltrosContext)
     const mapContainer = useRef(null);
-    const mapRef = useRef(null);
+    const mapRef = useCriarMapa(mapContainer);
     const coordRef = useRef(null);
-    const ultimaRequisicaoZoom = useRef(0);
-    //console.log("Render mapa", filtros.cod_municipio);
 
-    //useEffect de criação do mapa. As camadas adicionadas devem ficar dentro dele
+    //chamada das hooks com as funcionalidades principais
+    useAdicionarLayers(mapRef, layers, filtros);
+    useAplicarZoom(mapRef, filtros);
+    useAtualizarSources(mapRef, filtros);
+    useClicar(mapRef, layers);
+    useTrocarSimbologia(mapRef, layers);  
+
+    
     useEffect(() => {
-        if (mapRef.current) return;
+        const map = mapRef.current;
+        if (!map) return;
+        const handleZoom = () => {setZoomAtual(map.getZoom())};
+        map.on("zoomend", handleZoom);
+        return () => {map.off("zoomend", handleZoom)}
+    }, []);
 
-        //criação do mapa básico com a imagem de fundo e labels básicas
-        const map = new maplibregl.Map({
-        container: mapContainer.current,
-        style: {
-            version: 8,
-            sources: {
-            satellite: {type: "raster", tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, attribution: "Esri"},
-            },
-            layers: [
-            {id: "satellite", type: "raster", source: "satellite"},
-            ]
-        },
-        center: [-47.9, -15.8], 
-        zoom: 3                 
-        });
 
-        map.dragRotate.disable();
-        map.touchZoomRotate.disableRotation();
-        map.on("zoomend", () => {setZoomAtual(map.getZoom());}); //captura o zoom atual do mapa e salva no estado zoomAtual
-        
-        map.on("mousemove", (e) => {
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map) return;
+        const handleMouseMove = (e) => {
             if (!coordRef.current) return;
             coordRef.current.textContent = `Lat: ${e.lngLat.lat.toFixed(6)} | Lon: ${e.lngLat.lng.toFixed(6)}`;
-        });
-
-        map.addControl(new maplibregl.ScaleControl({maxWidth: 120, unit: "metric"}), "top-left");
-
-        //adição das camadas. O primeiro bloco são as fontes (sources). O segundo bloco são as camadas (layers) já com a simbologia desejada
-        //a ordem dos addLayers no código influencia na ordem de renderização. Os últimos layers ficam por cima no mapa
-        //as urls estão definidas em @/api/mapa dentro de funções, as quais são chamadas dentro de tiles: []. Essas funções pegam o conteúdo de filtros e transformam em url params
-        map.on("load", () => {
-            map.addSource("setores_censitarios_2022", {type: "vector", tiles: [urlSetoresCensitarios2022(filtros)], minzoom: 8, maxzoom: 20});
-            map.addSource("distritos_2022", {type: "vector", tiles: [urlDistritos2022(filtros)], minzoom: 7, maxzoom: 20});
-            map.addSource("municipios_2022", {type: "vector", tiles: [urlMunicipios2022(filtros)], minzoom: 3, maxzoom: 20});
-            map.addSource("cidades", {type: "vector", tiles: [urlCidades(filtros)], minzoom: 8, maxzoom: 20});
-            map.addSource("ufs", {type: "vector", tiles: [urlUfs(filtros)], minzoom: 3, maxzoom: 20});
-            map.addSource("enderecos_2022", {type: "vector", tiles: [urlEnderecos2022(filtros)], minzoom: 13, maxzoom: 20});
-            map.addSource("localidades_2022", {type: "vector", tiles: [urlLocalidades2022(filtros)], minzoom: 9, maxzoom: 20});
-            map.addSource("geometrias_carteira_dsr", {type: "vector", tiles: [urlGeometriasCarteiraDsr(filtros)], minzoom: 3, maxzoom: 20});
-            map.addSource("geometrias_carteira_drf", {type: "vector", tiles: [urlGeometriasCarteiraDrf(filtros)], minzoom: 3, maxzoom: 20});
-
-
-            
-            map.addLayer({
-                id: "setores_censitarios_2022_fill",
-                type: "fill",
-                source: "setores_censitarios_2022", "source-layer": "poligonos",
-                paint: {
-                "fill-color": "#000000",
-                "fill-opacity": 0
-                }
-            });
-
-
-                        
-            const informacoes_municipais = layers.find(l => l.id === "informacoes_municipais");
-            map.addLayer({
-                id: "informacoes_municipais",
-                type: "fill",
-                source: "municipios_2022", "source-layer": "poligonos",
-                layout:{visibility: informacoes_municipais?.visivel? "visible": "none"},
-                minzoom: informacoes_municipais?.minzoom,
-                paint: {
-                "fill-color": "#e7e1e1",
-                "fill-opacity": 0.8
-                }
-            });
-            
-            
-            const informacoes_setores_censitarios = layers.find(l => l.id === "informacoes_setores_censitarios");
-            map.addLayer({
-                id: "informacoes_setores_censitarios",
-                type: "fill",
-                source: "setores_censitarios_2022", "source-layer": "poligonos",
-                layout:{visibility: informacoes_setores_censitarios?.visivel? "visible": "none"},
-                minzoom: informacoes_setores_censitarios?.minzoom,
-                paint: {
-                "fill-color": "#e7e1e1",
-                "fill-opacity": 0.8
-                }
-            });
-
-
-            const setores = layers.find(l => l.id === "setores_censitarios_2022");
-            map.addLayer({
-                id: "setores_censitarios_2022",
-                type: "line",
-                source: "setores_censitarios_2022", "source-layer": "poligonos",
-                layout:{visibility: setores?.visivel? "visible": "none"},
-                minzoom: setores?.minzoom,
-                paint: {
-                    "line-width": ["interpolate", ["linear"], ["zoom"], 9.5, 0.5, 10.0, 1.0, 11.0, 2.5, 11.5, 4.0],
-                    "line-color": gerarMatch(setores?.simbologia, "cor", "#e9e9e9"),
-                    "line-dasharray": [1, 1]
-                }
-            });
-
-            
-            const distritos = layers.find(l => l.id === "distritos_2022");
-            map.addLayer({
-                id: "distritos_2022",
-                type: "line",
-                source: "distritos_2022", "source-layer": "poligonos",
-                layout:{visibility: distritos?.visivel? "visible": "none"},
-                minzoom: distritos?.minzoom,
-                paint: {
-                    "line-width": ["interpolate", ["linear"], ["zoom"], 7.5, 0.5, 8.0, 1.0, 9.0, 1.5, 10.0, 3.0],
-                    "line-color": distritos.simbologia?.cor
-                }
-            });
-
-            const municipios = layers.find(l => l.id === "municipios_2022");
-            map.addLayer({
-                id: "municipios_2022",
-                type: "line",
-                source: "municipios_2022", "source-layer": "poligonos",
-                minzoom: municipios?.minzoom,
-                layout:{visibility: municipios?.visivel? "visible": "none"},
-                paint: {
-                    "line-width": ["interpolate", ["linear"], ["zoom"], 6.0, 0.3, 7.0, 1.0, 8.0, 2.0, 9.0, 3.0, 10.0, 4.0, 11.0, 4.5],
-                    "line-color": municipios.simbologia?.cor
-                }
-            });
-
-            const ufs = layers.find(l => l.id === "ufs");
-            map.addLayer({
-                id: "ufs",
-                type: "line",
-                source: "ufs", "source-layer": "poligonos",
-                layout:{visibility: ufs?.visivel? "visible": "none"},
-                minzoom:ufs?.minzoom,
-                paint: {
-                    "line-width": ["interpolate", ["linear"], ["zoom"], 3.0, 1.0, 5.0, 2.0, 6.0, 3.0, 7.0, 4.0, 8.0, 6.0, 9.0, 7.0, 10.0, 10.0],
-                    "line-color": ufs.simbologia?.cor
-                }
-            });
-
-            const enderecos = layers.find(l => l.id === "enderecos_2022");
-            map.addLayer({
-                id: "enderecos_2022",
-                type: "circle",
-                source: "enderecos_2022", "source-layer": "pontos",
-                layout:{visibility: enderecos?.visivel? "visible": "none"},
-                minzoom:enderecos?.minzoom,
-                paint: {
-                    "circle-radius": ["interpolate", ["linear"], ["zoom"], 13.0, 2.0, 13.5, 3.5, 14.0, 4.0, 15.0, 5.0],
-                    "circle-color": gerarMatch(enderecos?.simbologia, "cor", "#000000")
-                }
-            });
-
-            const localidades = layers.find(l => l.id === "localidades_2022");
-            map.addLayer({
-                id: "localidades_2022",
-                type: "circle",
-                source: "localidades_2022", "source-layer": "pontos",
-                layout:{visibility: localidades?.visivel? "visible": "none"},
-                minzoom:localidades?.minzoom,
-                paint: {
-                    "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 3, 9, 4, 10, 5, 11, 6, 12, 7],
-                    "circle-color": gerarMatch(localidades?.simbologia, "cor", "#000000"),
-                    "circle-stroke-color": gerarMatch(localidades?.simbologia, "strokeColor", "#000000"),
-                    "circle-stroke-width": gerarMatch(localidades?.simbologia, "strokeWidth", 0),
-                }
-            });
-
-
-            map.addLayer({
-                id: "localidades_2022_labels",
-                type: "symbol",
-                source: "localidades_2022", "source-layer": "pontos",
-                minzoom: 10,
-                layout: {visibility: layers.find(l=>l.id==="localidades_2022")?.visivel? "visible": "none",
-                    "text-field": ["get", "nome_localidade"],
-                    "text-size": ["interpolate", ["linear"], ["zoom"], 9, 9, 10, 10, 11, 11, 12, 12 ],
-                    "text-offset": [0, 1.2],
-                    "text-anchor": "top",
-                    "text-allow-overlap": false,
-                    "text-font": ["Open Sans Regular"]
-                },
-                paint: {
-                    "text-color": "#ffffff",
-                    "text-halo-color": "#000000",
-                    "text-halo-width": 1.5
-                }
-            });
-
-            const cidades = layers.find(l => l.id === "cidades");
-            map.addLayer({
-                id: "cidades",
-                type: "circle",
-                source: "cidades", "source-layer": "pontos",
-                layout:{visibility: cidades?.visivel? "visible": "none"},
-                minzoom: cidades?.minzoom,
-                paint: {
-                    "circle-radius": ["interpolate", ["linear"], ["zoom"], 8.0, 3.0, 9.0, 4.0, 10.0, 5.0, 11.0, 6.0],
-                    "circle-color": cidades?.simbologia?.cor,
-                    "circle-stroke-width": cidades?.simbologia?.strokeWidth,
-                    "circle-stroke-color": cidades?.simbologia?.strokeColor,
-                }
-            });
-
-
-            map.addLayer({
-                id: "cidades_labels",
-                type: "symbol",
-                source: "cidades", "source-layer": "pontos",
-                minzoom: 8,
-                layout: {visibility: layers.find(l=>l.id==="cidades")?.visivel? "visible": "none",
-                    "text-field": ["get", "nome"],
-                    "text-size": ["interpolate", ["linear"], ["zoom"], 7, 10, 8, 11, 9, 12],
-                    "text-offset": [0, 1.2],
-                    "text-anchor": "top",
-                    "text-allow-overlap": false,
-                    "text-font": ["Open Sans Regular"]
-                },
-                paint: {
-                    "text-color": "#ffffff",
-                    "text-halo-color": "#000000",
-                    "text-halo-width": 1.5
-                }
-            });
-
-            const carteira = layers.find(l => l.id === "geometrias_carteira_dsr");
-            map.addLayer({
-                id: "geometrias_carteira_dsr",
-                type: "circle",
-                source: "geometrias_carteira_dsr", "source-layer": "pontos",
-                layout:{visibility: carteira?.visivel? "visible": "none"},
-                minzoom: carteira?.minzoom,
-                paint: {
-                    "circle-radius": ["interpolate", ["linear"], ["zoom"], 4.0, 2.0, 5.0, 3.0, 6.0, 4.0, 7.0, 5.0, 8.0, 6.0],
-                    "circle-color": gerarMatch(carteira?.simbologia, "cor", "#000000"),
-                    "circle-stroke-color": gerarMatch(carteira?.simbologia, "strokeColor", "#000000"),
-                    "circle-stroke-width": gerarMatch(carteira?.simbologia, "strokeWidth", 0),
-                }
-            });
-
-            const carteira_drf = layers.find(l => l.id === "geometrias_carteira_drf");
-            map.addLayer({
-                id: "geometrias_carteira_drf",
-                type: "circle",
-                source: "geometrias_carteira_drf", "source-layer": "pontos",
-                layout:{visibility: carteira_drf?.visivel? "visible": "none"},
-                minzoom: carteira_drf?.minzoom,
-                paint: {
-                    "circle-radius": ["interpolate", ["linear"], ["zoom"], 4.0, 2.0, 5.0, 3.0, 6.0, 4.0, 7.0, 5.0, 8.0, 6.0],
-                    "circle-color": gerarMatch(carteira_drf?.simbologia, "cor", "#000000"),
-                    "circle-stroke-color": gerarMatch(carteira_drf?.simbologia, "strokeColor", "#000000"),
-                    "circle-stroke-width": gerarMatch(carteira_drf?.simbologia, "strokeWidth", 0),
-                }
-            });
-
-
-        })
-
-        mapRef.current = map;
-
+        };
+        map.on("mousemove", handleMouseMove);
+        return () => {map.off("mousemove", handleMouseMove)};
     }, []);
-    
-    
 
-    //useEffect que faz o mapa fazer o fly até a feição filtrada
-    useEffect(() => {
-        const map = mapRef.current;
-        if (!map) return;
-                
-        async function aplicarZoom() {
-            const requestId = ++ultimaRequisicaoZoom.current;
-                        
-            if (!filtros.cod_uf && !filtros.cod_municipio && !filtros.nr_proposta && !filtros.nr_instrumento && !filtros.cod_tci && !filtros.cod_localidade && !filtros.cod_dsc_localidade && !filtros.cod_catmetropol) {
-                if (requestId !== ultimaRequisicaoZoom.current)
-                    return;
-                map.flyTo({ center: [-47.9, -15.8], zoom: 3 });
-                return;
-            }
-            if (filtros.nr_proposta || filtros.nr_instrumento || filtros.cod_tci) {
-                const res = await fetch(urlBboxCarteiraDsr({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento, cod_tci: filtros.cod_tci}));
-                if (requestId !== ultimaRequisicaoZoom.current)
-                    return;
-                const { xmin, ymin, xmax, ymax } = await res.json();
-                if (xmin == null) 
-                    return
-                if (xmin === xmax && ymin === ymax) {
-                    if (requestId !== ultimaRequisicaoZoom.current)
-                        return;
-                    map.flyTo({center:[xmin,ymin], zoom:11})
-                    return
-                }
-                if (requestId !== ultimaRequisicaoZoom.current)
-                    return;
-                map.fitBounds([[xmin,ymin],[xmax,ymax]], {padding:40, maxZoom:8})
-                 return
-            }
-
-
-            if (filtros.cod_dsc_localidade) {
-                const res = await fetch(urlBboxEnderecos({cod_uf:filtros.cod_uf, cod_municipio:filtros.cod_municipio, cod_dsc_localidade:filtros.cod_dsc_localidade}));
-                if (requestId !== ultimaRequisicaoZoom.current)
-                    return;
-                const { xmin, ymin, xmax, ymax } = await res.json();
-                if (xmin == null) 
-                    return
-                if (xmin === xmax && ymin === ymax) {
-                    if (requestId !== ultimaRequisicaoZoom.current)
-                        return;
-                    map.flyTo({center:[xmin,ymin], zoom:14})
-                    return
-                }
-                if (requestId !== ultimaRequisicaoZoom.current)
-                    return;
-                map.fitBounds([[xmin,ymin],[xmax,ymax]], {padding:40, maxZoom:13})
-                return
-            }
-
-
-            if (filtros.cod_localidade) {
-                const res = await fetch(urlBboxLocalidades({cod_uf:filtros.cod_uf, cod_municipio:filtros.cod_municipio, cod_localidade:filtros.cod_localidade}));
-                if (requestId !== ultimaRequisicaoZoom.current)
-                    return;
-                const { xmin, ymin, xmax, ymax } = await res.json();
-                 if (xmin == null) 
-                    return
-                if (xmin === xmax && ymin === ymax) {
-                    if (requestId !== ultimaRequisicaoZoom.current)
-                    return;
-                    map.flyTo({center:[xmin,ymin], zoom:14})
-                    return
-                }
-                if (requestId !== ultimaRequisicaoZoom.current)
-                    return;
-                map.fitBounds([[xmin,ymin],[xmax,ymax]], {padding:40, maxZoom:13})
-                return
-                
-            }
-
-
-            if (filtros.cod_catmetropol) {
-                const res = await fetch(urlBboxCategoriasMetropolitanas({cod_catmetropol: filtros.cod_catmetropol}));
-                if (requestId !== ultimaRequisicaoZoom.current)
-                    return;
-                const { xmin, ymin, xmax, ymax } = await res.json();
-                if (requestId !== ultimaRequisicaoZoom.current)
-                    return;
-                map.fitBounds([[xmin, ymin], [xmax, ymax]], { padding: 40 });
-                return
-            }
-
-        
-            if (filtros.cod_municipio) {
-                const res = await fetch(urlBboxMunicipios({cod_municipio: filtros.cod_municipio}));
-                if (requestId !== ultimaRequisicaoZoom.current)
-                    return;
-                const { xmin, ymin, xmax, ymax } = await res.json();
-                if (requestId !== ultimaRequisicaoZoom.current)
-                    return;
-                map.fitBounds([[xmin, ymin], [xmax, ymax]], { padding: 40 });
-                return
-            }
-
-            if (filtros.cod_uf) {
-                const res = await fetch(urlBboxUfs({cod_uf: filtros.cod_uf}));
-                if (requestId !== ultimaRequisicaoZoom.current)
-                    return;
-                const { xmin, ymin, xmax, ymax } = await res.json();
-                if (requestId !== ultimaRequisicaoZoom.current)
-                    return;
-                map.fitBounds([[xmin, ymin], [xmax, ymax]], { padding: 40 });
-                return
-            }
-        }
-
-        if (!mapRef.current)
-        return;
-
-        aplicarZoom();
-        
-
-    }, [filtros.cod_uf, filtros.cod_municipio, filtros.nr_proposta, filtros.nr_instrumento, filtros.cod_tci, filtros.cod_localidade, filtros.cod_dsc_localidade, filtros.cod_catmetropol]);
   
-
-
-
-    //useEffects que atualizas as sources das camadas toda vez que houver alterações nos filtros
-    const atualizarSource = (sourceId, url) => {
-        const map = mapRef.current;
-        if (!map) return;
-        const source = map.getSource(sourceId);
-        if (!source) return;
-        source.setTiles([url]);
-    };
-
-    useEffect(()=>{
-        atualizarSource("ufs", urlUfs({cod_uf: filtros.cod_uf}))
-    }, [filtros.cod_uf]);
-
-    useEffect(()=>{
-        atualizarSource("municipios_2025", urlMunicipios2025({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, cod_catmetropol: filtros.cod_catmetropol}))
-        atualizarSource("municipios_2022", urlMunicipios2022({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, cod_catmetropol: filtros.cod_catmetropol, semiarido_2022: filtros.semiarido_2022, amazonia_legal: filtros.amazonia_legal, vale_jequetinhonha: filtros.vale_jequetinhonha}))
-        atualizarSource("cidades", urlCidades({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, cod_catmetropol: filtros.cod_catmetropol, semiarido_2022: filtros.semiarido_2022, amazonia_legal: filtros.amazonia_legal, vale_jequetinhonha: filtros.vale_jequetinhonha}))
-        atualizarSource("distritos_2022", urlDistritos2022({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, cod_catmetropol: filtros.cod_catmetropol, semiarido_2022: filtros.semiarido_2022, amazonia_legal: filtros.amazonia_legal, vale_jequetinhonha: filtros.vale_jequetinhonha}))
-        atualizarSource("setores_censitarios_2022", urlSetoresCensitarios2022({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, cod_catmetropol: filtros.cod_catmetropol, semiarido_2022: filtros.semiarido_2022, amazonia_legal: filtros.amazonia_legal, vale_jequetinhonha: filtros.vale_jequetinhonha}))
-    }, [filtros.cod_uf, filtros.cod_municipio, filtros.cod_catmetropol, filtros.semiarido_2022, filtros.amazonia_legal, filtros.vale_jequetinhonha]);
-    
-    useEffect(()=>{
-        atualizarSource("localidades_2022", urlLocalidades2022({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, cod_localidade: filtros.cod_localidade, cod_catmetropol: filtros.cod_catmetropol}))
-    }, [filtros.cod_uf, filtros.cod_municipio, filtros.cod_localidade, filtros.cod_catmetropol]);
-
-    useEffect(()=>{
-        atualizarSource("enderecos_2022", urlEnderecos2022({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, cod_dsc_localidade: filtros.cod_dsc_localidade, cod_catmetropol: filtros.cod_catmetropol}))
-    }, [filtros.cod_uf, filtros.cod_municipio, filtros.cod_dsc_localidade, filtros.cod_catmetropol]);
-
-    useEffect(()=>{
-        atualizarSource("geometrias_carteira_dsr", urlGeometriasCarteiraDsr({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento, cod_tci: filtros.cod_tci, modalidade: filtros.modalidade, cod_catmetropol: filtros.cod_catmetropol, semiarido_2022: filtros.semiarido_2022, amazonia_legal: filtros.amazonia_legal, vale_jequetinhonha: filtros.vale_jequetinhonha}))
-        atualizarSource("geometrias_carteira_drf", urlGeometriasCarteiraDrf({cod_uf: filtros.cod_uf, cod_municipio: filtros.cod_municipio, nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento, cod_tci: filtros.cod_tci, modalidade: filtros.modalidade, cod_catmetropol: filtros.cod_catmetropol, semiarido_2022: filtros.semiarido_2022, amazonia_legal: filtros.amazonia_legal, vale_jequetinhonha: filtros.vale_jequetinhonha}))
-    }, [filtros.cod_uf, filtros.cod_municipio, filtros.nr_proposta, filtros.nr_instrumento, filtros.cod_tci, filtros.modalidade, filtros.cod_catmetropol, filtros.semiarido_2022, filtros.amazonia_legal, filtros.vale_jequetinhonha]);
-    
-
-
-
-
-    //useEffect que gera o popup ao clicar na feicao
-    useEffect(() => {
-        const map = mapRef.current;
-        if (!map) return;
-
-        const camadas = [ "enderecos_2022", "setores_censitarios_2022_fill", "geometrias_carteira_dsr", "geometrias_carteira_drf", "informacoes_municipais", "informacoes_setores_censitarios"];
-        
-        function handleClick(e) {
-            const features = map.queryRenderedFeatures(e.point, { layers: camadas });
-
-            if (!features.length) return;
-
-            const f = features[0];
-            const props = f.properties;
-            const layerConfig = layers.find(l => l.id === f.layer.id);
-            
-            
-            //console.log(props);
-            
-            let html = "";
-            
-            if (f.layer.id === "enderecos_2022") {
-                html += `
-                <strong> Espécie: </strong> ${props.especie}<br>
-                <strong> Localidade do endereço: </strong> ${props.dsc_localidade}
-                `;
-            }
-
-            if (f.layer.id === "setores_censitarios_2022_fill") {
-                html += `
-                <strong> Município: </strong> ${props.nome_municipio} <br>
-                <strong> Código IBGE: </strong> ${props.cod_municipio} <br>
-                <br/>
-                <strong> ${props.situacao} </strong> <br>
-                ${props.situacao_detalhada}
-                `;
-            }
-
-            if (f.layer.id === "geometrias_carteira_dsr") {
-                html += `
-                <strong> Modalidade </strong> <br>
-                ${props.modalidade}<br/>
-                <br/>
-                ${props.nr_proposta != null? `<strong> Proposta: </strong> ${props.nr_proposta} <br>`: ""}
-                ${props.nr_instrumento != null? `<strong> Instrumento: </strong> ${props.nr_instrumento} <br>`: ""}
-                ${props.cod_tci != null? `<strong> Código TCI: </strong> ${props.cod_tci} <br>`: ""}
-                <br/>
-                <strong> Objeto: </strong> ${props.objeto} <br>
-                <br/>
-                ${props.valor_global != null? `<strong> Valor Global: </strong> ${Number(props.valor_global).toLocaleString("pt-BR")} <br>`: ""}
-                ${props.valor_repasse != null? `<strong> Valor Repasse: </strong> ${Number(props.valor_repasse).toLocaleString("pt-BR")} <br>`: ""}
-                ${props.situacao_projeto != null? `<strong> Situacao do Projeto: </strong> ${props.situacao_projeto} <br>`: ""}
-                ${props.situacao_obra != null? `<strong> Situacao da Obra: </strong> ${props.situacao_obra} <br>`: ""}
-                <br/>
-                ${props.link_transferegov? `<a href="${props.link_transferegov}" target="_blank" rel="noopener noreferrer">Link Transferegov</a><br>`: ""}
-                ${props.link_saci? `<a href="${props.link_saci}" target="_blank" rel="noopener noreferrer">Link Saci</a>`: ""}
-                `; 
-            }
-
-
-            if (f.layer.id === "geometrias_carteira_drf") {
-                html += `
-                <strong> Modalidade </strong> <br>
-                ${props.modalidade}<br/>
-                <br/>
-                ${props.nr_proposta != null? `<strong> Proposta: </strong> ${props.nr_proposta} <br>`: ""}
-                ${props.nr_instrumento != null? `<strong> Instrumento: </strong> ${props.nr_instrumento} <br>`: ""}
-                ${props.cod_tci != null? `<strong> Código TCI: </strong> ${props.cod_tci} <br>`: ""}
-                <br/>
-                <strong> Objeto: </strong> ${props.objeto} <br>
-                <br/>
-                ${props.link_transferegov? `<a href="${props.link_transferegov}" target="_blank" rel="noopener noreferrer">Link Transferegov</a><br>`: ""}
-                ${props.link_saci? `<a href="${props.link_saci}" target="_blank" rel="noopener noreferrer">Link Saci</a>`: ""}
-                `; 
-            }
-
-
-            if (f.layer.id === "informacoes_setores_censitarios") {
-                
-                html += `
-                    <strong>Situação:</strong> ${props.situacao}<br>
-                    <strong>Município:</strong> ${props.nome_municipio}<br> 
-                    <strong>População no setor:</strong> ${Number(props.total_pessoas).toLocaleString("pt-BR")}<br>
-                `;
-
-                const variavelConfig = layerConfig?.variaveis?.find(v => v.value === layerConfig?.variavelSel);
-
-                if (variavelConfig) {
-
-                    let valor;
-                    
-                    if (variavelConfig.tipo === "booleana") {
-                        valor = props[variavelConfig.value] ? "Sim" : "Não";
-                    }
-                    else if (variavelConfig.value.startsWith("jenks_")) {
-                        const campo = variavelConfig.value.replace(/^jenks_/, "");
-                        valor = props[campo] != null? `${(props[campo] * 1).toFixed(2)}%`: null;
-                    } else {
-                        valor = props[variavelConfig.value];
-                    }
-
-
-                    if (valor != null) {
-                        html += `<br><strong>${variavelConfig.label}:</strong> ${valor}`;
-                    }
-                }
-            }
-
-
-
-            if (f.layer.id === "informacoes_municipais") {
-                
-                html += `
-                    <strong>Município:</strong> ${props.nome}<br>
-                    <strong> Código IBGE: </strong> ${props.cod_ibge} <br>
-                    <strong>População 2022:</strong> ${Number(props.populacao_total_censo_2022).toLocaleString("pt-BR")}<br>
-                    <strong>Categ. Metrop.:</strong> ${props.label_catmetropol}<br>
-                    <strong>RM Prioritária:</strong>${props.rm_prioritaria == null? " -": props.rm_prioritaria? "Sim": "Não"}<br>
-                    <strong>Subgrupo:</strong> ${props.subgrupo}<br>
-                `;
-
-                const variavelConfig = layerConfig?.variaveis?.find(v => v.value === layerConfig?.variavelSel);
-
-                if (variavelConfig) {
-
-                    let valor;
-                    
-                    if (variavelConfig.tipo === "booleana") {
-                        valor = props[variavelConfig.value] ? "Sim" : "Não";
-                    }
-                    else if (variavelConfig.value.startsWith("jenks_")) {
-                        const campo = variavelConfig.value.replace(/^jenks_/, "");
-                        valor = props[campo] != null? `${(props[campo] * 100).toFixed(2)}%`: null;
-                    } else {
-                        valor = props[variavelConfig.value];
-                    }
-
-
-                    if (valor != null) {
-                        html += `<br><strong>${variavelConfig.label}:</strong> ${valor}`;
-                    }
-                }
-            }
-
-
-            
-            new maplibregl.Popup()
-                .setLngLat(e.lngLat)
-                .setHTML(html)
-                .addTo(map);
-        }
-
-        map.on("click", handleClick);
-
-        return () => {map.off("click", handleClick);};
-
-    }, [layers]);
-  
-
-    //função que liga e desliga a visibilidade das camadas
+    //função que alterna a visibilidade das camadas
     function toggleLayer(id) {
         const map = mapRef.current;
         if (!map || !map.getLayer(id)) return;
@@ -781,54 +186,10 @@ export default function MapaSection() {
         });
     }
     
-    
     //Função que troca a variável usada para fazer a simbologia da camada
     function alterarVariavel(id, valor) {
         setLayers(prev => prev.map(layer => layer.id === id ? { ...layer, variavelSel: valor } : layer));
     }
-    
-    
-    
-    //useEffect que troca a simbologia do mapa de acordo com a variável escolhida
-    useEffect(() => {
-
-        const map = mapRef.current;
-        if (!map) return;
-
-        
-        async function atualizarClassificacoes() {
-
-            for (const layer of layers) {
-
-                if (!layer.variaveis) continue;
-                if (!map.getLayer(layer.id)) continue;
-                if (!layer.variavelSel) {map.setPaintProperty(layer.id, "fill-color", "#e7e1e1"); continue;}
-
-                const variavelConfig = layer.variaveis.find(v => v.value === layer.variavelSel);
-                
-                if (!variavelConfig) {map.setPaintProperty(layer.id, "fill-color", "#e7e1e1"); continue;}
-
-                if (variavelConfig.tipo === "booleana") {
-                    map.setPaintProperty(layer.id, "fill-color", [
-                            "case",
-                            ["get", layer.variavelSel],
-                            variavelConfig.legenda.find(i => i.valor === true).cor,
-                            variavelConfig.legenda.find(i => i.valor === false).cor
-                    ]);
-                }
-                else {
-                    map.setPaintProperty(layer.id, "fill-color", gerarMatchLegenda(
-                            layer.variavelSel,
-                            variavelConfig.legenda
-                    ));
-                }
-            }
-        }
-
-        atualizarClassificacoes();
-
-    }, [layers]);
-    //--------------------------------------------------------------------------------------------
 
     
     
@@ -900,9 +261,7 @@ export default function MapaSection() {
     }
     //--------------------------------------------------------------------------------------------
 
-    //useEffect(() => {console.log("coord mudou");}, [coord]);
-    //useEffect(() => {console.log("zoom mudou");}, [zoomAtual]);
-    //useEffect(() => {console.log("filtros mudaram");}, [filtros]);
+
 
 
     return ( 
