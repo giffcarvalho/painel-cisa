@@ -1,30 +1,46 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
 
 
 //esse hook é responsável pelas ações decorrentes de clique nas feições
 
-export function useClicar(mapRef, layers) {
-    //useEffect que gera o popup ao clicar na feicao
+export function useClicar(mapRef, layers, modoAnalise) {
+        
+    const featureSelecionadaRef = useRef(null);
+
     useEffect(() => {
         const map = mapRef.current;
         if (!map) return;
 
         const camadas = [ "enderecos_2022", "setores_censitarios_2022_fill", "geometrias_carteira_dsr", "geometrias_carteira_drf", "informacoes_municipais", "informacoes_setores_censitarios"];
         
+
         function handleClick(e) {
             const features = map.queryRenderedFeatures(e.point, { layers: camadas });
 
-            if (!features.length) return;
+            if (!features.length) {
+                if (featureSelecionadaRef.current) {
+                    map.setFeatureState(featureSelecionadaRef.current,{ selected: false });
+                    featureSelecionadaRef.current = null;
+                }
+                return;
+            }
 
             const f = features[0];
-            console.log(f);
-            console.log("ID da feature:", f.id);
             const props = f.properties;
             const layerConfig = layers.find(l => l.id === f.layer.id);
             
-            
-            //console.log(props);
+            console.log({modoAnalise, layer: f.layer.id, id: f.id});
+            if (modoAnalise && f.layer.id === "geometrias_carteira_dsr") {
+                if (featureSelecionadaRef.current) {
+                    map.setFeatureState(featureSelecionadaRef.current, { selected: false });
+                }
+                const estado = {source: f.source, sourceLayer: f.sourceLayer, id: f.id};
+                console.log("Estado:", map.getFeatureState(estado));
+                map.setFeatureState(estado, {selected: true});
+                featureSelecionadaRef.current = estado;
+            }
+
             
             let html = "";
             
@@ -165,5 +181,15 @@ export function useClicar(mapRef, layers) {
 
         return () => {map.off("click", handleClick);};
 
-    }, [layers]);
+    }, [layers, modoAnalise]);
+
+    //useEffect para limpar a feição selecionar quando o modo analise é desativado
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map) return;
+        if (!modoAnalise && featureSelecionadaRef.current) {
+            map.setFeatureState(featureSelecionadaRef.current, { selected: false });
+            featureSelecionadaRef.current = null;
+        }
+    }, [modoAnalise]);
 }
