@@ -1007,6 +1007,8 @@ async def get_setores_censitarios_2022(z: int, x: int, y: int, filtros: FiltrosM
                 cod_municipio,
                 nome_municipio || '/' || sigla_uf as nome_municipio,
                 total_pessoas,
+                total_domicilios,
+                dppo_domicilios_particulares_permanentes_ocupados,
                 jenks_perc_agua_forma_nao_adequada,
                 jenks_perc_esgoto_tipo_nao_adequado,
                 jenks_perc_lixo_destino_nao_adequado,
@@ -1270,6 +1272,10 @@ async def get_municipios_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
                 rm_prioritaria,
                 populacao_total_censo_2022,
                 populacao_total_censo_2022_maior_50000,
+                sinisa_adimplencia_gestao_municipal,
+                sinisa_adimplencia_agua,
+                sinisa_adimplencia_esgoto,
+                sinisa_declarou_possuir_pmsb,
                 ST_AsMVTGeom(
                     ST_Simplify(
                         geom_2022,
