@@ -129,6 +129,7 @@ export default function MapaSection() {
     const [painelDetalhe, setPainelDetalhe] = useState(false);
     const [zoomAtual, setZoomAtual] = useState(3);
     const [coord, setCoord] = useState({ lat: "", long: "" });
+    const [modoAnalise, setModoAnalise] = useState(false);
     const mapContainer = useRef(null);
     const mapRef = useCriarMapa(mapContainer);
     const coordRef = useRef(null);
@@ -137,7 +138,7 @@ export default function MapaSection() {
     useAdicionarLayers(mapRef, layers, filtros);
     useAplicarZoom(mapRef, filtros);
     useAtualizarSources(mapRef, filtros);
-    useClicar(mapRef, layers);
+    useClicar(mapRef, layers, modoAnalise);
     useTrocarSimbologia(mapRef, layers);  
 
     
@@ -276,7 +277,8 @@ export default function MapaSection() {
                 />
             }
             <button className={estilos.botaoCamadas} onClick={() => setPainelCamadas(!painelCamadas)}> <Layers className={estilos.Icon}/> <p className={estilos.IconTexto}> Camadas</p> </button>
-            <button className={estilos.botaoLegenda} onClick={() => setPainelLegenda(!painelLegenda)}> <List className={estilos.Icon}/> <p className={estilos.IconTexto}> Legenda</p> </button>  
+            <button className={estilos.botaoLegenda} onClick={() => setPainelLegenda(!painelLegenda)}> <List className={estilos.Icon}/> <p className={estilos.IconTexto}> Legenda</p> </button>
+            <button className={`${estilos.botaoAnalisarCoordenadas} ${modoAnalise ? estilos.ativo : ""}`} onClick={() => setModoAnalise(v => !v)}> {modoAnalise ? "Análise Ativa" : "Analisar Coordenadas"}</button>
             {painelCamadas && (<CamadasSection layers={layers} toggleLayer={toggleLayer} alterarVariavel={alterarVariavel} setPainelCamadas={setPainelCamadas}/>)}
             {painelLegenda && (<LegendaSection layers={layers} zoomAtual={zoomAtual} setPainelLegenda={setPainelLegenda} painelCamadas={painelCamadas}/>)}
             <InputSection coord={coord} setCoord={setCoord} irParaCoordenada={irParaCoordenada} limparCoordenada={limparCoordenada}/>
