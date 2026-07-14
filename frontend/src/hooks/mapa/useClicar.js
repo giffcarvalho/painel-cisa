@@ -90,6 +90,8 @@ export function useClicar(mapRef, layers) {
                     <strong>Situação:</strong> ${props.situacao}<br>
                     <strong>Município:</strong> ${props.nome_municipio}<br> 
                     <strong>População no setor:</strong> ${Number(props.total_pessoas).toLocaleString("pt-BR")}<br>
+                    <strong>Total de domicílios:</strong> ${Number(props.total_domicilios).toLocaleString("pt-BR")}<br>
+                    <strong>DPPO:</strong> ${Number(props.dppo_domicilios_particulares_permanentes_ocupados).toLocaleString("pt-BR")}<br>
                 `;
 
                 const variavelConfig = layerConfig?.variaveis?.find(v => v.value === layerConfig?.variavelSel);
