@@ -225,7 +225,7 @@ export function useAdicionarLayers(mapRef, layers, filtros) {
                 layout:{visibility: carteira?.visivel? "visible": "none"},
                 minzoom: carteira?.minzoom,
                 paint: {
-                    "circle-radius": ["interpolate", ["linear"], ["zoom"], 4.0, 2.0, 5.0, 3.0, 6.0, 4.0, 7.0, 5.0, 8.0, 6.0],
+                    "circle-radius": ["interpolate", ["linear"], ["zoom"], 4.0, 3.0, 5.0, 4.0, 6.0, 5.0, 7.0, 6.0, 8.0, 7.0],
                     "circle-color": gerarMatch(carteira?.simbologia, "cor", "#000000"),
                     "circle-stroke-color": [
                         "case",
