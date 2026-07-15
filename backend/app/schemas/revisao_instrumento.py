@@ -58,6 +58,52 @@ class InstrumentoRevisaoInfo(RevisaoInstrumentoBase):
 
 
 class LocalidadeRevisaoItem(RevisaoInstrumentoBase):
+    id_revisao_localidade: int | None = None
+    cod_municipio: int | None = None
+    cod_comunidade_rural: int | None = None
+
+    nome_localidade: str | None = None
+    nome_localidade_informada: str | None = Field(default=None, max_length=255)
+
+    origem_registro: OrigemRegistro = "base_atual"
+    acao_sugerida: AcaoLocalidade = "manter"
+
+    qtde_familias_ben_original: int | None = None
+    qtde_familias_ben_sugerida: int | None = None
+
+    justificativa: str | None = None
+    conferido_em: datetime | None = None
+
+
+class ObraSaneamentoRevisaoItem(RevisaoInstrumentoBase):
+    id_revisao_obra: int | None = None
+    id_obra: str
+    cod_municipio: int | None = None
+
+    descricao: str | None = None
+    orgao: str | None = None
+    link_transferegov: str | None = None
+    link_obrasgov: str | None = None
+
+    relacao_instrumento: RelacaoInstrumentoObra = "nao_analisada"
+    confirmacao_status: ConfirmacaoStatusObra | None = None
+    justificativa: str | None = None
+    conferido_em: datetime | None = None
+
+    @model_validator(mode="after")
+    def validar_confirmacao_status(self):
+        if self.relacao_instrumento == "nao_analisada":
+            self.confirmacao_status = None
+            return self
+
+        if self.confirmacao_status is None:
+            self.confirmacao_status = "nao_confirmada"
+
+        return self
+
+
+class LocalidadeRevisaoAlteracao(RevisaoInstrumentoBase):
+    id_revisao_localidade: int | None = None
     cod_municipio: int | None = None
     cod_comunidade_rural: int | None = None
 
@@ -73,7 +119,8 @@ class LocalidadeRevisaoItem(RevisaoInstrumentoBase):
     justificativa: str | None = None
 
 
-class ObraSaneamentoRevisaoItem(RevisaoInstrumentoBase):
+class ObraSaneamentoRevisaoAlteracao(RevisaoInstrumentoBase):
+    id_revisao_obra: int | None = None
     id_obra: str
     cod_municipio: int | None = None
 
@@ -93,9 +140,7 @@ class ObraSaneamentoRevisaoItem(RevisaoInstrumentoBase):
             return self
 
         if self.confirmacao_status is None:
-            raise ValueError(
-                "confirmacao_status é obrigatório quando relacao_instrumento exige confirmação."
-            )
+            self.confirmacao_status = "nao_confirmada"
 
         return self
 
@@ -112,26 +157,44 @@ class MunicipioRevisaoItem(RevisaoInstrumentoBase):
     localidades_conferidas_em: datetime | None = None
     obras_conferidas_em: datetime | None = None
 
-    revisao_municipio_alterada: bool = False
-    localidades_alteradas: bool = False
-    obras_alteradas: bool = False
-
     localidades: list[LocalidadeRevisaoItem] = Field(default_factory=list)
     obras_saneamento: list[ObraSaneamentoRevisaoItem] = Field(default_factory=list)
 
 
 class RevisaoInstrumentoBuscaResponse(RevisaoInstrumentoBase):
+    id_revisao: int | None = None
     identificador_busca: str
     instrumento: InstrumentoRevisaoInfo
+    status: str | None = None
+    observacao_geral: str | None = None
     municipios: list[MunicipioRevisaoItem]
 
 
 class RevisaoInstrumentoCreate(RevisaoInstrumentoBase):
+    id_revisao: int | None = None
     status: StatusRevisao = "rascunho"
     observacao_geral: str | None = None
 
     instrumento: InstrumentoRevisaoInfo
     municipios: list[MunicipioRevisaoItem] = Field(default_factory=list)
+
+
+class MunicipioRevisaoAlteracao(RevisaoInstrumentoBase):
+    cod_municipio: int
+    nome: str | None = None
+    uf: str | None = None
+    origem_registro: OrigemRegistro = "base_atual"
+    acao_sugerida: AcaoMunicipio = "manter"
+    justificativa: str | None = None
+
+
+class RevisaoInstrumentoMunicipioSave(RevisaoInstrumentoBase):
+    id_revisao: int | None = None
+    instrumento: InstrumentoRevisaoInfo
+    cod_municipio: int
+    municipio: MunicipioRevisaoAlteracao | None = None
+    localidades: list[LocalidadeRevisaoAlteracao] = Field(default_factory=list)
+    obras_saneamento: list[ObraSaneamentoRevisaoAlteracao] = Field(default_factory=list)
 
 
 class RevisaoInstrumentoSalvoResponse(RevisaoInstrumentoBase):
@@ -142,3 +205,10 @@ class RevisaoInstrumentoSalvoResponse(RevisaoInstrumentoBase):
     atualizado_em: datetime
     enviado_em: datetime | None = None
     municipios: list[MunicipioRevisaoItem] = Field(default_factory=list)
+
+
+class RevisaoInstrumentoMunicipioSalvoResponse(RevisaoInstrumentoBase):
+    id_revisao: int
+    status: str
+    mensagem: str
+    municipio: MunicipioRevisaoItem

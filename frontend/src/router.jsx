@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import { Loader2 } from 'lucide-react'
 import AppLayout from '@/components/layout/AppLayout'
+import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import Home from '@/pages/home/Home'
 import CarteiraDsr from '@/pages/carteira-dsr/CarteiraDsr'
 import ManualLayout from './pages/manual/ManualLayout'
@@ -12,8 +13,8 @@ import ManualInformacoesGerais from './pages/manual/ManualInformacoesGerais'
 import MapLayout from './components/layout/MapLayout'
 import PesquisaInstrumento from './pages/pesquisa-instrumento/PesquisaInstrumento'
 import ConsultaPersonalizada from './pages/consulta-personalizada/ConsultaPersonalizada'
-import TesteEnvios from './pages/teste-envios/TesteEnvios'
 import RevisaoInstrumento from './pages/revisao-instrumento/RevisaoInstrumento'
+import Login from './pages/login/Login'
 
 const Mapa = lazy(() => import('@/pages/mapa/Mapa'))
 
@@ -37,6 +38,10 @@ export const router = createBrowserRouter([
     element: <AppLayout />,
     children: [
       {
+        path: 'login',
+        element: <Login />,
+      },
+      {
         path: 'carteira-dsr',
         element: <CarteiraDsr />,
       },
@@ -50,11 +55,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'revisao-instrumento',
-        element: <RevisaoInstrumento />,
-      },
-      {
-        path: 'teste-envios',
-        element: <TesteEnvios />,
+        element: (
+          <ProtectedRoute>
+            <RevisaoInstrumento />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'manual',

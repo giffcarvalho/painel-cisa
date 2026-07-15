@@ -6,3 +6,4 @@ SQLAlchemy==2.0.50
 uvicorn
 asyncpg
 openpyxl==3.1.5
+pwdlib[argon2]

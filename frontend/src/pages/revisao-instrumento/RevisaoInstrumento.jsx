@@ -114,6 +114,132 @@ function normalizarObra(obra) {
   }
 }
 
+function novaChaveLocal() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+function chaveLocalidade(localidade) {
+  if (localidade.cod_comunidade_rural !== null && localidade.cod_comunidade_rural !== undefined) {
+    return `comunidade:${localidade.cod_comunidade_rural}`
+  }
+
+  return `nova:${localidade._clientId ?? localidade.id_revisao_localidade ?? localidade.nome_localidade_informada ?? localidade.nome_localidade}`
+}
+
+function chaveObra(obra) {
+  return String(obra.id_obra)
+}
+
+function limparTexto(value) {
+  return value === null || value === undefined || String(value).trim() === ''
+    ? null
+    : String(value).trim()
+}
+
+function dadosMunicipioPersistencia(municipio) {
+  return {
+    cod_municipio: municipio.cod_municipio,
+    nome: municipio.nome ?? null,
+    uf: municipio.uf ?? null,
+    origem_registro: municipio.origem_registro,
+    acao_sugerida: municipio.acao_sugerida,
+    justificativa: limparTexto(municipio.justificativa),
+  }
+}
+
+function dadosLocalidadePersistencia(localidade, codMunicipio) {
+  return {
+    id_revisao_localidade: localidade.id_revisao_localidade ?? null,
+    cod_municipio: localidade.cod_municipio || codMunicipio,
+    cod_comunidade_rural: localidade.cod_comunidade_rural ?? null,
+    nome_localidade: localidade.nome_localidade ?? null,
+    nome_localidade_informada:
+      limparTexto(localidade.nome_localidade_informada) ||
+      (localidade.origem_registro === 'adicionado_tecnico'
+        ? limparTexto(localidade.nome_localidade)
+        : null),
+    origem_registro: localidade.origem_registro,
+    acao_sugerida: localidade.acao_sugerida,
+    qtde_familias_ben_original: numeroOuNull(localidade.qtde_familias_ben_original),
+    qtde_familias_ben_sugerida: numeroOuNull(localidade.qtde_familias_ben_sugerida),
+    justificativa: limparTexto(localidade.justificativa),
+  }
+}
+
+function dadosObraPersistencia(obra, codMunicipio) {
+  const relacaoInstrumento = normalizarRelacaoInstrumento(obra.relacao_instrumento)
+
+  return {
+    id_revisao_obra: obra.id_revisao_obra ?? null,
+    id_obra: obra.id_obra,
+    cod_municipio: obra.cod_municipio || codMunicipio,
+    descricao: obra.descricao ?? null,
+    orgao: obra.orgao ?? null,
+    link_transferegov: obra.link_transferegov ?? null,
+    link_obrasgov: obra.link_obrasgov ?? null,
+    relacao_instrumento: relacaoInstrumento,
+    confirmacao_status: normalizarConfirmacaoStatus(
+      relacaoInstrumento,
+      obra.confirmacao_status
+    ),
+    justificativa: limparTexto(obra.justificativa),
+  }
+}
+
+function objetosIguais(a, b) {
+  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
+}
+
+function semIdsPersistencia(dados) {
+  if (!dados) return dados
+
+  const {
+    id_revisao_localidade: _idRevisaoLocalidade,
+    id_revisao_obra: _idRevisaoObra,
+    ...restante
+  } = dados
+
+  return restante
+}
+
+function aplicarFlagAlteracao(currentFlags, chave, alterado) {
+  const next = { ...currentFlags }
+
+  if (alterado) {
+    next[chave] = true
+  } else {
+    delete next[chave]
+  }
+
+  return next
+}
+
+function municipioTemAlteracoes(municipio) {
+  return Boolean(
+    municipio._municipioAlterado ||
+      Object.keys(municipio._localidadesAlteradas ?? {}).length ||
+      Object.keys(municipio._obrasAlteradas ?? {}).length
+  )
+}
+
+function municipioTemHistorico(municipio) {
+  return Boolean(
+    municipio.revisao_municipio_conferida_em ||
+      municipio.localidades_conferidas_em ||
+      municipio.obras_conferidas_em
+  )
+}
+
+function statusVisualMunicipio(municipio) {
+  if (municipioTemAlteracoes(municipio)) return 'Em revisão'
+  if (municipioTemHistorico(municipio) || municipio._salvoNestaSessao) return 'Revisão salva'
+  return 'Revisão pendente'
+}
+
 function formatarDataConferencia(value) {
   if (!value) return 'Ainda não conferida'
 
@@ -126,23 +252,49 @@ function formatarDataConferencia(value) {
 }
 
 function copiarMunicipios(municipios = []) {
-  return municipios.map((municipio) => ({
-    ...municipio,
-    revisao_municipio_conferida_em: municipio.revisao_municipio_conferida_em ?? null,
-    localidades_conferidas_em: municipio.localidades_conferidas_em ?? null,
-    obras_conferidas_em: municipio.obras_conferidas_em ?? null,
-    revisao_municipio_alterada: false,
-    localidades_alteradas: false,
-    obras_alteradas: false,
-    localidades: municipio.localidades ?? [],
-    obras_saneamento: (municipio.obras_saneamento ?? []).map(normalizarObra),
-  }))
+  return municipios.map((municipio) => {
+    const localidades = (municipio.localidades ?? []).map((localidade) => ({
+      ...localidade,
+      _clientId: localidade._clientId ?? novaChaveLocal(),
+    }))
+    const obras = (municipio.obras_saneamento ?? []).map(normalizarObra)
+    const normalizado = {
+      ...municipio,
+      revisao_municipio_conferida_em: municipio.revisao_municipio_conferida_em ?? null,
+      localidades_conferidas_em: municipio.localidades_conferidas_em ?? null,
+      obras_conferidas_em: municipio.obras_conferidas_em ?? null,
+      localidades,
+      obras_saneamento: obras,
+    }
+
+    return {
+      ...normalizado,
+      _municipioOriginal: dadosMunicipioPersistencia(normalizado),
+      _localidadesOriginais: Object.fromEntries(
+        localidades.map((localidade) => [
+          chaveLocalidade(localidade),
+          dadosLocalidadePersistencia(localidade, normalizado.cod_municipio),
+        ])
+      ),
+      _obrasOriginais: Object.fromEntries(
+        obras.map((obra) => [
+          chaveObra(obra),
+          dadosObraPersistencia(obra, normalizado.cod_municipio),
+        ])
+      ),
+      _municipioAlterado: false,
+      _localidadesAlteradas: {},
+      _obrasAlteradas: {},
+      _salvoNestaSessao: municipio._salvoNestaSessao ?? municipioTemHistorico(normalizado),
+    }
+  })
 }
 
 
 export default function RevisaoInstrumento() {
   const [identificador, setIdentificador] = useState('')
   const [dadosBusca, setDadosBusca] = useState(null)
+  const [idRevisao, setIdRevisao] = useState(null)
   const [municipios, setMunicipios] = useState([])
   const [municipioAberto, setMunicipioAberto] = useState(null)
   const [observacaoGeral, setObservacaoGeral] = useState('')
@@ -154,6 +306,8 @@ export default function RevisaoInstrumento() {
   const [novaLocalidadeAbertaPorMunicipio, setNovaLocalidadeAbertaPorMunicipio] = useState({})
   const [justificativasLocalidadeAbertas, setJustificativasLocalidadeAbertas] = useState({})
   const [justificativasObraAbertas, setJustificativasObraAbertas] = useState({})
+  const [salvandoMunicipio, setSalvandoMunicipio] = useState({})
+  const [erroMunicipio, setErroMunicipio] = useState({})
 
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -177,6 +331,7 @@ export default function RevisaoInstrumento() {
     setMessage('')
     setMessageType('')
     setDadosBusca(null)
+    setIdRevisao(null)
     setMunicipios([])
     setMunicipioAberto(null)
     setObservacaoGeral('')
@@ -184,10 +339,14 @@ export default function RevisaoInstrumento() {
     setNovaLocalidadeAbertaPorMunicipio({})
     setJustificativasLocalidadeAbertas({})
     setJustificativasObraAbertas({})
+    setSalvandoMunicipio({})
+    setErroMunicipio({})
 
     try {
       const data = await revisaoInstrumentoApi.buscarInstrumento(termo)
       setDadosBusca(data)
+      setIdRevisao(data.id_revisao ?? null)
+      setObservacaoGeral(data.observacao_geral ?? '')
       setMunicipios(copiarMunicipios(data.municipios))
     } catch (err) {
       setMessage(
@@ -200,25 +359,42 @@ export default function RevisaoInstrumento() {
     }
   }
 
-  const atualizarMunicipio = (index, campo, valor) => {
+  const atualizarMunicipio = (codMunicipio, campo, valor) => {
     setMunicipios((current) =>
-      current.map((municipio, municipioIndex) =>
-        municipioIndex === index ? { ...municipio, [campo]: valor } : municipio
-      )
+      current.map((municipio) => {
+        if (municipio.cod_municipio !== codMunicipio) return municipio
+
+        const atualizado = { ...municipio, [campo]: valor }
+        return {
+          ...atualizado,
+          _municipioAlterado: !objetosIguais(
+            dadosMunicipioPersistencia(atualizado),
+            municipio._municipioOriginal
+          ),
+        }
+      })
     )
   }
 
-  const atualizarAcaoMunicipio = (index, acao) => {
+  const atualizarAcaoMunicipio = (codMunicipio, acao) => {
     setMunicipios((current) =>
-      current.map((municipio, municipioIndex) =>
-        municipioIndex === index
-          ? {
-              ...municipio,
-              acao_sugerida: acao,
-              justificativa: acao === 'manter' ? '' : municipio.justificativa,
-            }
-          : municipio
-      )
+      current.map((municipio) => {
+        if (municipio.cod_municipio !== codMunicipio) return municipio
+
+        const atualizado = {
+          ...municipio,
+          acao_sugerida: acao,
+          justificativa: acao === 'manter' ? '' : municipio.justificativa,
+        }
+
+        return {
+          ...atualizado,
+          _municipioAlterado: !objetosIguais(
+            dadosMunicipioPersistencia(atualizado),
+            municipio._municipioOriginal
+          ),
+        }
+      })
     )
   }
 
@@ -281,27 +457,44 @@ export default function RevisaoInstrumento() {
       return
     }
 
+    const novoItem = {
+      cod_municipio: codMunicipio,
+      nome: novoMunicipio.nome.trim() || null,
+      uf: novoMunicipio.uf.trim().toUpperCase() || null,
+      origem_registro: 'adicionado_tecnico',
+      acao_sugerida: 'adicionar',
+      justificativa: '',
+      revisao_municipio_conferida_em: null,
+      localidades_conferidas_em: null,
+      obras_conferidas_em: null,
+      localidades: localidadesNovoMunicipio.map((localidade) => ({
+        _clientId: novaChaveLocal(),
+        cod_municipio: codMunicipio,
+        cod_comunidade_rural: null,
+        nome_localidade: localidade.nome_localidade,
+        nome_localidade_informada: localidade.nome_localidade_informada,
+        origem_registro: 'adicionado_tecnico',
+        acao_sugerida: 'adicionar',
+        qtde_familias_ben_original: null,
+        qtde_familias_ben_sugerida: localidade.qtde_familias_ben_sugerida,
+        justificativa: '',
+      })),
+      obras_saneamento: [],
+    }
+
     setMunicipios((current) => [
       ...current,
       {
-        cod_municipio: codMunicipio,
-        nome: novoMunicipio.nome.trim() || null,
-        uf: novoMunicipio.uf.trim().toUpperCase() || null,
-        origem_registro: 'adicionado_tecnico',
-        acao_sugerida: 'adicionar',
-        justificativa: '',
-        localidades: localidadesNovoMunicipio.map((localidade) => ({
-          cod_municipio: codMunicipio,
-          cod_comunidade_rural: null,
-          nome_localidade: localidade.nome_localidade,
-          nome_localidade_informada: localidade.nome_localidade_informada,
-          origem_registro: 'adicionado_tecnico',
-          acao_sugerida: 'adicionar',
-          qtde_familias_ben_original: null,
-          qtde_familias_ben_sugerida: localidade.qtde_familias_ben_sugerida,
-          justificativa: '',
-        })),
-        obras_saneamento: [],
+        ...novoItem,
+        _municipioOriginal: null,
+        _localidadesOriginais: {},
+        _obrasOriginais: {},
+        _municipioAlterado: true,
+        _localidadesAlteradas: Object.fromEntries(
+          novoItem.localidades.map((localidade) => [chaveLocalidade(localidade), true])
+        ),
+        _obrasAlteradas: {},
+        _salvoNestaSessao: false,
       },
     ])
 
@@ -321,115 +514,151 @@ export default function RevisaoInstrumento() {
     }
   }
 
-  const atualizarLocalidade = (municipioIndex, localidadeIndex, campo, valor) => {
+  const atualizarLocalidade = (codMunicipio, chave, campo, valor) => {
     setMunicipios((current) =>
-      current.map((municipio, index) => {
-        if (index !== municipioIndex) return municipio
+      current.map((municipio) => {
+        if (municipio.cod_municipio !== codMunicipio) return municipio
+
+        let flags = municipio._localidadesAlteradas ?? {}
+        const localidades = municipio.localidades.map((localidade) => {
+          if (chaveLocalidade(localidade) !== chave) return localidade
+
+          const atualizada = { ...localidade, [campo]: valor }
+          const alterada = !objetosIguais(
+            dadosLocalidadePersistencia(atualizada, municipio.cod_municipio),
+            municipio._localidadesOriginais?.[chave]
+          )
+          flags = aplicarFlagAlteracao(flags, chave, alterada)
+          return atualizada
+        })
 
         return {
           ...municipio,
-          localidades: municipio.localidades.map((localidade, locIndex) => {
-            if (locIndex !== localidadeIndex) return localidade
-
-            return {
-              ...localidade,
-              [campo]: valor,
-            }
-          }),
+          localidades,
+          _localidadesAlteradas: flags,
         }
       })
     )
   }
 
-  const atualizarAcaoLocalidade = (municipioIndex, localidadeIndex, acao) => {
+  const atualizarAcaoLocalidade = (codMunicipio, chave, acao) => {
     setMunicipios((current) =>
-      current.map((municipio, index) => {
-        if (index !== municipioIndex) return municipio
+      current.map((municipio) => {
+        if (municipio.cod_municipio !== codMunicipio) return municipio
+
+        let flags = municipio._localidadesAlteradas ?? {}
+        const localidades = municipio.localidades.map((localidade) => {
+          if (chaveLocalidade(localidade) !== chave) return localidade
+
+          const atualizada = {
+            ...localidade,
+            acao_sugerida: acao,
+            justificativa: acao === 'manter' ? '' : localidade.justificativa,
+            qtde_familias_ben_sugerida:
+              acao === 'corrigir' && !localidade.qtde_familias_ben_sugerida
+                ? localidade.qtde_familias_ben_original ?? ''
+                : localidade.qtde_familias_ben_sugerida,
+          }
+          const alterada = !objetosIguais(
+            dadosLocalidadePersistencia(atualizada, municipio.cod_municipio),
+            municipio._localidadesOriginais?.[chave]
+          )
+          flags = aplicarFlagAlteracao(flags, chave, alterada)
+          return atualizada
+        })
 
         return {
           ...municipio,
-          localidades: municipio.localidades.map((localidade, locIndex) => {
-            if (locIndex !== localidadeIndex) return localidade
-
-            return {
-              ...localidade,
-              acao_sugerida: acao,
-              justificativa: acao === 'manter' ? '' : localidade.justificativa,
-              qtde_familias_ben_sugerida:
-                acao === 'corrigir' && !localidade.qtde_familias_ben_sugerida
-                  ? localidade.qtde_familias_ben_original ?? ''
-                  : localidade.qtde_familias_ben_sugerida,
-            }
-          }),
+          localidades,
+          _localidadesAlteradas: flags,
         }
       })
     )
   }
 
-  const atualizarFamiliasLocalidade = (municipioIndex, localidadeIndex, valor) => {
+  const atualizarFamiliasLocalidade = (codMunicipio, chave, valor) => {
     setMunicipios((current) =>
-      current.map((municipio, index) => {
-        if (index !== municipioIndex) return municipio
+      current.map((municipio) => {
+        if (municipio.cod_municipio !== codMunicipio) return municipio
+
+        let flags = municipio._localidadesAlteradas ?? {}
+        const localidades = municipio.localidades.map((localidade) => {
+          if (chaveLocalidade(localidade) !== chave) return localidade
+
+          const original = localidade.qtde_familias_ben_original
+          const valorNumerico = numeroOuNull(valor)
+          const deveCorrigir =
+            localidade.origem_registro === 'base_atual' &&
+            localidade.acao_sugerida !== 'remover' &&
+            valorNumerico !== original
+          const atualizada = {
+            ...localidade,
+            qtde_familias_ben_sugerida: valor,
+            acao_sugerida: deveCorrigir ? 'corrigir' : localidade.acao_sugerida,
+          }
+          const alterada = !objetosIguais(
+            dadosLocalidadePersistencia(atualizada, municipio.cod_municipio),
+            municipio._localidadesOriginais?.[chave]
+          )
+          flags = aplicarFlagAlteracao(flags, chave, alterada)
+          return atualizada
+        })
 
         return {
           ...municipio,
-          localidades: municipio.localidades.map((localidade, locIndex) => {
-            if (locIndex !== localidadeIndex) return localidade
-
-            const original = localidade.qtde_familias_ben_original
-            const valorNumerico = numeroOuNull(valor)
-            const deveCorrigir =
-              localidade.origem_registro === 'base_atual' &&
-              localidade.acao_sugerida !== 'remover' &&
-              valorNumerico !== original
-
-            return {
-              ...localidade,
-              qtde_familias_ben_sugerida: valor,
-              acao_sugerida: deveCorrigir ? 'corrigir' : localidade.acao_sugerida,
-            }
-          }),
+          localidades,
+          _localidadesAlteradas: flags,
         }
       })
     )
   }
 
-  const atualizarObra = (municipioIndex, obraIndex, campo, valor) => {
+  const atualizarObra = (codMunicipio, idObra, campo, valor) => {
     setMunicipios((current) =>
-      current.map((municipio, index) => {
-        if (index !== municipioIndex) return municipio
+      current.map((municipio) => {
+        if (municipio.cod_municipio !== codMunicipio) return municipio
+
+        let flags = municipio._obrasAlteradas ?? {}
+        const obras = municipio.obras_saneamento.map((obra) => {
+          if (chaveObra(obra) !== String(idObra)) return obra
+
+          let atualizada
+
+          if (campo === 'relacao_instrumento') {
+            const relacaoInstrumento = normalizarRelacaoInstrumento(valor)
+            atualizada = {
+              ...obra,
+              relacao_instrumento: relacaoInstrumento,
+              confirmacao_status: normalizarConfirmacaoStatus(
+                relacaoInstrumento,
+                obra.confirmacao_status
+              ),
+            }
+          } else if (campo === 'confirmacao_status') {
+            atualizada = {
+              ...obra,
+              confirmacao_status: normalizarConfirmacaoStatus(
+                obra.relacao_instrumento,
+                valor
+              ),
+            }
+          } else {
+            atualizada = { ...obra, [campo]: valor }
+          }
+
+          const chave = chaveObra(atualizada)
+          const alterada = !objetosIguais(
+            dadosObraPersistencia(atualizada, municipio.cod_municipio),
+            municipio._obrasOriginais?.[chave]
+          )
+          flags = aplicarFlagAlteracao(flags, chave, alterada)
+          return atualizada
+        })
 
         return {
           ...municipio,
-          obras_alteradas: true,
-          obras_saneamento: municipio.obras_saneamento.map((obra, obraAtualIndex) => {
-            if (obraAtualIndex !== obraIndex) return obra
-
-            if (campo === 'relacao_instrumento') {
-              const relacaoInstrumento = normalizarRelacaoInstrumento(valor)
-
-              return {
-                ...obra,
-                relacao_instrumento: relacaoInstrumento,
-                confirmacao_status: normalizarConfirmacaoStatus(
-                  relacaoInstrumento,
-                  obra.confirmacao_status
-                ),
-              }
-            }
-
-            if (campo === 'confirmacao_status') {
-              return {
-                ...obra,
-                confirmacao_status: normalizarConfirmacaoStatus(
-                  obra.relacao_instrumento,
-                  valor
-                ),
-              }
-            }
-
-            return { ...obra, [campo]: valor }
-          }),
+          obras_saneamento: obras,
+          _obrasAlteradas: flags,
         }
       })
     )
@@ -445,10 +674,8 @@ export default function RevisaoInstrumento() {
     }))
   }
 
-  const adicionarLocalidade = (municipioIndex) => {
-    const municipio = municipios[municipioIndex]
-    const chave = municipio.cod_municipio
-    const form = novaLocalidadePorMunicipio[chave] ?? LOCALIDADE_NOVA_INICIAL
+  const adicionarLocalidade = (codMunicipio) => {
+    const form = novaLocalidadePorMunicipio[codMunicipio] ?? LOCALIDADE_NOVA_INICIAL
     const nome = form.nome_localidade_informada.trim()
 
     if (!nome) {
@@ -458,84 +685,230 @@ export default function RevisaoInstrumento() {
     }
 
     setMunicipios((current) =>
-      current.map((item, index) => {
-        if (index !== municipioIndex) return item
+      current.map((item) => {
+        if (item.cod_municipio !== codMunicipio) return item
+
+        const novaLocalidade = {
+          _clientId: novaChaveLocal(),
+          cod_municipio: item.cod_municipio,
+          cod_comunidade_rural: null,
+          nome_localidade: nome,
+          nome_localidade_informada: nome,
+          origem_registro: 'adicionado_tecnico',
+          acao_sugerida: 'adicionar',
+          qtde_familias_ben_original: null,
+          qtde_familias_ben_sugerida: form.qtde_familias_ben_sugerida,
+          justificativa: '',
+        }
+        const chave = chaveLocalidade(novaLocalidade)
 
         return {
           ...item,
           localidades: [
             ...item.localidades,
-            {
-              cod_municipio: item.cod_municipio,
-              cod_comunidade_rural: null,
-              nome_localidade: nome,
-              nome_localidade_informada: nome,
-              origem_registro: 'adicionado_tecnico',
-              acao_sugerida: 'adicionar',
-              qtde_familias_ben_original: null,
-              qtde_familias_ben_sugerida: form.qtde_familias_ben_sugerida,
-              justificativa: '',
-            },
+            novaLocalidade,
           ],
+          _localidadesAlteradas: {
+            ...(item._localidadesAlteradas ?? {}),
+            [chave]: true,
+          },
         }
       })
     )
 
     setNovaLocalidadeAbertaPorMunicipio((current) => ({
       ...current,
-      [chave]: false,
+      [codMunicipio]: false,
     }))
 
     setNovaLocalidadePorMunicipio((current) => ({
       ...current,
-      [chave]: LOCALIDADE_NOVA_INICIAL,
+      [codMunicipio]: LOCALIDADE_NOVA_INICIAL,
     }))
 
     setMessage('')
     setMessageType('')
   }
 
-  const montarPayload = (status) => ({
+  const montarPayloadMunicipio = (municipio, idRevisaoAtual = idRevisao) => ({
+    id_revisao: idRevisaoAtual,
+    instrumento,
+    cod_municipio: municipio.cod_municipio,
+    municipio: municipio._municipioAlterado
+      ? dadosMunicipioPersistencia(municipio)
+      : null,
+    localidades: municipio.localidades
+      .filter((localidade) => municipio._localidadesAlteradas?.[chaveLocalidade(localidade)])
+      .map((localidade) =>
+        dadosLocalidadePersistencia(localidade, municipio.cod_municipio)
+      ),
+    obras_saneamento: municipio.obras_saneamento
+      .filter((obra) => municipio._obrasAlteradas?.[chaveObra(obra)])
+      .map((obra) => dadosObraPersistencia(obra, municipio.cod_municipio)),
+  })
+
+  const aplicarResultadoMunicipio = (payload, data) => {
+    setIdRevisao(data.id_revisao)
+    setMunicipios((current) =>
+      current.map((municipio) => {
+        if (municipio.cod_municipio !== payload.cod_municipio) return municipio
+
+        const retorno = data.municipio
+        const localidadesRetorno = retorno.localidades ?? []
+        const obrasRetorno = retorno.obras_saneamento ?? []
+        const obraPorChave = Object.fromEntries(
+          obrasRetorno.map((obra) => [chaveObra(obra), obra])
+        )
+
+        let municipioAlterado = municipio._municipioAlterado
+        let municipioOriginal = municipio._municipioOriginal
+
+        if (
+          payload.municipio &&
+          objetosIguais(dadosMunicipioPersistencia(municipio), payload.municipio)
+        ) {
+          municipioAlterado = false
+          municipioOriginal = payload.municipio
+        }
+
+        let localidadesAlteradas = { ...(municipio._localidadesAlteradas ?? {}) }
+        let localidadesOriginais = { ...(municipio._localidadesOriginais ?? {}) }
+        const localidades = municipio.localidades.map((localidade) => {
+          const chave = chaveLocalidade(localidade)
+          const localidadeAtualPayload = dadosLocalidadePersistencia(
+            localidade,
+            municipio.cod_municipio
+          )
+          const retornoLocalidade = localidadesRetorno.find((item) =>
+            objetosIguais(
+              semIdsPersistencia(
+                dadosLocalidadePersistencia(item, municipio.cod_municipio)
+              ),
+              semIdsPersistencia(localidadeAtualPayload)
+            )
+          )
+          const payloadLocalidade = payload.localidades.find((item) =>
+            objetosIguais(item, localidadeAtualPayload)
+          )
+
+          if (!retornoLocalidade) return localidade
+
+          const atualizada = {
+            ...localidade,
+            ...retornoLocalidade,
+            _clientId: localidade._clientId,
+          }
+
+          if (payloadLocalidade) {
+            delete localidadesAlteradas[chave]
+            localidadesOriginais[chave] = dadosLocalidadePersistencia(
+              atualizada,
+              municipio.cod_municipio
+            )
+          }
+
+          return atualizada
+        })
+
+        let obrasAlteradas = { ...(municipio._obrasAlteradas ?? {}) }
+        let obrasOriginais = { ...(municipio._obrasOriginais ?? {}) }
+        const obras = municipio.obras_saneamento.map((obra) => {
+          const chave = chaveObra(obra)
+          const retornoObra = obraPorChave[chave]
+          const payloadObra = payload.obras_saneamento.find((item) =>
+            objetosIguais(item, dadosObraPersistencia(obra, municipio.cod_municipio))
+          )
+
+          if (!retornoObra) return obra
+
+          const atualizada = normalizarObra({ ...obra, ...retornoObra })
+
+          if (payloadObra) {
+            delete obrasAlteradas[chave]
+            obrasOriginais[chave] = dadosObraPersistencia(atualizada, municipio.cod_municipio)
+          }
+
+          return atualizada
+        })
+
+        return {
+          ...municipio,
+          revisao_municipio_conferida_em:
+            retorno.revisao_municipio_conferida_em ??
+            municipio.revisao_municipio_conferida_em,
+          localidades_conferidas_em:
+            retorno.localidades_conferidas_em ?? municipio.localidades_conferidas_em,
+          obras_conferidas_em:
+            retorno.obras_conferidas_em ?? municipio.obras_conferidas_em,
+          localidades,
+          obras_saneamento: obras,
+          _municipioOriginal: municipioOriginal,
+          _localidadesOriginais: localidadesOriginais,
+          _obrasOriginais: obrasOriginais,
+          _municipioAlterado: municipioAlterado,
+          _localidadesAlteradas: localidadesAlteradas,
+          _obrasAlteradas: obrasAlteradas,
+          _salvoNestaSessao: true,
+        }
+      })
+    )
+  }
+
+  const salvarMunicipio = async (
+    municipio,
+    idRevisaoAtual = idRevisao,
+    { propagarErro = false } = {}
+  ) => {
+    if (!instrumento || !municipioTemAlteracoes(municipio)) return idRevisaoAtual
+
+    const payload = montarPayloadMunicipio(municipio, idRevisaoAtual)
+    const codMunicipio = municipio.cod_municipio
+
+    setSalvandoMunicipio((current) => ({ ...current, [codMunicipio]: true }))
+    setErroMunicipio((current) => ({ ...current, [codMunicipio]: '' }))
+    setMessage('')
+    setMessageType('')
+
+    try {
+      const data = await revisaoInstrumentoApi.salvarMunicipio(payload)
+      aplicarResultadoMunicipio(payload, data)
+      setMessage(`${data.mensagem} ID da revisão: ${data.id_revisao}.`)
+      setMessageType('success')
+      return data.id_revisao
+    } catch (err) {
+      const mensagem =
+        err?.response?.data?.detail ||
+        'Não foi possível salvar as alterações deste município.'
+      setErroMunicipio((current) => ({ ...current, [codMunicipio]: mensagem }))
+      setMessage(mensagem)
+      setMessageType('error')
+      if (propagarErro) {
+        throw new Error(mensagem)
+      }
+      return idRevisaoAtual
+    } finally {
+      setSalvandoMunicipio((current) => ({ ...current, [codMunicipio]: false }))
+    }
+  }
+
+  const salvarPendenciasMunicipais = async (idRevisaoInicial = idRevisao) => {
+    let idAtual = idRevisaoInicial
+
+    for (const municipio of municipios) {
+      if (municipioTemAlteracoes(municipio)) {
+        idAtual = await salvarMunicipio(municipio, idAtual, { propagarErro: true })
+      }
+    }
+
+    return idAtual
+  }
+
+  const montarPayloadRevisao = (status, idRevisaoAtual) => ({
+    id_revisao: idRevisaoAtual,
     status,
     observacao_geral: observacaoGeral.trim() || null,
     instrumento,
-    municipios: municipios.map((municipio) => ({
-      cod_municipio: municipio.cod_municipio,
-      nome: municipio.nome,
-      uf: municipio.uf,
-      origem_registro: municipio.origem_registro,
-      acao_sugerida: municipio.acao_sugerida,
-      justificativa: municipio.justificativa?.trim() || null,
-      localidades: municipio.localidades.map((localidade) => ({
-        cod_municipio: localidade.cod_municipio || municipio.cod_municipio,
-        cod_comunidade_rural: localidade.cod_comunidade_rural,
-        nome_localidade: localidade.nome_localidade,
-        nome_localidade_informada:
-          localidade.nome_localidade_informada?.trim() ||
-          (localidade.origem_registro === 'adicionado_tecnico'
-            ? localidade.nome_localidade
-            : null),
-        origem_registro: localidade.origem_registro,
-        acao_sugerida: localidade.acao_sugerida,
-        qtde_familias_ben_original: numeroOuNull(localidade.qtde_familias_ben_original),
-        qtde_familias_ben_sugerida: numeroOuNull(localidade.qtde_familias_ben_sugerida),
-        justificativa: localidade.justificativa?.trim() || null,
-      })),
-      obras_saneamento: municipio.obras_saneamento.map((obra) => ({
-        id_obra: obra.id_obra,
-        cod_municipio: obra.cod_municipio || municipio.cod_municipio,
-        descricao: obra.descricao,
-        orgao: obra.orgao,
-        link_transferegov: obra.link_transferegov,
-        link_obrasgov: obra.link_obrasgov,
-        relacao_instrumento: normalizarRelacaoInstrumento(obra.relacao_instrumento),
-        confirmacao_status: normalizarConfirmacaoStatus(
-          normalizarRelacaoInstrumento(obra.relacao_instrumento),
-          obra.confirmacao_status
-        ),
-        justificativa: obra.justificativa?.trim() || null,
-      })),
-    })),
+    municipios: [],
   })
 
   const salvarRevisao = async (status) => {
@@ -546,15 +919,17 @@ export default function RevisaoInstrumento() {
     setMessageType('')
 
     try {
-      const data = await revisaoInstrumentoApi.salvarRevisao(montarPayload(status))
-      if (Array.isArray(data.municipios)) {
-        setMunicipios(copiarMunicipios(data.municipios))
-      }
+      const idAtual = await salvarPendenciasMunicipais(idRevisao)
+      const data = await revisaoInstrumentoApi.salvarRevisao(
+        montarPayloadRevisao(status, idAtual)
+      )
+      setIdRevisao(data.id_revisao)
       setMessage(`${data.mensagem} ID da revisão: ${data.id_revisao}.`)
       setMessageType('success')
     } catch (err) {
       setMessage(
         err?.response?.data?.detail ||
+          err?.message ||
           'Não foi possível salvar a revisão. Verifique sua autenticação e tente novamente.'
       )
       setMessageType('error')
@@ -782,6 +1157,9 @@ export default function RevisaoInstrumento() {
                               <h2>{formatarMunicipioUf(municipio.nome, municipio.uf)}</h2>
 
                               <div className={styles.summaryMeta}>
+                                <span className={styles.statusChip}>
+                                  {statusVisualMunicipio(municipio)}
+                                </span>
                                 <span>
                                   Ação: {getLabelAcaoMunicipio(municipio.acao_sugerida)}
                                 </span>
@@ -835,7 +1213,7 @@ export default function RevisaoInstrumento() {
                                     </span>
                                   </div>
                                   <div
-                                    className={styles.municipioAcaoInline}
+                                    className={styles.acaoTextualInline}
                                     role="group"
                                     aria-label="Revisão do Município"
                                   >
@@ -846,19 +1224,22 @@ export default function RevisaoInstrumento() {
                                         <span key={acao.value} className={styles.acaoTextualItem}>
                                           <button
                                             type="button"
-                                            className={`${styles.municipioAcaoButton} ${
-                                              isActive ? styles.municipioAcaoButtonActive : ''
+                                            className={`${styles.acaoTextualButton} ${
+                                              isActive ? styles.acaoTextualButtonActive : ''
                                             }`}
                                             aria-pressed={isActive}
                                             onClick={() =>
-                                              atualizarAcaoMunicipio(municipioIndex, acao.value)
+                                              atualizarAcaoMunicipio(
+                                                municipio.cod_municipio,
+                                                acao.value
+                                              )
                                             }
                                           >
                                             {acao.label}
                                           </button>
 
                                           {acaoIndex < ACOES_MUNICIPIO.length - 1 && (
-                                            <span className={styles.municipioAcaoSeparator}>|</span>
+                                            <span className={styles.acaoTextualSeparator}>|</span>
                                           )}
                                         </span>
                                       )
@@ -874,7 +1255,7 @@ export default function RevisaoInstrumento() {
                                     value={municipio.justificativa ?? ''}
                                     onChange={(event) =>
                                       atualizarMunicipio(
-                                        municipioIndex,
+                                        municipio.cod_municipio,
                                         'justificativa',
                                         event.target.value
                                       )
@@ -919,18 +1300,14 @@ export default function RevisaoInstrumento() {
                                         const isCorrigir =
                                           localidade.acao_sugerida === 'corrigir'
                                         const chaveJustificativaLocalidade =
-                                          localidade.cod_comunidade_rural ??
-                                          `${municipio.cod_municipio}-${localidadeIndex}`
+                                          chaveLocalidade(localidade)
                                         const mostrarJustificativa = Boolean(
                                           justificativasLocalidadeAbertas[chaveJustificativaLocalidade]
                                         )
 
                                         return (
                                           <tr
-                                            key={
-                                              localidade.cod_comunidade_rural ??
-                                              `${municipio.cod_municipio}-${localidadeIndex}`
-                                            }
+                                            key={chaveJustificativaLocalidade}
                                           >
                                             <td>
                                               <div className={styles.localidadeCell}>
@@ -978,8 +1355,8 @@ export default function RevisaoInstrumento() {
                                                             aria-pressed={isActive}
                                                             onClick={() =>
                                                               atualizarAcaoLocalidade(
-                                                                municipioIndex,
-                                                                localidadeIndex,
+                                                                municipio.cod_municipio,
+                                                                chaveJustificativaLocalidade,
                                                                 acao.value
                                                               )
                                                             }
@@ -1029,8 +1406,8 @@ export default function RevisaoInstrumento() {
                                                       }
                                                       onChange={(event) =>
                                                         atualizarFamiliasLocalidade(
-                                                          municipioIndex,
-                                                          localidadeIndex,
+                                                          municipio.cod_municipio,
+                                                          chaveJustificativaLocalidade,
                                                           event.target.value
                                                         )
                                                       }
@@ -1051,8 +1428,8 @@ export default function RevisaoInstrumento() {
                                                     value={localidade.justificativa ?? ''}
                                                     onChange={(event) =>
                                                       atualizarLocalidade(
-                                                        municipioIndex,
-                                                        localidadeIndex,
+                                                        municipio.cod_municipio,
+                                                        chaveJustificativaLocalidade,
                                                         'justificativa',
                                                         event.target.value
                                                       )
@@ -1142,7 +1519,7 @@ export default function RevisaoInstrumento() {
 
                                   <button
                                     type="button"
-                                    onClick={() => adicionarLocalidade(municipioIndex)}
+                                    onClick={() => adicionarLocalidade(municipio.cod_municipio)}
                                   >
                                     <Plus size={16} />
                                     Adicionar Localidade
@@ -1199,15 +1576,14 @@ export default function RevisaoInstrumento() {
                                           </td>
                                         </tr>
                                       ) : (
-                                        municipio.obras_saneamento.map((obra, obraIndex) => {
-                                          const chaveJustificativaObra =
-                                            obra.id_obra ?? `${municipio.cod_municipio}-${obraIndex}`
+                                        municipio.obras_saneamento.map((obra) => {
+                                          const chaveJustificativaObra = chaveObra(obra)
                                           const mostrarJustificativaObra = Boolean(
                                             justificativasObraAbertas[chaveJustificativaObra]
                                           )
 
                                           return (
-                                            <tr key={obra.id_obra}>
+                                            <tr key={chaveJustificativaObra}>
                                               <td className={styles.colunaObra}>
                                                 {valorOuTraco(obra.descricao)}
                                               </td>
@@ -1217,8 +1593,8 @@ export default function RevisaoInstrumento() {
                                                   value={obra.relacao_instrumento}
                                                   onChange={(event) =>
                                                     atualizarObra(
-                                                      municipioIndex,
-                                                      obraIndex,
+                                                      municipio.cod_municipio,
+                                                      obra.id_obra,
                                                       'relacao_instrumento',
                                                       event.target.value
                                                     )
@@ -1242,8 +1618,8 @@ export default function RevisaoInstrumento() {
                                                     value={obra.confirmacao_status ?? 'nao_confirmada'}
                                                     onChange={(event) => 
                                                       atualizarObra(
-                                                        municipioIndex,
-                                                        obraIndex,
+                                                        municipio.cod_municipio,
+                                                        obra.id_obra,
                                                         'confirmacao_status',
                                                         event.target.value
                                                       )
@@ -1264,8 +1640,8 @@ export default function RevisaoInstrumento() {
                                                       value={obra.justificativa ?? ''}
                                                       onChange={(event) =>
                                                         atualizarObra(
-                                                          municipioIndex,
-                                                          obraIndex,
+                                                          municipio.cod_municipio,
+                                                          obra.id_obra,
                                                           'justificativa',
                                                           event.target.value
                                                         )
@@ -1330,6 +1706,29 @@ export default function RevisaoInstrumento() {
                                   </table>
                                 </div>
                               </div>
+                            </div>
+
+                            {erroMunicipio[municipio.cod_municipio] && (
+                              <div className={styles.municipioError} role="alert">
+                                {erroMunicipio[municipio.cod_municipio]}
+                              </div>
+                            )}
+
+                            <div className={styles.municipioFooterActions}>
+                              <button
+                                type="button"
+                                className={styles.municipioSaveButton}
+                                disabled={
+                                  salvandoMunicipio[municipio.cod_municipio] ||
+                                  !municipioTemAlteracoes(municipio)
+                                }
+                                onClick={() => salvarMunicipio(municipio)}
+                              >
+                                <Save size={16} />
+                                {salvandoMunicipio[municipio.cod_municipio]
+                                  ? 'Salvando...'
+                                  : 'Salvar alterações do município'}
+                              </button>
                             </div>
                           </div>
                         )}

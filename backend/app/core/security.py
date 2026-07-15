@@ -1,44 +1,24 @@
 import base64
-import hashlib
 import hmac
 import json
-import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-HASH_ALGORITHM = "pbkdf2_sha256"
-HASH_ITERATIONS = 600_000
+from pwdlib import PasswordHash
+
+
 TOKEN_ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+password_hash = PasswordHash.recommended()
 
 
 def gerar_hash_senha(senha: str) -> str:
-    salt = secrets.token_urlsafe(16)
-    senha_hash = hashlib.pbkdf2_hmac(
-        "sha256",
-        senha.encode("utf-8"),
-        salt.encode("utf-8"),
-        HASH_ITERATIONS,
-    )
-    hash_b64 = base64.urlsafe_b64encode(senha_hash).decode("utf-8")
-    return f"{HASH_ALGORITHM}${HASH_ITERATIONS}${salt}${hash_b64}"
+    return password_hash.hash(senha)
 
 
 def verificar_senha(senha: str, senha_hash: str) -> bool:
     try:
-        algoritmo, iteracoes, salt, hash_b64 = senha_hash.split("$", 3)
-        if algoritmo != HASH_ALGORITHM:
-            return False
-
-        novo_hash = hashlib.pbkdf2_hmac(
-            "sha256",
-            senha.encode("utf-8"),
-            salt.encode("utf-8"),
-            int(iteracoes),
-        )
-        novo_hash_b64 = base64.urlsafe_b64encode(novo_hash).decode("utf-8")
-        return hmac.compare_digest(novo_hash_b64, hash_b64)
-    except (AttributeError, TypeError, ValueError):
+        return password_hash.verify(senha, senha_hash)
+    except Exception:
         return False
 
 
@@ -51,11 +31,19 @@ def _b64url_decode(data: str) -> bytes:
     return base64.urlsafe_b64decode(data + padding)
 
 
-def criar_token_acesso(payload: dict[str, Any], secret_key: str) -> str:
-    agora = datetime.now(timezone.utc)
-    expira_em = agora + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+def criar_token_acesso(
+    payload: dict[str, Any],
+    secret_key: str,
+    algorithm: str = TOKEN_ALGORITHM,
+    expires_minutes: int = 60,
+) -> str:
+    if algorithm != TOKEN_ALGORITHM:
+        raise ValueError("Algoritmo JWT não suportado.")
 
-    header = {"alg": TOKEN_ALGORITHM, "typ": "JWT"}
+    agora = datetime.now(timezone.utc)
+    expira_em = agora + timedelta(minutes=expires_minutes)
+
+    header = {"alg": algorithm, "typ": "JWT"}
     body = {
         **payload,
         "iat": int(agora.timestamp()),
@@ -69,21 +57,29 @@ def criar_token_acesso(payload: dict[str, Any], secret_key: str) -> str:
     assinatura = hmac.new(
         secret_key.encode("utf-8"),
         unsigned.encode("utf-8"),
-        hashlib.sha256,
+        "sha256",
     ).digest()
 
     return f"{unsigned}.{_b64url_encode(assinatura)}"
 
 
-def decodificar_token_acesso(token: str, secret_key: str) -> dict[str, Any] | None:
+def decodificar_token_acesso(
+    token: str,
+    secret_key: str,
+    algorithm: str = TOKEN_ALGORITHM,
+) -> dict[str, Any] | None:
     try:
         header_b64, body_b64, assinatura_b64 = token.split(".", 2)
         unsigned = f"{header_b64}.{body_b64}"
+        header = json.loads(_b64url_decode(header_b64))
+
+        if header.get("alg") != algorithm or algorithm != TOKEN_ALGORITHM:
+            return None
 
         assinatura_esperada = hmac.new(
             secret_key.encode("utf-8"),
             unsigned.encode("utf-8"),
-            hashlib.sha256,
+            "sha256",
         ).digest()
 
         if not hmac.compare_digest(_b64url_encode(assinatura_esperada), assinatura_b64):

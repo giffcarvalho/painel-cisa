@@ -8,7 +8,6 @@ from app.api import mapa
 from app.api import pesquisa_instrumento
 from app.core.database import lifespan_db
 from app.api import extrator_dados
-from app.api import teste_envios
 from app.api import auth
 from app.api import revisao_instrumento
  
@@ -67,12 +66,6 @@ app.include_router(
     extrator_dados.router,
     prefix="/api/v1/extrator-dados",
     tags=["Extrator de Dados"],
-)
-
-app.include_router(
-    teste_envios.router,
-    prefix="/api/v1/teste-envios",
-    tags=["Teste Envios"]
 )
 
 app.include_router(

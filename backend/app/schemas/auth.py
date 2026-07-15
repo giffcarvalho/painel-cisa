@@ -1,20 +1,24 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str = Field(..., min_length=1, max_length=150)
     senha: str = Field(..., min_length=1)
 
-class PrimeiroAcessoRequest(BaseModel):
-    nome: str = ""
-    codigo_verificacao: str = ""
-    email: str = ""
-    senha: str = ""
+    @field_validator("email")
+    @classmethod
+    def normalizar_email(cls, value: str) -> str:
+        email = value.strip()
+
+        if not email:
+            raise ValueError("E-mail obrigatório.")
+
+        return email
 
 
-class PrimeiroAcessoResponse(BaseModel):
-    mensagem: str
+class UsuarioAutenticado(BaseModel):
     id_usuario: int
+    nome: str
     email: str
     perfil: str
 
@@ -22,10 +26,5 @@ class PrimeiroAcessoResponse(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
-
-
-class UsuarioAutenticado(BaseModel):
-    id_usuario: int
-    nome: str
-    email: EmailStr
-    perfil: str
+    expires_in: int
+    usuario: UsuarioAutenticado

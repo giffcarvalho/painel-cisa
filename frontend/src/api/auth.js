@@ -6,11 +6,6 @@ export const authApi = {
     return data
   },
 
-  primeiroAcesso: async (payload) => {
-    const { data } = await api.post('/auth/primeiro-acesso', payload)
-    return data
-  },
-
   me: async () => {
     const { data } = await api.get('/auth/me')
     return data
