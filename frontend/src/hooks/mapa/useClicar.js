@@ -4,7 +4,7 @@ import maplibregl from "maplibre-gl";
 
 //esse hook é responsável pelas ações decorrentes de clique nas feições
 
-export function useClicar(mapRef, layers, modoAnalise) {
+export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
         
     const featureSelecionadaRef = useRef(null);
 
@@ -22,6 +22,7 @@ export function useClicar(mapRef, layers, modoAnalise) {
                 if (featureSelecionadaRef.current) {
                     map.setFeatureState(featureSelecionadaRef.current,{ selected: false });
                     featureSelecionadaRef.current = null;
+                    setFeatureSelecionada(null);
                 }
                 return;
             }
@@ -39,6 +40,7 @@ export function useClicar(mapRef, layers, modoAnalise) {
                 console.log("Estado:", map.getFeatureState(estado));
                 map.setFeatureState(estado, {selected: true});
                 featureSelecionadaRef.current = estado;
+                setFeatureSelecionada(f);
             }
 
             
@@ -190,6 +192,7 @@ export function useClicar(mapRef, layers, modoAnalise) {
         if (!modoAnalise && featureSelecionadaRef.current) {
             map.setFeatureState(featureSelecionadaRef.current, { selected: false });
             featureSelecionadaRef.current = null;
+            setFeatureSelecionada(null);
         }
     }, [modoAnalise]);
 }
