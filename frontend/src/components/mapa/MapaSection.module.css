@@ -74,8 +74,9 @@
   justify-content: center;
   align-items: center;
   border-radius: 5px;
-  background: rgb(154, 236, 247);
+  background: aliceblue;
   cursor: pointer;
+  font-size: 14px;
   z-index: 1;
 }
 
