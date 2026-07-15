@@ -1,9 +1,9 @@
 import { useEffect } from "react";
-import { gerarMatchLegenda } from "../../utils/mapaUtils";
+import { gerarMatchLegenda, gerarMatch } from "../../utils/mapaUtils";
 
 //esse hook faz a troca da simbologia do mapa de acordo com a variável escolhida
 
-export function useTrocarSimbologia(mapRef, layers) {
+export function useTrocarSimbologia(mapRef, layers, modoAnalise) {
 
     useEffect(() => {
 
@@ -15,8 +15,20 @@ export function useTrocarSimbologia(mapRef, layers) {
 
             for (const layer of layers) {
 
-                if (!layer.variaveis) continue;
                 if (!map.getLayer(layer.id)) continue;
+                if (layer.id === "geometrias_carteira_dsr") {
+                    if (modoAnalise) {
+                        map.setPaintProperty(layer.id, "circle-color", "#9E9E9E");
+                        map.setPaintProperty(layer.id, "circle-stroke-color", ["case", ["boolean", ["feature-state", "selected"], false], "#ffff00", "#666666"]);
+                        map.setPaintProperty(layer.id, "circle-stroke-width", ["case", ["boolean", ["feature-state", "selected"], false], 3, 0]);
+                    } else {
+                        map.setPaintProperty(layer.id, "circle-color", gerarMatch(layer.simbologia, "cor", "#000000"));
+                        map.setPaintProperty(layer.id, "circle-stroke-color", gerarMatch(layer.simbologia, "strokeColor", "#000000"));
+                        map.setPaintProperty(layer.id, "circle-stroke-width", gerarMatch(layer.simbologia, "strokeWidth", 0));
+                    }
+                    continue;
+                }
+                if (!layer.variaveis) continue;
                 if (!layer.variavelSel) {map.setPaintProperty(layer.id, "fill-color", "#e7e1e1"); continue;}
 
                 const variavelConfig = layer.variaveis.find(v => v.value === layer.variavelSel);
@@ -42,5 +54,5 @@ export function useTrocarSimbologia(mapRef, layers) {
 
         atualizarClassificacoes();
 
-    }, [layers]);
+    }, [layers, modoAnalise]);
 }
