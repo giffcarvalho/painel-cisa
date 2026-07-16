@@ -66,7 +66,7 @@ class LocalidadeRevisaoItem(RevisaoInstrumentoBase):
     nome_localidade_informada: str | None = Field(default=None, max_length=255)
 
     origem_registro: OrigemRegistro = "base_atual"
-    acao_sugerida: AcaoLocalidade = "manter"
+    acao_sugerida: AcaoLocalidade | None = None
 
     qtde_familias_ben_original: int | None = None
     qtde_familias_ben_sugerida: int | None = None
@@ -84,15 +84,19 @@ class ObraSaneamentoRevisaoItem(RevisaoInstrumentoBase):
     orgao: str | None = None
     link_transferegov: str | None = None
     link_obrasgov: str | None = None
+    populacao_beneficiada: str | None = None
+    desc_populacao_beneficiada: str | None = None
+    populacao_beneficiada_revisada: str | None = None
+    desc_populacao_beneficiada_revisada: str | None = None
 
-    relacao_instrumento: RelacaoInstrumentoObra = "nao_analisada"
+    relacao_instrumento: RelacaoInstrumentoObra | None = None
     confirmacao_status: ConfirmacaoStatusObra | None = None
     justificativa: str | None = None
     conferido_em: datetime | None = None
 
     @model_validator(mode="after")
     def validar_confirmacao_status(self):
-        if self.relacao_instrumento == "nao_analisada":
+        if self.relacao_instrumento in (None, "nao_analisada"):
             self.confirmacao_status = None
             return self
 
@@ -111,7 +115,7 @@ class LocalidadeRevisaoAlteracao(RevisaoInstrumentoBase):
     nome_localidade_informada: str | None = Field(default=None, max_length=255)
 
     origem_registro: OrigemRegistro = "base_atual"
-    acao_sugerida: AcaoLocalidade = "manter"
+    acao_sugerida: AcaoLocalidade
 
     qtde_familias_ben_original: int | None = None
     qtde_familias_ben_sugerida: int | None = None
@@ -128,8 +132,12 @@ class ObraSaneamentoRevisaoAlteracao(RevisaoInstrumentoBase):
     orgao: str | None = None
     link_transferegov: str | None = None
     link_obrasgov: str | None = None
+    populacao_beneficiada: str | None = None
+    desc_populacao_beneficiada: str | None = None
+    populacao_beneficiada_revisada: str | None = None
+    desc_populacao_beneficiada_revisada: str | None = None
 
-    relacao_instrumento: RelacaoInstrumentoObra = "nao_analisada"
+    relacao_instrumento: RelacaoInstrumentoObra
     confirmacao_status: ConfirmacaoStatusObra | None = None
     justificativa: str | None = None
 
@@ -151,7 +159,7 @@ class MunicipioRevisaoItem(RevisaoInstrumentoBase):
     uf: str | None = None
 
     origem_registro: OrigemRegistro = "base_atual"
-    acao_sugerida: AcaoMunicipio = "manter"
+    acao_sugerida: AcaoMunicipio | None = None
     justificativa: str | None = None
     revisao_municipio_conferida_em: datetime | None = None
     localidades_conferidas_em: datetime | None = None
@@ -166,6 +174,8 @@ class RevisaoInstrumentoBuscaResponse(RevisaoInstrumentoBase):
     identificador_busca: str
     instrumento: InstrumentoRevisaoInfo
     status: str | None = None
+    status_revisao_geral: str = "pendente"
+    status_revisao_geral_label: str = "Revisão pendente"
     observacao_geral: str | None = None
     municipios: list[MunicipioRevisaoItem]
 
@@ -184,7 +194,7 @@ class MunicipioRevisaoAlteracao(RevisaoInstrumentoBase):
     nome: str | None = None
     uf: str | None = None
     origem_registro: OrigemRegistro = "base_atual"
-    acao_sugerida: AcaoMunicipio = "manter"
+    acao_sugerida: AcaoMunicipio
     justificativa: str | None = None
 
 
@@ -200,6 +210,8 @@ class RevisaoInstrumentoMunicipioSave(RevisaoInstrumentoBase):
 class RevisaoInstrumentoSalvoResponse(RevisaoInstrumentoBase):
     id_revisao: int
     status: str
+    status_revisao_geral: str = "pendente"
+    status_revisao_geral_label: str = "Revisão pendente"
     mensagem: str
     criado_em: datetime
     atualizado_em: datetime
@@ -210,5 +222,7 @@ class RevisaoInstrumentoSalvoResponse(RevisaoInstrumentoBase):
 class RevisaoInstrumentoMunicipioSalvoResponse(RevisaoInstrumentoBase):
     id_revisao: int
     status: str
+    status_revisao_geral: str = "pendente"
+    status_revisao_geral_label: str = "Revisão pendente"
     mensagem: str
     municipio: MunicipioRevisaoItem

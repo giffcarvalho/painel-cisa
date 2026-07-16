@@ -40,6 +40,13 @@ TABELAS_LOCALIDADE = {
     "termo_compromisso": "instrumento.tb_termo_de_compromisso_comunidade_rural",
 }
 
+STATUS_REVISAO_LABELS = {
+    "pendente": "Revisão pendente",
+    "em_revisao": "Em revisão",
+    "parcial": "Revisão parcial",
+    "concluida": "Revisão concluída",
+}
+
 
 async def _execute_query(db: AsyncSession, sql: str, params: dict | None = None):
     try:
@@ -73,6 +80,102 @@ def _primeiro_valor(dados: dict, chaves: list[str]) -> str | None:
         if valor is not None and str(valor).strip():
             return str(valor).strip()
     return None
+
+
+def calcular_status_revisao(
+    municipio_conferido: bool,
+    localidades_conferidas: bool,
+    obras_conferidas: bool,
+) -> str:
+    total_conferido = sum(
+        [municipio_conferido, localidades_conferidas, obras_conferidas]
+    )
+
+    if total_conferido == 0:
+        return "pendente"
+
+    if total_conferido == 3:
+        return "concluida"
+
+    return "parcial"
+
+
+def _label_status_revisao(status_revisao: str) -> str:
+    return STATUS_REVISAO_LABELS.get(status_revisao, STATUS_REVISAO_LABELS["pendente"])
+
+
+def _item_tem_conferencia(acao: str | None, conferido_em) -> bool:
+    return bool(acao and acao != "nao_analisada" and conferido_em)
+
+
+def _grupo_municipio_conferido(municipios: list[MunicipioRevisaoItem]) -> bool:
+    if not municipios:
+        return False
+
+    return all(
+        _item_tem_conferencia(
+            municipio.acao_sugerida,
+            municipio.revisao_municipio_conferida_em,
+        )
+        for municipio in municipios
+    )
+
+
+def _grupo_localidades_conferido(
+    municipios: list[MunicipioRevisaoItem],
+) -> bool | None:
+    localidades = [
+        localidade
+        for municipio in municipios
+        for localidade in municipio.localidades
+        if localidade.origem_registro != "adicionado_tecnico"
+    ]
+
+    if not localidades:
+        return None
+
+    return all(
+        _item_tem_conferencia(localidade.acao_sugerida, localidade.conferido_em)
+        for localidade in localidades
+    )
+
+
+def _grupo_obras_conferido(municipios: list[MunicipioRevisaoItem]) -> bool | None:
+    obras = [
+        obra
+        for municipio in municipios
+        for obra in municipio.obras_saneamento
+    ]
+
+    if not obras:
+        return None
+
+    return all(
+        _item_tem_conferencia(obra.relacao_instrumento, obra.conferido_em)
+        for obra in obras
+    )
+
+
+def _calcular_status_revisao_municipios(
+    municipios: list[MunicipioRevisaoItem],
+) -> tuple[str, str]:
+    municipio_conferido = _grupo_municipio_conferido(municipios)
+    localidades_conferidas = _grupo_localidades_conferido(municipios)
+    obras_conferidas = _grupo_obras_conferido(municipios)
+
+    if not any(
+        valor is True
+        for valor in [municipio_conferido, localidades_conferidas, obras_conferidas]
+    ):
+        status_revisao = "pendente"
+    else:
+        status_revisao = calcular_status_revisao(
+            municipio_conferido,
+            True if localidades_conferidas is None else localidades_conferidas,
+            True if obras_conferidas is None else obras_conferidas,
+        )
+
+    return status_revisao, _label_status_revisao(status_revisao)
 
 
 async def _buscar_instrumento_carteira(
@@ -253,7 +356,7 @@ async def _buscar_municipios(
             nome=row["nome"],
             uf=row["uf"],
             origem_registro="base_atual",
-            acao_sugerida="manter",
+            acao_sugerida=None,
             localidades=[],
             obras_saneamento=[],
         )
@@ -301,9 +404,9 @@ async def _buscar_localidades(
             cod_comunidade_rural=row["cod_comunidade_rural"],
             nome_localidade=row["nome_localidade"],
             origem_registro="base_atual",
-            acao_sugerida="manter",
+            acao_sugerida=None,
             qtde_familias_ben_original=row["qtde_familias_ben"],
-            qtde_familias_ben_sugerida=row["qtde_familias_ben"],
+            qtde_familias_ben_sugerida=None,
         )
         for row in result.mappings().all()
     ]
@@ -319,15 +422,30 @@ async def _buscar_obras_saneamento(
     stmt = text(
         """
         SELECT
-            id::text AS id_obra,
-            cod_municipio,
-            descricao,
-            orgao,
-            link_transferegov,
-            link_obrasgov
-        FROM instrumento.vw_investimento_saneamento
-        WHERE cod_municipio IN :cod_municipios
-        ORDER BY cod_municipio, orgao NULLS LAST, id
+            obras.id::text AS id_obra,
+            obras.cod_municipio,
+            obras.descricao,
+            obras.orgao,
+            obras.link_transferegov,
+            obras.link_obrasgov,
+            NULLIF(BTRIM(pi.populacao_beneficiada), '') AS populacao_beneficiada,
+            NULLIF(BTRIM(pi.desc_populacao_beneficiada), '') AS desc_populacao_beneficiada
+        FROM instrumento.vw_investimento_saneamento obras
+        LEFT JOIN obrasgov.tb_projeto_investimento pi
+          ON NULLIF(BTRIM(pi.id_unico::text), '') = COALESCE(
+              NULLIF(
+                  BTRIM(
+                      substring(
+                          obras.link_obrasgov
+                          from '/visao-geral-intervencao/([^/?#]+)'
+                      )
+                  ),
+                  ''
+              ),
+              NULLIF(BTRIM(obras.id::text), '')
+          )
+        WHERE obras.cod_municipio IN :cod_municipios
+        ORDER BY obras.cod_municipio, obras.orgao NULLS LAST, obras.id
         """
     ).bindparams(bindparam("cod_municipios", expanding=True))
 
@@ -348,6 +466,10 @@ async def _buscar_obras_saneamento(
             orgao=row["orgao"],
             link_transferegov=row["link_transferegov"],
             link_obrasgov=row["link_obrasgov"],
+            populacao_beneficiada=row["populacao_beneficiada"],
+            desc_populacao_beneficiada=row["desc_populacao_beneficiada"],
+            populacao_beneficiada_revisada=None,
+            desc_populacao_beneficiada_revisada=None,
             relacao_instrumento="nao_analisada",
             confirmacao_status=None,
         )
@@ -612,12 +734,35 @@ async def _carregar_revisao_salva(
             orgao,
             link_transferegov,
             link_obrasgov,
+            COALESCE(
+                NULLIF(BTRIM(pi.populacao_beneficiada), ''),
+                NULLIF(BTRIM(ro.populacao_beneficiada), '')
+            ) AS populacao_beneficiada,
+            COALESCE(
+                NULLIF(BTRIM(pi.desc_populacao_beneficiada), ''),
+                NULLIF(BTRIM(ro.desc_populacao_beneficiada), '')
+            ) AS desc_populacao_beneficiada,
+            ro.populacao_beneficiada_revisada,
+            ro.desc_populacao_beneficiada_revisada,
             relacao_instrumento,
             confirmacao_status,
             justificativa,
             conferido_em
-        FROM painel_dsr.tb_revisao_obra_saneamento
-        WHERE id_revisao = :id_revisao
+        FROM painel_dsr.tb_revisao_obra_saneamento ro
+        LEFT JOIN obrasgov.tb_projeto_investimento pi
+          ON NULLIF(BTRIM(pi.id_unico::text), '') = COALESCE(
+              NULLIF(
+                  BTRIM(
+                      substring(
+                          ro.link_obrasgov
+                          from '/visao-geral-intervencao/([^/?#]+)'
+                      )
+                  ),
+                  ''
+              ),
+              NULLIF(BTRIM(ro.id_obra::text), '')
+          )
+        WHERE ro.id_revisao = :id_revisao
         """,
         {"id_revisao": id_revisao},
     )
@@ -702,10 +847,10 @@ def _chave_obra(obra: ObraSaneamentoRevisaoItem | dict) -> str:
 
 
 def _normalizar_confirmacao_backend(
-    relacao_instrumento: str,
+    relacao_instrumento: str | None,
     confirmacao_status: str | None,
 ) -> str | None:
-    if relacao_instrumento == "nao_analisada":
+    if relacao_instrumento in (None, "nao_analisada"):
         return None
 
     if confirmacao_status in {
@@ -719,8 +864,7 @@ def _normalizar_confirmacao_backend(
 
 
 def _normalizar_id_obra_banco(id_obra: str) -> int | str:
-    texto = str(id_obra).strip()
-    return int(texto) if texto.isdigit() else texto
+    return str(id_obra).strip()
 
 
 def _localidade_identificada(localidade: LocalidadeRevisaoAlteracao) -> bool:
@@ -747,7 +891,7 @@ def _montar_municipio_resposta(
         nome=payload_municipio.nome if payload_municipio else None,
         uf=payload_municipio.uf if payload_municipio else None,
         origem_registro=payload_municipio.origem_registro if payload_municipio else "base_atual",
-        acao_sugerida=payload_municipio.acao_sugerida if payload_municipio else "manter",
+        acao_sugerida=payload_municipio.acao_sugerida if payload_municipio else None,
         justificativa=payload_municipio.justificativa if payload_municipio else None,
         revisao_municipio_conferida_em=datas.get("revisao_municipio_conferida_em"),
         localidades_conferidas_em=datas.get("localidades_conferidas_em"),
@@ -974,6 +1118,10 @@ async def _persistir_municipio_revisao(
             "orgao": obra.orgao,
             "link_transferegov": obra.link_transferegov,
             "link_obrasgov": obra.link_obrasgov,
+            "populacao_beneficiada": obra.populacao_beneficiada,
+            "desc_populacao_beneficiada": obra.desc_populacao_beneficiada,
+            "populacao_beneficiada_revisada": obra.populacao_beneficiada_revisada,
+            "desc_populacao_beneficiada_revisada": obra.desc_populacao_beneficiada_revisada,
             "relacao_instrumento": relacao,
             "confirmacao_status": confirmacao,
             "justificativa": obra.justificativa,
@@ -988,10 +1136,17 @@ async def _persistir_municipio_revisao(
                     orgao = :orgao,
                     link_transferegov = :link_transferegov,
                     link_obrasgov = :link_obrasgov,
+                    populacao_beneficiada = :populacao_beneficiada,
+                    desc_populacao_beneficiada = :desc_populacao_beneficiada,
+                    populacao_beneficiada_revisada = :populacao_beneficiada_revisada,
+                    desc_populacao_beneficiada_revisada = :desc_populacao_beneficiada_revisada,
                     relacao_instrumento = :relacao_instrumento,
                     confirmacao_status = :confirmacao_status,
                     justificativa = :justificativa,
-                    conferido_em = NOW()
+                    conferido_em = CASE
+                        WHEN :relacao_instrumento = 'nao_analisada' THEN NULL
+                        ELSE NOW()
+                    END
                 WHERE id_revisao = :id_revisao
                   AND id_revisao_obra = :id_revisao_obra
                 RETURNING id_revisao_obra, conferido_em
@@ -1004,10 +1159,17 @@ async def _persistir_municipio_revisao(
                     orgao = :orgao,
                     link_transferegov = :link_transferegov,
                     link_obrasgov = :link_obrasgov,
+                    populacao_beneficiada = :populacao_beneficiada,
+                    desc_populacao_beneficiada = :desc_populacao_beneficiada,
+                    populacao_beneficiada_revisada = :populacao_beneficiada_revisada,
+                    desc_populacao_beneficiada_revisada = :desc_populacao_beneficiada_revisada,
                     relacao_instrumento = :relacao_instrumento,
                     confirmacao_status = :confirmacao_status,
                     justificativa = :justificativa,
-                    conferido_em = NOW()
+                    conferido_em = CASE
+                        WHEN :relacao_instrumento = 'nao_analisada' THEN NULL
+                        ELSE NOW()
+                    END
                 WHERE id_revisao = :id_revisao
                   AND cod_municipio = :cod_municipio
                   AND id_obra::text = :id_obra_texto
@@ -1035,6 +1197,10 @@ async def _persistir_municipio_revisao(
                         orgao,
                         link_transferegov,
                         link_obrasgov,
+                        populacao_beneficiada,
+                        desc_populacao_beneficiada,
+                        populacao_beneficiada_revisada,
+                        desc_populacao_beneficiada_revisada,
                         relacao_instrumento,
                         confirmacao_status,
                         justificativa,
@@ -1048,10 +1214,17 @@ async def _persistir_municipio_revisao(
                         :orgao,
                         :link_transferegov,
                         :link_obrasgov,
+                        :populacao_beneficiada,
+                        :desc_populacao_beneficiada,
+                        :populacao_beneficiada_revisada,
+                        :desc_populacao_beneficiada_revisada,
                         :relacao_instrumento,
                         :confirmacao_status,
                         :justificativa,
-                        NOW()
+                        CASE
+                            WHEN :relacao_instrumento = 'nao_analisada' THEN NULL
+                            ELSE NOW()
+                        END
                     )
                     RETURNING id_revisao_obra, conferido_em
                     """
@@ -1156,7 +1329,7 @@ async def _montar_resposta_busca(
                 nome=None,
                 uf=None,
                 origem_registro="base_atual",
-                acao_sugerida="manter",
+                acao_sugerida=None,
                 localidades=[],
                 obras_saneamento=[],
             )
@@ -1175,7 +1348,7 @@ async def _montar_resposta_busca(
                 nome=None,
                 uf=None,
                 origem_registro="base_atual",
-                acao_sugerida="manter",
+                acao_sugerida=None,
                 localidades=[],
                 obras_saneamento=[],
             )
@@ -1243,7 +1416,7 @@ async def _montar_resposta_busca(
                 nome=None,
                 uf=None,
                 origem_registro="base_atual",
-                acao_sugerida="manter",
+                acao_sugerida=None,
                 localidades=[],
                 obras_saneamento=[],
             )
@@ -1259,6 +1432,14 @@ async def _montar_resposta_busca(
             orgao=obra_salva["orgao"],
             link_transferegov=obra_salva["link_transferegov"],
             link_obrasgov=obra_salva["link_obrasgov"],
+            populacao_beneficiada=obra_salva["populacao_beneficiada"],
+            desc_populacao_beneficiada=obra_salva["desc_populacao_beneficiada"],
+            populacao_beneficiada_revisada=obra_salva[
+                "populacao_beneficiada_revisada"
+            ],
+            desc_populacao_beneficiada_revisada=obra_salva[
+                "desc_populacao_beneficiada_revisada"
+            ],
             relacao_instrumento=relacao,
             confirmacao_status=_normalizar_confirmacao_backend(
                 relacao,
@@ -1288,6 +1469,20 @@ async def _montar_resposta_busca(
                     "relacao_instrumento": item_salvo.relacao_instrumento,
                     "confirmacao_status": item_salvo.confirmacao_status,
                     "justificativa": item_salvo.justificativa,
+                    "populacao_beneficiada": (
+                        item_salvo.populacao_beneficiada
+                        if item_salvo.populacao_beneficiada is not None
+                        else municipio.obras_saneamento[indice_existente].populacao_beneficiada
+                    ),
+                    "desc_populacao_beneficiada": (
+                        item_salvo.desc_populacao_beneficiada
+                        if item_salvo.desc_populacao_beneficiada is not None
+                        else municipio.obras_saneamento[
+                            indice_existente
+                        ].desc_populacao_beneficiada
+                    ),
+                    "populacao_beneficiada_revisada": item_salvo.populacao_beneficiada_revisada,
+                    "desc_populacao_beneficiada_revisada": item_salvo.desc_populacao_beneficiada_revisada,
                     "conferido_em": item_salvo.conferido_em,
                 }
             )
@@ -1300,11 +1495,17 @@ async def _montar_resposta_busca(
         municipio.localidades_conferidas_em = datas.get("localidades_conferidas_em")
         municipio.obras_conferidas_em = datas.get("obras_conferidas_em")
 
+    status_revisao_geral, status_revisao_geral_label = (
+        _calcular_status_revisao_municipios(municipios)
+    )
+
     return RevisaoInstrumentoBuscaResponse(
         id_revisao=id_revisao,
         identificador_busca=instrumento.identificador_busca,
         instrumento=instrumento,
         status=revisao["status"] if revisao else None,
+        status_revisao_geral=status_revisao_geral,
+        status_revisao_geral_label=status_revisao_geral_label,
         observacao_geral=revisao["observacao_geral"] if revisao else None,
         municipios=municipios,
     )
@@ -1362,28 +1563,41 @@ async def salvar_revisao_instrumento(
         municipios_salvos = []
 
         for municipio in payload.municipios:
-            municipio_salvo = await _persistir_municipio_revisao(
-                db,
-                id_revisao,
-                municipio.cod_municipio,
-                MunicipioRevisaoAlteracao(
+            municipio_alteracao = None
+
+            if municipio.acao_sugerida is not None:
+                municipio_alteracao = MunicipioRevisaoAlteracao(
                     cod_municipio=municipio.cod_municipio,
                     nome=municipio.nome,
                     uf=municipio.uf,
                     origem_registro=municipio.origem_registro,
                     acao_sugerida=municipio.acao_sugerida,
                     justificativa=municipio.justificativa,
-                ),
+                )
+
+            municipio_salvo = await _persistir_municipio_revisao(
+                db,
+                id_revisao,
+                municipio.cod_municipio,
+                municipio_alteracao,
                 municipio.localidades,
                 municipio.obras_saneamento,
             )
             municipios_salvos.append(municipio_salvo)
+
+        resposta_atualizada = await _montar_resposta_busca(
+            db,
+            instrumento,
+            usuario_atual,
+        )
 
         await db.commit()
 
         return RevisaoInstrumentoSalvoResponse(
             id_revisao=id_revisao,
             status=revisao["status"],
+            status_revisao_geral=resposta_atualizada.status_revisao_geral,
+            status_revisao_geral_label=resposta_atualizada.status_revisao_geral_label,
             mensagem="Revisão salva com sucesso.",
             criado_em=revisao["criado_em"],
             atualizado_em=revisao["atualizado_em"],
@@ -1440,12 +1654,19 @@ async def salvar_municipio_revisao(
             payload.localidades,
             payload.obras_saneamento,
         )
+        resposta_atualizada = await _montar_resposta_busca(
+            db,
+            payload.instrumento,
+            usuario_atual,
+        )
 
         await db.commit()
 
         return RevisaoInstrumentoMunicipioSalvoResponse(
             id_revisao=revisao["id_revisao"],
             status=revisao["status"],
+            status_revisao_geral=resposta_atualizada.status_revisao_geral,
+            status_revisao_geral_label=resposta_atualizada.status_revisao_geral_label,
             mensagem="Alterações do município salvas com sucesso.",
             municipio=municipio,
         )

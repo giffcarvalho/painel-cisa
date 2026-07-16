@@ -51,7 +51,11 @@ const LOCALIDADE_NOVA_INICIAL = {
 }
 
 function valorOuTraco(value) {
-  return value === null || value === undefined || value === '' ? '-' : value
+  return valorAusente(value) ? '-' : value
+}
+
+function valorAusente(value) {
+  return value === null || value === undefined || String(value).trim() === ''
 }
 
 function formatarValorTecnico(value) {
@@ -71,6 +75,7 @@ function formatarValorTecnico(value) {
 }
 
 function getLabelAcaoMunicipio(value) {
+  if (!value) return 'Ainda não conferida'
   return LABELS_ACAO_MUNICIPIO[value] ?? formatarValorTecnico(value)
 }
 
@@ -106,6 +111,11 @@ function normalizarObra(obra) {
 
   return {
     ...obra,
+    populacao_beneficiada: obra.populacao_beneficiada ?? null,
+    desc_populacao_beneficiada: obra.desc_populacao_beneficiada ?? null,
+    populacao_beneficiada_revisada: obra.populacao_beneficiada_revisada ?? null,
+    desc_populacao_beneficiada_revisada:
+      obra.desc_populacao_beneficiada_revisada ?? null,
     relacao_instrumento: relacaoInstrumento,
     confirmacao_status: normalizarConfirmacaoStatus(
       relacaoInstrumento,
@@ -181,6 +191,14 @@ function dadosObraPersistencia(obra, codMunicipio) {
     orgao: obra.orgao ?? null,
     link_transferegov: obra.link_transferegov ?? null,
     link_obrasgov: obra.link_obrasgov ?? null,
+    populacao_beneficiada: obra.populacao_beneficiada ?? null,
+    desc_populacao_beneficiada: obra.desc_populacao_beneficiada ?? null,
+    populacao_beneficiada_revisada: limparTexto(
+      obra.populacao_beneficiada_revisada
+    ),
+    desc_populacao_beneficiada_revisada: limparTexto(
+      obra.desc_populacao_beneficiada_revisada
+    ),
     relacao_instrumento: relacaoInstrumento,
     confirmacao_status: normalizarConfirmacaoStatus(
       relacaoInstrumento,
@@ -234,9 +252,13 @@ function municipioTemHistorico(municipio) {
   )
 }
 
+function revisaoTemAlteracoesLocais(municipios = []) {
+  return municipios.some(municipioTemAlteracoes)
+}
+
 function statusVisualMunicipio(municipio) {
-  if (municipioTemAlteracoes(municipio)) return 'Em revisão'
-  if (municipioTemHistorico(municipio) || municipio._salvoNestaSessao) return 'Revisão salva'
+  if (municipioTemAlteracoes(municipio)) return 'Alterações não salvas'
+  if (municipioTemHistorico(municipio) || municipio._salvoNestaSessao) return 'Conferência registrada'
   return 'Revisão pendente'
 }
 
@@ -306,6 +328,7 @@ export default function RevisaoInstrumento() {
   const [novaLocalidadeAbertaPorMunicipio, setNovaLocalidadeAbertaPorMunicipio] = useState({})
   const [justificativasLocalidadeAbertas, setJustificativasLocalidadeAbertas] = useState({})
   const [justificativasObraAbertas, setJustificativasObraAbertas] = useState({})
+  const [edicoesPopulacao, setEdicoesPopulacao] = useState({})
   const [salvandoMunicipio, setSalvandoMunicipio] = useState({})
   const [erroMunicipio, setErroMunicipio] = useState({})
 
@@ -315,6 +338,13 @@ export default function RevisaoInstrumento() {
   const [messageType, setMessageType] = useState('')
 
   const instrumento = dadosBusca?.instrumento ?? null
+  const temAlteracoesLocais = revisaoTemAlteracoesLocais(municipios)
+  const statusRevisaoPersistidoLabel =
+    dadosBusca?.status_revisao_geral_label ?? 'Revisão pendente'
+  const statusRevisaoGeralLabel =
+    temAlteracoesLocais && statusRevisaoPersistidoLabel === 'Revisão pendente'
+      ? 'Em revisão'
+      : statusRevisaoPersistidoLabel
 
   const buscarInstrumento = async (event) => {
     event.preventDefault()
@@ -339,6 +369,7 @@ export default function RevisaoInstrumento() {
     setNovaLocalidadeAbertaPorMunicipio({})
     setJustificativasLocalidadeAbertas({})
     setJustificativasObraAbertas({})
+    setEdicoesPopulacao({})
     setSalvandoMunicipio({})
     setErroMunicipio({})
 
@@ -633,6 +664,10 @@ export default function RevisaoInstrumento() {
                 relacaoInstrumento,
                 obra.confirmacao_status
               ),
+              justificativa:
+                relacaoInstrumento === 'nao_analisada'
+                  ? ''
+                  : obra.justificativa,
             }
           } else if (campo === 'confirmacao_status') {
             atualizada = {
@@ -641,6 +676,14 @@ export default function RevisaoInstrumento() {
                 obra.relacao_instrumento,
                 valor
               ),
+            }
+          } else if (
+            campo === 'populacao_beneficiada_revisada' ||
+            campo === 'desc_populacao_beneficiada_revisada'
+          ) {
+            atualizada = {
+              ...obra,
+              [campo]: valor,
             }
           } else {
             atualizada = { ...obra, [campo]: valor }
@@ -662,6 +705,48 @@ export default function RevisaoInstrumento() {
         }
       })
     )
+  }
+
+  const chaveEdicaoPopulacao = (codMunicipio, idObra, campo) =>
+    `${codMunicipio}:${idObra}:${campo}`
+
+  const valorInicialEdicaoPopulacao = (obra, campoOriginal, campoRevisado) => {
+    if (!valorAusente(obra[campoRevisado])) return obra[campoRevisado]
+    if (!valorAusente(obra[campoOriginal])) return obra[campoOriginal]
+    return ''
+  }
+
+  const valorExibidoPopulacao = (obra, campoOriginal, campoRevisado) => {
+    if (!valorAusente(obra[campoRevisado])) return obra[campoRevisado]
+    return obra[campoOriginal]
+  }
+
+  const iniciarEdicaoPopulacao = (codMunicipio, obra, campoOriginal, campoRevisado) => {
+    const chave = chaveEdicaoPopulacao(codMunicipio, obra.id_obra, campoRevisado)
+    setEdicoesPopulacao((current) => ({
+      ...current,
+      [chave]: valorInicialEdicaoPopulacao(obra, campoOriginal, campoRevisado),
+    }))
+  }
+
+  const atualizarRascunhoPopulacao = (chave, valor) => {
+    setEdicoesPopulacao((current) => ({
+      ...current,
+      [chave]: valor,
+    }))
+  }
+
+  const fecharEdicaoPopulacao = (chave) => {
+    setEdicoesPopulacao((current) => {
+      const next = { ...current }
+      delete next[chave]
+      return next
+    })
+  }
+
+  const aplicarEdicaoPopulacao = (codMunicipio, idObra, campoRevisado, chave) => {
+    atualizarObra(codMunicipio, idObra, campoRevisado, edicoesPopulacao[chave] ?? '')
+    fecharEdicaoPopulacao(chave)
   }
 
   const atualizarNovaLocalidade = (codMunicipio, campo, valor) => {
@@ -747,8 +832,40 @@ export default function RevisaoInstrumento() {
       .map((obra) => dadosObraPersistencia(obra, municipio.cod_municipio)),
   })
 
+  const validarMunicipioAntesSalvar = (municipio) => {
+    if (municipio._municipioAlterado && !municipio.acao_sugerida) {
+      return 'Selecione uma ação para a revisão do município antes de salvar.'
+    }
+
+    const localidadeSemAcao = municipio.localidades.find(
+      (localidade) =>
+        municipio._localidadesAlteradas?.[chaveLocalidade(localidade)] &&
+        !localidade.acao_sugerida
+    )
+
+    if (localidadeSemAcao) {
+      return 'Selecione uma ação para cada localidade alterada antes de salvar.'
+    }
+
+    return null
+  }
+
   const aplicarResultadoMunicipio = (payload, data) => {
     setIdRevisao(data.id_revisao)
+    setDadosBusca((current) =>
+      current
+        ? {
+            ...current,
+            id_revisao: data.id_revisao,
+            status: data.status ?? current.status,
+            status_revisao_geral:
+              data.status_revisao_geral ?? current.status_revisao_geral,
+            status_revisao_geral_label:
+              data.status_revisao_geral_label ??
+              current.status_revisao_geral_label,
+          }
+        : current
+    )
     setMunicipios((current) =>
       current.map((municipio) => {
         if (municipio.cod_municipio !== payload.cod_municipio) return municipio
@@ -821,7 +938,10 @@ export default function RevisaoInstrumento() {
 
           if (!retornoObra) return obra
 
-          const atualizada = normalizarObra({ ...obra, ...retornoObra })
+          const atualizada = normalizarObra({
+            ...obra,
+            ...retornoObra,
+          })
 
           if (payloadObra) {
             delete obrasAlteradas[chave]
@@ -861,8 +981,20 @@ export default function RevisaoInstrumento() {
   ) => {
     if (!instrumento || !municipioTemAlteracoes(municipio)) return idRevisaoAtual
 
-    const payload = montarPayloadMunicipio(municipio, idRevisaoAtual)
+    const mensagemValidacao = validarMunicipioAntesSalvar(municipio)
     const codMunicipio = municipio.cod_municipio
+
+    if (mensagemValidacao) {
+      setErroMunicipio((current) => ({ ...current, [codMunicipio]: mensagemValidacao }))
+      setMessage(mensagemValidacao)
+      setMessageType('error')
+      if (propagarErro) {
+        throw new Error(mensagemValidacao)
+      }
+      return idRevisaoAtual
+    }
+
+    const payload = montarPayloadMunicipio(municipio, idRevisaoAtual)
 
     setSalvandoMunicipio((current) => ({ ...current, [codMunicipio]: true }))
     setErroMunicipio((current) => ({ ...current, [codMunicipio]: '' }))
@@ -924,6 +1056,20 @@ export default function RevisaoInstrumento() {
         montarPayloadRevisao(status, idAtual)
       )
       setIdRevisao(data.id_revisao)
+      setDadosBusca((current) =>
+        current
+          ? {
+              ...current,
+              id_revisao: data.id_revisao,
+              status: data.status ?? current.status,
+              status_revisao_geral:
+                data.status_revisao_geral ?? current.status_revisao_geral,
+              status_revisao_geral_label:
+                data.status_revisao_geral_label ??
+                current.status_revisao_geral_label,
+            }
+          : current
+      )
       setMessage(`${data.mensagem} ID da revisão: ${data.id_revisao}.`)
       setMessageType('success')
     } catch (err) {
@@ -978,6 +1124,17 @@ export default function RevisaoInstrumento() {
 
           {instrumento && (
             <>
+              <section className={styles.statusPanel} aria-label="Status geral da revisão">
+                <div>
+                  <span>Status geral</span>
+                  <strong>{statusRevisaoGeralLabel}</strong>
+                </div>
+
+                {temAlteracoesLocais && (
+                  <span className={styles.unsavedChip}>Alterações não salvas</span>
+                )}
+              </section>
+
               <button
                 type="button"
                 className={`${styles.secondaryButton} ${styles.addMunicipioToggle}`}
@@ -1268,7 +1425,7 @@ export default function RevisaoInstrumento() {
 
                             <div className={`${styles.subsection} ${styles.obrasSection}`}>
                               <div className={styles.sectionHeader}>
-                                <h3>Localidades Beneficiadas</h3>
+                                <h3>Localidades beneficiadas</h3>
                                 <span className={styles.sectionHeaderSeparator} aria-hidden="true"/>
                                 <span className={styles.sectionHeaderMeta}>
                                   {formatarDataConferencia(municipio.localidades_conferidas_em)}
@@ -1548,7 +1705,7 @@ export default function RevisaoInstrumento() {
                             <div className={styles.revisaoDuasColunas}>
                               <div className={`${styles.subsection} ${styles.localidadesSection}`}>
                                 <div className={styles.sectionHeader}>
-                                  <h3>Obras Identificadas no Município</h3>
+                                  <h3>Revisão de sobreposição de ação/obras</h3>
                                   <span className={styles.sectionHeaderSeparator} aria-hidden="true"/>
                                   <span className={styles.sectionHeaderMeta}>
                                     {formatarDataConferencia(municipio.obras_conferidas_em)}
@@ -1557,10 +1714,28 @@ export default function RevisaoInstrumento() {
 
                                 <div className={styles.tableScroller}>
                                   <table className={`${styles.table} ${styles.obrasTable}`}>
+                                    <colgroup>
+                                      <col className={styles.colObra} />
+                                      <col className={styles.colOrgao} />
+                                      <col className={styles.colPopulacao} />
+                                      <col className={styles.colDescricaoPopulacao} />
+                                      <col className={styles.colRelacao} />
+                                      <col className={styles.colConfirmacao} />
+                                      <col className={styles.colObservacao} />
+                                      <col className={styles.colLinks} />
+                                    </colgroup>
                                     <thead>
                                       <tr>
                                         <th className={styles.colunaObra}>Obra</th>
                                         <th>Órgão Responsável</th>
+                                        <th>População beneficiada</th>
+                                        <th>
+                                          <span>
+                                            Descrição da população
+                                            <br />
+                                            beneficiada
+                                          </span>
+                                        </th>
                                         <th>Relação com o Instrumento</th>
                                         <th>Confirmação de Status</th>
                                         <th>Observação</th>
@@ -1571,7 +1746,7 @@ export default function RevisaoInstrumento() {
                                     <tbody>
                                       {municipio.obras_saneamento.length === 0 ? (
                                         <tr>
-                                          <td colSpan={6} className={styles.emptyCell}>
+                                          <td colSpan={8} className={styles.emptyCell}>
                                             Nenhuma obra encontrada.
                                           </td>
                                         </tr>
@@ -1581,6 +1756,28 @@ export default function RevisaoInstrumento() {
                                           const mostrarJustificativaObra = Boolean(
                                             justificativasObraAbertas[chaveJustificativaObra]
                                           )
+                                          const chaveEdicaoPopulacaoValor =
+                                            chaveEdicaoPopulacao(
+                                              municipio.cod_municipio,
+                                              obra.id_obra,
+                                              'populacao_beneficiada_revisada'
+                                            )
+                                          const chaveEdicaoDescricaoPopulacao =
+                                            chaveEdicaoPopulacao(
+                                              municipio.cod_municipio,
+                                              obra.id_obra,
+                                              'desc_populacao_beneficiada_revisada'
+                                            )
+                                          const editandoPopulacao =
+                                            Object.prototype.hasOwnProperty.call(
+                                              edicoesPopulacao,
+                                              chaveEdicaoPopulacaoValor
+                                            )
+                                          const editandoDescricaoPopulacao =
+                                            Object.prototype.hasOwnProperty.call(
+                                              edicoesPopulacao,
+                                              chaveEdicaoDescricaoPopulacao
+                                            )
 
                                           return (
                                             <tr key={chaveJustificativaObra}>
@@ -1588,6 +1785,154 @@ export default function RevisaoInstrumento() {
                                                 {valorOuTraco(obra.descricao)}
                                               </td>
                                               <td>{valorOuTraco(obra.orgao)}</td>
+                                              <td>
+                                                <div className={styles.valorRevisavelCell}>
+                                                  {editandoPopulacao ? (
+                                                    <div className={styles.campoRevisaoInline}>
+                                                      <input
+                                                        value={edicoesPopulacao[chaveEdicaoPopulacaoValor]}
+                                                        onChange={(event) =>
+                                                          atualizarRascunhoPopulacao(
+                                                            chaveEdicaoPopulacaoValor,
+                                                            event.target.value
+                                                          )
+                                                        }
+                                                      />
+                                                      <div className={styles.acoesRevisaoInline}>
+                                                        <button
+                                                          type="button"
+                                                          onClick={() =>
+                                                            aplicarEdicaoPopulacao(
+                                                              municipio.cod_municipio,
+                                                              obra.id_obra,
+                                                              'populacao_beneficiada_revisada',
+                                                              chaveEdicaoPopulacaoValor
+                                                            )
+                                                          }
+                                                        >
+                                                          Aplicar
+                                                        </button>
+                                                        <button
+                                                          type="button"
+                                                          onClick={() =>
+                                                            fecharEdicaoPopulacao(
+                                                              chaveEdicaoPopulacaoValor
+                                                            )
+                                                          }
+                                                        >
+                                                          Cancelar
+                                                        </button>
+                                                      </div>
+                                                    </div>
+                                                  ) : (
+                                                    <>
+                                                      <span className={styles.valorOriginal}>
+                                                        {valorOuTraco(
+                                                          valorExibidoPopulacao(
+                                                            obra,
+                                                            'populacao_beneficiada',
+                                                            'populacao_beneficiada_revisada'
+                                                          )
+                                                        )}
+                                                      </span>
+                                                      <button
+                                                        type="button"
+                                                        className={`${styles.acaoTextualButton} ${styles.corrigirInlineButton}`}
+                                                        onClick={() =>
+                                                          iniciarEdicaoPopulacao(
+                                                            municipio.cod_municipio,
+                                                            obra,
+                                                            'populacao_beneficiada',
+                                                            'populacao_beneficiada_revisada'
+                                                          )
+                                                        }
+                                                      >
+                                                        Corrigir
+                                                      </button>
+                                                    </>
+                                                  )}
+                                                </div>
+                                              </td>
+                                              <td>
+                                                <div className={styles.valorRevisavelCell}>
+                                                  {editandoDescricaoPopulacao ? (
+                                                    <div className={styles.campoRevisaoInline}>
+                                                      <textarea
+                                                        value={edicoesPopulacao[chaveEdicaoDescricaoPopulacao]}
+                                                        onChange={(event) =>
+                                                          atualizarRascunhoPopulacao(
+                                                            chaveEdicaoDescricaoPopulacao,
+                                                            event.target.value
+                                                          )
+                                                        }
+                                                        rows={2}
+                                                      />
+                                                      <div className={styles.acoesRevisaoInline}>
+                                                        <button
+                                                          type="button"
+                                                          onClick={() =>
+                                                            aplicarEdicaoPopulacao(
+                                                              municipio.cod_municipio,
+                                                              obra.id_obra,
+                                                              'desc_populacao_beneficiada_revisada',
+                                                              chaveEdicaoDescricaoPopulacao
+                                                            )
+                                                          }
+                                                        >
+                                                          Aplicar
+                                                        </button>
+                                                        <button
+                                                          type="button"
+                                                          onClick={() =>
+                                                            fecharEdicaoPopulacao(
+                                                              chaveEdicaoDescricaoPopulacao
+                                                            )
+                                                          }
+                                                        >
+                                                          Cancelar
+                                                        </button>
+                                                      </div>
+                                                    </div>
+                                                  ) : (
+                                                    <>
+                                                      <span
+                                                        className={styles.valorOriginalTextoLongo}
+                                                        title={String(
+                                                          valorOuTraco(
+                                                            valorExibidoPopulacao(
+                                                              obra,
+                                                              'desc_populacao_beneficiada',
+                                                              'desc_populacao_beneficiada_revisada'
+                                                            )
+                                                          )
+                                                        )}
+                                                      >
+                                                        {valorOuTraco(
+                                                          valorExibidoPopulacao(
+                                                            obra,
+                                                            'desc_populacao_beneficiada',
+                                                            'desc_populacao_beneficiada_revisada'
+                                                          )
+                                                        )}
+                                                      </span>
+                                                      <button
+                                                        type="button"
+                                                        className={`${styles.acaoTextualButton} ${styles.corrigirInlineButton}`}
+                                                        onClick={() =>
+                                                          iniciarEdicaoPopulacao(
+                                                            municipio.cod_municipio,
+                                                            obra,
+                                                            'desc_populacao_beneficiada',
+                                                            'desc_populacao_beneficiada_revisada'
+                                                          )
+                                                        }
+                                                      >
+                                                        Corrigir
+                                                      </button>
+                                                    </>
+                                                  )}
+                                                </div>
+                                              </td>
                                               <td>
                                                 <select
                                                   value={obra.relacao_instrumento}
