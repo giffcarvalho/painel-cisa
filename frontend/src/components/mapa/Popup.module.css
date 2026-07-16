@@ -1,0 +1,34 @@
+.popup :global(.maplibregl-popup-content) {
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.popup strong {
+    color: #003366;
+}
+
+.popup a {
+    color: #1565c0;
+    text-decoration: none;
+}
+
+.popup a:hover {
+    text-decoration: underline;
+}
+
+
+.popup :global(.maplibregl-popup-close-button) {
+    font-size: 24px;
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    color: #003366;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.popup :global(.maplibregl-popup-close-button:hover) {
+    background-color: rgba(0, 0, 0, 0.08);
+}

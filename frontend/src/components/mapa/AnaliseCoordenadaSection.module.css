@@ -1,8 +1,8 @@
 .painel {
     position: absolute;
-    top: 10px;
-    right: 410px;
-    width: 260px;
+    top: 45px;
+    right: 300px;
+    width: 250px;
     background: aliceblue;
     border: 1px solid #999;
     border-radius: 4px;
@@ -19,11 +19,28 @@
 .conteudo {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
     font-size: 13px;
 }
 
 
 .conteudo input {
     margin-right: 5px;
+    margin-left: 5px;
+    margin-top: 5px;
+}
+
+.correta {
+    background-color: aquamarine;
+    border-radius: 4px;
+}
+
+.erro_solicitada {
+    background-color: rgb(255, 164, 103);
+    border-radius: 4px;
+}
+
+.erro_solicitar {
+    background-color: rgb(255, 115, 80);
+    border-radius: 4px;
 }

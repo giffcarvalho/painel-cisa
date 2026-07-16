@@ -132,6 +132,7 @@ export default function MapaSection() {
     const [coord, setCoord] = useState({ lat: "", long: "" });
     const [featureSelecionada, setFeatureSelecionada] = useState(null);
     const [modoAnalise, setModoAnalise] = useState(false);
+    const [analises, setAnalises] = useState({});
     const mapContainer = useRef(null);
     const mapRef = useCriarMapa(mapContainer);
     const coordRef = useRef(null);
@@ -283,7 +284,7 @@ export default function MapaSection() {
             <button className={`${estilos.botaoAnalisarCoordenadas} ${modoAnalise ? estilos.ativo : ""}`} onClick={() => setModoAnalise(v => !v)}> {modoAnalise ? "Análise Ativa" : "Analisar Coordenadas"}</button>
             {painelCamadas && (<CamadasSection layers={layers} toggleLayer={toggleLayer} alterarVariavel={alterarVariavel} setPainelCamadas={setPainelCamadas}/>)}
             {painelLegenda && (<LegendaSection layers={layers} zoomAtual={zoomAtual} setPainelLegenda={setPainelLegenda} painelCamadas={painelCamadas}/>)}
-            <AnaliseCoordenadaSection featureSelecionada={featureSelecionada}/>
+            <AnaliseCoordenadaSection featureSelecionada={featureSelecionada} analises={analises} setAnalises={setAnalises}/>
             <InputSection coord={coord} setCoord={setCoord} irParaCoordenada={irParaCoordenada} limparCoordenada={limparCoordenada}/>
             <div ref={coordRef} className={estilos.coordenadasMouse}> Lat: -- | Lon: -- </div>
             {(painelDetalhe && painelFiltros && filtros.cod_municipio) && (<DetalheSection setPainelDetalhe={setPainelDetalhe}/>)}
