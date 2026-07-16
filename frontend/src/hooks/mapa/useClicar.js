@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
+import estilos from "../../components/mapa/Popup.module.css"
 
 
 //esse hook é responsável pelas ações decorrentes de clique nas feições
@@ -7,10 +8,12 @@ import maplibregl from "maplibre-gl";
 export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
         
     const featureSelecionadaRef = useRef(null);
+    const popupRef = useRef(null);
 
     useEffect(() => {
         const map = mapRef.current;
         if (!map) return;
+        
 
         const camadas = [ "enderecos_2022", "setores_censitarios_2022_fill", "geometrias_carteira_dsr", "geometrias_carteira_drf", "informacoes_municipais", "informacoes_setores_censitarios"];
         
@@ -31,13 +34,18 @@ export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
             const props = f.properties;
             const layerConfig = layers.find(l => l.id === f.layer.id);
             
-            console.log({modoAnalise, layer: f.layer.id, id: f.id});
+
+            if (modoAnalise && f.layer.id !== "geometrias_carteira_dsr" && featureSelecionadaRef.current) {
+                map.setFeatureState(featureSelecionadaRef.current, {selected: false});
+                featureSelecionadaRef.current = null;
+                setFeatureSelecionada(null);
+            }
+            
             if (modoAnalise && f.layer.id === "geometrias_carteira_dsr") {
                 if (featureSelecionadaRef.current) {
                     map.setFeatureState(featureSelecionadaRef.current, { selected: false });
                 }
                 const estado = {source: f.source, sourceLayer: f.sourceLayer, id: f.id};
-                console.log("Estado:", map.getFeatureState(estado));
                 map.setFeatureState(estado, {selected: true});
                 featureSelecionadaRef.current = estado;
                 setFeatureSelecionada(f);
@@ -171,9 +179,12 @@ export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
                 }
             }
 
-
             
-            new maplibregl.Popup()
+            popupRef.current?.remove();
+            popupRef.current = new maplibregl.Popup({
+                className: estilos.popup,
+                maxWidth: "380px"
+            })
                 .setLngLat(e.lngLat)
                 .setHTML(html)
                 .addTo(map);
