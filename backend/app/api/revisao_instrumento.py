@@ -718,6 +718,11 @@ def _normalizar_confirmacao_backend(
     return "nao_confirmada"
 
 
+def _normalizar_id_obra_banco(id_obra: str) -> int | str:
+    texto = str(id_obra).strip()
+    return int(texto) if texto.isdigit() else texto
+
+
 def _localidade_identificada(localidade: LocalidadeRevisaoAlteracao) -> bool:
     return bool(
         localidade.id_revisao_localidade
@@ -879,11 +884,11 @@ async def _persistir_municipio_revisao(
                   AND cod_municipio = :cod_municipio
                   AND (
                     (
-                        :cod_comunidade_rural IS NOT NULL
-                        AND cod_comunidade_rural = :cod_comunidade_rural
+                        CAST(:cod_comunidade_rural AS integer) IS NOT NULL
+                        AND cod_comunidade_rural = CAST(:cod_comunidade_rural AS integer)
                     )
                     OR (
-                        :cod_comunidade_rural IS NULL
+                        CAST(:cod_comunidade_rural AS integer) IS NULL
                         AND cod_comunidade_rural IS NULL
                         AND COALESCE(nome_localidade_informada, '') =
                             COALESCE(:nome_localidade_informada, '')
@@ -963,7 +968,8 @@ async def _persistir_municipio_revisao(
             "id_revisao": id_revisao,
             "cod_municipio": cod_obra_municipio,
             "id_revisao_obra": obra.id_revisao_obra,
-            "id_obra": obra.id_obra,
+            "id_obra": _normalizar_id_obra_banco(obra.id_obra),
+            "id_obra_texto": str(obra.id_obra),
             "descricao": obra.descricao,
             "orgao": obra.orgao,
             "link_transferegov": obra.link_transferegov,
@@ -1004,7 +1010,7 @@ async def _persistir_municipio_revisao(
                     conferido_em = NOW()
                 WHERE id_revisao = :id_revisao
                   AND cod_municipio = :cod_municipio
-                  AND id_obra::text = :id_obra
+                  AND id_obra::text = :id_obra_texto
                 RETURNING id_revisao_obra, conferido_em
             """
 
@@ -1034,10 +1040,10 @@ async def _persistir_municipio_revisao(
                         justificativa,
                         conferido_em
                     )
-                    SELECT
+                    VALUES (
                         :id_revisao,
                         :cod_municipio,
-                        obra_base.id,
+                        :id_obra,
                         :descricao,
                         :orgao,
                         :link_transferegov,
@@ -1046,12 +1052,7 @@ async def _persistir_municipio_revisao(
                         :confirmacao_status,
                         :justificativa,
                         NOW()
-                    FROM (
-                        SELECT id
-                        FROM instrumento.vw_investimento_saneamento
-                        WHERE id::text = :id_obra
-                        LIMIT 1
-                    ) obra_base
+                    )
                     RETURNING id_revisao_obra, conferido_em
                     """
                 ),

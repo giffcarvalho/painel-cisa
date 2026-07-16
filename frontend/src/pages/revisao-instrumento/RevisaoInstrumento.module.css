@@ -471,11 +471,11 @@ button:disabled {
 }
 
 .municipioAcaoLinha {
-  display: inline-flex;
+  display: flex;
   min-width: 0;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 6px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
   color: #374151;
   font-size: 13px;
   font-weight: 700;
@@ -650,9 +650,10 @@ button:disabled {
 .sectionHeader {
   display: flex;
   min-width: 0;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 6px 8px;
+  gap: 8px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .sectionHeader h3,

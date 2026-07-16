@@ -1572,7 +1572,7 @@ export default function RevisaoInstrumento() {
                                       {municipio.obras_saneamento.length === 0 ? (
                                         <tr>
                                           <td colSpan={6} className={styles.emptyCell}>
-                                            Nenhuma obra de saneamento encontrada.
+                                            Nenhuma obra encontrada.
                                           </td>
                                         </tr>
                                       ) : (
