@@ -120,20 +120,20 @@ export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
                     <strong>DPPO:</strong> ${Number(props.dppo_domicilios_particulares_permanentes_ocupados).toLocaleString("pt-BR")}<br>
                 `;
 
-                const variavelConfig = layerConfig?.variaveis?.find(v => v.value === layerConfig?.variavelSel);
+                const variavelConfig = layerConfig?.variaveis?.find(v => v.atributo === layerConfig?.variavelSel);
 
                 if (variavelConfig) {
 
                     let valor;
                     
                     if (variavelConfig.tipo === "booleana") {
-                        valor = props[variavelConfig.value] ? "Sim" : "Não";
+                        valor = props[variavelConfig.atributo] ? "Sim" : "Não";
                     }
-                    else if (variavelConfig.value.startsWith("jenks_")) {
-                        const campo = variavelConfig.value.replace(/^jenks_/, "");
+                    else if (variavelConfig.atributo.startsWith("jenks_")) {
+                        const campo = variavelConfig.atributo.replace(/^jenks_/, "");
                         valor = props[campo] != null? `${(props[campo] * 1).toFixed(2)}%`: null;
                     } else {
-                        valor = props[variavelConfig.value];
+                        valor = props[variavelConfig.atributo];
                     }
 
 
@@ -156,20 +156,20 @@ export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
                     <strong>Subgrupo:</strong> ${props.subgrupo}<br>
                 `;
 
-                const variavelConfig = layerConfig?.variaveis?.find(v => v.value === layerConfig?.variavelSel);
+                const variavelConfig = layerConfig?.variaveis?.find(v => v.atributo === layerConfig?.variavelSel);
 
                 if (variavelConfig) {
 
                     let valor;
                     
                     if (variavelConfig.tipo === "booleana") {
-                        valor = props[variavelConfig.value] ? "Sim" : "Não";
+                        valor = props[variavelConfig.atributo] ? "Sim" : "Não";
                     }
-                    else if (variavelConfig.value.startsWith("jenks_")) {
-                        const campo = variavelConfig.value.replace(/^jenks_/, "");
+                    else if (variavelConfig.atributo.startsWith("jenks_")) {
+                        const campo = variavelConfig.atributo.replace(/^jenks_/, "");
                         valor = props[campo] != null? `${(props[campo] * 100).toFixed(2)}%`: null;
                     } else {
-                        valor = props[variavelConfig.value];
+                        valor = props[variavelConfig.atributo];
                     }
 
 

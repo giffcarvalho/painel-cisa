@@ -87,7 +87,7 @@ export function useAdicionarLayers(mapRef, layers, filtros) {
                 minzoom: setores?.minzoom,
                 paint: {
                     "line-width": ["interpolate", ["linear"], ["zoom"], 9.5, 0.5, 10.0, 1.0, 11.0, 2.5, 11.5, 4.0],
-                    "line-color": gerarMatch(setores?.simbologia, "cor", "#e9e9e9"),
+                    "line-color": gerarMatch(setores.simbologia.atributo, setores.simbologia.classes, "cor", "#e9e9e9"),
                     "line-dasharray": [1, 1]
                 }
             });
@@ -141,7 +141,7 @@ export function useAdicionarLayers(mapRef, layers, filtros) {
                 minzoom:enderecos?.minzoom,
                 paint: {
                     "circle-radius": ["interpolate", ["linear"], ["zoom"], 13.0, 2.0, 13.5, 3.5, 14.0, 4.0, 15.0, 5.0],
-                    "circle-color": gerarMatch(enderecos?.simbologia, "cor", "#000000")
+                    "circle-color": gerarMatch(enderecos.simbologia.atributo, enderecos.simbologia.classes, "cor", "#000000")
                 }
             });
 
@@ -154,9 +154,9 @@ export function useAdicionarLayers(mapRef, layers, filtros) {
                 minzoom:localidades?.minzoom,
                 paint: {
                     "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 3, 9, 4, 10, 5, 11, 6, 12, 7],
-                    "circle-color": gerarMatch(localidades?.simbologia, "cor", "#000000"),
-                    "circle-stroke-color": gerarMatch(localidades?.simbologia, "strokeColor", "#000000"),
-                    "circle-stroke-width": gerarMatch(localidades?.simbologia, "strokeWidth", 0),
+                    "circle-color": gerarMatch(localidades.simbologia.atributo, localidades.simbologia.classes, "cor", "#000000"),
+                    "circle-stroke-color": gerarMatch(localidades.simbologia.atributo, localidades.simbologia.classes, "strokeColor", "#000000"),
+                    "circle-stroke-width": gerarMatch(localidades.simbologia.atributo, localidades.simbologia.classes, "strokeWidth", 0),
                 }
             });
 
@@ -225,20 +225,10 @@ export function useAdicionarLayers(mapRef, layers, filtros) {
                 layout:{visibility: carteira?.visivel? "visible": "none"},
                 minzoom: carteira?.minzoom,
                 paint: {
-                    "circle-radius": ["interpolate", ["linear"], ["zoom"], 4.0, 3.0, 5.0, 4.0, 6.0, 5.0, 7.0, 6.0, 8.0, 7.0],
-                    "circle-color": gerarMatch(carteira?.simbologia, "cor", "#000000"),
-                    "circle-stroke-color": [
-                        "case",
-                        ["boolean", ["feature-state", "selected"], false],
-                        "#ffff00",
-                        gerarMatch(carteira?.simbologia, "strokeColor", "#000000")
-                    ],
-                    "circle-stroke-width": [
-                        "case", 
-                        ["boolean", ["feature-state", "selected"], false],
-                        ["+", gerarMatch(carteira?.simbologia, "strokeWidth", 0), 3],
-                        gerarMatch(carteira?.simbologia, "strokeWidth", 0)
-                    ]
+                    "circle-radius": ["interpolate", ["linear"], ["zoom"], 4.0, 2.0, 5.0, 3.0, 6.0, 4.0, 7.0, 5.0, 8.0, 6.0],
+                    "circle-color": "#ffffff",
+                    "circle-stroke-color": ["case", ["boolean", ["feature-state", "selected"], false], "#ffff00", "#b1b1b1"],
+                    "circle-stroke-width": ["case", ["boolean", ["feature-state", "selected"], false], 3, 2]
                 }
             });
 
@@ -251,9 +241,9 @@ export function useAdicionarLayers(mapRef, layers, filtros) {
                 minzoom: carteira_drf?.minzoom,
                 paint: {
                     "circle-radius": ["interpolate", ["linear"], ["zoom"], 4.0, 2.0, 5.0, 3.0, 6.0, 4.0, 7.0, 5.0, 8.0, 6.0],
-                    "circle-color": gerarMatch(carteira_drf?.simbologia, "cor", "#000000"),
-                    "circle-stroke-color": gerarMatch(carteira_drf?.simbologia, "strokeColor", "#000000"),
-                    "circle-stroke-width": gerarMatch(carteira_drf?.simbologia, "strokeWidth", 0),
+                    "circle-color": gerarMatch(carteira_drf.simbologia.atributo, carteira_drf.simbologia.classes, "cor", "#000000"),
+                    "circle-stroke-color": gerarMatch(carteira_drf.simbologia.atributo, carteira_drf.simbologia.classes, "strokeColor", "#000000"),
+                    "circle-stroke-width": gerarMatch(carteira_drf.simbologia.atributo, carteira_drf.simbologia.classes, "strokeWidth", 0),
                 }
             });
         })
