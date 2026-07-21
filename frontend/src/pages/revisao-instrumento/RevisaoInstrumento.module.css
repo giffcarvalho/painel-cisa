@@ -8,10 +8,10 @@
 }
 
 .header {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 3.4fr) minmax(280px, 1fr);
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 20px;
 }
 
 .header h1 {
@@ -28,6 +28,14 @@
   color: #4b5563;
   font-size: 15px;
   line-height: 1.5;
+}
+
+.headerActions {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 .mainGrid {
@@ -1212,17 +1220,6 @@ button:disabled {
   white-space: nowrap;
 }
 
-.footerActions {
-  position: sticky;
-  bottom: 0;
-  z-index: 5;
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 14px 0 0;
-  background: #f8f7f5;
-}
-
 .errorBox,
 .successBox {
   padding: 12px;
@@ -1278,6 +1275,14 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
+  .header {
+    grid-template-columns: 1fr;
+  }
+
+  .headerActions {
+    justify-content: flex-start;
+  }
+
   .rightColumn {
     order: 2;
   }
@@ -1292,8 +1297,7 @@ button:disabled {
     padding: 16px;
   }
 
-  .header,
-  .footerActions {
+  .headerActions {
     flex-direction: column;
   }
 

@@ -6,7 +6,7 @@ import styles from './Login.module.css'
 
 function getSafeRedirect(value) {
   if (!value || !value.startsWith('/') || value.startsWith('/login')) {
-    return '/revisao-instrumento'
+    return '/'
   }
 
   return value
@@ -59,7 +59,7 @@ export default function Login() {
         <div className={styles.brand}>
           <h1 id="login-title" className={styles.title}>Painel DSR</h1>
           <p className={styles.subtitle}>
-            Acesse com suas credenciais para revisar instrumentos.
+            Acesse com suas credenciais para utilizar os módulos protegidos do Painel DSR.
           </p>
         </div>
 

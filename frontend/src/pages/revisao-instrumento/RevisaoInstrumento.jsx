@@ -1188,6 +1188,30 @@ export default function RevisaoInstrumento() {
             Consulte, registre e envie os ajustes por instrumento da Carteira DSR. 
           </p>
         </div>
+
+        {instrumento && (
+          <div className={styles.headerActions}>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() => salvarRevisao('rascunho')}
+              disabled={isSaving}
+            >
+              <Save size={18} />
+              {isSaving ? 'Salvando...' : 'Salvar rascunho'}
+            </button>
+
+            <button
+              type="button"
+              className={styles.primaryButton}
+              onClick={() => salvarRevisao('enviado')}
+              disabled={isSaving}
+            >
+              <Send size={18} />
+              {isSaving ? 'Enviando...' : 'Enviar revisão'}
+            </button>
+          </div>
+        )}
       </header>
 
       <div className={styles.mainGrid}>
@@ -2290,29 +2314,6 @@ export default function RevisaoInstrumento() {
         )}
       </div>
 
-      {instrumento && (
-        <div className={styles.footerActions}>
-          <button
-            type="button"
-            className={styles.secondaryButton}
-            onClick={() => salvarRevisao('rascunho')}
-            disabled={isSaving}
-          >
-            <Save size={18} />
-            {isSaving ? 'Salvando...' : 'Salvar rascunho'}
-          </button>
-
-          <button
-            type="button"
-            className={styles.primaryButton}
-            onClick={() => salvarRevisao('enviado')}
-            disabled={isSaving}
-          >
-            <Send size={18} />
-            {isSaving ? 'Enviando...' : 'Enviar revisão'}
-          </button>
-        </div>
-      )}
     </main>
   )
 }
