@@ -19,6 +19,8 @@ from app.schemas.revisao_instrumento import (
     MunicipioRevisaoItem,
     ObraSaneamentoRevisaoAlteracao,
     ObraSaneamentoRevisaoItem,
+    PublicoAlvoRevisaoAlteracao,
+    PublicoAlvoRevisaoItem,
     RevisaoInstrumentoBuscaResponse,
     RevisaoInstrumentoCreate,
     RevisaoInstrumentoMunicipioSave,
@@ -65,6 +67,9 @@ def _normalizar_tipo(tipo_view: str | None, tipo_por_tabela: str | None) -> str 
 
     texto = (tipo_view or "").lower()
 
+    if "ted" in texto or ("execu" in texto and "descentralizada" in texto):
+        return "ted"
+
     if "contrato" in texto or "repasse" in texto:
         return "contrato_repasse"
 
@@ -80,6 +85,18 @@ def _primeiro_valor(dados: dict, chaves: list[str]) -> str | None:
         if valor is not None and str(valor).strip():
             return str(valor).strip()
     return None
+
+
+def _normalizar_nr_ted(value) -> int | None:
+    texto = str(value or "").strip()
+    if not texto:
+        return None
+
+    digitos = "".join(char for char in texto if char.isdigit())
+    if not digitos:
+        return None
+
+    return int(digitos)
 
 
 def calcular_status_revisao(
@@ -188,6 +205,7 @@ async def _buscar_instrumento_carteira(
         SELECT DISTINCT
             v.nr_proposta::text AS nr_proposta,
             v.nr_instrumento::text AS nr_instrumento,
+            t.nr_ted,
             v.tipo_instrumento,
             v.operacao::text AS tipo_obra,
             v.objeto,
@@ -196,7 +214,9 @@ async def _buscar_instrumento_carteira(
             v.situacao_atual,
             v.link_transferegov,
             to_jsonb(v)->>'link_saci' AS link_saci,
+            to_jsonb(t) AS dados_ted,
             CASE
+                WHEN t.nr_ted IS NOT NULL THEN 'ted'
                 WHEN EXISTS (
                     SELECT 1
                     FROM instrumento.tb_contrato_repasse cr
@@ -217,6 +237,11 @@ async def _buscar_instrumento_carteira(
                 ELSE 3
             END AS ordem_busca
         FROM instrumento.vw_carteira_dsr v
+        LEFT JOIN instrumento.tb_ted t
+          ON t.nr_ted::text = NULLIF(
+              LTRIM(regexp_replace(v.nr_instrumento::text, '\D', '', 'g'), '0'),
+              ''
+          )
         WHERE v.nr_proposta::text = :identificador
            OR v.nr_instrumento::text = :identificador
         ORDER BY ordem_busca
@@ -242,23 +267,37 @@ async def _buscar_instrumento_carteira(
     if tipo is None:
         return None
 
+    dados_ted = dict(row.get("dados_ted") or {})
+    nr_ted = row.get("nr_ted")
+    if tipo == "ted" and nr_ted is None:
+        nr_ted = _normalizar_nr_ted(row.get("nr_instrumento") or identificador)
+
     return InstrumentoRevisaoInfo(
         identificador_busca=identificador,
         tipo_instrumento=tipo,
-        nr_instrumento=row.get("nr_instrumento"),
-        nr_proposta=row.get("nr_proposta"),
-        nr_ted=None,
-        tipo_obra=row.get("tipo_obra"),
-        objeto=row.get("objeto"),
-        nome_proponente=row.get("nome_proponente"),
-        orgao=row.get("nome_proponente"),
-        uf=row.get("uf"),
-        situacao_atual=row.get("situacao_atual"),
-        link_transferegov=row.get("link_transferegov"),
-        link_saci=row.get("link_saci"),
+        nr_instrumento=None if tipo == "ted" else row.get("nr_instrumento"),
+        nr_proposta=None if tipo == "ted" else row.get("nr_proposta"),
+        nr_ted=nr_ted if tipo == "ted" else None,
+        tipo_obra=row.get("tipo_obra")
+        or _primeiro_valor(dados_ted, ["tipo_obra", "modalidade", "operacao"]),
+        objeto=row.get("objeto")
+        or _primeiro_valor(dados_ted, ["objeto", "descricao", "objeto_ted"]),
+        nome_proponente=row.get("nome_proponente")
+        or _primeiro_valor(dados_ted, ["nome_proponente", "nome_tomador", "tomador"]),
+        orgao=row.get("nome_proponente")
+        or _primeiro_valor(dados_ted, ["orgao", "nome_orgao", "nome_repassador"]),
+        uf=row.get("uf") or _primeiro_valor(dados_ted, ["uf", "sigla_uf"]),
+        situacao_atual=row.get("situacao_atual")
+        or _primeiro_valor(dados_ted, ["situacao_atual", "situacao"]),
+        link_transferegov=row.get("link_transferegov")
+        or _primeiro_valor(dados_ted, ["link_transferegov"]),
+        link_saci=row.get("link_saci") or _primeiro_valor(dados_ted, ["link_saci", "saci"]),
         dados_oficiais={
             "fonte": "instrumento.vw_carteira_dsr",
             "tipo_instrumento_original": row.get("tipo_instrumento"),
+            "nr_proposta_carteira": row.get("nr_proposta") if tipo == "ted" else None,
+            "nr_instrumento_carteira": row.get("nr_instrumento") if tipo == "ted" else None,
+            "dados_ted": dados_ted or None,
         },
     )
 
@@ -275,6 +314,10 @@ async def _buscar_instrumento_ted(
             to_jsonb(t) AS dados_ted
         FROM instrumento.tb_ted t
         WHERE t.nr_ted::text = :identificador
+           OR t.nr_ted::text = NULLIF(
+              LTRIM(regexp_replace(:identificador, '\D', '', 'g'), '0'),
+              ''
+           )
         LIMIT 1
         """,
         {"identificador": identificador},
@@ -427,23 +470,8 @@ async def _buscar_obras_saneamento(
             obras.descricao,
             obras.orgao,
             obras.link_transferegov,
-            obras.link_obrasgov,
-            NULLIF(BTRIM(pi.populacao_beneficiada), '') AS populacao_beneficiada,
-            NULLIF(BTRIM(pi.desc_populacao_beneficiada), '') AS desc_populacao_beneficiada
+            obras.link_obrasgov
         FROM instrumento.vw_investimento_saneamento obras
-        LEFT JOIN obrasgov.tb_projeto_investimento pi
-          ON NULLIF(BTRIM(pi.id_unico::text), '') = COALESCE(
-              NULLIF(
-                  BTRIM(
-                      substring(
-                          obras.link_obrasgov
-                          from '/visao-geral-intervencao/([^/?#]+)'
-                      )
-                  ),
-                  ''
-              ),
-              NULLIF(BTRIM(obras.id::text), '')
-          )
         WHERE obras.cod_municipio IN :cod_municipios
         ORDER BY obras.cod_municipio, obras.orgao NULLS LAST, obras.id
         """
@@ -466,12 +494,149 @@ async def _buscar_obras_saneamento(
             orgao=row["orgao"],
             link_transferegov=row["link_transferegov"],
             link_obrasgov=row["link_obrasgov"],
-            populacao_beneficiada=row["populacao_beneficiada"],
-            desc_populacao_beneficiada=row["desc_populacao_beneficiada"],
-            populacao_beneficiada_revisada=None,
-            desc_populacao_beneficiada_revisada=None,
             relacao_instrumento="nao_analisada",
             confirmacao_status=None,
+        )
+        for row in result.mappings().all()
+    ]
+
+
+async def _buscar_publico_alvo(
+    db: AsyncSession,
+    instrumento: InstrumentoRevisaoInfo,
+    id_revisao: int | None,
+) -> list[PublicoAlvoRevisaoItem]:
+    params = {
+        "tipo_instrumento": instrumento.tipo_instrumento,
+        "nr_proposta": instrumento.nr_proposta,
+        "nr_instrumento": instrumento.nr_instrumento,
+        "nr_ted": instrumento.nr_ted,
+        "id_revisao": id_revisao,
+    }
+
+    result = await _execute_query(
+        db,
+        """
+        WITH instrumentos_dsr AS (
+            SELECT
+                'contrato_repasse'::varchar AS tipo_instrumento,
+                cv.nr_convenio::text AS nr_instrumento,
+                cr.id_proposta,
+                cr.nr_proposta,
+                NULL::int AS nr_ted
+            FROM instrumento.tb_contrato_repasse cr
+            INNER JOIN transferegov.tb_convenio cv
+                    ON cv.id_proposta = cr.id_proposta
+            WHERE CAST(:tipo_instrumento AS varchar) = 'contrato_repasse'
+              AND (
+                    (
+                        CAST(:nr_proposta AS varchar) IS NOT NULL
+                        AND cr.nr_proposta::text = CAST(:nr_proposta AS varchar)
+                    )
+                 OR (
+                        CAST(:nr_instrumento AS varchar) IS NOT NULL
+                        AND cv.nr_convenio::text = CAST(:nr_instrumento AS varchar)
+                    )
+              )
+
+            UNION ALL
+
+            SELECT
+                'termo_compromisso'::varchar AS tipo_instrumento,
+                cv.nr_convenio::text AS nr_instrumento,
+                tc.id_proposta,
+                tc.nr_proposta,
+                NULL::int AS nr_ted
+            FROM instrumento.tb_termo_de_compromisso tc
+            INNER JOIN transferegov.tb_convenio cv
+                    ON cv.id_proposta = tc.id_proposta
+            WHERE CAST(:tipo_instrumento AS varchar) = 'termo_compromisso'
+              AND (
+                    (
+                        CAST(:nr_proposta AS varchar) IS NOT NULL
+                        AND tc.nr_proposta::text = CAST(:nr_proposta AS varchar)
+                    )
+                 OR (
+                        CAST(:nr_instrumento AS varchar) IS NOT NULL
+                        AND cv.nr_convenio::text = CAST(:nr_instrumento AS varchar)
+                    )
+              )
+
+            UNION ALL
+
+            SELECT
+                'ted'::varchar AS tipo_instrumento,
+                ted.nr_ted::text AS nr_instrumento,
+                NULL::int AS id_proposta,
+                NULL::varchar AS nr_proposta,
+                ted.nr_ted
+            FROM instrumento.tb_ted ted
+            WHERE CAST(:tipo_instrumento AS varchar) = 'ted'
+              AND ted.nr_ted = CAST(:nr_ted AS integer)
+        ),
+        projetos AS (
+            SELECT DISTINCT ON (pi.id_unico)
+                i.tipo_instrumento,
+                i.nr_instrumento,
+                pi.id_unico::text AS id_projeto_investimento,
+                COALESCE(
+                    NULLIF(BTRIM(to_jsonb(pi)->>'descricao'), ''),
+                    NULLIF(BTRIM(to_jsonb(pi)->>'nome_obra'), ''),
+                    NULLIF(BTRIM(to_jsonb(pi)->>'nome_projeto'), ''),
+                    NULLIF(BTRIM(to_jsonb(pi)->>'objeto'), '')
+                ) AS nome_obra,
+                NULLIF(BTRIM(pi.populacao_beneficiada), '') AS populacao_beneficiada_original,
+                NULLIF(BTRIM(pi.desc_populacao_beneficiada), '') AS desc_populacao_beneficiada_original
+            FROM instrumentos_dsr i
+            INNER JOIN transferegov.tb_dados_obrasgov_geral dog
+                    ON dog.nr_instrumento::text = i.nr_instrumento
+            INNER JOIN obrasgov.tb_projeto_investimento pi
+                    ON pi.id_unico::text = dog.id_projeto_investimento::text
+            ORDER BY pi.id_unico, i.tipo_instrumento, i.nr_instrumento
+        )
+        SELECT
+            rpa.id_revisao_publico_alvo,
+            p.id_projeto_investimento,
+            p.tipo_instrumento,
+            p.nr_instrumento,
+            p.nome_obra,
+            COALESCE(
+                rpa.populacao_beneficiada_original,
+                p.populacao_beneficiada_original
+            ) AS populacao_beneficiada_original,
+            COALESCE(
+                rpa.desc_populacao_beneficiada_original,
+                p.desc_populacao_beneficiada_original
+            ) AS desc_populacao_beneficiada_original,
+            rpa.populacao_beneficiada_revisada,
+            rpa.desc_populacao_beneficiada_revisada,
+            rpa.conferido_em
+        FROM projetos p
+        LEFT JOIN painel_dsr.tb_revisao_instrumento_publico_alvo rpa
+               ON CAST(:id_revisao AS integer) IS NOT NULL
+              AND rpa.id_revisao = CAST(:id_revisao AS integer)
+              AND rpa.id_projeto_investimento = p.id_projeto_investimento
+        ORDER BY p.nome_obra NULLS LAST, p.id_projeto_investimento
+        """,
+        params,
+    )
+
+    return [
+        PublicoAlvoRevisaoItem(
+            id_revisao_publico_alvo=row["id_revisao_publico_alvo"],
+            id_projeto_investimento=row["id_projeto_investimento"],
+            tipo_instrumento=row["tipo_instrumento"],
+            nr_instrumento=row["nr_instrumento"],
+            nome_obra=row["nome_obra"],
+            populacao_beneficiada_original=row["populacao_beneficiada_original"],
+            desc_populacao_beneficiada_original=row[
+                "desc_populacao_beneficiada_original"
+            ],
+            populacao_beneficiada_revisada=row["populacao_beneficiada_revisada"],
+            desc_populacao_beneficiada_revisada=row[
+                "desc_populacao_beneficiada_revisada"
+            ],
+            conferido_em=row["conferido_em"],
         )
         for row in result.mappings().all()
     ]
@@ -508,7 +673,7 @@ async def _buscar_revisao_existente(
             "tipo_instrumento": instrumento.tipo_instrumento,
             "nr_instrumento": instrumento.nr_instrumento,
             "nr_proposta": instrumento.nr_proposta,
-            "nr_ted": instrumento.nr_ted,
+            "nr_ted": str(instrumento.nr_ted) if instrumento.nr_ted is not None else None,
         },
     )
     row = result.mappings().one_or_none()
@@ -734,34 +899,11 @@ async def _carregar_revisao_salva(
             orgao,
             link_transferegov,
             link_obrasgov,
-            COALESCE(
-                NULLIF(BTRIM(pi.populacao_beneficiada), ''),
-                NULLIF(BTRIM(ro.populacao_beneficiada), '')
-            ) AS populacao_beneficiada,
-            COALESCE(
-                NULLIF(BTRIM(pi.desc_populacao_beneficiada), ''),
-                NULLIF(BTRIM(ro.desc_populacao_beneficiada), '')
-            ) AS desc_populacao_beneficiada,
-            ro.populacao_beneficiada_revisada,
-            ro.desc_populacao_beneficiada_revisada,
             relacao_instrumento,
             confirmacao_status,
             justificativa,
             conferido_em
         FROM painel_dsr.tb_revisao_obra_saneamento ro
-        LEFT JOIN obrasgov.tb_projeto_investimento pi
-          ON NULLIF(BTRIM(pi.id_unico::text), '') = COALESCE(
-              NULLIF(
-                  BTRIM(
-                      substring(
-                          ro.link_obrasgov
-                          from '/visao-geral-intervencao/([^/?#]+)'
-                      )
-                  ),
-                  ''
-              ),
-              NULLIF(BTRIM(ro.id_obra::text), '')
-          )
         WHERE ro.id_revisao = :id_revisao
         """,
         {"id_revisao": id_revisao},
@@ -1118,10 +1260,6 @@ async def _persistir_municipio_revisao(
             "orgao": obra.orgao,
             "link_transferegov": obra.link_transferegov,
             "link_obrasgov": obra.link_obrasgov,
-            "populacao_beneficiada": obra.populacao_beneficiada,
-            "desc_populacao_beneficiada": obra.desc_populacao_beneficiada,
-            "populacao_beneficiada_revisada": obra.populacao_beneficiada_revisada,
-            "desc_populacao_beneficiada_revisada": obra.desc_populacao_beneficiada_revisada,
             "relacao_instrumento": relacao,
             "confirmacao_status": confirmacao,
             "justificativa": obra.justificativa,
@@ -1136,10 +1274,6 @@ async def _persistir_municipio_revisao(
                     orgao = :orgao,
                     link_transferegov = :link_transferegov,
                     link_obrasgov = :link_obrasgov,
-                    populacao_beneficiada = :populacao_beneficiada,
-                    desc_populacao_beneficiada = :desc_populacao_beneficiada,
-                    populacao_beneficiada_revisada = :populacao_beneficiada_revisada,
-                    desc_populacao_beneficiada_revisada = :desc_populacao_beneficiada_revisada,
                     relacao_instrumento = :relacao_instrumento,
                     confirmacao_status = :confirmacao_status,
                     justificativa = :justificativa,
@@ -1159,10 +1293,6 @@ async def _persistir_municipio_revisao(
                     orgao = :orgao,
                     link_transferegov = :link_transferegov,
                     link_obrasgov = :link_obrasgov,
-                    populacao_beneficiada = :populacao_beneficiada,
-                    desc_populacao_beneficiada = :desc_populacao_beneficiada,
-                    populacao_beneficiada_revisada = :populacao_beneficiada_revisada,
-                    desc_populacao_beneficiada_revisada = :desc_populacao_beneficiada_revisada,
                     relacao_instrumento = :relacao_instrumento,
                     confirmacao_status = :confirmacao_status,
                     justificativa = :justificativa,
@@ -1197,10 +1327,6 @@ async def _persistir_municipio_revisao(
                         orgao,
                         link_transferegov,
                         link_obrasgov,
-                        populacao_beneficiada,
-                        desc_populacao_beneficiada,
-                        populacao_beneficiada_revisada,
-                        desc_populacao_beneficiada_revisada,
                         relacao_instrumento,
                         confirmacao_status,
                         justificativa,
@@ -1214,10 +1340,6 @@ async def _persistir_municipio_revisao(
                         :orgao,
                         :link_transferegov,
                         :link_obrasgov,
-                        :populacao_beneficiada,
-                        :desc_populacao_beneficiada,
-                        :populacao_beneficiada_revisada,
-                        :desc_populacao_beneficiada_revisada,
                         :relacao_instrumento,
                         :confirmacao_status,
                         :justificativa,
@@ -1265,6 +1387,116 @@ async def _persistir_municipio_revisao(
         localidades_salvas,
         obras_salvas,
     )
+
+
+async def _persistir_publico_alvo(
+    db: AsyncSession,
+    id_revisao: int,
+    instrumento: InstrumentoRevisaoInfo,
+    itens: list[PublicoAlvoRevisaoAlteracao],
+) -> list[PublicoAlvoRevisaoItem]:
+    if not itens:
+        return await _buscar_publico_alvo(db, instrumento, id_revisao)
+
+    elegiveis = await _buscar_publico_alvo(db, instrumento, id_revisao)
+    elegiveis_por_id = {
+        item.id_projeto_investimento: item
+        for item in elegiveis
+    }
+
+    for item in itens:
+        projeto = elegiveis_por_id.get(item.id_projeto_investimento)
+
+        if projeto is None:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Projeto de investimento não vinculado ao instrumento DSR "
+                    "pesquisado."
+                ),
+            )
+
+        campos_enviados = item.model_fields_set
+        populacao_enviada = "populacao_beneficiada_revisada" in campos_enviados
+        desc_enviada = "desc_populacao_beneficiada_revisada" in campos_enviados
+
+        if not populacao_enviada and not desc_enviada:
+            continue
+
+        await db.execute(
+            text(
+                """
+                INSERT INTO painel_dsr.tb_revisao_instrumento_publico_alvo AS rpa (
+                    id_revisao,
+                    id_projeto_investimento,
+                    populacao_beneficiada_original,
+                    desc_populacao_beneficiada_original,
+                    populacao_beneficiada_revisada,
+                    desc_populacao_beneficiada_revisada,
+                    conferido_em,
+                    atualizado_em
+                )
+                VALUES (
+                    :id_revisao,
+                    :id_projeto_investimento,
+                    :populacao_beneficiada_original,
+                    :desc_populacao_beneficiada_original,
+                    CASE
+                        WHEN :populacao_enviada
+                        THEN :populacao_beneficiada_revisada
+                        ELSE NULL
+                    END,
+                    CASE
+                        WHEN :desc_enviada
+                        THEN :desc_populacao_beneficiada_revisada
+                        ELSE NULL
+                    END,
+                    NOW(),
+                    NOW()
+                )
+                ON CONFLICT (id_revisao, id_projeto_investimento)
+                DO UPDATE SET
+                    populacao_beneficiada_original = COALESCE(
+                        rpa.populacao_beneficiada_original,
+                        EXCLUDED.populacao_beneficiada_original
+                    ),
+                    desc_populacao_beneficiada_original = COALESCE(
+                        rpa.desc_populacao_beneficiada_original,
+                        EXCLUDED.desc_populacao_beneficiada_original
+                    ),
+                    populacao_beneficiada_revisada = CASE
+                        WHEN :populacao_enviada
+                        THEN EXCLUDED.populacao_beneficiada_revisada
+                        ELSE rpa.populacao_beneficiada_revisada
+                    END,
+                    desc_populacao_beneficiada_revisada = CASE
+                        WHEN :desc_enviada
+                        THEN EXCLUDED.desc_populacao_beneficiada_revisada
+                        ELSE rpa.desc_populacao_beneficiada_revisada
+                    END,
+                    conferido_em = NOW(),
+                    atualizado_em = NOW()
+                """
+            ),
+            {
+                "id_revisao": id_revisao,
+                "id_projeto_investimento": item.id_projeto_investimento,
+                "populacao_beneficiada_original": projeto.populacao_beneficiada_original,
+                "desc_populacao_beneficiada_original": (
+                    projeto.desc_populacao_beneficiada_original
+                ),
+                "populacao_beneficiada_revisada": (
+                    item.populacao_beneficiada_revisada
+                ),
+                "desc_populacao_beneficiada_revisada": (
+                    item.desc_populacao_beneficiada_revisada
+                ),
+                "populacao_enviada": populacao_enviada,
+                "desc_enviada": desc_enviada,
+            },
+        )
+
+    return await _buscar_publico_alvo(db, instrumento, id_revisao)
 
 
 async def _montar_resposta_busca(
@@ -1432,14 +1664,6 @@ async def _montar_resposta_busca(
             orgao=obra_salva["orgao"],
             link_transferegov=obra_salva["link_transferegov"],
             link_obrasgov=obra_salva["link_obrasgov"],
-            populacao_beneficiada=obra_salva["populacao_beneficiada"],
-            desc_populacao_beneficiada=obra_salva["desc_populacao_beneficiada"],
-            populacao_beneficiada_revisada=obra_salva[
-                "populacao_beneficiada_revisada"
-            ],
-            desc_populacao_beneficiada_revisada=obra_salva[
-                "desc_populacao_beneficiada_revisada"
-            ],
             relacao_instrumento=relacao,
             confirmacao_status=_normalizar_confirmacao_backend(
                 relacao,
@@ -1469,20 +1693,6 @@ async def _montar_resposta_busca(
                     "relacao_instrumento": item_salvo.relacao_instrumento,
                     "confirmacao_status": item_salvo.confirmacao_status,
                     "justificativa": item_salvo.justificativa,
-                    "populacao_beneficiada": (
-                        item_salvo.populacao_beneficiada
-                        if item_salvo.populacao_beneficiada is not None
-                        else municipio.obras_saneamento[indice_existente].populacao_beneficiada
-                    ),
-                    "desc_populacao_beneficiada": (
-                        item_salvo.desc_populacao_beneficiada
-                        if item_salvo.desc_populacao_beneficiada is not None
-                        else municipio.obras_saneamento[
-                            indice_existente
-                        ].desc_populacao_beneficiada
-                    ),
-                    "populacao_beneficiada_revisada": item_salvo.populacao_beneficiada_revisada,
-                    "desc_populacao_beneficiada_revisada": item_salvo.desc_populacao_beneficiada_revisada,
                     "conferido_em": item_salvo.conferido_em,
                 }
             )
@@ -1498,6 +1708,7 @@ async def _montar_resposta_busca(
     status_revisao_geral, status_revisao_geral_label = (
         _calcular_status_revisao_municipios(municipios)
     )
+    publico_alvo = await _buscar_publico_alvo(db, instrumento, id_revisao)
 
     return RevisaoInstrumentoBuscaResponse(
         id_revisao=id_revisao,
@@ -1508,6 +1719,7 @@ async def _montar_resposta_busca(
         status_revisao_geral_label=status_revisao_geral_label,
         observacao_geral=revisao["observacao_geral"] if revisao else None,
         municipios=municipios,
+        publico_alvo=publico_alvo,
     )
 
 
@@ -1585,6 +1797,12 @@ async def salvar_revisao_instrumento(
             )
             municipios_salvos.append(municipio_salvo)
 
+        publico_alvo_salvo = await _persistir_publico_alvo(
+            db,
+            id_revisao,
+            instrumento,
+            payload.publico_alvo,
+        )
         resposta_atualizada = await _montar_resposta_busca(
             db,
             instrumento,
@@ -1603,6 +1821,7 @@ async def salvar_revisao_instrumento(
             atualizado_em=revisao["atualizado_em"],
             enviado_em=revisao["enviado_em"],
             municipios=municipios_salvos,
+            publico_alvo=publico_alvo_salvo,
         )
 
     except SQLAlchemyError as exc:

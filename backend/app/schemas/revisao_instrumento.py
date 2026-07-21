@@ -84,10 +84,6 @@ class ObraSaneamentoRevisaoItem(RevisaoInstrumentoBase):
     orgao: str | None = None
     link_transferegov: str | None = None
     link_obrasgov: str | None = None
-    populacao_beneficiada: str | None = None
-    desc_populacao_beneficiada: str | None = None
-    populacao_beneficiada_revisada: str | None = None
-    desc_populacao_beneficiada_revisada: str | None = None
 
     relacao_instrumento: RelacaoInstrumentoObra | None = None
     confirmacao_status: ConfirmacaoStatusObra | None = None
@@ -132,10 +128,6 @@ class ObraSaneamentoRevisaoAlteracao(RevisaoInstrumentoBase):
     orgao: str | None = None
     link_transferegov: str | None = None
     link_obrasgov: str | None = None
-    populacao_beneficiada: str | None = None
-    desc_populacao_beneficiada: str | None = None
-    populacao_beneficiada_revisada: str | None = None
-    desc_populacao_beneficiada_revisada: str | None = None
 
     relacao_instrumento: RelacaoInstrumentoObra
     confirmacao_status: ConfirmacaoStatusObra | None = None
@@ -151,6 +143,32 @@ class ObraSaneamentoRevisaoAlteracao(RevisaoInstrumentoBase):
             self.confirmacao_status = "nao_confirmada"
 
         return self
+
+
+class PublicoAlvoRevisaoItem(RevisaoInstrumentoBase):
+    id_revisao_publico_alvo: int | None = None
+    id_projeto_investimento: str
+
+    tipo_instrumento: TipoInstrumento | None = None
+    nr_instrumento: str | None = None
+    nome_obra: str | None = None
+
+    populacao_beneficiada_original: str | None = None
+    desc_populacao_beneficiada_original: str | None = None
+    populacao_beneficiada_revisada: str | None = None
+    desc_populacao_beneficiada_revisada: str | None = None
+
+    conferido_em: datetime | None = None
+
+
+class PublicoAlvoRevisaoAlteracao(RevisaoInstrumentoBase):
+    id_revisao_publico_alvo: int | None = None
+    id_projeto_investimento: str
+
+    populacao_beneficiada_original: str | None = None
+    desc_populacao_beneficiada_original: str | None = None
+    populacao_beneficiada_revisada: str | None = None
+    desc_populacao_beneficiada_revisada: str | None = None
 
 
 class MunicipioRevisaoItem(RevisaoInstrumentoBase):
@@ -178,6 +196,7 @@ class RevisaoInstrumentoBuscaResponse(RevisaoInstrumentoBase):
     status_revisao_geral_label: str = "Revisão pendente"
     observacao_geral: str | None = None
     municipios: list[MunicipioRevisaoItem]
+    publico_alvo: list[PublicoAlvoRevisaoItem] = Field(default_factory=list)
 
 
 class RevisaoInstrumentoCreate(RevisaoInstrumentoBase):
@@ -187,6 +206,7 @@ class RevisaoInstrumentoCreate(RevisaoInstrumentoBase):
 
     instrumento: InstrumentoRevisaoInfo
     municipios: list[MunicipioRevisaoItem] = Field(default_factory=list)
+    publico_alvo: list[PublicoAlvoRevisaoAlteracao] = Field(default_factory=list)
 
 
 class MunicipioRevisaoAlteracao(RevisaoInstrumentoBase):
@@ -217,6 +237,7 @@ class RevisaoInstrumentoSalvoResponse(RevisaoInstrumentoBase):
     atualizado_em: datetime
     enviado_em: datetime | None = None
     municipios: list[MunicipioRevisaoItem] = Field(default_factory=list)
+    publico_alvo: list[PublicoAlvoRevisaoItem] = Field(default_factory=list)
 
 
 class RevisaoInstrumentoMunicipioSalvoResponse(RevisaoInstrumentoBase):
