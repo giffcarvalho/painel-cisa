@@ -114,8 +114,9 @@ def _build_where(filtros: FiltrosMapa, allowed: set[str] | None = None) -> tuple
             continue
         
         params[param_key] = [cast_python(v) if cast_python else v for v in values]
+
         sql_col = "nr_instrumento::text" if col == "nr_instrumento" else col
- 
+
         if tipo == "scalar":
             clauses.append(
                 f"{sql_col} = ANY(CAST(:{param_key} AS {sql_array_type}))"
@@ -214,7 +215,7 @@ async def get_lista_nr_propostas(
         WITH uniao AS (
         SELECT
             nr_proposta,
-            nr_instrumento::text,
+            nr_instrumento::text AS nr_instrumento,
             cod_tci,
             modalidade,
             cod_uf,
@@ -224,7 +225,7 @@ async def get_lista_nr_propostas(
         UNION
         SELECT
             nr_proposta,
-            nr_instrumento::text,
+            nr_instrumento::text AS nr_instrumento,
             cod_tci,
             modalidade,
             cod_uf,
@@ -279,7 +280,7 @@ async def get_lista_nr_instrumentos(
         WITH uniao AS (
         SELECT
             nr_proposta,
-            nr_instrumento::text,
+            nr_instrumento::text AS nr_instrumento,
             cod_tci,
             modalidade,
             cod_uf,
@@ -289,7 +290,7 @@ async def get_lista_nr_instrumentos(
         UNION
         SELECT
             nr_proposta,
-            nr_instrumento::text,
+            nr_instrumento::text AS nr_instrumento,
             cod_tci,
             modalidade,
             cod_uf,
@@ -344,7 +345,7 @@ async def get_lista_cod_tci(
         WITH uniao AS (
         SELECT
             nr_proposta,
-            nr_instrumento::text,
+            nr_instrumento::text AS nr_instrumento,
             cod_tci,
             modalidade,
             cod_uf,
@@ -354,7 +355,7 @@ async def get_lista_cod_tci(
         UNION
         SELECT
             nr_proposta,
-            nr_instrumento::text,
+            nr_instrumento::text AS nr_instrumento,
             cod_tci,
             modalidade,
             cod_uf,
@@ -409,7 +410,7 @@ async def get_lista_modalidade(
         WITH uniao AS (
         SELECT
             nr_proposta,
-            nr_instrumento::text,
+            nr_instrumento::text AS nr_instrumento,
             cod_tci,
             modalidade,
             cod_uf,
@@ -419,7 +420,7 @@ async def get_lista_modalidade(
         UNION
         SELECT
             nr_proposta,
-            nr_instrumento::text,
+            nr_instrumento::text AS nr_instrumento,
             cod_tci,
             modalidade,
             cod_uf,
@@ -661,10 +662,10 @@ async def get_bbox_carteira_dsr(filtros: FiltrosMapa = Depends(), db: AsyncSessi
     sql = f"""
         WITH 
         uniao AS (
-            SELECT cod_tci, nr_proposta, nr_instrumento::text, modalidade, cod_uf, cod_municipio, geom
+            SELECT cod_tci, nr_proposta, nr_instrumento::text AS nr_instrumento, modalidade, cod_uf, cod_municipio, geom
             FROM instrumento.vw_geometrias_carteira_dsr
             UNION
-            SELECT cod_tci, nr_proposta, nr_instrumento::text, modalidade, cod_uf, cod_municipio, geom
+            SELECT cod_tci, nr_proposta, nr_instrumento::text AS nr_instrumento, modalidade, cod_uf, cod_municipio, geom
             FROM instrumento.vw_geometrias_carteira_drf
         ),
         filtrado AS (

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ChevronDown, Search, X } from 'lucide-react'
+import { ChevronDown, Lock, Search, X } from 'lucide-react'
 import styles from '../../pages/consulta-personalizada/ConsultaPersonalizada.module.css'
 
 
@@ -41,8 +41,10 @@ export default function SelecaoColunas({
   tipoTabela,
   campos,
   selected,
+  requiredFieldIds = [],
   onChange,
   onSelectDefaults,
+  onSelectAll,
   onClear,
   isLoading,
   isError,
@@ -52,6 +54,8 @@ export default function SelecaoColunas({
   const [termo, setTermo] = useState('')
 
   const selectedSet = useMemo(() => new Set(selected), [selected])
+
+  const requiredSet = useMemo(() => new Set(requiredFieldIds), [requiredFieldIds])
 
   const camposVisiveis = useMemo(
     () => campos.filter((campo) => campo.visivel),
@@ -88,6 +92,8 @@ export default function SelecaoColunas({
   }, [camposVisiveis, termo])
 
   const toggleCampo = (id) => {
+    if (requiredSet.has(id)) return
+
     if (selectedSet.has(id)) {
       onChange(selected.filter((item) => item !== id))
       return
@@ -97,7 +103,9 @@ export default function SelecaoColunas({
   }
 
   const toggleGrupo = (camposGrupo) => {
-    const ids = camposGrupo.map((campo) => campo.id)
+    const ids = camposGrupo.map((campo) => campo.id).filter((id) => !requiredSet.has(id))
+    if (!ids.length) return
+
     const allSelected = ids.every((id) => selectedSet.has(id))
 
     if (allSelected) {
@@ -122,7 +130,7 @@ export default function SelecaoColunas({
 
         <div className={styles.selectionCounter}>
           <strong>{selected.length}</strong>
-          <span>de {maxColumns} colunas</span>
+          <span>selecionadas</span>
         </div>
       </div>
 
@@ -143,6 +151,14 @@ export default function SelecaoColunas({
           <button type="button" className={styles.secondaryButton} onClick={onSelectDefaults}>
             Selecionar campos principais
           </button>
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            disabled={!camposVisiveis.length}
+            onClick={onSelectAll}
+          >
+            Selecionar todos os campos
+          </button>
           <button type="button" className={styles.ghostButton} disabled={!selected.length} onClick={onClear}>
             Limpar seleção
           </button>
@@ -151,8 +167,7 @@ export default function SelecaoColunas({
 
       {acimaDoLimite && (
         <div className={styles.inlineWarning}>
-          O backend aceita no máximo {maxColumns} colunas por consulta. Remova {selected.length - maxColumns}
-          {' '}coluna(s) para gerar a prévia.
+          A prévia em tela aceita no máximo {maxColumns} colunas. A seleção completa será mantida apenas para exportação.
         </div>
       )}
 
@@ -161,12 +176,23 @@ export default function SelecaoColunas({
 
         {selectedCampos.length > 0 ? (
           <div className={styles.selectedColumnsSummary}>
-            {selectedCampos.slice(0, 16).map((campo) => (
-              <button key={campo.id} type="button" onClick={() => toggleCampo(campo.id)}>
-                {getCampoLabel(campo)}
-                <X size={13} />
-              </button>
-            ))}
+            {selectedCampos.slice(0, 16).map((campo) => {
+              const obrigatorio = requiredSet.has(campo.id)
+
+              return (
+                <button
+                  key={campo.id}
+                  type="button"
+                  className={obrigatorio ? styles.requiredColumnChip : ''}
+                  disabled={obrigatorio}
+                  onClick={() => toggleCampo(campo.id)}
+                  title={obrigatorio ? 'Coluna obrigatória da base' : 'Remover coluna'}
+                >
+                  {getCampoLabel(campo)}
+                  {obrigatorio ? <Lock size={13} /> : <X size={13} />}
+                </button>
+              )
+            })}
             {selectedCampos.length > 16 && <span>+{selectedCampos.length - 16} coluna(s)</span>}
           </div>
         ) : (
@@ -178,7 +204,8 @@ export default function SelecaoColunas({
         {grupos.map(([grupo, camposGrupo]) => {
           const isOpen = termo ? true : Boolean(openGroups[grupo])
           const selectedCount = camposGrupo.filter((campo) => selectedSet.has(campo.id)).length
-          const allSelected = selectedCount === camposGrupo.length
+          const selectableIds = camposGrupo.map((campo) => campo.id).filter((id) => !requiredSet.has(id))
+          const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedSet.has(id))
 
           return (
             <section
@@ -206,31 +233,38 @@ export default function SelecaoColunas({
                   <button
                     type="button"
                     className={styles.groupAction}
+                    disabled={!selectableIds.length}
                     onClick={() => toggleGrupo(camposGrupo)}
                   >
-                    {allSelected ? 'Limpar grupo' : 'Selecionar grupo'}
+                    {!selectableIds.length ? 'Colunas obrigatórias' : allSelected ? 'Limpar grupo' : 'Selecionar grupo'}
                   </button>
 
                   <div className={styles.checkboxGrid}>
                     {camposGrupo.map((campo) => {
                       const checked = selectedSet.has(campo.id)
                       const papel = getPapelCampo(campo)
+                      const obrigatorio = requiredSet.has(campo.id)
 
                       return (
                         <label
                           key={campo.id}
-                          className={`${styles.checkboxCard} ${checked ? styles.checkboxCardSelected : ''}`}
+                          className={`${styles.checkboxCard} ${checked ? styles.checkboxCardSelected : ''} ${
+                            obrigatorio ? styles.checkboxCardRequired : ''
+                          }`}
                         >
                           <input
                             type="checkbox"
                             checked={checked}
+                            disabled={obrigatorio}
                             onChange={() => toggleCampo(campo.id)}
                           />
 
                           <span className={styles.checkboxContent}>
                             <span className={styles.checkboxTitleRow}>
                               <strong>{getCampoLabel(campo)}</strong>
-                              <span className={styles.fieldBadge}>{papel}</span>
+                              <span className={`${styles.fieldBadge} ${obrigatorio ? styles.fieldBadgeRequired : ''}`}>
+                                {obrigatorio ? 'Fixa' : papel}
+                              </span>
                               <span className={styles.fieldType}>{getTipoDadoLabel(campo.tipo_dado)}</span>
                             </span>
 

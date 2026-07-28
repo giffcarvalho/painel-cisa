@@ -2,6 +2,10 @@ import { createBrowserRouter } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import { Loader2 } from 'lucide-react'
 import AppLayout from '@/components/layout/AppLayout'
+// REATIVAR APÓS COMMIT
+// import ProtectedRoute from '@/components/auth/ProtectedRoute'
+// REATIVAR APÓS COMMIT
+// import AuthModalLayout from '@/components/auth/AuthModalLayout'
 import Home from '@/pages/home/Home'
 import CarteiraDsr from '@/pages/carteira-dsr/CarteiraDsr'
 import ManualLayout from './pages/manual/ManualLayout'
@@ -12,6 +16,10 @@ import ManualInformacoesGerais from './pages/manual/ManualInformacoesGerais'
 import MapLayout from './components/layout/MapLayout'
 import PesquisaInstrumento from './pages/pesquisa-instrumento/PesquisaInstrumento'
 import ConsultaPersonalizada from './pages/consulta-personalizada/ConsultaPersonalizada'
+// REATIVAR APÓS COMMIT
+// import RevisaoInstrumento from './pages/revisao-instrumento/RevisaoInstrumento'
+// REATIVAR APÓS COMMIT
+// import Login from './pages/login/Login'
 
 const Mapa = lazy(() => import('@/pages/mapa/Mapa'))
 
@@ -28,58 +36,54 @@ function MapaLoading() {
 
 export const router = createBrowserRouter([
   {
-    path: '/',
-    element: <Home />,
-  },
-  {
-    element: <AppLayout />,
+    // REATIVAR APÓS COMMIT
+    // element: <AuthModalLayout />,
     children: [
       {
-        path: 'carteira-dsr',
-        element: <CarteiraDsr />,
+        path: '/',
+        element: <Home />,
       },
       {
-        path: 'pesquisa-instrumento',
-        element: <PesquisaInstrumento />,
-      },
-      {
-        path: 'consulta-personalizada',
-        element: <ConsultaPersonalizada />,
-      },
-      {
-        path: 'manual',
-        element: <ManualLayout />,
+        element: <AppLayout />,
         children: [
+          // REATIVAR APÓS COMMIT
+          // { path: 'login', element: <Login /> },
+          { path: 'carteira-dsr', element: <CarteiraDsr /> },
+          { path: 'pesquisa-instrumento', element: <PesquisaInstrumento /> },
+          { path: 'consulta-personalizada', element: <ConsultaPersonalizada /> },
+          // REATIVAR APÓS COMMIT
+          // {
+          //   path: 'revisao-instrumento',
+          //   element: (
+          //     <ProtectedRoute>
+          //       <RevisaoInstrumento />
+          //     </ProtectedRoute>
+          //   ),
+          // },
           {
-            index: true,
-            element: <ManualHome />,
-          },
-          {
-            path: 'carteira-dsr',
-            element: <ManualCarteiraDsr />,
-          },
-          {
-            path: 'mapa-interativo',
-            element: <ManualMapaInterativo />,
-          },
-          {
-            path: 'informacoes-gerais',
-            element: <ManualInformacoesGerais />,
+            path: 'manual',
+            element: <ManualLayout />,
+            children: [
+              { index: true, element: <ManualHome /> },
+              { path: 'carteira-dsr', element: <ManualCarteiraDsr /> },
+              { path: 'mapa-interativo', element: <ManualMapaInterativo /> },
+              { path: 'informacoes-gerais', element: <ManualInformacoesGerais /> },
+            ],
           },
         ],
       },
-    ],
-  },
-  {
-    element: <MapLayout />,
-    children: [
       {
-        path: 'mapa',
-        element: (
-          <Suspense fallback={<MapaLoading />}>
-            <Mapa />
-          </Suspense>
-        ),
+        element: <MapLayout />,
+        children: [
+          {
+            path: 'mapa',
+            element: (
+              <Suspense fallback={<MapaLoading />}>
+                <Mapa />
+              </Suspense>
+            ),
+          },
+        ],
       },
     ],
   },
