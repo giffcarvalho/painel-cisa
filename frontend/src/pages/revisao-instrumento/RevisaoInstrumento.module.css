@@ -38,6 +38,47 @@
   gap: 12px;
 }
 
+.headerActionGroup {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
+.tooltipWrapper {
+  position: relative;
+  display: inline-flex;
+  width: fit-content;
+}
+
+.tooltip {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 20;
+  width: max-content;
+  max-width: 220px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #111827;
+  color: #ffffff;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: left;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(2px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.tooltipWrapper:hover .tooltip,
+.tooltipWrapper:focus-within .tooltip {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .mainGrid {
   display: grid;
   grid-template-columns: minmax(0, 3.4fr) minmax(280px, 1fr);
@@ -530,6 +571,7 @@ button:disabled {
 
 .acaoTextualInline {
   display: inline-flex;
+  width: fit-content;
   flex-wrap: wrap;
   align-items: center;
   gap: 2px;
@@ -705,33 +747,53 @@ button:disabled {
 }
 
 .table.obrasTable {
-  min-width: 980px;
+  min-width: 880px;
   table-layout: fixed;
   font-size: 12.5px;
 }
 
-.obrasTable .colObra {
-  width: 27%;
+.obrasTableComConfirmacao .colObra {
+  width: 25%;
 }
 
-.obrasTable .colOrgao {
-  width: 16%;
-}
-
-.obrasTable .colRelacao {
-  width: 16%;
-}
-
-.obrasTable .colConfirmacao {
+.obrasTableComConfirmacao .colOrgao {
   width: 13%;
 }
 
-.obrasTable .colObservacao {
+.obrasTableComConfirmacao .colRelacao {
+  width: 17%;
+}
+
+.obrasTableComConfirmacao .colConfirmacao {
+  width: 18%;
+}
+
+.obrasTableComConfirmacao .colObservacao {
+  width: 19%;
+}
+
+.obrasTableComConfirmacao .colLinks {
+  width: 8%;
+}
+
+.obrasTableSemConfirmacao .colObra {
+  width: 32%;
+}
+
+.obrasTableSemConfirmacao .colOrgao {
+  width: 16%;
+}
+
+.obrasTableSemConfirmacao .colRelacao {
   width: 20%;
 }
 
-.obrasTable .colLinks {
-  width: 8%;
+.obrasTableSemConfirmacao .colObservacao {
+  width: 23%;
+}
+
+.obrasTableSemConfirmacao .colLinks {
+  width: 9%;
 }
 
 .obrasTable .colunaObra {
@@ -766,6 +828,13 @@ button:disabled {
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
+}
+
+.confirmacaoNeutra {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  color: #6b7280;
 }
 
 .valorRevisavelCell {
@@ -1155,7 +1224,9 @@ button:disabled {
 
 .municipioFooterActions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: 10px;
   margin-top: 16px;
 }
 
@@ -1181,43 +1252,70 @@ button:disabled {
   color: #0f172a;
 }
 
-.statusPanel {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  border: 1px solid #dbeafe;
-  border-radius: 8px;
-  background: #eff6ff;
-  color: #1e3a8a;
-}
-
-.statusPanel div {
+.observacaoResumo,
+.observacaoEditor {
   display: grid;
-  gap: 2px;
+  align-items: start;
+  gap: 10px;
 }
 
-.statusPanel span {
-  font-size: 11px;
+.observacaoResumo p,
+.timelineItem p {
+  margin: 0;
+  color: #374151;
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.emptyObservation {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+.timelineList {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timelineItem {
+  display: grid;
+  gap: 4px;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0 0 12px;
+}
+
+.timelineItem + .timelineItem {
+  padding-top: 12px;
+}
+
+.timelineItem:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.timelineDate {
+  color: #6b7280;
+  font-size: 12px;
   font-weight: 700;
-  text-transform: uppercase;
 }
 
-.statusPanel strong {
-  font-size: 15px;
+.timelineItem strong {
+  color: #111827;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
-.unsavedChip {
-  display: inline-flex;
-  min-height: 24px;
-  align-items: center;
-  border: 1px solid #fed7aa;
-  border-radius: 999px;
-  background: #fff7ed;
-  color: #9a3412;
-  padding: 0 10px;
-  white-space: nowrap;
+.timelineMeta {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .errorBox,
@@ -1283,6 +1381,10 @@ button:disabled {
     justify-content: flex-start;
   }
 
+  .headerActionGroup {
+    justify-items: start;
+  }
+
   .rightColumn {
     order: 2;
   }
@@ -1298,6 +1400,15 @@ button:disabled {
   }
 
   .headerActions {
+    flex-direction: column;
+  }
+
+  .headerActionGroup {
+    width: 100%;
+  }
+
+  .municipioFooterActions {
+    align-items: stretch;
     flex-direction: column;
   }
 

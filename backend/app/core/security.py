@@ -15,11 +15,22 @@ def gerar_hash_senha(senha: str) -> str:
     return password_hash.hash(senha)
 
 
-def verificar_senha(senha: str, senha_hash: str) -> bool:
+def gerar_hash_codigo_acesso(codigo: str) -> str:
+    return password_hash.hash(codigo)
+
+
+def verificar_senha(senha: str, senha_hash: str | None) -> bool:
+    if not senha_hash:
+        return False
+
     try:
         return password_hash.verify(senha, senha_hash)
     except Exception:
         return False
+
+
+def verificar_codigo_acesso(codigo: str, codigo_hash: str | None) -> bool:
+    return verificar_senha(codigo, codigo_hash)
 
 
 def _b64url_encode(data: bytes) -> str:

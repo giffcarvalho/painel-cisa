@@ -1,18 +1,13 @@
 import { useState } from 'react'
 import { Check, ChevronDown, Plus, Save, Search, Send, X } from 'lucide-react'
 import { revisaoInstrumentoApi } from '@/api/revisaoInstrumento'
+import { useAuth } from '@/context/auth/useAuth'
 import styles from './RevisaoInstrumento.module.css'
 
 const ACOES_MUNICIPIO = [
   { value: 'manter', label: 'Manter', icon: Check },
   { value: 'remover', label: 'Remover', icon: X },
 ]
-
-const LABELS_ACAO_MUNICIPIO = {
-  manter: 'Manter',
-  remover: 'Remover',
-  adicionar: 'Incluído nesta revisão',
-}
 
 const LABELS_TECNICOS = {
   contrato_repasse: 'Contrato de Repasse',
@@ -33,17 +28,17 @@ const RELACOES_INSTRUMENTO = [
   { value: 'possivel_sobreposicao', label: 'Possível sobreposição' },
 ]
 
-const MUNICIPIO_NOVO_INICIAL = {
-  cod_municipio: '',
-  nome: '',
-  uf: '',
-}
-
 const CONFIRMACOES_STATUS = [
   { value: 'nao_confirmada', label: 'Não confirmada' },
   { value: 'sem_conflito', label: 'Sem conflito' },
   { value: 'sobreposicao_confirmada', label: 'Sobreposição confirmada' },
 ]
+
+const MUNICIPIO_NOVO_INICIAL = {
+  cod_municipio: '',
+  nome: '',
+  uf: '',
+}
 
 const LOCALIDADE_NOVA_INICIAL = {
   nome_localidade_informada: '',
@@ -74,11 +69,6 @@ function formatarValorTecnico(value) {
     .join(' ')
 }
 
-function getLabelAcaoMunicipio(value) {
-  if (!value) return 'Ainda não conferida'
-  return LABELS_ACAO_MUNICIPIO[value] ?? formatarValorTecnico(value)
-}
-
 function formatarMunicipioUf(nome, uf) {
   if (!nome) return '-'
   if (String(nome).includes('/')) return nome
@@ -98,24 +88,37 @@ function normalizarRelacaoInstrumento(value) {
     : 'nao_analisada'
 }
 
-function normalizarConfirmacaoStatus(relacaoInstrumento, value) {
-  if (relacaoInstrumento === 'nao_analisada') return null
+function confirmacoesPermitidas(relacaoInstrumento) {
+  if (relacaoInstrumento === 'sem_conflito_aparente') {
+    return CONFIRMACOES_STATUS.filter(({ value }) =>
+      ['nao_confirmada', 'sem_conflito'].includes(value)
+    )
+  }
 
-  return CONFIRMACOES_STATUS.some((option) => option.value === value)
-    ? value
-    : 'nao_confirmada'
+  if (relacaoInstrumento === 'possivel_sobreposicao') {
+    return CONFIRMACOES_STATUS.filter(({ value }) =>
+      ['nao_confirmada', 'sobreposicao_confirmada'].includes(value)
+    )
+  }
+
+  return []
 }
 
 function normalizarObra(obra) {
-  const relacaoInstrumento = normalizarRelacaoInstrumento(obra.relacao_instrumento)
+  const relacaoInstrumento = normalizarRelacaoInstrumento(
+    obra.relacao_instrumento
+  )
+  const confirmacoes = confirmacoesPermitidas(relacaoInstrumento)
+  const confirmacaoStatus = confirmacoes.some(
+    ({ value }) => value === obra.confirmacao_status
+  )
+    ? obra.confirmacao_status
+    : 'nao_confirmada'
 
   return {
     ...obra,
     relacao_instrumento: relacaoInstrumento,
-    confirmacao_status: normalizarConfirmacaoStatus(
-      relacaoInstrumento,
-      obra.confirmacao_status
-    ),
+    confirmacao_status: confirmacaoStatus,
   }
 }
 
@@ -180,8 +183,6 @@ function dadosLocalidadePersistencia(localidade, codMunicipio) {
 }
 
 function dadosObraPersistencia(obra, codMunicipio) {
-  const relacaoInstrumento = normalizarRelacaoInstrumento(obra.relacao_instrumento)
-
   return {
     id_revisao_obra: obra.id_revisao_obra ?? null,
     id_obra: obra.id_obra,
@@ -190,11 +191,14 @@ function dadosObraPersistencia(obra, codMunicipio) {
     orgao: obra.orgao ?? null,
     link_transferegov: obra.link_transferegov ?? null,
     link_obrasgov: obra.link_obrasgov ?? null,
-    relacao_instrumento: relacaoInstrumento,
-    confirmacao_status: normalizarConfirmacaoStatus(
-      relacaoInstrumento,
-      obra.confirmacao_status
+    relacao_instrumento: normalizarRelacaoInstrumento(
+      obra.relacao_instrumento
     ),
+    confirmacao_status:
+      normalizarRelacaoInstrumento(obra.relacao_instrumento) ===
+      'nao_analisada'
+        ? 'nao_confirmada'
+        : obra.confirmacao_status ?? 'nao_confirmada',
     justificativa: limparTexto(obra.justificativa),
   }
 }
@@ -240,13 +244,12 @@ function objetosIguais(a, b) {
 function semIdsPersistencia(dados) {
   if (!dados) return dados
 
-  const {
-    id_revisao_localidade: _idRevisaoLocalidade,
-    id_revisao_obra: _idRevisaoObra,
-    ...restante
-  } = dados
-
-  return restante
+  return Object.fromEntries(
+    Object.entries(dados).filter(
+      ([chave]) =>
+        chave !== 'id_revisao_localidade' && chave !== 'id_revisao_obra'
+    )
+  )
 }
 
 function aplicarFlagAlteracao(currentFlags, chave, alterado) {
@@ -277,10 +280,6 @@ function municipioTemHistorico(municipio) {
   )
 }
 
-function revisaoTemAlteracoesLocais(municipios = []) {
-  return municipios.some(municipioTemAlteracoes)
-}
-
 function statusVisualMunicipio(municipio) {
   if (municipioTemAlteracoes(municipio)) return 'Alterações não salvas'
   if (municipioTemHistorico(municipio) || municipio._salvoNestaSessao) return 'Conferência registrada'
@@ -296,6 +295,129 @@ function formatarDataConferencia(value) {
   if (!ano || !mes || !dia) return 'Ainda não conferida'
 
   return `Última conferência em ${dia}/${mes}/${ano}`
+}
+
+function formatarDataHistorico(value) {
+  const data = value ? new Date(value) : null
+
+  if (!data || Number.isNaN(data.getTime())) return 'Data não informada'
+
+  const hoje = new Date()
+  const mesmaData =
+    data.getFullYear() === hoje.getFullYear() &&
+    data.getMonth() === hoje.getMonth() &&
+    data.getDate() === hoje.getDate()
+
+  if (mesmaData) return 'Hoje'
+
+  return data.toLocaleDateString('pt-BR')
+}
+
+function formatarHoraHistorico(value) {
+  const data = value ? new Date(value) : null
+
+  if (!data || Number.isNaN(data.getTime())) return null
+
+  return data.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function nomeUsuario(usuario) {
+  return (
+    usuario?.nome_completo ||
+    usuario?.nomeCompleto ||
+    usuario?.full_name ||
+    usuario?.nome ||
+    usuario?.email ||
+    'Usuário atual'
+  )
+}
+
+function Tooltip({ text, children }) {
+  return (
+    <span className={styles.tooltipWrapper}>
+      {children}
+      <span className={styles.tooltip} role="tooltip">
+        {text}
+      </span>
+    </span>
+  )
+}
+
+function criarItemHistorico({ data, titulo, usuarioNome, descricao }) {
+  return {
+    id: `${titulo}-${data ?? novaChaveLocal()}-${descricao ?? ''}`,
+    data,
+    titulo,
+    usuarioNome,
+    descricao,
+  }
+}
+
+function montarHistoricoRevisao({
+  municipios = [],
+  publicoAlvo = [],
+  historicoSessao = [],
+  usuarioNome,
+}) {
+  const itens = [...historicoSessao]
+
+  municipios.forEach((municipio) => {
+    const municipioUf = formatarMunicipioUf(municipio.nome, municipio.uf)
+
+    if (municipio.revisao_municipio_conferida_em) {
+      itens.push(
+        criarItemHistorico({
+          data: municipio.revisao_municipio_conferida_em,
+          titulo: `Município ${municipioUf} atualizado`,
+          usuarioNome,
+        })
+      )
+    }
+
+    if (municipio.localidades_conferidas_em) {
+      itens.push(
+        criarItemHistorico({
+          data: municipio.localidades_conferidas_em,
+          titulo: `Localidades de ${municipioUf} revisadas`,
+          usuarioNome,
+        })
+      )
+    }
+
+    if (municipio.obras_conferidas_em) {
+      itens.push(
+        criarItemHistorico({
+          data: municipio.obras_conferidas_em,
+          titulo: `Obras de ${municipioUf} revisadas`,
+          usuarioNome,
+        })
+      )
+    }
+  })
+
+  const publicoAlvoConferidoEm = dataConferenciaPublicoAlvo(publicoAlvo)
+  if (publicoAlvoConferidoEm) {
+    itens.push(
+      criarItemHistorico({
+        data: publicoAlvoConferidoEm,
+        titulo: 'População beneficiada revisada',
+        usuarioNome,
+      })
+    )
+  }
+
+  return itens
+    .filter((item) => item.titulo)
+    .sort((a, b) => {
+      const dataA = Date.parse(a.data)
+      const dataB = Date.parse(b.data)
+
+      if (Number.isNaN(dataA) || Number.isNaN(dataB)) return 0
+      return dataB - dataA
+    })
 }
 
 function dataConferenciaPublicoAlvo(publicoAlvo = []) {
@@ -362,6 +484,7 @@ function copiarMunicipios(municipios = []) {
 
 
 export default function RevisaoInstrumento() {
+  const { usuario } = useAuth()
   const [identificador, setIdentificador] = useState('')
   const [dadosBusca, setDadosBusca] = useState(null)
   const [idRevisao, setIdRevisao] = useState(null)
@@ -380,6 +503,9 @@ export default function RevisaoInstrumento() {
   const [edicoesPublicoAlvo, setEdicoesPublicoAlvo] = useState({})
   const [salvandoMunicipio, setSalvandoMunicipio] = useState({})
   const [erroMunicipio, setErroMunicipio] = useState({})
+  const [observacaoEmEdicao, setObservacaoEmEdicao] = useState(false)
+  const [rascunhoObservacaoGeral, setRascunhoObservacaoGeral] = useState('')
+  const [historicoSessao, setHistoricoSessao] = useState([])
 
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -387,15 +513,60 @@ export default function RevisaoInstrumento() {
   const [messageType, setMessageType] = useState('')
 
   const instrumento = dadosBusca?.instrumento ?? null
-  const temAlteracoesLocais =
-    revisaoTemAlteracoesLocais(municipios) || publicoAlvoTemAlteracoes(publicoAlvo)
-  const statusRevisaoPersistidoLabel =
-    dadosBusca?.status_revisao_geral_label ?? 'Revisão pendente'
-  const statusRevisaoGeralLabel =
-    temAlteracoesLocais && statusRevisaoPersistidoLabel === 'Revisão pendente'
-      ? 'Em revisão'
-      : statusRevisaoPersistidoLabel
+  const usuarioAtualNome = nomeUsuario(usuario)
+  const observacaoGeralTexto = observacaoGeral.trim()
+  const historicoRevisao = montarHistoricoRevisao({
+    municipios,
+    publicoAlvo,
+    historicoSessao,
+    usuarioNome: usuarioAtualNome,
+  })
 
+  const registrarEventoHistorico = (titulo, descricao) => {
+    setHistoricoSessao((current) => [
+      criarItemHistorico({
+        data: new Date().toISOString(),
+        titulo,
+        usuarioNome: usuarioAtualNome,
+        descricao,
+      }),
+      ...current,
+    ])
+  }
+
+  const abrirEdicaoObservacaoGeral = () => {
+    setRascunhoObservacaoGeral(observacaoGeral)
+    setObservacaoEmEdicao(true)
+  }
+
+  const aplicarObservacaoGeral = () => {
+    const textoAnterior = observacaoGeral.trim()
+    const textoAtual = rascunhoObservacaoGeral.trim()
+
+    setObservacaoGeral(rascunhoObservacaoGeral)
+    setObservacaoEmEdicao(false)
+
+    if (!textoAnterior && textoAtual) {
+      registrarEventoHistorico('Observação geral adicionada')
+    } else if (textoAnterior && textoAtual && textoAnterior !== textoAtual) {
+      registrarEventoHistorico('Observação geral editada')
+    }
+  }
+
+  const cancelarEdicaoObservacaoGeral = () => {
+    setRascunhoObservacaoGeral(observacaoGeral)
+    setObservacaoEmEdicao(false)
+  }
+
+  const removerObservacaoGeral = () => {
+    if (observacaoGeral.trim()) {
+      registrarEventoHistorico('Observação geral removida')
+    }
+
+    setObservacaoGeral('')
+    setRascunhoObservacaoGeral('')
+    setObservacaoEmEdicao(false)
+  }
   const buscarInstrumento = async (event) => {
     event.preventDefault()
 
@@ -423,12 +594,16 @@ export default function RevisaoInstrumento() {
     setEdicoesPublicoAlvo({})
     setSalvandoMunicipio({})
     setErroMunicipio({})
+    setObservacaoEmEdicao(false)
+    setRascunhoObservacaoGeral('')
+    setHistoricoSessao([])
 
     try {
       const data = await revisaoInstrumentoApi.buscarInstrumento(termo)
       setDadosBusca(data)
       setIdRevisao(data.id_revisao ?? null)
       setObservacaoGeral(data.observacao_geral ?? '')
+      setRascunhoObservacaoGeral(data.observacao_geral ?? '')
       setMunicipios(copiarMunicipios(data.municipios))
       setPublicoAlvo(copiarPublicoAlvo(data.publico_alvo))
     } catch (err) {
@@ -589,14 +764,6 @@ export default function RevisaoInstrumento() {
     setMessageType('')
   }
 
-  const removerMunicipioAdicionado = (index) => {
-    const municipioRemovido = municipios[index]
-    setMunicipios((current) => current.filter((_, municipioIndex) => municipioIndex !== index))
-    if (municipioAberto === municipioRemovido?.cod_municipio) {
-      setMunicipioAberto(null)
-    }
-  }
-
   const atualizarLocalidade = (codMunicipio, chave, campo, valor) => {
     setMunicipios((current) =>
       current.map((municipio) => {
@@ -712,22 +879,7 @@ export default function RevisaoInstrumento() {
             atualizada = {
               ...obra,
               relacao_instrumento: relacaoInstrumento,
-              confirmacao_status: normalizarConfirmacaoStatus(
-                relacaoInstrumento,
-                obra.confirmacao_status
-              ),
-              justificativa:
-                relacaoInstrumento === 'nao_analisada'
-                  ? ''
-                  : obra.justificativa,
-            }
-          } else if (campo === 'confirmacao_status') {
-            atualizada = {
-              ...obra,
-              confirmacao_status: normalizarConfirmacaoStatus(
-                obra.relacao_instrumento,
-                valor
-              ),
+              confirmacao_status: 'nao_confirmada',
             }
           } else {
             atualizada = { ...obra, [campo]: valor }
@@ -1108,7 +1260,7 @@ export default function RevisaoInstrumento() {
       setMessage(mensagem)
       setMessageType('error')
       if (propagarErro) {
-        throw new Error(mensagem)
+        throw new Error(mensagem, { cause: err })
       }
       return idRevisaoAtual
     } finally {
@@ -1165,6 +1317,12 @@ export default function RevisaoInstrumento() {
           : current
       )
       setPublicoAlvo(copiarPublicoAlvo(data.publico_alvo ?? publicoAlvo))
+      registrarEventoHistorico(
+        status === 'enviado' ? 'Revisão enviada' : 'Rascunho salvo',
+        status === 'enviado'
+          ? 'Revisão finalizada e enviada.'
+          : 'Todo o estado atual da revisão foi salvo.'
+      )
       setMessage(`${data.mensagem} ID da revisão: ${data.id_revisao}.`)
       setMessageType('success')
     } catch (err) {
@@ -1191,25 +1349,33 @@ export default function RevisaoInstrumento() {
 
         {instrumento && (
           <div className={styles.headerActions}>
-            <button
-              type="button"
-              className={styles.secondaryButton}
-              onClick={() => salvarRevisao('rascunho')}
-              disabled={isSaving}
-            >
-              <Save size={18} />
-              {isSaving ? 'Salvando...' : 'Salvar rascunho'}
-            </button>
+            <div className={styles.headerActionGroup}>
+              <Tooltip text="Salva o estado atual de toda a revisão.">
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() => salvarRevisao('rascunho')}
+                  disabled={isSaving}
+                >
+                  <Save size={18} />
+                  {isSaving ? 'Salvando...' : 'Salvar rascunho'}
+                </button>
+              </Tooltip>
+            </div>
 
-            <button
-              type="button"
-              className={styles.primaryButton}
-              onClick={() => salvarRevisao('enviado')}
-              disabled={isSaving}
-            >
-              <Send size={18} />
-              {isSaving ? 'Enviando...' : 'Enviar revisão'}
-            </button>
+            <div className={styles.headerActionGroup}>
+              <Tooltip text="Finaliza e envia a revisão.">
+                <button
+                  type="button"
+                  className={styles.primaryButton}
+                  onClick={() => salvarRevisao('enviado')}
+                  disabled={isSaving}
+                >
+                  <Send size={18} />
+                  {isSaving ? 'Enviando...' : 'Enviar revisão'}
+                </button>
+              </Tooltip>
+            </div>
           </div>
         )}
       </header>
@@ -1243,17 +1409,6 @@ export default function RevisaoInstrumento() {
 
           {instrumento && (
             <>
-              <section className={styles.statusPanel} aria-label="Status geral da revisão">
-                <div>
-                  <span>Status geral</span>
-                  <strong>{statusRevisaoGeralLabel}</strong>
-                </div>
-
-                {temAlteracoesLocais && (
-                  <span className={styles.unsavedChip}>Alterações não salvas</span>
-                )}
-              </section>
-
               <button
                 type="button"
                 className={`${styles.secondaryButton} ${styles.addMunicipioToggle}`}
@@ -1395,7 +1550,7 @@ export default function RevisaoInstrumento() {
                     Nenhum município encontrado para este instrumento.
                   </div>
                 ) : (
-                  municipios.map((municipio, municipioIndex) => {
+                  municipios.map((municipio) => {
                     const formLocalidade =
                       novaLocalidadePorMunicipio[municipio.cod_municipio] ??
                       LOCALIDADE_NOVA_INICIAL
@@ -1405,6 +1560,9 @@ export default function RevisaoInstrumento() {
                     )
 
                     const isAberto = municipioAberto === municipio.cod_municipio
+                    const mostrarConfirmacao = municipio.obras_saneamento.some(
+                      (obra) => obra.relacao_instrumento !== 'nao_analisada'
+                    )
 
                     return (
                       <article
@@ -1435,9 +1593,6 @@ export default function RevisaoInstrumento() {
                               <div className={styles.summaryMeta}>
                                 <span className={styles.statusChip}>
                                   {statusVisualMunicipio(municipio)}
-                                </span>
-                                <span>
-                                  Ação: {getLabelAcaoMunicipio(municipio.acao_sugerida)}
                                 </span>
                                 <span>{municipio.localidades.length} localidade(s)</span>
                                 <span>{municipio.obras_saneamento.length} outra(s) obra(s)</span>
@@ -1570,7 +1725,7 @@ export default function RevisaoInstrumento() {
                                         </td>
                                       </tr>
                                     ) : (
-                                      municipio.localidades.map((localidade, localidadeIndex) => {
+                                      municipio.localidades.map((localidade) => {
                                         const isAdicionada =
                                           localidade.origem_registro === 'adicionado_tecnico'
                                         const isCorrigir =
@@ -1832,12 +1987,20 @@ export default function RevisaoInstrumento() {
                                 </div>
 
                                 <div className={styles.tableScroller}>
-                                  <table className={`${styles.table} ${styles.obrasTable}`}>
+                                  <table
+                                    className={`${styles.table} ${styles.obrasTable} ${
+                                      mostrarConfirmacao
+                                        ? styles.obrasTableComConfirmacao
+                                        : styles.obrasTableSemConfirmacao
+                                    }`}
+                                  >
                                     <colgroup>
                                       <col className={styles.colObra} />
                                       <col className={styles.colOrgao} />
                                       <col className={styles.colRelacao} />
-                                      <col className={styles.colConfirmacao} />
+                                      {mostrarConfirmacao && (
+                                        <col className={styles.colConfirmacao} />
+                                      )}
                                       <col className={styles.colObservacao} />
                                       <col className={styles.colLinks} />
                                     </colgroup>
@@ -1845,8 +2008,8 @@ export default function RevisaoInstrumento() {
                                       <tr>
                                         <th className={styles.colunaObra}>Obra</th>
                                         <th>Órgão Responsável</th>
-                                        <th>Relação com o Instrumento</th>
-                                        <th>Confirmação de Status</th>
+                                        <th>Avaliação</th>
+                                        {mostrarConfirmacao && <th>Confirmação</th>}
                                         <th>Observação</th>
                                         <th>Links</th>
                                       </tr>
@@ -1855,7 +2018,10 @@ export default function RevisaoInstrumento() {
                                     <tbody>
                                       {municipio.obras_saneamento.length === 0 ? (
                                         <tr>
-                                          <td colSpan={6} className={styles.emptyCell}>
+                                          <td
+                                            colSpan={mostrarConfirmacao ? 6 : 5}
+                                            className={styles.emptyCell}
+                                          >
                                             Nenhuma obra encontrada.
                                           </td>
                                         </tr>
@@ -1894,29 +2060,39 @@ export default function RevisaoInstrumento() {
                                                   ))}
                                                 </select>
                                               </td>
-                                              <td>
-                                                {obra.relacao_instrumento === 'nao_analisada' ? (
-                                                  valorOuTraco(null)
-                                                ) : (
-                                                  <select
-                                                    value={obra.confirmacao_status ?? 'nao_confirmada'}
-                                                    onChange={(event) => 
-                                                      atualizarObra(
-                                                        municipio.cod_municipio,
-                                                        obra.id_obra,
-                                                        'confirmacao_status',
-                                                        event.target.value
-                                                      )
-                                                    }
-                                                  >
-                                                    {CONFIRMACOES_STATUS.map((confirmacao) => (
-                                                      <option key={confirmacao.value} value={confirmacao.value}>
-                                                        {confirmacao.label}
-                                                      </option>
-                                                    ))}
-                                                  </select>
-                                                )}
-                                              </td>
+                                              {mostrarConfirmacao && (
+                                                <td>
+                                                  {obra.relacao_instrumento ===
+                                                  'nao_analisada' ? (
+                                                    <span className={styles.confirmacaoNeutra}>
+                                                      —
+                                                    </span>
+                                                  ) : (
+                                                    <select
+                                                      value={obra.confirmacao_status}
+                                                      onChange={(event) =>
+                                                        atualizarObra(
+                                                          municipio.cod_municipio,
+                                                          obra.id_obra,
+                                                          'confirmacao_status',
+                                                          event.target.value
+                                                        )
+                                                      }
+                                                    >
+                                                      {confirmacoesPermitidas(
+                                                        obra.relacao_instrumento
+                                                      ).map((confirmacao) => (
+                                                        <option
+                                                          key={confirmacao.value}
+                                                          value={confirmacao.value}
+                                                        >
+                                                          {confirmacao.label}
+                                                        </option>
+                                                      ))}
+                                                    </select>
+                                                  )}
+                                                </td>
+                                              )}
                                               <td>
                                                 {mostrarJustificativaObra ? (
                                                   <div className={styles.justificativaAberta}>
@@ -1999,20 +2175,22 @@ export default function RevisaoInstrumento() {
                             )}
 
                             <div className={styles.municipioFooterActions}>
-                              <button
-                                type="button"
-                                className={styles.municipioSaveButton}
-                                disabled={
-                                  salvandoMunicipio[municipio.cod_municipio] ||
-                                  !municipioTemAlteracoes(municipio)
-                                }
-                                onClick={() => salvarMunicipio(municipio)}
-                              >
-                                <Save size={16} />
-                                {salvandoMunicipio[municipio.cod_municipio]
-                                  ? 'Salvando...'
-                                  : 'Salvar alterações do município'}
-                              </button>
+                              <Tooltip text="Salva apenas as alterações deste município.">
+                                <button
+                                  type="button"
+                                  className={styles.municipioSaveButton}
+                                  disabled={
+                                    salvandoMunicipio[municipio.cod_municipio] ||
+                                    !municipioTemAlteracoes(municipio)
+                                  }
+                                  onClick={() => salvarMunicipio(municipio)}
+                                >
+                                  <Save size={16} />
+                                  {salvandoMunicipio[municipio.cod_municipio]
+                                    ? 'Salvando...'
+                                    : 'Salvar este município'}
+                                </button>
+                              </Tooltip>
                             </div>
                           </div>
                         )}
@@ -2299,16 +2477,119 @@ export default function RevisaoInstrumento() {
 
             <section className={styles.panel}>
               <div className={styles.panelHeader}>
-                <h2>Observação geral</h2>
+                <h2>Observação geral do instrumento</h2>
               </div>
 
-              <textarea
-                className={styles.textarea}
-                value={observacaoGeral}
-                onChange={(event) => setObservacaoGeral(event.target.value)}
-                rows={4}
-                placeholder="Registre observações gerais da revisão."
-              />
+              {observacaoEmEdicao ? (
+                <div className={styles.observacaoEditor}>
+                  <textarea
+                    className={styles.textarea}
+                    value={rascunhoObservacaoGeral}
+                    onChange={(event) =>
+                      setRascunhoObservacaoGeral(event.target.value)
+                    }
+                    rows={4}
+                    placeholder="Registre observações gerais da revisão."
+                  />
+
+                  <div className={styles.acoesRevisaoInline}>
+                    <button type="button" onClick={aplicarObservacaoGeral}>
+                      Aplicar
+                    </button>
+                    <button type="button" onClick={cancelarEdicaoObservacaoGeral}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.observacaoResumo}>
+                  {observacaoGeralTexto ? (
+                    <>
+                      <p>{observacaoGeralTexto}</p>
+                      <div
+                        className={styles.acaoTextualInline}
+                        aria-label="Ações da observação geral"
+                      >
+                        <span className={styles.acaoTextualItem}>
+                          <button
+                            type="button"
+                            className={styles.acaoTextualButton}
+                            onClick={abrirEdicaoObservacaoGeral}
+                          >
+                            Editar
+                          </button>
+                        </span>
+                        <span
+                          className={styles.acaoTextualSeparator}
+                          aria-hidden="true"
+                        >
+                          |
+                        </span>
+                        <span className={styles.acaoTextualItem}>
+                          <button
+                            type="button"
+                            className={styles.acaoTextualButton}
+                            onClick={removerObservacaoGeral}
+                          >
+                            Remover
+                          </button>
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className={styles.emptyObservation}>Ainda não cadastrada.</p>
+                      <div
+                        className={styles.acaoTextualInline}
+                        aria-label="Ações da observação geral"
+                      >
+                        <span className={styles.acaoTextualItem}>
+                          <button
+                            type="button"
+                            className={styles.acaoTextualButton}
+                            onClick={abrirEdicaoObservacaoGeral}
+                          >
+                            Inserir
+                          </button>
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </section>
+
+            <section className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <h2>Histórico da revisão</h2>
+              </div>
+
+              {historicoRevisao.length > 0 ? (
+                <ol className={styles.timelineList}>
+                  {historicoRevisao.map((item) => {
+                    const hora = formatarHoraHistorico(item.data)
+
+                    return (
+                      <li className={styles.timelineItem} key={item.id}>
+                        <span className={styles.timelineDate}>
+                          {formatarDataHistorico(item.data)}
+                        </span>
+                        <strong>{item.titulo}</strong>
+                        {(item.usuarioNome || hora) && (
+                          <span className={styles.timelineMeta}>
+                            {[item.usuarioNome, hora].filter(Boolean).join(' • ')}
+                          </span>
+                        )}
+                        {item.descricao && <p>{item.descricao}</p>}
+                      </li>
+                    )
+                  })}
+                </ol>
+              ) : (
+                <p className={styles.emptyObservation}>
+                  Ainda não há eventos registrados para esta revisão.
+                </p>
+              )}
             </section>
           </aside>
         )}

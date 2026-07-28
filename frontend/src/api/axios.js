@@ -1,5 +1,10 @@
 import axios from 'axios'
-import { clearAuthSession, getAuthToken, notifyAuthLogout } from '@/context/auth/authStorage'
+import {
+  clearAuthSession,
+  getAuthToken,
+  notifyAuthLogout,
+  requestAuthLogin,
+} from '@/context/auth/authStorage'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
@@ -33,9 +38,7 @@ api.interceptors.response.use(
 
       const currentPath = `${window.location.pathname}${window.location.search}`
 
-      if (window.location.pathname !== '/login') {
-        window.location.assign(`/login?redirect=${encodeURIComponent(currentPath)}`)
-      }
+      requestAuthLogin(currentPath)
     }
 
     // Futuramente, substituir os console.error por toasts da UI (ex: sonner / useToast)

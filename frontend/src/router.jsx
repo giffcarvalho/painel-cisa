@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react'
 import { Loader2 } from 'lucide-react'
 import AppLayout from '@/components/layout/AppLayout'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
+import AuthModalLayout from '@/components/auth/AuthModalLayout'
 import Home from '@/pages/home/Home'
 import CarteiraDsr from '@/pages/carteira-dsr/CarteiraDsr'
 import ManualLayout from './pages/manual/ManualLayout'
@@ -31,70 +32,51 @@ function MapaLoading() {
 
 export const router = createBrowserRouter([
   {
-    path: '/',
-    element: <Home />,
-  },
-  {
-    element: <AppLayout />,
+    element: <AuthModalLayout />,
     children: [
       {
-        path: 'login',
-        element: <Login />,
+        path: '/',
+        element: <Home />,
       },
       {
-        path: 'carteira-dsr',
-        element: <CarteiraDsr />,
-      },
-      {
-        path: 'pesquisa-instrumento',
-        element: <PesquisaInstrumento />,
-      },
-      {
-        path: 'consulta-personalizada',
-        element: <ConsultaPersonalizada />,
-      },
-      {
-        path: 'revisao-instrumento',
-        element: (
-          <ProtectedRoute>
-            <RevisaoInstrumento />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'manual',
-        element: <ManualLayout />,
+        element: <AppLayout />,
         children: [
+          { path: 'login', element: <Login /> },
+          { path: 'carteira-dsr', element: <CarteiraDsr /> },
+          { path: 'pesquisa-instrumento', element: <PesquisaInstrumento /> },
+          { path: 'consulta-personalizada', element: <ConsultaPersonalizada /> },
           {
-            index: true,
-            element: <ManualHome />,
+            path: 'revisao-instrumento',
+            element: (
+              <ProtectedRoute>
+                <RevisaoInstrumento />
+              </ProtectedRoute>
+            ),
           },
           {
-            path: 'carteira-dsr',
-            element: <ManualCarteiraDsr />,
-          },
-          {
-            path: 'mapa-interativo',
-            element: <ManualMapaInterativo />,
-          },
-          {
-            path: 'informacoes-gerais',
-            element: <ManualInformacoesGerais />,
+            path: 'manual',
+            element: <ManualLayout />,
+            children: [
+              { index: true, element: <ManualHome /> },
+              { path: 'carteira-dsr', element: <ManualCarteiraDsr /> },
+              { path: 'mapa-interativo', element: <ManualMapaInterativo /> },
+              { path: 'informacoes-gerais', element: <ManualInformacoesGerais /> },
+            ],
           },
         ],
       },
-    ],
-  },
-  {
-    element: <MapLayout />,
-    children: [
       {
-        path: 'mapa',
-        element: (
-          <Suspense fallback={<MapaLoading />}>
-            <Mapa />
-          </Suspense>
-        ),
+        element: <MapLayout />,
+        children: [
+          {
+            path: 'mapa',
+            element: (
+              <Suspense fallback={<MapaLoading />}>
+                <Mapa />
+              </Suspense>
+            ),
+          },
+        ],
       },
     ],
   },

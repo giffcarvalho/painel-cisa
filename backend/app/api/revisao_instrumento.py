@@ -4,7 +4,7 @@ import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import bindparam, text
+from sqlalchemy import BigInteger, bindparam, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -59,6 +59,12 @@ async def _execute_query(db: AsyncSession, sql: str, params: dict | None = None)
             status_code=500,
             detail="Erro interno ao consultar dados da revisão de instrumento.",
         )
+
+
+def _localidade_text(sql: str):
+    return text(sql).bindparams(
+        bindparam("cod_comunidade_rural", type_=BigInteger)
+    )
 
 
 def _normalizar_tipo(tipo_view: str | None, tipo_por_tabela: str | None) -> str | None:
@@ -121,8 +127,8 @@ def _label_status_revisao(status_revisao: str) -> str:
     return STATUS_REVISAO_LABELS.get(status_revisao, STATUS_REVISAO_LABELS["pendente"])
 
 
-def _item_tem_conferencia(acao: str | None, conferido_em) -> bool:
-    return bool(acao and acao != "nao_analisada" and conferido_em)
+def _item_tem_conferencia(acao: str | None) -> bool:
+    return bool(acao and acao != "nao_analisada")
 
 
 def _grupo_municipio_conferido(municipios: list[MunicipioRevisaoItem]) -> bool:
@@ -130,10 +136,7 @@ def _grupo_municipio_conferido(municipios: list[MunicipioRevisaoItem]) -> bool:
         return False
 
     return all(
-        _item_tem_conferencia(
-            municipio.acao_sugerida,
-            municipio.revisao_municipio_conferida_em,
-        )
+        _item_tem_conferencia(municipio.acao_sugerida)
         for municipio in municipios
     )
 
@@ -152,7 +155,7 @@ def _grupo_localidades_conferido(
         return None
 
     return all(
-        _item_tem_conferencia(localidade.acao_sugerida, localidade.conferido_em)
+        _item_tem_conferencia(localidade.acao_sugerida)
         for localidade in localidades
     )
 
@@ -168,7 +171,7 @@ def _grupo_obras_conferido(municipios: list[MunicipioRevisaoItem]) -> bool | Non
         return None
 
     return all(
-        _item_tem_conferencia(obra.relacao_instrumento, obra.conferido_em)
+        _item_tem_conferencia(obra.relacao_instrumento)
         for obra in obras
     )
 
@@ -495,7 +498,7 @@ async def _buscar_obras_saneamento(
             link_transferegov=row["link_transferegov"],
             link_obrasgov=row["link_obrasgov"],
             relacao_instrumento="nao_analisada",
-            confirmacao_status=None,
+            confirmacao_status="nao_confirmada",
         )
         for row in result.mappings().all()
     ]
@@ -820,33 +823,13 @@ async def _buscar_datas_agregadas(
     id_revisao: int,
     cod_municipio: int,
 ) -> dict:
-    result = await db.execute(
-        text(
-            """
-        SELECT
-            (
-                SELECT MAX(rm.conferido_em)
-                FROM painel_dsr.tb_revisao_instrumento_municipio rm
-                WHERE rm.id_revisao = :id_revisao
-                  AND rm.cod_municipio = :cod_municipio
-            ) AS revisao_municipio_conferida_em,
-            (
-                SELECT MAX(rl.conferido_em)
-                FROM painel_dsr.tb_revisao_instrumento_localidade rl
-                WHERE rl.id_revisao = :id_revisao
-                  AND rl.cod_municipio = :cod_municipio
-            ) AS localidades_conferidas_em,
-            (
-                SELECT MAX(ro.conferido_em)
-                FROM painel_dsr.tb_revisao_obra_saneamento ro
-                WHERE ro.id_revisao = :id_revisao
-                  AND ro.cod_municipio = :cod_municipio
-            ) AS obras_conferidas_em
-        """
-        ),
-        {"id_revisao": id_revisao, "cod_municipio": cod_municipio},
-    )
-    return dict(result.mappings().one())
+    # As tabelas de município, localidade e obra não possuem datas de
+    # conferência. O contrato mantém os campos opcionais como nulos.
+    return {
+        "revisao_municipio_conferida_em": None,
+        "localidades_conferidas_em": None,
+        "obras_conferidas_em": None,
+    }
 
 
 async def _carregar_revisao_salva(
@@ -860,8 +843,7 @@ async def _carregar_revisao_salva(
             cod_municipio,
             origem_registro,
             acao_sugerida,
-            justificativa,
-            conferido_em
+            justificativa
         FROM painel_dsr.tb_revisao_instrumento_municipio
         WHERE id_revisao = :id_revisao
         """,
@@ -880,8 +862,7 @@ async def _carregar_revisao_salva(
             acao_sugerida,
             qtde_familias_ben_original,
             qtde_familias_ben_sugerida,
-            justificativa,
-            conferido_em
+            justificativa
         FROM painel_dsr.tb_revisao_instrumento_localidade
         WHERE id_revisao = :id_revisao
         """,
@@ -901,51 +882,9 @@ async def _carregar_revisao_salva(
             link_obrasgov,
             relacao_instrumento,
             confirmacao_status,
-            justificativa,
-            conferido_em
+            justificativa
         FROM painel_dsr.tb_revisao_obra_saneamento ro
         WHERE ro.id_revisao = :id_revisao
-        """,
-        {"id_revisao": id_revisao},
-    )
-
-    datas_result = await _execute_query(
-        db,
-        """
-        SELECT
-            cod_municipio,
-            MAX(revisao_municipio_conferida_em) AS revisao_municipio_conferida_em,
-            MAX(localidades_conferidas_em) AS localidades_conferidas_em,
-            MAX(obras_conferidas_em) AS obras_conferidas_em
-        FROM (
-            SELECT
-                cod_municipio,
-                MAX(conferido_em) AS revisao_municipio_conferida_em,
-                NULL::timestamp AS localidades_conferidas_em,
-                NULL::timestamp AS obras_conferidas_em
-            FROM painel_dsr.tb_revisao_instrumento_municipio
-            WHERE id_revisao = :id_revisao
-            GROUP BY cod_municipio
-            UNION ALL
-            SELECT
-                cod_municipio,
-                NULL::timestamp,
-                MAX(conferido_em),
-                NULL::timestamp
-            FROM painel_dsr.tb_revisao_instrumento_localidade
-            WHERE id_revisao = :id_revisao
-            GROUP BY cod_municipio
-            UNION ALL
-            SELECT
-                cod_municipio,
-                NULL::timestamp,
-                NULL::timestamp,
-                MAX(conferido_em)
-            FROM painel_dsr.tb_revisao_obra_saneamento
-            WHERE id_revisao = :id_revisao
-            GROUP BY cod_municipio
-        ) datas
-        GROUP BY cod_municipio
         """,
         {"id_revisao": id_revisao},
     )
@@ -956,7 +895,7 @@ async def _carregar_revisao_salva(
     }
     localidades = [dict(row) for row in localidades_result.mappings().all()]
     obras = [dict(row) for row in obras_result.mappings().all()]
-    datas = {row["cod_municipio"]: dict(row) for row in datas_result.mappings().all()}
+    datas: dict[int, dict] = {}
 
     return municipios, localidades, obras, datas
 
@@ -986,23 +925,6 @@ def _chave_localidade(localidade: LocalidadeRevisaoItem | dict) -> tuple:
 
 def _chave_obra(obra: ObraSaneamentoRevisaoItem | dict) -> str:
     return str(obra.get("id_obra") if isinstance(obra, dict) else obra.id_obra)
-
-
-def _normalizar_confirmacao_backend(
-    relacao_instrumento: str | None,
-    confirmacao_status: str | None,
-) -> str | None:
-    if relacao_instrumento in (None, "nao_analisada"):
-        return None
-
-    if confirmacao_status in {
-        "nao_confirmada",
-        "sem_conflito",
-        "sobreposicao_confirmada",
-    }:
-        return confirmacao_status
-
-    return "nao_confirmada"
 
 
 def _normalizar_id_obra_banco(id_obra: str) -> int | str:
@@ -1054,6 +976,7 @@ async def _persistir_municipio_revisao(
     localidades_salvas: list[LocalidadeRevisaoItem] = []
     obras_salvas: list[ObraSaneamentoRevisaoItem] = []
 
+    db.info["grupo_salvamento_revisao"] = "municipio"
     if municipio is not None:
         update_result = await db.execute(
             text(
@@ -1062,11 +985,10 @@ async def _persistir_municipio_revisao(
                 SET
                     origem_registro = :origem_registro,
                     acao_sugerida = :acao_sugerida,
-                    justificativa = :justificativa,
-                    conferido_em = NOW()
+                    justificativa = :justificativa
                 WHERE id_revisao = :id_revisao
                   AND cod_municipio = :cod_municipio
-                RETURNING conferido_em
+                RETURNING id_revisao_municipio
                 """
             ),
             {
@@ -1087,16 +1009,14 @@ async def _persistir_municipio_revisao(
                         cod_municipio,
                         origem_registro,
                         acao_sugerida,
-                        justificativa,
-                        conferido_em
+                        justificativa
                     )
                     VALUES (
                         :id_revisao,
                         :cod_municipio,
                         :origem_registro,
                         :acao_sugerida,
-                        :justificativa,
-                        NOW()
+                        :justificativa
                     )
                     """
                 ),
@@ -1109,6 +1029,7 @@ async def _persistir_municipio_revisao(
                 },
             )
 
+    db.info["grupo_salvamento_revisao"] = "localidades"
     for localidade in localidades:
         if not _localidade_identificada(localidade):
             raise HTTPException(
@@ -1149,11 +1070,10 @@ async def _persistir_municipio_revisao(
                     acao_sugerida = :acao_sugerida,
                     qtde_familias_ben_original = :qtde_familias_ben_original,
                     qtde_familias_ben_sugerida = :qtde_familias_ben_sugerida,
-                    justificativa = :justificativa,
-                    conferido_em = NOW()
+                    justificativa = :justificativa
                 WHERE id_revisao = :id_revisao
                   AND id_revisao_localidade = :id_revisao_localidade
-                RETURNING id_revisao_localidade, conferido_em
+                RETURNING id_revisao_localidade
             """
         else:
             update_sql = """
@@ -1164,26 +1084,25 @@ async def _persistir_municipio_revisao(
                     acao_sugerida = :acao_sugerida,
                     qtde_familias_ben_original = :qtde_familias_ben_original,
                     qtde_familias_ben_sugerida = :qtde_familias_ben_sugerida,
-                    justificativa = :justificativa,
-                    conferido_em = NOW()
+                    justificativa = :justificativa
                 WHERE id_revisao = :id_revisao
                   AND cod_municipio = :cod_municipio
                   AND (
                     (
-                        CAST(:cod_comunidade_rural AS integer) IS NOT NULL
-                        AND cod_comunidade_rural = CAST(:cod_comunidade_rural AS integer)
+                        CAST(:cod_comunidade_rural AS bigint) IS NOT NULL
+                        AND cod_comunidade_rural = CAST(:cod_comunidade_rural AS bigint)
                     )
                     OR (
-                        CAST(:cod_comunidade_rural AS integer) IS NULL
+                        CAST(:cod_comunidade_rural AS bigint) IS NULL
                         AND cod_comunidade_rural IS NULL
                         AND COALESCE(nome_localidade_informada, '') =
                             COALESCE(:nome_localidade_informada, '')
                     )
                   )
-                RETURNING id_revisao_localidade, conferido_em
+                RETURNING id_revisao_localidade
             """
 
-        update_result = await db.execute(text(update_sql), params)
+        update_result = await db.execute(_localidade_text(update_sql), params)
         localidade_row = update_result.mappings().one_or_none()
 
         if (
@@ -1197,7 +1116,7 @@ async def _persistir_municipio_revisao(
 
         if localidade_row is None:
             insert_result = await db.execute(
-                text(
+                _localidade_text(
                     """
                     INSERT INTO painel_dsr.tb_revisao_instrumento_localidade (
                         id_revisao,
@@ -1208,8 +1127,7 @@ async def _persistir_municipio_revisao(
                         acao_sugerida,
                         qtde_familias_ben_original,
                         qtde_familias_ben_sugerida,
-                        justificativa,
-                        conferido_em
+                        justificativa
                     )
                     VALUES (
                         :id_revisao,
@@ -1220,10 +1138,9 @@ async def _persistir_municipio_revisao(
                         :acao_sugerida,
                         :qtde_familias_ben_original,
                         :qtde_familias_ben_sugerida,
-                        :justificativa,
-                        NOW()
+                        :justificativa
                     )
-                    RETURNING id_revisao_localidade, conferido_em
+                    RETURNING id_revisao_localidade
                     """
                 ),
                 params,
@@ -1242,14 +1159,12 @@ async def _persistir_municipio_revisao(
                 id_revisao_localidade=localidade_row["id_revisao_localidade"],
                 cod_municipio=cod_localidade_municipio,
                 nome_localidade_informada=nome_informado,
-                conferido_em=localidade_row["conferido_em"],
             )
         )
 
+    db.info["grupo_salvamento_revisao"] = "obras"
     for obra in obras_saneamento:
         cod_obra_municipio = obra.cod_municipio or cod_municipio
-        relacao = obra.relacao_instrumento or "nao_analisada"
-        confirmacao = _normalizar_confirmacao_backend(relacao, obra.confirmacao_status)
         params = {
             "id_revisao": id_revisao,
             "cod_municipio": cod_obra_municipio,
@@ -1260,8 +1175,8 @@ async def _persistir_municipio_revisao(
             "orgao": obra.orgao,
             "link_transferegov": obra.link_transferegov,
             "link_obrasgov": obra.link_obrasgov,
-            "relacao_instrumento": relacao,
-            "confirmacao_status": confirmacao,
+            "relacao_instrumento": obra.relacao_instrumento,
+            "confirmacao_status": obra.confirmacao_status,
             "justificativa": obra.justificativa,
         }
 
@@ -1276,14 +1191,10 @@ async def _persistir_municipio_revisao(
                     link_obrasgov = :link_obrasgov,
                     relacao_instrumento = :relacao_instrumento,
                     confirmacao_status = :confirmacao_status,
-                    justificativa = :justificativa,
-                    conferido_em = CASE
-                        WHEN :relacao_instrumento = 'nao_analisada' THEN NULL
-                        ELSE NOW()
-                    END
+                    justificativa = :justificativa
                 WHERE id_revisao = :id_revisao
                   AND id_revisao_obra = :id_revisao_obra
-                RETURNING id_revisao_obra, conferido_em
+                RETURNING id_revisao_obra
             """
         else:
             update_sql = """
@@ -1295,15 +1206,11 @@ async def _persistir_municipio_revisao(
                     link_obrasgov = :link_obrasgov,
                     relacao_instrumento = :relacao_instrumento,
                     confirmacao_status = :confirmacao_status,
-                    justificativa = :justificativa,
-                    conferido_em = CASE
-                        WHEN :relacao_instrumento = 'nao_analisada' THEN NULL
-                        ELSE NOW()
-                    END
+                    justificativa = :justificativa
                 WHERE id_revisao = :id_revisao
                   AND cod_municipio = :cod_municipio
                   AND id_obra::text = :id_obra_texto
-                RETURNING id_revisao_obra, conferido_em
+                RETURNING id_revisao_obra
             """
 
         update_result = await db.execute(text(update_sql), params)
@@ -1329,8 +1236,7 @@ async def _persistir_municipio_revisao(
                         link_obrasgov,
                         relacao_instrumento,
                         confirmacao_status,
-                        justificativa,
-                        conferido_em
+                        justificativa
                     )
                     VALUES (
                         :id_revisao,
@@ -1342,13 +1248,9 @@ async def _persistir_municipio_revisao(
                         :link_obrasgov,
                         :relacao_instrumento,
                         :confirmacao_status,
-                        :justificativa,
-                        CASE
-                            WHEN :relacao_instrumento = 'nao_analisada' THEN NULL
-                            ELSE NOW()
-                        END
+                        :justificativa
                     )
-                    RETURNING id_revisao_obra, conferido_em
+                    RETURNING id_revisao_obra
                     """
                 ),
                 params,
@@ -1373,9 +1275,8 @@ async def _persistir_municipio_revisao(
                 ),
                 id_revisao_obra=obra_row["id_revisao_obra"],
                 cod_municipio=cod_obra_municipio,
-                relacao_instrumento=relacao,
-                confirmacao_status=confirmacao,
-                conferido_em=obra_row["conferido_em"],
+                relacao_instrumento=obra.relacao_instrumento,
+                confirmacao_status=obra.confirmacao_status,
             )
         )
 
@@ -1395,6 +1296,7 @@ async def _persistir_publico_alvo(
     instrumento: InstrumentoRevisaoInfo,
     itens: list[PublicoAlvoRevisaoAlteracao],
 ) -> list[PublicoAlvoRevisaoItem]:
+    db.info["grupo_salvamento_revisao"] = "publico-alvo"
     if not itens:
         return await _buscar_publico_alvo(db, instrumento, id_revisao)
 
@@ -1598,7 +1500,6 @@ async def _montar_resposta_busca(
             qtde_familias_ben_original=localidade_salva["qtde_familias_ben_original"],
             qtde_familias_ben_sugerida=localidade_salva["qtde_familias_ben_sugerida"],
             justificativa=localidade_salva["justificativa"],
-            conferido_em=localidade_salva["conferido_em"],
         )
         chave_salva = _chave_localidade(item_salvo)
         indice_existente = next(
@@ -1623,7 +1524,6 @@ async def _montar_resposta_busca(
                     "acao_sugerida": item_salvo.acao_sugerida,
                     "qtde_familias_ben_sugerida": item_salvo.qtde_familias_ben_sugerida,
                     "justificativa": item_salvo.justificativa,
-                    "conferido_em": item_salvo.conferido_em,
                 }
             )
 
@@ -1655,7 +1555,6 @@ async def _montar_resposta_busca(
             municipios.append(municipio)
             municipios_por_codigo[cod_municipio] = municipio
 
-        relacao = obra_salva["relacao_instrumento"] or "nao_analisada"
         item_salvo = ObraSaneamentoRevisaoItem(
             id_revisao_obra=obra_salva["id_revisao_obra"],
             id_obra=obra_salva["id_obra"],
@@ -1664,13 +1563,9 @@ async def _montar_resposta_busca(
             orgao=obra_salva["orgao"],
             link_transferegov=obra_salva["link_transferegov"],
             link_obrasgov=obra_salva["link_obrasgov"],
-            relacao_instrumento=relacao,
-            confirmacao_status=_normalizar_confirmacao_backend(
-                relacao,
-                obra_salva["confirmacao_status"],
-            ),
+            relacao_instrumento=obra_salva["relacao_instrumento"] or "nao_analisada",
+            confirmacao_status=obra_salva["confirmacao_status"] or "nao_confirmada",
             justificativa=obra_salva["justificativa"],
-            conferido_em=obra_salva["conferido_em"],
         )
         chave_salva = _chave_obra(item_salvo)
         indice_existente = next(
@@ -1693,7 +1588,6 @@ async def _montar_resposta_busca(
                     "relacao_instrumento": item_salvo.relacao_instrumento,
                     "confirmacao_status": item_salvo.confirmacao_status,
                     "justificativa": item_salvo.justificativa,
-                    "conferido_em": item_salvo.conferido_em,
                 }
             )
 
@@ -1763,6 +1657,7 @@ async def salvar_revisao_instrumento(
     instrumento = payload.instrumento
 
     try:
+        db.info["grupo_salvamento_revisao"] = "revisao"
         revisao = await _obter_ou_criar_revisao(
             db,
             instrumento,
@@ -1824,9 +1719,33 @@ async def salvar_revisao_instrumento(
             publico_alvo=publico_alvo_salvo,
         )
 
+    except HTTPException:
+        await db.rollback()
+        raise
+
     except SQLAlchemyError as exc:
         await db.rollback()
-        logger.exception("Erro ao salvar revisão de instrumento: %s", exc)
+        logger.exception(
+            "Erro ao salvar revisão de instrumento: tipo_excecao=%s grupo=%s "
+            "id_revisao=%s",
+            type(exc).__name__,
+            db.info.get("grupo_salvamento_revisao", "revisao"),
+            payload.id_revisao,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao salvar a revisão de instrumento.",
+        )
+
+    except Exception as exc:
+        await db.rollback()
+        logger.exception(
+            "Erro inesperado ao salvar revisão de instrumento: "
+            "tipo_excecao=%s grupo=%s id_revisao=%s",
+            type(exc).__name__,
+            db.info.get("grupo_salvamento_revisao", "revisao"),
+            payload.id_revisao,
+        )
         raise HTTPException(
             status_code=500,
             detail="Erro interno ao salvar a revisão de instrumento.",
@@ -1856,6 +1775,7 @@ async def salvar_municipio_revisao(
         )
 
     try:
+        db.info["grupo_salvamento_revisao"] = "revisao"
         revisao = await _obter_ou_criar_revisao(
             db,
             payload.instrumento,
@@ -1898,8 +1818,10 @@ async def salvar_municipio_revisao(
         await db.rollback()
         logger.exception(
             "Erro ao salvar município da revisão: tipo_excecao=%s "
-            "id_revisao=%s cod_municipio=%s qtd_localidades=%s qtd_obras=%s",
+            "grupo=%s id_revisao=%s cod_municipio=%s "
+            "qtd_localidades=%s qtd_obras=%s",
             type(exc).__name__,
+            db.info.get("grupo_salvamento_revisao", "desconhecido"),
             id_revisao_log,
             payload.cod_municipio,
             len(payload.localidades),
@@ -1914,8 +1836,10 @@ async def salvar_municipio_revisao(
         await db.rollback()
         logger.exception(
             "Erro inesperado ao salvar município da revisão: tipo_excecao=%s "
-            "id_revisao=%s cod_municipio=%s qtd_localidades=%s qtd_obras=%s",
+            "grupo=%s id_revisao=%s cod_municipio=%s "
+            "qtd_localidades=%s qtd_obras=%s",
             type(exc).__name__,
+            db.info.get("grupo_salvamento_revisao", "desconhecido"),
             id_revisao_log,
             payload.cod_municipio,
             len(payload.localidades),

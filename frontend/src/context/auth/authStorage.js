@@ -1,6 +1,7 @@
 export const AUTH_TOKEN_KEY = 'dsr_access_token'
 export const AUTH_USER_KEY = 'dsr_usuario'
 export const AUTH_LOGOUT_EVENT = 'dsr-auth:logout'
+export const AUTH_LOGIN_REQUIRED_EVENT = 'dsr-auth:login-required'
 
 export function getAuthToken() {
   return localStorage.getItem(AUTH_TOKEN_KEY)
@@ -31,4 +32,10 @@ export function clearAuthSession() {
 
 export function notifyAuthLogout() {
   window.dispatchEvent(new Event(AUTH_LOGOUT_EVENT))
+}
+
+export function requestAuthLogin(redirectTo) {
+  window.dispatchEvent(new CustomEvent(AUTH_LOGIN_REQUIRED_EVENT, {
+    detail: { redirectTo },
+  }))
 }

@@ -1,12 +1,10 @@
 import { Link } from 'react-router-dom'
-import { Info, Wallet, Sprout, Map, Activity, FileSearch, PackageSearch, LogIn, ClipboardCheck } from 'lucide-react'
-import { useAuth } from '@/context/auth/useAuth'
+import { Info, Wallet, Sprout, Map, Activity, FileSearch, PackageSearch, ClipboardCheck } from 'lucide-react'
+import AuthMenu from '@/components/auth/AuthMenu'
 import styles from './Home.module.css'
 import marcaMcid from '../../assets/marca-mcid-atz.png'
 
 export default function Home() {
-  const { isAuthenticated } = useAuth()
-
   return (
     <div className="relative flex flex-col min-h-screen bg-[#FAFAFA] px-6 py-8 lg:py-14 overflow-hidden font-sans">
       
@@ -18,14 +16,9 @@ export default function Home() {
         className={styles.fixedMcidLogo}
       />
 
-      {!isAuthenticated && (
-        <div className={styles.authActions}>
-          <Link to="/login" className={styles.authButton}>
-            <LogIn size={16} />
-            Entrar
-          </Link>
-        </div>
-      )}
+      <div className={styles.authActions}>
+        <AuthMenu />
+      </div>
 
       <div className="relative z-10 w-full max-w-[1280px] mx-auto flex lg:-translate-x-8 xl:-translate-x-14 2xl:-translate-x-20">
         

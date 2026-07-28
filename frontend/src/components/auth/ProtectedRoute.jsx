@@ -1,10 +1,18 @@
-import { Navigate, useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { useAuth } from '@/context/auth/useAuth'
 
 export default function ProtectedRoute({ children }) {
   const location = useLocation()
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading, openLoginModal } = useAuth()
+  const redirect = `${location.pathname}${location.search}${location.hash}`
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      openLoginModal({ redirectTo: redirect })
+    }
+  }, [isAuthenticated, isLoading, openLoginModal, redirect])
 
   if (isLoading) {
     return (
@@ -16,15 +24,7 @@ export default function ProtectedRoute({ children }) {
   }
 
   if (!isAuthenticated) {
-    const redirect = `${location.pathname}${location.search}`
-
-    return (
-      <Navigate
-        to={`/login?redirect=${encodeURIComponent(redirect)}`}
-        replace
-        state={{ from: location }}
-      />
-    )
+    return null
   }
 
   return children

@@ -10,17 +10,38 @@ TipoInstrumento = Literal["contrato_repasse", "termo_compromisso", "ted"]
 OrigemRegistro = Literal["base_atual", "adicionado_tecnico"]
 AcaoMunicipio = Literal["manter", "remover", "adicionar"]
 AcaoLocalidade = Literal["manter", "remover", "adicionar", "corrigir"]
-RelacaoInstrumentoObra = Literal[
+RelacaoInstrumento = Literal[
     "nao_analisada",
     "sem_conflito_aparente",
     "possivel_sobreposicao",
 ]
-ConfirmacaoStatusObra = Literal[
+ConfirmacaoStatus = Literal[
     "nao_confirmada",
     "sem_conflito",
     "sobreposicao_confirmada",
 ]
 StatusRevisao = Literal["rascunho", "enviado"]
+
+CONFIRMACOES_COMPATIVEIS = {
+    "nao_analisada": {"nao_confirmada"},
+    "sem_conflito_aparente": {"nao_confirmada", "sem_conflito"},
+    "possivel_sobreposicao": {
+        "nao_confirmada",
+        "sobreposicao_confirmada",
+    },
+}
+
+
+def _validar_relacao_confirmacao(
+    relacao_instrumento: RelacaoInstrumento,
+    confirmacao_status: ConfirmacaoStatus,
+) -> None:
+    if confirmacao_status not in CONFIRMACOES_COMPATIVEIS[relacao_instrumento]:
+        raise ValueError(
+            "confirmacao_status incompatível com relacao_instrumento: "
+            f"'{confirmacao_status}' não pode ser usado com "
+            f"'{relacao_instrumento}'."
+        )
 
 
 class RevisaoInstrumentoBase(BaseModel):
@@ -72,7 +93,6 @@ class LocalidadeRevisaoItem(RevisaoInstrumentoBase):
     qtde_familias_ben_sugerida: int | None = None
 
     justificativa: str | None = None
-    conferido_em: datetime | None = None
 
 
 class ObraSaneamentoRevisaoItem(RevisaoInstrumentoBase):
@@ -85,20 +105,15 @@ class ObraSaneamentoRevisaoItem(RevisaoInstrumentoBase):
     link_transferegov: str | None = None
     link_obrasgov: str | None = None
 
-    relacao_instrumento: RelacaoInstrumentoObra | None = None
-    confirmacao_status: ConfirmacaoStatusObra | None = None
+    relacao_instrumento: RelacaoInstrumento = "nao_analisada"
+    confirmacao_status: ConfirmacaoStatus = "nao_confirmada"
     justificativa: str | None = None
-    conferido_em: datetime | None = None
 
     @model_validator(mode="after")
     def validar_confirmacao_status(self):
-        if self.relacao_instrumento in (None, "nao_analisada"):
-            self.confirmacao_status = None
-            return self
-
-        if self.confirmacao_status is None:
-            self.confirmacao_status = "nao_confirmada"
-
+        _validar_relacao_confirmacao(
+            self.relacao_instrumento, self.confirmacao_status
+        )
         return self
 
 
@@ -129,19 +144,15 @@ class ObraSaneamentoRevisaoAlteracao(RevisaoInstrumentoBase):
     link_transferegov: str | None = None
     link_obrasgov: str | None = None
 
-    relacao_instrumento: RelacaoInstrumentoObra
-    confirmacao_status: ConfirmacaoStatusObra | None = None
+    relacao_instrumento: RelacaoInstrumento
+    confirmacao_status: ConfirmacaoStatus = "nao_confirmada"
     justificativa: str | None = None
 
     @model_validator(mode="after")
     def validar_confirmacao_status(self):
-        if self.relacao_instrumento == "nao_analisada":
-            self.confirmacao_status = None
-            return self
-
-        if self.confirmacao_status is None:
-            self.confirmacao_status = "nao_confirmada"
-
+        _validar_relacao_confirmacao(
+            self.relacao_instrumento, self.confirmacao_status
+        )
         return self
 
 

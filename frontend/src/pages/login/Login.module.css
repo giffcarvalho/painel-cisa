@@ -65,6 +65,47 @@
   transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
+.passwordField {
+  position: relative;
+}
+
+.passwordField .input {
+  padding-right: 46px;
+}
+
+.passwordToggle {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #5a6476;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.passwordToggle:hover {
+  background: #f0f4fa;
+  color: #1351b4;
+}
+
+.passwordToggle:focus-visible,
+.homeLink:focus-visible {
+  outline: 3px solid rgba(19, 81, 180, 0.22);
+  outline-offset: 2px;
+}
+
+.passwordToggle svg {
+  width: 18px;
+  height: 18px;
+}
+
 .input:focus {
   border-color: #1351b4;
   box-shadow: 0 0 0 3px rgba(19, 81, 180, 0.14);
@@ -75,6 +116,17 @@
   border: 1px solid rgba(201, 45, 45, 0.18);
   border-radius: 6px;
   color: #9f2323;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  padding: 11px 12px;
+}
+
+.success {
+  background: rgba(26, 127, 60, 0.08);
+  border: 1px solid rgba(26, 127, 60, 0.22);
+  border-radius: 6px;
+  color: #155f30;
   font-size: 14px;
   font-weight: 600;
   margin: 0;
@@ -113,6 +165,74 @@
   animation: spin 800ms linear infinite;
   height: 18px;
   width: 18px;
+}
+
+.homeLink {
+  display: block;
+  width: fit-content;
+  margin: 22px auto 0;
+  color: #1351b4;
+  font-size: 13px;
+  font-weight: 600;
+  text-underline-offset: 3px;
+}
+
+.homeLink:hover {
+  color: #0c326f;
+}
+
+.authOptions {
+  display: flex;
+  justify-content: center;
+  gap: 8px 18px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.textButton,
+.backButton {
+  border: 0;
+  background: transparent;
+  color: #1351b4;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.backButton {
+  display: block;
+  margin: 18px auto 0;
+}
+
+.textButton:hover,
+.backButton:hover {
+  color: #0c326f;
+}
+
+.textButton:focus-visible,
+.backButton:focus-visible {
+  outline: 3px solid rgba(19, 81, 180, 0.22);
+  outline-offset: 2px;
+}
+
+.textButton:disabled,
+.backButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.readonlyGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.readonlyGrid .input {
+  background: #f4f6f9;
+  color: #465266;
 }
 
 @keyframes spin {
