@@ -1,4 +1,5 @@
-import AuthMenu from '@/components/auth/AuthMenu';
+// REATIVAR APÓS COMMIT
+// import AuthMenu from '@/components/auth/AuthMenu';
 import logoMcid from '../../assets/teste.png';
 
 export function Header() {
@@ -25,9 +26,10 @@ export function Header() {
           </span>
         </div>
       </div>
-      <div className="ml-4 flex min-w-0 shrink-0 items-center">
+      {/* REATIVAR APÓS COMMIT */}
+      {/* <div className="ml-4 flex min-w-0 shrink-0 items-center">
         <AuthMenu compactOnMobile />
-      </div>
+      </div> */}
     </header>
   );
 }

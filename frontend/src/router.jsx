@@ -2,8 +2,10 @@ import { createBrowserRouter } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import { Loader2 } from 'lucide-react'
 import AppLayout from '@/components/layout/AppLayout'
-import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import AuthModalLayout from '@/components/auth/AuthModalLayout'
+// REATIVAR APÓS COMMIT
+// import ProtectedRoute from '@/components/auth/ProtectedRoute'
+// REATIVAR APÓS COMMIT
+// import AuthModalLayout from '@/components/auth/AuthModalLayout'
 import Home from '@/pages/home/Home'
 import CarteiraDsr from '@/pages/carteira-dsr/CarteiraDsr'
 import ManualLayout from './pages/manual/ManualLayout'
@@ -14,8 +16,10 @@ import ManualInformacoesGerais from './pages/manual/ManualInformacoesGerais'
 import MapLayout from './components/layout/MapLayout'
 import PesquisaInstrumento from './pages/pesquisa-instrumento/PesquisaInstrumento'
 import ConsultaPersonalizada from './pages/consulta-personalizada/ConsultaPersonalizada'
-import RevisaoInstrumento from './pages/revisao-instrumento/RevisaoInstrumento'
-import Login from './pages/login/Login'
+// REATIVAR APÓS COMMIT
+// import RevisaoInstrumento from './pages/revisao-instrumento/RevisaoInstrumento'
+// REATIVAR APÓS COMMIT
+// import Login from './pages/login/Login'
 
 const Mapa = lazy(() => import('@/pages/mapa/Mapa'))
 
@@ -32,7 +36,8 @@ function MapaLoading() {
 
 export const router = createBrowserRouter([
   {
-    element: <AuthModalLayout />,
+    // REATIVAR APÓS COMMIT
+    // element: <AuthModalLayout />,
     children: [
       {
         path: '/',
@@ -41,18 +46,20 @@ export const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { path: 'login', element: <Login /> },
+          // REATIVAR APÓS COMMIT
+          // { path: 'login', element: <Login /> },
           { path: 'carteira-dsr', element: <CarteiraDsr /> },
           { path: 'pesquisa-instrumento', element: <PesquisaInstrumento /> },
           { path: 'consulta-personalizada', element: <ConsultaPersonalizada /> },
-          {
-            path: 'revisao-instrumento',
-            element: (
-              <ProtectedRoute>
-                <RevisaoInstrumento />
-              </ProtectedRoute>
-            ),
-          },
+          // REATIVAR APÓS COMMIT
+          // {
+          //   path: 'revisao-instrumento',
+          //   element: (
+          //     <ProtectedRoute>
+          //       <RevisaoInstrumento />
+          //     </ProtectedRoute>
+          //   ),
+          // },
           {
             path: 'manual',
             element: <ManualLayout />,

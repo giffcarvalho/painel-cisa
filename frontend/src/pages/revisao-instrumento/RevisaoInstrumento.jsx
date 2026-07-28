@@ -2558,39 +2558,6 @@ export default function RevisaoInstrumento() {
                 </div>
               )}
             </section>
-
-            <section className={styles.panel}>
-              <div className={styles.panelHeader}>
-                <h2>Histórico da revisão</h2>
-              </div>
-
-              {historicoRevisao.length > 0 ? (
-                <ol className={styles.timelineList}>
-                  {historicoRevisao.map((item) => {
-                    const hora = formatarHoraHistorico(item.data)
-
-                    return (
-                      <li className={styles.timelineItem} key={item.id}>
-                        <span className={styles.timelineDate}>
-                          {formatarDataHistorico(item.data)}
-                        </span>
-                        <strong>{item.titulo}</strong>
-                        {(item.usuarioNome || hora) && (
-                          <span className={styles.timelineMeta}>
-                            {[item.usuarioNome, hora].filter(Boolean).join(' • ')}
-                          </span>
-                        )}
-                        {item.descricao && <p>{item.descricao}</p>}
-                      </li>
-                    )
-                  })}
-                </ol>
-              ) : (
-                <p className={styles.emptyObservation}>
-                  Ainda não há eventos registrados para esta revisão.
-                </p>
-              )}
-            </section>
           </aside>
         )}
       </div>
