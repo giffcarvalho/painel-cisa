@@ -1,0 +1,2567 @@
+import { useState } from 'react'
+import { Check, ChevronDown, Plus, Save, Search, Send, X } from 'lucide-react'
+import { revisaoInstrumentoApi } from '@/api/revisaoInstrumento'
+import { useAuth } from '@/context/auth/useAuth'
+import styles from './RevisaoInstrumento.module.css'
+
+const ACOES_MUNICIPIO = [
+  { value: 'manter', label: 'Manter', icon: Check },
+  { value: 'remover', label: 'Remover', icon: X },
+]
+
+const LABELS_TECNICOS = {
+  contrato_repasse: 'Contrato de Repasse',
+  termo_execucao_descentralizada: 'Termo de Execução Descentralizada',
+  ted: 'TED',
+  termo_compromisso: 'Termo de Compromisso',
+}
+
+const ACOES_LOCALIDADE_EXISTENTE = [
+  { value: 'manter', label: 'Manter', icon: Check },
+  { value: 'remover', label: 'Remover', icon: X },
+  { value: 'corrigir', label: 'Corrigir' },
+]
+
+const RELACOES_INSTRUMENTO = [
+  { value: 'nao_analisada', label: 'Não analisada' },
+  { value: 'sem_conflito_aparente', label: 'Sem conflito aparente' },
+  { value: 'possivel_sobreposicao', label: 'Possível sobreposição' },
+]
+
+const CONFIRMACOES_STATUS = [
+  { value: 'nao_confirmada', label: 'Não confirmada' },
+  { value: 'sem_conflito', label: 'Sem conflito' },
+  { value: 'sobreposicao_confirmada', label: 'Sobreposição confirmada' },
+]
+
+const MUNICIPIO_NOVO_INICIAL = {
+  cod_municipio: '',
+  nome: '',
+  uf: '',
+}
+
+const LOCALIDADE_NOVA_INICIAL = {
+  nome_localidade_informada: '',
+  qtde_familias_ben_sugerida: '',
+}
+
+function valorOuTraco(value) {
+  return valorAusente(value) ? '-' : value
+}
+
+function valorAusente(value) {
+  return value === null || value === undefined || String(value).trim() === ''
+}
+
+function formatarValorTecnico(value) {
+  const texto = String(value ?? '').trim()
+  if (!texto) return '-'
+
+  const chave = texto.toLowerCase()
+  if (LABELS_TECNICOS[chave]) return LABELS_TECNICOS[chave]
+
+  if (!texto.includes('_')) return texto
+
+  return texto
+    .split('_')
+    .filter(Boolean)
+    .map((parte) => parte.charAt(0).toUpperCase() + parte.slice(1).toLowerCase())
+    .join(' ')
+}
+
+function formatarMunicipioUf(nome, uf) {
+  if (!nome) return '-'
+  if (String(nome).includes('/')) return nome
+  return uf ? `${nome}/${uf}` : nome
+}
+
+function numeroOuNull(value) {
+  if (value === null || value === undefined || value === '') return null
+
+  const numero = Number(value)
+  return Number.isNaN(numero) ? null : numero
+}
+
+function normalizarRelacaoInstrumento(value) {
+  return RELACOES_INSTRUMENTO.some((option) => option.value === value)
+    ? value
+    : 'nao_analisada'
+}
+
+function confirmacoesPermitidas(relacaoInstrumento) {
+  if (relacaoInstrumento === 'sem_conflito_aparente') {
+    return CONFIRMACOES_STATUS.filter(({ value }) =>
+      ['nao_confirmada', 'sem_conflito'].includes(value)
+    )
+  }
+
+  if (relacaoInstrumento === 'possivel_sobreposicao') {
+    return CONFIRMACOES_STATUS.filter(({ value }) =>
+      ['nao_confirmada', 'sobreposicao_confirmada'].includes(value)
+    )
+  }
+
+  return []
+}
+
+function normalizarObra(obra) {
+  const relacaoInstrumento = normalizarRelacaoInstrumento(
+    obra.relacao_instrumento
+  )
+  const confirmacoes = confirmacoesPermitidas(relacaoInstrumento)
+  const confirmacaoStatus = confirmacoes.some(
+    ({ value }) => value === obra.confirmacao_status
+  )
+    ? obra.confirmacao_status
+    : 'nao_confirmada'
+
+  return {
+    ...obra,
+    relacao_instrumento: relacaoInstrumento,
+    confirmacao_status: confirmacaoStatus,
+  }
+}
+
+function novaChaveLocal() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+function chaveLocalidade(localidade) {
+  if (localidade.cod_comunidade_rural !== null && localidade.cod_comunidade_rural !== undefined) {
+    return `comunidade:${localidade.cod_comunidade_rural}`
+  }
+
+  return `nova:${localidade._clientId ?? localidade.id_revisao_localidade ?? localidade.nome_localidade_informada ?? localidade.nome_localidade}`
+}
+
+function chaveObra(obra) {
+  return String(obra.id_obra)
+}
+
+function chavePublicoAlvo(item) {
+  return String(item.id_projeto_investimento)
+}
+
+function limparTexto(value) {
+  return value === null || value === undefined || String(value).trim() === ''
+    ? null
+    : String(value).trim()
+}
+
+function dadosMunicipioPersistencia(municipio) {
+  return {
+    cod_municipio: municipio.cod_municipio,
+    nome: municipio.nome ?? null,
+    uf: municipio.uf ?? null,
+    origem_registro: municipio.origem_registro,
+    acao_sugerida: municipio.acao_sugerida,
+    justificativa: limparTexto(municipio.justificativa),
+  }
+}
+
+function dadosLocalidadePersistencia(localidade, codMunicipio) {
+  return {
+    id_revisao_localidade: localidade.id_revisao_localidade ?? null,
+    cod_municipio: localidade.cod_municipio || codMunicipio,
+    cod_comunidade_rural: localidade.cod_comunidade_rural ?? null,
+    nome_localidade: localidade.nome_localidade ?? null,
+    nome_localidade_informada:
+      limparTexto(localidade.nome_localidade_informada) ||
+      (localidade.origem_registro === 'adicionado_tecnico'
+        ? limparTexto(localidade.nome_localidade)
+        : null),
+    origem_registro: localidade.origem_registro,
+    acao_sugerida: localidade.acao_sugerida,
+    qtde_familias_ben_original: numeroOuNull(localidade.qtde_familias_ben_original),
+    qtde_familias_ben_sugerida: numeroOuNull(localidade.qtde_familias_ben_sugerida),
+    justificativa: limparTexto(localidade.justificativa),
+  }
+}
+
+function dadosObraPersistencia(obra, codMunicipio) {
+  return {
+    id_revisao_obra: obra.id_revisao_obra ?? null,
+    id_obra: obra.id_obra,
+    cod_municipio: obra.cod_municipio || codMunicipio,
+    descricao: obra.descricao ?? null,
+    orgao: obra.orgao ?? null,
+    link_transferegov: obra.link_transferegov ?? null,
+    link_obrasgov: obra.link_obrasgov ?? null,
+    relacao_instrumento: normalizarRelacaoInstrumento(
+      obra.relacao_instrumento
+    ),
+    confirmacao_status:
+      normalizarRelacaoInstrumento(obra.relacao_instrumento) ===
+      'nao_analisada'
+        ? 'nao_confirmada'
+        : obra.confirmacao_status ?? 'nao_confirmada',
+    justificativa: limparTexto(obra.justificativa),
+  }
+}
+
+function dadosPublicoAlvoOriginal(item) {
+  return {
+    populacao_beneficiada_revisada: limparTexto(
+      item.populacao_beneficiada_revisada
+    ),
+    desc_populacao_beneficiada_revisada: limparTexto(
+      item.desc_populacao_beneficiada_revisada
+    ),
+  }
+}
+
+function copiarPublicoAlvo(publicoAlvo = []) {
+  return publicoAlvo.map((item) => ({
+    ...item,
+    populacao_beneficiada_original:
+      item.populacao_beneficiada_original ?? null,
+    desc_populacao_beneficiada_original:
+      item.desc_populacao_beneficiada_original ?? null,
+    populacao_beneficiada_revisada:
+      item.populacao_beneficiada_revisada ?? null,
+    desc_populacao_beneficiada_revisada:
+      item.desc_populacao_beneficiada_revisada ?? null,
+    conferido_em: item.conferido_em ?? null,
+    _publicoAlvoOriginal: dadosPublicoAlvoOriginal(item),
+    _camposAlterados: {},
+  }))
+}
+
+function publicoAlvoTemAlteracoes(publicoAlvo = []) {
+  return publicoAlvo.some(
+    (item) => Object.keys(item._camposAlterados ?? {}).length > 0
+  )
+}
+
+function objetosIguais(a, b) {
+  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
+}
+
+function semIdsPersistencia(dados) {
+  if (!dados) return dados
+
+  return Object.fromEntries(
+    Object.entries(dados).filter(
+      ([chave]) =>
+        chave !== 'id_revisao_localidade' && chave !== 'id_revisao_obra'
+    )
+  )
+}
+
+function aplicarFlagAlteracao(currentFlags, chave, alterado) {
+  const next = { ...currentFlags }
+
+  if (alterado) {
+    next[chave] = true
+  } else {
+    delete next[chave]
+  }
+
+  return next
+}
+
+function municipioTemAlteracoes(municipio) {
+  return Boolean(
+    municipio._municipioAlterado ||
+      Object.keys(municipio._localidadesAlteradas ?? {}).length ||
+      Object.keys(municipio._obrasAlteradas ?? {}).length
+  )
+}
+
+function municipioTemHistorico(municipio) {
+  return Boolean(
+    municipio.revisao_municipio_conferida_em ||
+      municipio.localidades_conferidas_em ||
+      municipio.obras_conferidas_em
+  )
+}
+
+function statusVisualMunicipio(municipio) {
+  if (municipioTemAlteracoes(municipio)) return 'Alterações não salvas'
+  if (municipioTemHistorico(municipio) || municipio._salvoNestaSessao) return 'Conferência registrada'
+  return 'Revisão pendente'
+}
+
+function formatarDataConferencia(value) {
+  if (!value) return 'Ainda não conferida'
+
+  const dataParte = String(value).split(/[T ]/)[0]
+  const [ano, mes, dia] = dataParte.split('-')
+
+  if (!ano || !mes || !dia) return 'Ainda não conferida'
+
+  return `Última conferência em ${dia}/${mes}/${ano}`
+}
+
+function formatarDataHistorico(value) {
+  const data = value ? new Date(value) : null
+
+  if (!data || Number.isNaN(data.getTime())) return 'Data não informada'
+
+  const hoje = new Date()
+  const mesmaData =
+    data.getFullYear() === hoje.getFullYear() &&
+    data.getMonth() === hoje.getMonth() &&
+    data.getDate() === hoje.getDate()
+
+  if (mesmaData) return 'Hoje'
+
+  return data.toLocaleDateString('pt-BR')
+}
+
+function formatarHoraHistorico(value) {
+  const data = value ? new Date(value) : null
+
+  if (!data || Number.isNaN(data.getTime())) return null
+
+  return data.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function nomeUsuario(usuario) {
+  return (
+    usuario?.nome_completo ||
+    usuario?.nomeCompleto ||
+    usuario?.full_name ||
+    usuario?.nome ||
+    usuario?.email ||
+    'Usuário atual'
+  )
+}
+
+function Tooltip({ text, children }) {
+  return (
+    <span className={styles.tooltipWrapper}>
+      {children}
+      <span className={styles.tooltip} role="tooltip">
+        {text}
+      </span>
+    </span>
+  )
+}
+
+function criarItemHistorico({ data, titulo, usuarioNome, descricao }) {
+  return {
+    id: `${titulo}-${data ?? novaChaveLocal()}-${descricao ?? ''}`,
+    data,
+    titulo,
+    usuarioNome,
+    descricao,
+  }
+}
+
+function montarHistoricoRevisao({
+  municipios = [],
+  publicoAlvo = [],
+  historicoSessao = [],
+  usuarioNome,
+}) {
+  const itens = [...historicoSessao]
+
+  municipios.forEach((municipio) => {
+    const municipioUf = formatarMunicipioUf(municipio.nome, municipio.uf)
+
+    if (municipio.revisao_municipio_conferida_em) {
+      itens.push(
+        criarItemHistorico({
+          data: municipio.revisao_municipio_conferida_em,
+          titulo: `Município ${municipioUf} atualizado`,
+          usuarioNome,
+        })
+      )
+    }
+
+    if (municipio.localidades_conferidas_em) {
+      itens.push(
+        criarItemHistorico({
+          data: municipio.localidades_conferidas_em,
+          titulo: `Localidades de ${municipioUf} revisadas`,
+          usuarioNome,
+        })
+      )
+    }
+
+    if (municipio.obras_conferidas_em) {
+      itens.push(
+        criarItemHistorico({
+          data: municipio.obras_conferidas_em,
+          titulo: `Obras de ${municipioUf} revisadas`,
+          usuarioNome,
+        })
+      )
+    }
+  })
+
+  const publicoAlvoConferidoEm = dataConferenciaPublicoAlvo(publicoAlvo)
+  if (publicoAlvoConferidoEm) {
+    itens.push(
+      criarItemHistorico({
+        data: publicoAlvoConferidoEm,
+        titulo: 'População beneficiada revisada',
+        usuarioNome,
+      })
+    )
+  }
+
+  return itens
+    .filter((item) => item.titulo)
+    .sort((a, b) => {
+      const dataA = Date.parse(a.data)
+      const dataB = Date.parse(b.data)
+
+      if (Number.isNaN(dataA) || Number.isNaN(dataB)) return 0
+      return dataB - dataA
+    })
+}
+
+function dataConferenciaPublicoAlvo(publicoAlvo = []) {
+  return publicoAlvo.reduce((maisRecente, item) => {
+    const conferidoEm = item.conferido_em
+    if (!conferidoEm) return maisRecente
+    if (!maisRecente) return conferidoEm
+
+    const timestampAtual = Date.parse(conferidoEm)
+    const timestampMaisRecente = Date.parse(maisRecente)
+
+    if (Number.isNaN(timestampAtual) || Number.isNaN(timestampMaisRecente)) {
+      return String(conferidoEm) > String(maisRecente) ? conferidoEm : maisRecente
+    }
+
+    return timestampAtual > timestampMaisRecente ? conferidoEm : maisRecente
+  }, null)
+}
+
+function valorExibicaoPublicoAlvo(item, campoOriginal, campoRevisado) {
+  return valorAusente(item[campoRevisado])
+    ? item[campoOriginal]
+    : item[campoRevisado]
+}
+
+function copiarMunicipios(municipios = []) {
+  return municipios.map((municipio) => {
+    const localidades = (municipio.localidades ?? []).map((localidade) => ({
+      ...localidade,
+      _clientId: localidade._clientId ?? novaChaveLocal(),
+    }))
+    const obras = (municipio.obras_saneamento ?? []).map(normalizarObra)
+    const normalizado = {
+      ...municipio,
+      revisao_municipio_conferida_em: municipio.revisao_municipio_conferida_em ?? null,
+      localidades_conferidas_em: municipio.localidades_conferidas_em ?? null,
+      obras_conferidas_em: municipio.obras_conferidas_em ?? null,
+      localidades,
+      obras_saneamento: obras,
+    }
+
+    return {
+      ...normalizado,
+      _municipioOriginal: dadosMunicipioPersistencia(normalizado),
+      _localidadesOriginais: Object.fromEntries(
+        localidades.map((localidade) => [
+          chaveLocalidade(localidade),
+          dadosLocalidadePersistencia(localidade, normalizado.cod_municipio),
+        ])
+      ),
+      _obrasOriginais: Object.fromEntries(
+        obras.map((obra) => [
+          chaveObra(obra),
+          dadosObraPersistencia(obra, normalizado.cod_municipio),
+        ])
+      ),
+      _municipioAlterado: false,
+      _localidadesAlteradas: {},
+      _obrasAlteradas: {},
+      _salvoNestaSessao: municipio._salvoNestaSessao ?? municipioTemHistorico(normalizado),
+    }
+  })
+}
+
+
+export default function RevisaoInstrumento() {
+  const { usuario } = useAuth()
+  const [identificador, setIdentificador] = useState('')
+  const [dadosBusca, setDadosBusca] = useState(null)
+  const [idRevisao, setIdRevisao] = useState(null)
+  const [municipios, setMunicipios] = useState([])
+  const [publicoAlvo, setPublicoAlvo] = useState([])
+  const [municipioAberto, setMunicipioAberto] = useState(null)
+  const [observacaoGeral, setObservacaoGeral] = useState('')
+  const [novoMunicipio, setNovoMunicipio] = useState(MUNICIPIO_NOVO_INICIAL)
+  const [localidadeNovoMunicipio, setLocalidadeNovoMunicipio] = useState(LOCALIDADE_NOVA_INICIAL)
+  const [localidadesNovoMunicipio, setLocalidadesNovoMunicipio] = useState([])
+  const [mostrarFormularioMunicipio, setMostrarFormularioMunicipio] = useState(false)
+  const [novaLocalidadePorMunicipio, setNovaLocalidadePorMunicipio] = useState({})
+  const [novaLocalidadeAbertaPorMunicipio, setNovaLocalidadeAbertaPorMunicipio] = useState({})
+  const [justificativasLocalidadeAbertas, setJustificativasLocalidadeAbertas] = useState({})
+  const [justificativasObraAbertas, setJustificativasObraAbertas] = useState({})
+  const [edicoesPublicoAlvo, setEdicoesPublicoAlvo] = useState({})
+  const [salvandoMunicipio, setSalvandoMunicipio] = useState({})
+  const [erroMunicipio, setErroMunicipio] = useState({})
+  const [observacaoEmEdicao, setObservacaoEmEdicao] = useState(false)
+  const [rascunhoObservacaoGeral, setRascunhoObservacaoGeral] = useState('')
+  const [historicoSessao, setHistoricoSessao] = useState([])
+
+  const [isLoading, setIsLoading] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [message, setMessage] = useState('')
+  const [messageType, setMessageType] = useState('')
+
+  const instrumento = dadosBusca?.instrumento ?? null
+  const usuarioAtualNome = nomeUsuario(usuario)
+  const observacaoGeralTexto = observacaoGeral.trim()
+  const historicoRevisao = montarHistoricoRevisao({
+    municipios,
+    publicoAlvo,
+    historicoSessao,
+    usuarioNome: usuarioAtualNome,
+  })
+
+  const registrarEventoHistorico = (titulo, descricao) => {
+    setHistoricoSessao((current) => [
+      criarItemHistorico({
+        data: new Date().toISOString(),
+        titulo,
+        usuarioNome: usuarioAtualNome,
+        descricao,
+      }),
+      ...current,
+    ])
+  }
+
+  const abrirEdicaoObservacaoGeral = () => {
+    setRascunhoObservacaoGeral(observacaoGeral)
+    setObservacaoEmEdicao(true)
+  }
+
+  const aplicarObservacaoGeral = () => {
+    const textoAnterior = observacaoGeral.trim()
+    const textoAtual = rascunhoObservacaoGeral.trim()
+
+    setObservacaoGeral(rascunhoObservacaoGeral)
+    setObservacaoEmEdicao(false)
+
+    if (!textoAnterior && textoAtual) {
+      registrarEventoHistorico('Observação geral adicionada')
+    } else if (textoAnterior && textoAtual && textoAnterior !== textoAtual) {
+      registrarEventoHistorico('Observação geral editada')
+    }
+  }
+
+  const cancelarEdicaoObservacaoGeral = () => {
+    setRascunhoObservacaoGeral(observacaoGeral)
+    setObservacaoEmEdicao(false)
+  }
+
+  const removerObservacaoGeral = () => {
+    if (observacaoGeral.trim()) {
+      registrarEventoHistorico('Observação geral removida')
+    }
+
+    setObservacaoGeral('')
+    setRascunhoObservacaoGeral('')
+    setObservacaoEmEdicao(false)
+  }
+  const buscarInstrumento = async (event) => {
+    event.preventDefault()
+
+    const termo = identificador.trim()
+
+    if (!termo) {
+      setMessage('Informe um número de instrumento, proposta ou TED.')
+      setMessageType('error')
+      return
+    }
+
+    setIsLoading(true)
+    setMessage('')
+    setMessageType('')
+    setDadosBusca(null)
+    setIdRevisao(null)
+    setMunicipios([])
+    setPublicoAlvo([])
+    setMunicipioAberto(null)
+    setObservacaoGeral('')
+    setMostrarFormularioMunicipio(false)
+    setNovaLocalidadeAbertaPorMunicipio({})
+    setJustificativasLocalidadeAbertas({})
+    setJustificativasObraAbertas({})
+    setEdicoesPublicoAlvo({})
+    setSalvandoMunicipio({})
+    setErroMunicipio({})
+    setObservacaoEmEdicao(false)
+    setRascunhoObservacaoGeral('')
+    setHistoricoSessao([])
+
+    try {
+      const data = await revisaoInstrumentoApi.buscarInstrumento(termo)
+      setDadosBusca(data)
+      setIdRevisao(data.id_revisao ?? null)
+      setObservacaoGeral(data.observacao_geral ?? '')
+      setRascunhoObservacaoGeral(data.observacao_geral ?? '')
+      setMunicipios(copiarMunicipios(data.municipios))
+      setPublicoAlvo(copiarPublicoAlvo(data.publico_alvo))
+    } catch (err) {
+      setMessage(
+        err?.response?.data?.detail ||
+          'Não foi possível localizar o instrumento informado.'
+      )
+      setMessageType('error')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const atualizarMunicipio = (codMunicipio, campo, valor) => {
+    setMunicipios((current) =>
+      current.map((municipio) => {
+        if (municipio.cod_municipio !== codMunicipio) return municipio
+
+        const atualizado = { ...municipio, [campo]: valor }
+        return {
+          ...atualizado,
+          _municipioAlterado: !objetosIguais(
+            dadosMunicipioPersistencia(atualizado),
+            municipio._municipioOriginal
+          ),
+        }
+      })
+    )
+  }
+
+  const atualizarAcaoMunicipio = (codMunicipio, acao) => {
+    setMunicipios((current) =>
+      current.map((municipio) => {
+        if (municipio.cod_municipio !== codMunicipio) return municipio
+
+        const atualizado = {
+          ...municipio,
+          acao_sugerida: acao,
+          justificativa: acao === 'manter' ? '' : municipio.justificativa,
+        }
+
+        return {
+          ...atualizado,
+          _municipioAlterado: !objetosIguais(
+            dadosMunicipioPersistencia(atualizado),
+            municipio._municipioOriginal
+          ),
+        }
+      })
+    )
+  }
+
+  const alternarJustificativaLocalidade = (chave) => {
+    setJustificativasLocalidadeAbertas((current) => ({
+      ...current,
+      [chave]: !current[chave],
+    }))
+  }
+
+  const alternarJustificativaObra = (chave) => {
+    setJustificativasObraAbertas((current) => ({
+      ...current,
+      [chave]: !current[chave],
+    }))
+  }
+
+  const adicionarLocalidadeNovoMunicipio = () => {
+    const nome = localidadeNovoMunicipio.nome_localidade_informada.trim()
+
+    if (!nome) {
+      setMessage('Informe o nome da localidade a adicionar.')
+      setMessageType('error')
+      return
+    }
+
+    setLocalidadesNovoMunicipio((current) => [
+      ...current,
+      {
+        nome_localidade: nome,
+        nome_localidade_informada: nome,
+        qtde_familias_ben_sugerida:
+          localidadeNovoMunicipio.qtde_familias_ben_sugerida,
+      },
+    ])
+
+    setLocalidadeNovoMunicipio(LOCALIDADE_NOVA_INICIAL)
+    setMessage('')
+    setMessageType('')
+  }
+
+  const removerLocalidadeNovoMunicipio = (index) => {
+    setLocalidadesNovoMunicipio((current) =>
+      current.filter((_, localidadeIndex) => localidadeIndex !== index)
+    )
+  }
+
+  const adicionarMunicipio = () => {
+    const codMunicipio = numeroOuNull(novoMunicipio.cod_municipio)
+
+    if (!codMunicipio) {
+      setMessage('Informe o código IBGE do município a adicionar.')
+      setMessageType('error')
+      return
+    }
+
+    if (municipios.some((municipio) => municipio.cod_municipio === codMunicipio)) {
+      setMessage('Este município já está na revisão.')
+      setMessageType('error')
+      return
+    }
+
+    const novoItem = {
+      cod_municipio: codMunicipio,
+      nome: novoMunicipio.nome.trim() || null,
+      uf: novoMunicipio.uf.trim().toUpperCase() || null,
+      origem_registro: 'adicionado_tecnico',
+      acao_sugerida: 'adicionar',
+      justificativa: '',
+      revisao_municipio_conferida_em: null,
+      localidades_conferidas_em: null,
+      obras_conferidas_em: null,
+      localidades: localidadesNovoMunicipio.map((localidade) => ({
+        _clientId: novaChaveLocal(),
+        cod_municipio: codMunicipio,
+        cod_comunidade_rural: null,
+        nome_localidade: localidade.nome_localidade,
+        nome_localidade_informada: localidade.nome_localidade_informada,
+        origem_registro: 'adicionado_tecnico',
+        acao_sugerida: 'adicionar',
+        qtde_familias_ben_original: null,
+        qtde_familias_ben_sugerida: localidade.qtde_familias_ben_sugerida,
+        justificativa: '',
+      })),
+      obras_saneamento: [],
+    }
+
+    setMunicipios((current) => [
+      ...current,
+      {
+        ...novoItem,
+        _municipioOriginal: null,
+        _localidadesOriginais: {},
+        _obrasOriginais: {},
+        _municipioAlterado: true,
+        _localidadesAlteradas: Object.fromEntries(
+          novoItem.localidades.map((localidade) => [chaveLocalidade(localidade), true])
+        ),
+        _obrasAlteradas: {},
+        _salvoNestaSessao: false,
+      },
+    ])
+
+    setNovoMunicipio(MUNICIPIO_NOVO_INICIAL)
+    setLocalidadeNovoMunicipio(LOCALIDADE_NOVA_INICIAL)
+    setLocalidadesNovoMunicipio([])
+    setMostrarFormularioMunicipio(false)
+    setMessage('')
+    setMessageType('')
+  }
+
+  const atualizarLocalidade = (codMunicipio, chave, campo, valor) => {
+    setMunicipios((current) =>
+      current.map((municipio) => {
+        if (municipio.cod_municipio !== codMunicipio) return municipio
+
+        let flags = municipio._localidadesAlteradas ?? {}
+        const localidades = municipio.localidades.map((localidade) => {
+          if (chaveLocalidade(localidade) !== chave) return localidade
+
+          const atualizada = { ...localidade, [campo]: valor }
+          const alterada = !objetosIguais(
+            dadosLocalidadePersistencia(atualizada, municipio.cod_municipio),
+            municipio._localidadesOriginais?.[chave]
+          )
+          flags = aplicarFlagAlteracao(flags, chave, alterada)
+          return atualizada
+        })
+
+        return {
+          ...municipio,
+          localidades,
+          _localidadesAlteradas: flags,
+        }
+      })
+    )
+  }
+
+  const atualizarAcaoLocalidade = (codMunicipio, chave, acao) => {
+    setMunicipios((current) =>
+      current.map((municipio) => {
+        if (municipio.cod_municipio !== codMunicipio) return municipio
+
+        let flags = municipio._localidadesAlteradas ?? {}
+        const localidades = municipio.localidades.map((localidade) => {
+          if (chaveLocalidade(localidade) !== chave) return localidade
+
+          const atualizada = {
+            ...localidade,
+            acao_sugerida: acao,
+            justificativa: acao === 'manter' ? '' : localidade.justificativa,
+            qtde_familias_ben_sugerida:
+              acao === 'corrigir' && !localidade.qtde_familias_ben_sugerida
+                ? localidade.qtde_familias_ben_original ?? ''
+                : localidade.qtde_familias_ben_sugerida,
+          }
+          const alterada = !objetosIguais(
+            dadosLocalidadePersistencia(atualizada, municipio.cod_municipio),
+            municipio._localidadesOriginais?.[chave]
+          )
+          flags = aplicarFlagAlteracao(flags, chave, alterada)
+          return atualizada
+        })
+
+        return {
+          ...municipio,
+          localidades,
+          _localidadesAlteradas: flags,
+        }
+      })
+    )
+  }
+
+  const atualizarFamiliasLocalidade = (codMunicipio, chave, valor) => {
+    setMunicipios((current) =>
+      current.map((municipio) => {
+        if (municipio.cod_municipio !== codMunicipio) return municipio
+
+        let flags = municipio._localidadesAlteradas ?? {}
+        const localidades = municipio.localidades.map((localidade) => {
+          if (chaveLocalidade(localidade) !== chave) return localidade
+
+          const original = localidade.qtde_familias_ben_original
+          const valorNumerico = numeroOuNull(valor)
+          const deveCorrigir =
+            localidade.origem_registro === 'base_atual' &&
+            localidade.acao_sugerida !== 'remover' &&
+            valorNumerico !== original
+          const atualizada = {
+            ...localidade,
+            qtde_familias_ben_sugerida: valor,
+            acao_sugerida: deveCorrigir ? 'corrigir' : localidade.acao_sugerida,
+          }
+          const alterada = !objetosIguais(
+            dadosLocalidadePersistencia(atualizada, municipio.cod_municipio),
+            municipio._localidadesOriginais?.[chave]
+          )
+          flags = aplicarFlagAlteracao(flags, chave, alterada)
+          return atualizada
+        })
+
+        return {
+          ...municipio,
+          localidades,
+          _localidadesAlteradas: flags,
+        }
+      })
+    )
+  }
+
+  const atualizarObra = (codMunicipio, idObra, campo, valor) => {
+    setMunicipios((current) =>
+      current.map((municipio) => {
+        if (municipio.cod_municipio !== codMunicipio) return municipio
+
+        let flags = municipio._obrasAlteradas ?? {}
+        const obras = municipio.obras_saneamento.map((obra) => {
+          if (chaveObra(obra) !== String(idObra)) return obra
+
+          let atualizada
+
+          if (campo === 'relacao_instrumento') {
+            const relacaoInstrumento = normalizarRelacaoInstrumento(valor)
+            atualizada = {
+              ...obra,
+              relacao_instrumento: relacaoInstrumento,
+              confirmacao_status: 'nao_confirmada',
+            }
+          } else {
+            atualizada = { ...obra, [campo]: valor }
+          }
+
+          const chave = chaveObra(atualizada)
+          const alterada = !objetosIguais(
+            dadosObraPersistencia(atualizada, municipio.cod_municipio),
+            municipio._obrasOriginais?.[chave]
+          )
+          flags = aplicarFlagAlteracao(flags, chave, alterada)
+          return atualizada
+        })
+
+        return {
+          ...municipio,
+          obras_saneamento: obras,
+          _obrasAlteradas: flags,
+        }
+      })
+    )
+  }
+
+  const chaveEdicaoPublicoAlvo = (idProjeto, campo) => `${idProjeto}:${campo}`
+
+  const valorInicialEdicaoPublicoAlvo = (item, campoOriginal, campoRevisado) => {
+    if (!valorAusente(item[campoRevisado])) return item[campoRevisado]
+    if (!valorAusente(item[campoOriginal])) return item[campoOriginal]
+    return ''
+  }
+
+  const iniciarEdicaoPublicoAlvo = (item, campoOriginal, campoRevisado) => {
+    const chave = chaveEdicaoPublicoAlvo(
+      item.id_projeto_investimento,
+      campoRevisado
+    )
+    setEdicoesPublicoAlvo((current) => ({
+      ...current,
+      [chave]: valorInicialEdicaoPublicoAlvo(item, campoOriginal, campoRevisado),
+    }))
+  }
+
+  const atualizarRascunhoPublicoAlvo = (chave, valor) => {
+    setEdicoesPublicoAlvo((current) => ({
+      ...current,
+      [chave]: valor,
+    }))
+  }
+
+  const fecharEdicaoPublicoAlvo = (chave) => {
+    setEdicoesPublicoAlvo((current) => {
+      const next = { ...current }
+      delete next[chave]
+      return next
+    })
+  }
+
+  const atualizarPublicoAlvo = (idProjeto, campo, valor) => {
+    setPublicoAlvo((current) =>
+      current.map((item) => {
+        if (chavePublicoAlvo(item) !== String(idProjeto)) return item
+
+        const valorLimpo = limparTexto(valor)
+        const atualizado = {
+          ...item,
+          [campo]: valorLimpo,
+        }
+        const originalCampo = item._publicoAlvoOriginal?.[campo] ?? null
+        const camposAlterados = aplicarFlagAlteracao(
+          item._camposAlterados ?? {},
+          campo,
+          !objetosIguais(valorLimpo, originalCampo)
+        )
+
+        return {
+          ...atualizado,
+          _camposAlterados: camposAlterados,
+        }
+      })
+    )
+  }
+
+  const aplicarEdicaoPublicoAlvo = (idProjeto, campoRevisado, chave) => {
+    atualizarPublicoAlvo(
+      idProjeto,
+      campoRevisado,
+      edicoesPublicoAlvo[chave] ?? ''
+    )
+    fecharEdicaoPublicoAlvo(chave)
+  }
+
+  const atualizarNovaLocalidade = (codMunicipio, campo, valor) => {
+    setNovaLocalidadePorMunicipio((current) => ({
+      ...current,
+      [codMunicipio]: {
+        ...(current[codMunicipio] ?? LOCALIDADE_NOVA_INICIAL),
+        [campo]: valor,
+      },
+    }))
+  }
+
+  const adicionarLocalidade = (codMunicipio) => {
+    const form = novaLocalidadePorMunicipio[codMunicipio] ?? LOCALIDADE_NOVA_INICIAL
+    const nome = form.nome_localidade_informada.trim()
+
+    if (!nome) {
+      setMessage('Informe o nome da localidade a adicionar.')
+      setMessageType('error')
+      return
+    }
+
+    setMunicipios((current) =>
+      current.map((item) => {
+        if (item.cod_municipio !== codMunicipio) return item
+
+        const novaLocalidade = {
+          _clientId: novaChaveLocal(),
+          cod_municipio: item.cod_municipio,
+          cod_comunidade_rural: null,
+          nome_localidade: nome,
+          nome_localidade_informada: nome,
+          origem_registro: 'adicionado_tecnico',
+          acao_sugerida: 'adicionar',
+          qtde_familias_ben_original: null,
+          qtde_familias_ben_sugerida: form.qtde_familias_ben_sugerida,
+          justificativa: '',
+        }
+        const chave = chaveLocalidade(novaLocalidade)
+
+        return {
+          ...item,
+          localidades: [
+            ...item.localidades,
+            novaLocalidade,
+          ],
+          _localidadesAlteradas: {
+            ...(item._localidadesAlteradas ?? {}),
+            [chave]: true,
+          },
+        }
+      })
+    )
+
+    setNovaLocalidadeAbertaPorMunicipio((current) => ({
+      ...current,
+      [codMunicipio]: false,
+    }))
+
+    setNovaLocalidadePorMunicipio((current) => ({
+      ...current,
+      [codMunicipio]: LOCALIDADE_NOVA_INICIAL,
+    }))
+
+    setMessage('')
+    setMessageType('')
+  }
+
+  const montarPayloadMunicipio = (municipio, idRevisaoAtual = idRevisao) => ({
+    id_revisao: idRevisaoAtual,
+    instrumento,
+    cod_municipio: municipio.cod_municipio,
+    municipio: municipio._municipioAlterado
+      ? dadosMunicipioPersistencia(municipio)
+      : null,
+    localidades: municipio.localidades
+      .filter((localidade) => municipio._localidadesAlteradas?.[chaveLocalidade(localidade)])
+      .map((localidade) =>
+        dadosLocalidadePersistencia(localidade, municipio.cod_municipio)
+      ),
+    obras_saneamento: municipio.obras_saneamento
+      .filter((obra) => municipio._obrasAlteradas?.[chaveObra(obra)])
+      .map((obra) => dadosObraPersistencia(obra, municipio.cod_municipio)),
+  })
+
+  const montarPayloadPublicoAlvo = () =>
+    publicoAlvo
+      .filter((item) => Object.keys(item._camposAlterados ?? {}).length > 0)
+      .map((item) => {
+        const payload = {
+          id_projeto_investimento: item.id_projeto_investimento,
+        }
+
+        if (item._camposAlterados?.populacao_beneficiada_revisada) {
+          payload.populacao_beneficiada_revisada = limparTexto(
+            item.populacao_beneficiada_revisada
+          )
+        }
+
+        if (item._camposAlterados?.desc_populacao_beneficiada_revisada) {
+          payload.desc_populacao_beneficiada_revisada = limparTexto(
+            item.desc_populacao_beneficiada_revisada
+          )
+        }
+
+        return payload
+      })
+
+  const validarMunicipioAntesSalvar = (municipio) => {
+    if (municipio._municipioAlterado && !municipio.acao_sugerida) {
+      return 'Selecione uma ação para a revisão do município antes de salvar.'
+    }
+
+    const localidadeSemAcao = municipio.localidades.find(
+      (localidade) =>
+        municipio._localidadesAlteradas?.[chaveLocalidade(localidade)] &&
+        !localidade.acao_sugerida
+    )
+
+    if (localidadeSemAcao) {
+      return 'Selecione uma ação para cada localidade alterada antes de salvar.'
+    }
+
+    return null
+  }
+
+  const aplicarResultadoMunicipio = (payload, data) => {
+    setIdRevisao(data.id_revisao)
+    setDadosBusca((current) =>
+      current
+        ? {
+            ...current,
+            id_revisao: data.id_revisao,
+            status: data.status ?? current.status,
+            status_revisao_geral:
+              data.status_revisao_geral ?? current.status_revisao_geral,
+            status_revisao_geral_label:
+              data.status_revisao_geral_label ??
+              current.status_revisao_geral_label,
+          }
+        : current
+    )
+    setMunicipios((current) =>
+      current.map((municipio) => {
+        if (municipio.cod_municipio !== payload.cod_municipio) return municipio
+
+        const retorno = data.municipio
+        const localidadesRetorno = retorno.localidades ?? []
+        const obrasRetorno = retorno.obras_saneamento ?? []
+        const obraPorChave = Object.fromEntries(
+          obrasRetorno.map((obra) => [chaveObra(obra), obra])
+        )
+
+        let municipioAlterado = municipio._municipioAlterado
+        let municipioOriginal = municipio._municipioOriginal
+
+        if (
+          payload.municipio &&
+          objetosIguais(dadosMunicipioPersistencia(municipio), payload.municipio)
+        ) {
+          municipioAlterado = false
+          municipioOriginal = payload.municipio
+        }
+
+        let localidadesAlteradas = { ...(municipio._localidadesAlteradas ?? {}) }
+        let localidadesOriginais = { ...(municipio._localidadesOriginais ?? {}) }
+        const localidades = municipio.localidades.map((localidade) => {
+          const chave = chaveLocalidade(localidade)
+          const localidadeAtualPayload = dadosLocalidadePersistencia(
+            localidade,
+            municipio.cod_municipio
+          )
+          const retornoLocalidade = localidadesRetorno.find((item) =>
+            objetosIguais(
+              semIdsPersistencia(
+                dadosLocalidadePersistencia(item, municipio.cod_municipio)
+              ),
+              semIdsPersistencia(localidadeAtualPayload)
+            )
+          )
+          const payloadLocalidade = payload.localidades.find((item) =>
+            objetosIguais(item, localidadeAtualPayload)
+          )
+
+          if (!retornoLocalidade) return localidade
+
+          const atualizada = {
+            ...localidade,
+            ...retornoLocalidade,
+            _clientId: localidade._clientId,
+          }
+
+          if (payloadLocalidade) {
+            delete localidadesAlteradas[chave]
+            localidadesOriginais[chave] = dadosLocalidadePersistencia(
+              atualizada,
+              municipio.cod_municipio
+            )
+          }
+
+          return atualizada
+        })
+
+        let obrasAlteradas = { ...(municipio._obrasAlteradas ?? {}) }
+        let obrasOriginais = { ...(municipio._obrasOriginais ?? {}) }
+        const obras = municipio.obras_saneamento.map((obra) => {
+          const chave = chaveObra(obra)
+          const retornoObra = obraPorChave[chave]
+          const payloadObra = payload.obras_saneamento.find((item) =>
+            objetosIguais(item, dadosObraPersistencia(obra, municipio.cod_municipio))
+          )
+
+          if (!retornoObra) return obra
+
+          const atualizada = normalizarObra({
+            ...obra,
+            ...retornoObra,
+          })
+
+          if (payloadObra) {
+            delete obrasAlteradas[chave]
+            obrasOriginais[chave] = dadosObraPersistencia(atualizada, municipio.cod_municipio)
+          }
+
+          return atualizada
+        })
+
+        return {
+          ...municipio,
+          revisao_municipio_conferida_em:
+            retorno.revisao_municipio_conferida_em ??
+            municipio.revisao_municipio_conferida_em,
+          localidades_conferidas_em:
+            retorno.localidades_conferidas_em ?? municipio.localidades_conferidas_em,
+          obras_conferidas_em:
+            retorno.obras_conferidas_em ?? municipio.obras_conferidas_em,
+          localidades,
+          obras_saneamento: obras,
+          _municipioOriginal: municipioOriginal,
+          _localidadesOriginais: localidadesOriginais,
+          _obrasOriginais: obrasOriginais,
+          _municipioAlterado: municipioAlterado,
+          _localidadesAlteradas: localidadesAlteradas,
+          _obrasAlteradas: obrasAlteradas,
+          _salvoNestaSessao: true,
+        }
+      })
+    )
+  }
+
+  const salvarMunicipio = async (
+    municipio,
+    idRevisaoAtual = idRevisao,
+    { propagarErro = false } = {}
+  ) => {
+    if (!instrumento || !municipioTemAlteracoes(municipio)) return idRevisaoAtual
+
+    const mensagemValidacao = validarMunicipioAntesSalvar(municipio)
+    const codMunicipio = municipio.cod_municipio
+
+    if (mensagemValidacao) {
+      setErroMunicipio((current) => ({ ...current, [codMunicipio]: mensagemValidacao }))
+      setMessage(mensagemValidacao)
+      setMessageType('error')
+      if (propagarErro) {
+        throw new Error(mensagemValidacao)
+      }
+      return idRevisaoAtual
+    }
+
+    const payload = montarPayloadMunicipio(municipio, idRevisaoAtual)
+
+    setSalvandoMunicipio((current) => ({ ...current, [codMunicipio]: true }))
+    setErroMunicipio((current) => ({ ...current, [codMunicipio]: '' }))
+    setMessage('')
+    setMessageType('')
+
+    try {
+      const data = await revisaoInstrumentoApi.salvarMunicipio(payload)
+      aplicarResultadoMunicipio(payload, data)
+      setMessage(`${data.mensagem} ID da revisão: ${data.id_revisao}.`)
+      setMessageType('success')
+      return data.id_revisao
+    } catch (err) {
+      const mensagem =
+        err?.response?.data?.detail ||
+        'Não foi possível salvar as alterações deste município.'
+      setErroMunicipio((current) => ({ ...current, [codMunicipio]: mensagem }))
+      setMessage(mensagem)
+      setMessageType('error')
+      if (propagarErro) {
+        throw new Error(mensagem, { cause: err })
+      }
+      return idRevisaoAtual
+    } finally {
+      setSalvandoMunicipio((current) => ({ ...current, [codMunicipio]: false }))
+    }
+  }
+
+  const salvarPendenciasMunicipais = async (idRevisaoInicial = idRevisao) => {
+    let idAtual = idRevisaoInicial
+
+    for (const municipio of municipios) {
+      if (municipioTemAlteracoes(municipio)) {
+        idAtual = await salvarMunicipio(municipio, idAtual, { propagarErro: true })
+      }
+    }
+
+    return idAtual
+  }
+
+  const montarPayloadRevisao = (status, idRevisaoAtual) => ({
+    id_revisao: idRevisaoAtual,
+    status,
+    observacao_geral: observacaoGeral.trim() || null,
+    instrumento,
+    municipios: [],
+    publico_alvo: montarPayloadPublicoAlvo(),
+  })
+
+  const salvarRevisao = async (status) => {
+    if (!instrumento) return
+
+    setIsSaving(true)
+    setMessage('')
+    setMessageType('')
+
+    try {
+      const idAtual = await salvarPendenciasMunicipais(idRevisao)
+      const data = await revisaoInstrumentoApi.salvarRevisao(
+        montarPayloadRevisao(status, idAtual)
+      )
+      setIdRevisao(data.id_revisao)
+      setDadosBusca((current) =>
+        current
+          ? {
+              ...current,
+              id_revisao: data.id_revisao,
+              status: data.status ?? current.status,
+              status_revisao_geral:
+                data.status_revisao_geral ?? current.status_revisao_geral,
+              status_revisao_geral_label:
+                data.status_revisao_geral_label ??
+                current.status_revisao_geral_label,
+            }
+          : current
+      )
+      setPublicoAlvo(copiarPublicoAlvo(data.publico_alvo ?? publicoAlvo))
+      registrarEventoHistorico(
+        status === 'enviado' ? 'Revisão enviada' : 'Rascunho salvo',
+        status === 'enviado'
+          ? 'Revisão finalizada e enviada.'
+          : 'Todo o estado atual da revisão foi salvo.'
+      )
+      setMessage(`${data.mensagem} ID da revisão: ${data.id_revisao}.`)
+      setMessageType('success')
+    } catch (err) {
+      setMessage(
+        err?.response?.data?.detail ||
+          err?.message ||
+          'Não foi possível salvar a revisão. Verifique sua autenticação e tente novamente.'
+      )
+      setMessageType('error')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <main className={styles.page}>
+      <header className={styles.header}>
+        <div>
+          <h1>Revisão de Instrumento</h1>
+          <p>
+            Consulte, registre e envie os ajustes por instrumento da Carteira DSR. 
+          </p>
+        </div>
+
+        {instrumento && (
+          <div className={styles.headerActions}>
+            <div className={styles.headerActionGroup}>
+              <Tooltip text="Salva o estado atual de toda a revisão.">
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() => salvarRevisao('rascunho')}
+                  disabled={isSaving}
+                >
+                  <Save size={18} />
+                  {isSaving ? 'Salvando...' : 'Salvar rascunho'}
+                </button>
+              </Tooltip>
+            </div>
+
+            <div className={styles.headerActionGroup}>
+              <Tooltip text="Finaliza e envia a revisão.">
+                <button
+                  type="button"
+                  className={styles.primaryButton}
+                  onClick={() => salvarRevisao('enviado')}
+                  disabled={isSaving}
+                >
+                  <Send size={18} />
+                  {isSaving ? 'Enviando...' : 'Enviar revisão'}
+                </button>
+              </Tooltip>
+            </div>
+          </div>
+        )}
+      </header>
+
+      <div className={styles.mainGrid}>
+        <div className={styles.leftColumn}>
+          <form className={styles.searchPanel} onSubmit={buscarInstrumento}>
+            <label>
+              <span>Instrumento, proposta ou TED</span>
+              <input
+                value={identificador}
+                onChange={(event) => setIdentificador(event.target.value)}
+                placeholder="Ex.: número do instrumento, proposta ou TED"
+              />
+            </label>
+
+            <button type="submit" disabled={isLoading}>
+              <Search size={18} />
+              {isLoading ? 'Buscando...' : 'Buscar'}
+            </button>
+          </form>
+
+          {message && (
+            <div
+              className={messageType === 'success' ? styles.successBox : styles.errorBox}
+              role={messageType === 'success' ? 'status' : 'alert'}
+            >
+              {message}
+            </div>
+          )}
+
+          {instrumento && (
+            <>
+              <button
+                type="button"
+                className={`${styles.secondaryButton} ${styles.addMunicipioToggle}`}
+                onClick={() => setMostrarFormularioMunicipio(true)}
+              >
+                <Plus size={16} />
+                Adicionar Município
+              </button>
+
+              {mostrarFormularioMunicipio && (
+                <section className={styles.panel}>
+                  <div className={styles.panelHeader}>
+                    <h2>Adicionar município</h2>
+                  </div>
+
+                  <div className={styles.addGrid}>
+                    <label>
+                      <span>Código IBGE</span>
+                      <input
+                        type="number"
+                        value={novoMunicipio.cod_municipio}
+                        onChange={(event) =>
+                          setNovoMunicipio((current) => ({
+                            ...current,
+                            cod_municipio: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      <span>Nome</span>
+                      <input
+                        value={novoMunicipio.nome}
+                        onChange={(event) =>
+                          setNovoMunicipio((current) => ({
+                            ...current,
+                            nome: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      <span>UF</span>
+                      <input
+                        maxLength={2}
+                        value={novoMunicipio.uf}
+                        onChange={(event) =>
+                          setNovoMunicipio((current) => ({
+                            ...current,
+                            uf: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+
+                    <div className={styles.addMunicipioLocalidades}>
+                      <h3>Localidades do município</h3>
+
+                      <div className={styles.addMunicipioLocalidadeRow}>
+                        <label>
+                          <span>Nome da localidade</span>
+                          <input
+                            value={localidadeNovoMunicipio.nome_localidade_informada}
+                            onChange={(event) =>
+                              setLocalidadeNovoMunicipio((current) => ({
+                                ...current,
+                                nome_localidade_informada: event.target.value,
+                              }))
+                            }
+                          />
+                        </label>
+
+                        <label>
+                          <span>Famílias beneficiadas</span>
+                          <input
+                            type="number"
+                            value={localidadeNovoMunicipio.qtde_familias_ben_sugerida}
+                            onChange={(event) =>
+                              setLocalidadeNovoMunicipio((current) => ({
+                                ...current,
+                                qtde_familias_ben_sugerida: event.target.value,
+                              }))
+                            }
+                          />
+                        </label>
+
+                        <button type="button" onClick={adicionarLocalidadeNovoMunicipio}>
+                          <Plus size={16} />
+                          Adicionar localidade
+                        </button>
+                      </div>
+
+                      {localidadesNovoMunicipio.length > 0 && (
+                        <ul className={styles.localidadesTemporarias}>
+                          {localidadesNovoMunicipio.map((localidade, localidadeIndex) => (
+                            <li key={`${localidade.nome_localidade}-${localidadeIndex}`}>
+                              <span>
+                                {localidade.nome_localidade} —{' '}
+                                {valorOuTraco(localidade.qtde_familias_ben_sugerida)} famílias
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => removerLocalidadeNovoMunicipio(localidadeIndex)}
+                              >
+                                remover
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+
+                    <button type="button" onClick={adicionarMunicipio}>
+                      <Plus size={16} />
+                      Adicionar
+                    </button>
+
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      onClick={() => {
+                        setMostrarFormularioMunicipio(false)
+                        setNovoMunicipio(MUNICIPIO_NOVO_INICIAL)
+                        setLocalidadeNovoMunicipio(LOCALIDADE_NOVA_INICIAL)
+                        setLocalidadesNovoMunicipio([])
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </section>
+              )}
+
+              <section className={styles.municipiosList}>
+                {municipios.length === 0 ? (
+                  <div className={styles.emptyState}>
+                    Nenhum município encontrado para este instrumento.
+                  </div>
+                ) : (
+                  municipios.map((municipio) => {
+                    const formLocalidade =
+                      novaLocalidadePorMunicipio[municipio.cod_municipio] ??
+                      LOCALIDADE_NOVA_INICIAL
+
+                    const isNovaLocalidadeAberta = Boolean(
+                      novaLocalidadeAbertaPorMunicipio[municipio.cod_municipio]
+                    )
+
+                    const isAberto = municipioAberto === municipio.cod_municipio
+                    const mostrarConfirmacao = municipio.obras_saneamento.some(
+                      (obra) => obra.relacao_instrumento !== 'nao_analisada'
+                    )
+
+                    return (
+                      <article
+                        className={`${styles.municipioCard} ${
+                          isAberto ? styles.municipioCardAberto : ''
+                        }`}
+                        key={municipio.cod_municipio}
+                      >
+                        <div
+                          className={styles.municipioSummary}
+                          role="button"
+                          tabIndex={0}
+                          aria-expanded={isAberto}
+                          onClick={() =>
+                            setMunicipioAberto(isAberto ? null : municipio.cod_municipio)
+                          }
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault()
+                              setMunicipioAberto(isAberto ? null : municipio.cod_municipio)
+                            }
+                          }}
+                        >
+                          <div className={styles.municipioTitleGroup}>
+                            <div className={styles.municipioTitleLine}>
+                              <h2>{formatarMunicipioUf(municipio.nome, municipio.uf)}</h2>
+
+                              <div className={styles.summaryMeta}>
+                                <span className={styles.statusChip}>
+                                  {statusVisualMunicipio(municipio)}
+                                </span>
+                                <span>{municipio.localidades.length} localidade(s)</span>
+                                <span>{municipio.obras_saneamento.length} outra(s) obra(s)</span>
+                              </div>
+
+                              {municipio.origem_registro === 'adicionado_tecnico' && (
+                                <span className={styles.addedChip}>Incluído nesta revisão</span>
+                              )}
+                            </div>
+
+                            <p>Código IBGE: {municipio.cod_municipio}</p>
+                          </div>
+
+                          <div className={styles.summaryActions}>
+                            <button
+                              type="button"
+                              className={styles.reviewButton}
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                setMunicipioAberto(isAberto ? null : municipio.cod_municipio)
+                              }}
+                            >
+                              <ChevronDown
+                                size={18}
+                                className={isAberto ? styles.chevronOpen : ''}
+                              />
+                              {isAberto ? 'Fechar' : 'Abrir'}
+                            </button>
+                          </div>
+                        </div>
+
+                        {isAberto && (
+                          <div className={styles.municipioContent}>
+                            <div className={styles.reviewGrid}>
+                              {municipio.origem_registro === 'adicionado_tecnico' ? (
+                                <div className={styles.fieldGroup}>
+                                  <span>Situação na revisão</span>
+                                  <span className={styles.addedChip}>
+                                    Incluído nesta revisão
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className={styles.municipioAcaoLinha}>
+                                  <div className={styles.sectionHeader}>
+                                    <span className={styles.sectionHeaderTitle}>Revisão do Município</span>
+                                    <span className={styles.sectionHeaderSeparator} aria-hidden="true"/>
+                                    <span className={styles.sectionHeaderMeta}>
+                                      {formatarDataConferencia(municipio.revisao_municipio_conferida_em)}
+                                    </span>
+                                  </div>
+                                  <div
+                                    className={styles.acaoTextualInline}
+                                    role="group"
+                                    aria-label="Revisão do Município"
+                                  >
+                                    {ACOES_MUNICIPIO.map((acao, acaoIndex) => {
+                                      const isActive = municipio.acao_sugerida === acao.value
+
+                                      return (
+                                        <span key={acao.value} className={styles.acaoTextualItem}>
+                                          <button
+                                            type="button"
+                                            className={`${styles.acaoTextualButton} ${
+                                              isActive ? styles.acaoTextualButtonActive : ''
+                                            }`}
+                                            aria-pressed={isActive}
+                                            onClick={() =>
+                                              atualizarAcaoMunicipio(
+                                                municipio.cod_municipio,
+                                                acao.value
+                                              )
+                                            }
+                                          >
+                                            {acao.label}
+                                          </button>
+
+                                          {acaoIndex < ACOES_MUNICIPIO.length - 1 && (
+                                            <span className={styles.acaoTextualSeparator}>|</span>
+                                          )}
+                                        </span>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              {municipio.acao_sugerida === 'remover' && (
+                                <label className={styles.justificativaMunicipio}>
+                                  <span>Justificativa</span>
+                                  <textarea
+                                    value={municipio.justificativa ?? ''}
+                                    onChange={(event) =>
+                                      atualizarMunicipio(
+                                        municipio.cod_municipio,
+                                        'justificativa',
+                                        event.target.value
+                                      )
+                                    }
+                                    rows={3}
+                                  />
+                                </label>
+                              )}
+                            </div>
+
+                            <div className={`${styles.subsection} ${styles.obrasSection}`}>
+                              <div className={styles.sectionHeader}>
+                                <h3>Localidades beneficiadas</h3>
+                                <span className={styles.sectionHeaderSeparator} aria-hidden="true"/>
+                                <span className={styles.sectionHeaderMeta}>
+                                  {formatarDataConferencia(municipio.localidades_conferidas_em)}
+                                </span>
+                              </div>
+
+                              <div className={styles.tableScroller}>
+                                <table className={`${styles.table} ${styles.localidadesTable}`}>
+                                  <thead>
+                                    <tr>
+                                      <th>Localidade</th>
+                                      <th>Revisão da Localidade</th>
+                                      <th>Famílias Beneficiadas</th>
+                                      <th>Observação</th>
+                                    </tr>
+                                  </thead>
+
+                                  <tbody>
+                                    {municipio.localidades.length === 0 ? (
+                                      <tr>
+                                        <td colSpan={4} className={styles.emptyCell}>
+                                          Nenhuma localidade cadastrada.
+                                        </td>
+                                      </tr>
+                                    ) : (
+                                      municipio.localidades.map((localidade) => {
+                                        const isAdicionada =
+                                          localidade.origem_registro === 'adicionado_tecnico'
+                                        const isCorrigir =
+                                          localidade.acao_sugerida === 'corrigir'
+                                        const chaveJustificativaLocalidade =
+                                          chaveLocalidade(localidade)
+                                        const mostrarJustificativa = Boolean(
+                                          justificativasLocalidadeAbertas[chaveJustificativaLocalidade]
+                                        )
+
+                                        return (
+                                          <tr
+                                            key={chaveJustificativaLocalidade}
+                                          >
+                                            <td>
+                                              <div className={styles.localidadeCell}>
+                                                <span>
+                                                  {valorOuTraco(localidade.nome_localidade)}
+                                                </span>
+                                                {isAdicionada && (
+                                                  <span className={styles.addedChip}>
+                                                    Incluída nesta revisão
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </td>
+
+                                            <td>
+                                              {isAdicionada ? (
+                                                <span className={styles.addedChip}>
+                                                  Incluída nesta revisão
+                                                </span>
+                                              ) : (
+                                                <div
+                                                  className={styles.acaoTextualInline}
+                                                  role="group"
+                                                  aria-label="Ação da localidade"
+                                                >
+                                                  {ACOES_LOCALIDADE_EXISTENTE.map(
+                                                    (acao, acaoIndex) => {
+                                                      const isActive =
+                                                        localidade.acao_sugerida === acao.value
+
+                                                      return (
+                                                        <span
+                                                          key={acao.value}
+                                                          className={styles.acaoTextualItem}
+                                                        >
+                                                          <button
+                                                            type="button"
+                                                            className={`${
+                                                              styles.acaoTextualButton
+                                                            } ${
+                                                              isActive
+                                                                ? styles.acaoTextualButtonActive
+                                                                : ''
+                                                            }`}
+                                                            aria-pressed={isActive}
+                                                            onClick={() =>
+                                                              atualizarAcaoLocalidade(
+                                                                municipio.cod_municipio,
+                                                                chaveJustificativaLocalidade,
+                                                                acao.value
+                                                              )
+                                                            }
+                                                          >
+                                                            {acao.label}
+                                                          </button>
+
+                                                          {acaoIndex <
+                                                            ACOES_LOCALIDADE_EXISTENTE.length -
+                                                              1 && (
+                                                            <span
+                                                              className={
+                                                                styles.acaoTextualSeparator
+                                                              }
+                                                            >
+                                                              |
+                                                            </span>
+                                                          )}
+                                                        </span>
+                                                      )
+                                                    }
+                                                  )}
+                                                </div>
+                                              )}
+                                            </td>
+
+                                            <td>
+                                              {isAdicionada ? (
+                                                valorOuTraco(
+                                                  localidade.qtde_familias_ben_sugerida
+                                                )
+                                              ) : isCorrigir ? (
+                                                <div className={styles.familiasCell}>
+                                                  <span>
+                                                    Atual:{' '}
+                                                    {valorOuTraco(
+                                                      localidade.qtde_familias_ben_original
+                                                    )}
+                                                  </span>
+                                                  <label>
+                                                    <span>Novo valor: </span>
+                                                    <input
+                                                      type="number"
+                                                      value={
+                                                        localidade.qtde_familias_ben_sugerida ??
+                                                        ''
+                                                      }
+                                                      onChange={(event) =>
+                                                        atualizarFamiliasLocalidade(
+                                                          municipio.cod_municipio,
+                                                          chaveJustificativaLocalidade,
+                                                          event.target.value
+                                                        )
+                                                      }
+                                                    />
+                                                  </label>
+                                                </div>
+                                              ) : (
+                                                valorOuTraco(
+                                                  localidade.qtde_familias_ben_original
+                                                )
+                                              )}
+                                            </td>
+
+                                            <td>
+                                              {mostrarJustificativa ? (
+                                                <div className={styles.justificativaAberta}>
+                                                  <textarea
+                                                    value={localidade.justificativa ?? ''}
+                                                    onChange={(event) =>
+                                                      atualizarLocalidade(
+                                                        municipio.cod_municipio,
+                                                        chaveJustificativaLocalidade,
+                                                        'justificativa',
+                                                        event.target.value
+                                                      )
+                                                    }
+                                                    rows={2}
+                                                  />
+                                                  <button
+                                                    type="button"
+                                                    className={styles.justificativaFechar}
+                                                    title="Fechar justificativa"
+                                                    aria-label="Fechar justificativa da localidade"
+                                                    onClick={() =>
+                                                      alternarJustificativaLocalidade(chaveJustificativaLocalidade)
+                                                    }
+                                                  >
+                                                    <X size={14} />
+                                                  </button>
+                                                </div>
+                                              ) : (
+                                                <button
+                                                  type="button"
+                                                  className={styles.justificativaToggle}
+                                                  title="Adicionar justificativa"
+                                                  aria-label="Adicionar justificativa da localidade"
+                                                  onClick={() =>
+                                                    alternarJustificativaLocalidade(
+                                                      chaveJustificativaLocalidade
+                                                    )
+                                                  }
+                                                >
+                                                  <Plus size={14} />
+                                                </button>
+                                              )}
+                                            </td>
+                                          </tr>
+                                        )
+                                      })
+                                    )}
+                                  </tbody>
+                                </table>
+                              </div>
+
+                              {!isNovaLocalidadeAberta ? (
+                                <button
+                                  type="button"
+                                  className={`${styles.secondaryButton} ${styles.addLocalidadeToggle}`}
+                                  onClick={() =>
+                                    setNovaLocalidadeAbertaPorMunicipio((current) => ({
+                                      ...current,
+                                      [municipio.cod_municipio]: true,
+                                    }))
+                                  }
+                                >
+                                  <Plus size={16} />
+                                  Adicionar localidade
+                                </button>
+                              ) : (
+                                <div className={styles.addLocalidadeGrid}>
+                                  <label>
+                                    <span>Nome da localidade</span>
+                                    <input
+                                      value={formLocalidade.nome_localidade_informada}
+                                      onChange={(event) =>
+                                        atualizarNovaLocalidade(
+                                          municipio.cod_municipio,
+                                          'nome_localidade_informada',
+                                          event.target.value
+                                        )
+                                      }
+                                    />
+                                  </label>
+
+                                  <label>
+                                    <span>Famílias beneficiadas</span>
+                                    <input
+                                      type="number"
+                                      value={formLocalidade.qtde_familias_ben_sugerida}
+                                      onChange={(event) =>
+                                        atualizarNovaLocalidade(
+                                          municipio.cod_municipio,
+                                          'qtde_familias_ben_sugerida',
+                                          event.target.value
+                                        )
+                                      }
+                                    />
+                                  </label>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => adicionarLocalidade(municipio.cod_municipio)}
+                                  >
+                                    <Plus size={16} />
+                                    Adicionar Localidade
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    className={styles.secondaryButton}
+                                    onClick={() => {
+                                      setNovaLocalidadeAbertaPorMunicipio((current) => ({
+                                        ...current,
+                                        [municipio.cod_municipio]: false,
+                                      }))
+                                      setNovaLocalidadePorMunicipio((current) => ({
+                                        ...current,
+                                        [municipio.cod_municipio]: LOCALIDADE_NOVA_INICIAL,
+                                      }))
+                                    }}
+                                  >
+                                    Cancelar
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className={styles.revisaoDuasColunas}>
+                              <div className={`${styles.subsection} ${styles.localidadesSection}`}>
+                                <div className={styles.sectionHeader}>
+                                  <h3>Revisão de sobreposição de ação/obras</h3>
+                                  <span className={styles.sectionHeaderSeparator} aria-hidden="true"/>
+                                  <span className={styles.sectionHeaderMeta}>
+                                    {formatarDataConferencia(municipio.obras_conferidas_em)}
+                                  </span>
+                                </div>
+
+                                <div className={styles.tableScroller}>
+                                  <table
+                                    className={`${styles.table} ${styles.obrasTable} ${
+                                      mostrarConfirmacao
+                                        ? styles.obrasTableComConfirmacao
+                                        : styles.obrasTableSemConfirmacao
+                                    }`}
+                                  >
+                                    <colgroup>
+                                      <col className={styles.colObra} />
+                                      <col className={styles.colOrgao} />
+                                      <col className={styles.colRelacao} />
+                                      {mostrarConfirmacao && (
+                                        <col className={styles.colConfirmacao} />
+                                      )}
+                                      <col className={styles.colObservacao} />
+                                      <col className={styles.colLinks} />
+                                    </colgroup>
+                                    <thead>
+                                      <tr>
+                                        <th className={styles.colunaObra}>Obra</th>
+                                        <th>Órgão Responsável</th>
+                                        <th>Avaliação</th>
+                                        {mostrarConfirmacao && <th>Confirmação</th>}
+                                        <th>Observação</th>
+                                        <th>Links</th>
+                                      </tr>
+                                    </thead>
+
+                                    <tbody>
+                                      {municipio.obras_saneamento.length === 0 ? (
+                                        <tr>
+                                          <td
+                                            colSpan={mostrarConfirmacao ? 6 : 5}
+                                            className={styles.emptyCell}
+                                          >
+                                            Nenhuma obra encontrada.
+                                          </td>
+                                        </tr>
+                                      ) : (
+                                        municipio.obras_saneamento.map((obra) => {
+                                          const chaveJustificativaObra = chaveObra(obra)
+                                          const mostrarJustificativaObra = Boolean(
+                                            justificativasObraAbertas[chaveJustificativaObra]
+                                          )
+
+                                          return (
+                                            <tr key={chaveJustificativaObra}>
+                                              <td className={styles.colunaObra}>
+                                                {valorOuTraco(obra.descricao)}
+                                              </td>
+                                              <td>{valorOuTraco(obra.orgao)}</td>
+                                              <td>
+                                                <select
+                                                  value={obra.relacao_instrumento}
+                                                  onChange={(event) =>
+                                                    atualizarObra(
+                                                      municipio.cod_municipio,
+                                                      obra.id_obra,
+                                                      'relacao_instrumento',
+                                                      event.target.value
+                                                    )
+                                                  }
+                                                >
+                                                  {RELACOES_INSTRUMENTO.map((relacao) => (
+                                                    <option
+                                                      key={relacao.value}
+                                                      value={relacao.value}
+                                                    >
+                                                      {relacao.label}
+                                                    </option>
+                                                  ))}
+                                                </select>
+                                              </td>
+                                              {mostrarConfirmacao && (
+                                                <td>
+                                                  {obra.relacao_instrumento ===
+                                                  'nao_analisada' ? (
+                                                    <span className={styles.confirmacaoNeutra}>
+                                                      —
+                                                    </span>
+                                                  ) : (
+                                                    <select
+                                                      value={obra.confirmacao_status}
+                                                      onChange={(event) =>
+                                                        atualizarObra(
+                                                          municipio.cod_municipio,
+                                                          obra.id_obra,
+                                                          'confirmacao_status',
+                                                          event.target.value
+                                                        )
+                                                      }
+                                                    >
+                                                      {confirmacoesPermitidas(
+                                                        obra.relacao_instrumento
+                                                      ).map((confirmacao) => (
+                                                        <option
+                                                          key={confirmacao.value}
+                                                          value={confirmacao.value}
+                                                        >
+                                                          {confirmacao.label}
+                                                        </option>
+                                                      ))}
+                                                    </select>
+                                                  )}
+                                                </td>
+                                              )}
+                                              <td>
+                                                {mostrarJustificativaObra ? (
+                                                  <div className={styles.justificativaAberta}>
+                                                    <textarea
+                                                      value={obra.justificativa ?? ''}
+                                                      onChange={(event) =>
+                                                        atualizarObra(
+                                                          municipio.cod_municipio,
+                                                          obra.id_obra,
+                                                          'justificativa',
+                                                          event.target.value
+                                                        )
+                                                      }
+                                                      rows={2}
+                                                    />
+                                                    <button
+                                                      type="button"
+                                                      className={styles.justificativaFechar}
+                                                      title="Fechar justificativa"
+                                                      aria-label="Fechar justificativa da obra"
+                                                      onClick={() =>
+                                                        alternarJustificativaObra(chaveJustificativaObra)
+                                                      }
+                                                    >
+                                                      <X size={14} />
+                                                    </button>
+                                                  </div>
+                                                ) : (
+                                                  <button
+                                                  type="button"
+                                                  className={styles.justificativaToggle}
+                                                  title="Adicionar justificativa"
+                                                  aria-label="Adicionar justificativa da obra"
+                                                  onClick={() =>
+                                                    alternarJustificativaObra(
+                                                      chaveJustificativaObra
+                                                    )
+                                                  }
+                                                >
+                                                  <Plus size={14} />
+                                                </button>
+                                              )}
+                                            </td>
+                                              <td>
+                                                <div className={styles.linksColumn}>
+                                                  {obra.link_transferegov && (
+                                                    <a
+                                                      href={obra.link_transferegov}
+                                                      target="_blank"
+                                                      rel="noreferrer"
+                                                    >
+                                                      Transferegov
+                                                    </a>
+                                                  )}
+                                                  {obra.link_obrasgov && (
+                                                    <a
+                                                      href={obra.link_obrasgov}
+                                                      target="_blank"
+                                                      rel="noreferrer"
+                                                    >
+                                                      Obrasgov
+                                                    </a>
+                                                  )}
+                                                </div>
+                                              </td>
+                                          </tr>
+                                          )
+                                        })
+                                      )}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            </div>
+
+                            {erroMunicipio[municipio.cod_municipio] && (
+                              <div className={styles.municipioError} role="alert">
+                                {erroMunicipio[municipio.cod_municipio]}
+                              </div>
+                            )}
+
+                            <div className={styles.municipioFooterActions}>
+                              <Tooltip text="Salva apenas as alterações deste município.">
+                                <button
+                                  type="button"
+                                  className={styles.municipioSaveButton}
+                                  disabled={
+                                    salvandoMunicipio[municipio.cod_municipio] ||
+                                    !municipioTemAlteracoes(municipio)
+                                  }
+                                  onClick={() => salvarMunicipio(municipio)}
+                                >
+                                  <Save size={16} />
+                                  {salvandoMunicipio[municipio.cod_municipio]
+                                    ? 'Salvando...'
+                                    : 'Salvar este município'}
+                                </button>
+                              </Tooltip>
+                            </div>
+                          </div>
+                        )}
+                      </article>
+                    )
+                  })
+                )}
+              </section>
+
+              {publicoAlvo.length > 0 && (
+                <section className={`${styles.panel} ${styles.publicoAlvoSection}`}>
+                  <div className={styles.sectionHeader}>
+                    <h2>Revisão da população beneficiada</h2>
+                    <span className={styles.sectionHeaderSeparator} aria-hidden="true"/>
+                    <span className={styles.sectionHeaderMeta}>
+                      {publicoAlvoTemAlteracoes(publicoAlvo)
+                        ? 'Alterações não salvas'
+                        : formatarDataConferencia(dataConferenciaPublicoAlvo(publicoAlvo))}
+                    </span>
+                  </div>
+
+                  <div className={styles.publicoAlvoList}>
+                    {publicoAlvo.map((item) => {
+                      const chave = chavePublicoAlvo(item)
+                      const chaveEdicaoPopulacao = chaveEdicaoPublicoAlvo(
+                        chave,
+                        'populacao_beneficiada_revisada'
+                      )
+                      const chaveEdicaoDescricao = chaveEdicaoPublicoAlvo(
+                        chave,
+                        'desc_populacao_beneficiada_revisada'
+                      )
+                      const editandoPopulacao =
+                        Object.prototype.hasOwnProperty.call(
+                          edicoesPublicoAlvo,
+                          chaveEdicaoPopulacao
+                        )
+                      const editandoDescricao =
+                        Object.prototype.hasOwnProperty.call(
+                          edicoesPublicoAlvo,
+                          chaveEdicaoDescricao
+                        )
+
+                      return (
+                        <article className={styles.publicoAlvoItem} key={chave}>
+                          <div className={styles.publicoAlvoHeader}>
+                            <div>
+                              <h3>{valorOuTraco(item.nome_obra)}</h3>
+                            </div>
+                          </div>
+
+                          <div className={styles.publicoAlvoGrid}>
+                            <div className={styles.publicoAlvoCampo}>
+                              <span>População beneficiada</span>
+                              {editandoPopulacao ? (
+                                <div className={styles.campoRevisaoInline}>
+                                  <input
+                                    value={edicoesPublicoAlvo[chaveEdicaoPopulacao]}
+                                    onChange={(event) =>
+                                      atualizarRascunhoPublicoAlvo(
+                                        chaveEdicaoPopulacao,
+                                        event.target.value
+                                      )
+                                    }
+                                  />
+                                  <div className={styles.acoesRevisaoInline}>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        aplicarEdicaoPublicoAlvo(
+                                          item.id_projeto_investimento,
+                                          'populacao_beneficiada_revisada',
+                                          chaveEdicaoPopulacao
+                                        )
+                                      }
+                                    >
+                                      Aplicar
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        fecharEdicaoPublicoAlvo(chaveEdicaoPopulacao)
+                                      }
+                                    >
+                                      Cancelar
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className={styles.valorRevisavelCell}>
+                                  <strong>
+                                    {valorOuTraco(
+                                      valorExibicaoPublicoAlvo(
+                                        item,
+                                        'populacao_beneficiada_original',
+                                        'populacao_beneficiada_revisada'
+                                      )
+                                    )}
+                                  </strong>
+                                  <button
+                                    type="button"
+                                    className={`${styles.acaoTextualButton} ${styles.corrigirInlineButton}`}
+                                    onClick={() =>
+                                      iniciarEdicaoPublicoAlvo(
+                                        item,
+                                        'populacao_beneficiada_original',
+                                        'populacao_beneficiada_revisada'
+                                      )
+                                    }
+                                  >
+                                    Corrigir
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className={styles.publicoAlvoCampo}>
+                              <span>Descrição da população beneficiada</span>
+                              {editandoDescricao ? (
+                                <div className={styles.campoRevisaoInline}>
+                                  <textarea
+                                    value={edicoesPublicoAlvo[chaveEdicaoDescricao]}
+                                    onChange={(event) =>
+                                      atualizarRascunhoPublicoAlvo(
+                                        chaveEdicaoDescricao,
+                                        event.target.value
+                                      )
+                                    }
+                                    rows={3}
+                                  />
+                                  <div className={styles.acoesRevisaoInline}>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        aplicarEdicaoPublicoAlvo(
+                                          item.id_projeto_investimento,
+                                          'desc_populacao_beneficiada_revisada',
+                                          chaveEdicaoDescricao
+                                        )
+                                      }
+                                    >
+                                      Aplicar
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        fecharEdicaoPublicoAlvo(chaveEdicaoDescricao)
+                                      }
+                                    >
+                                      Cancelar
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className={styles.valorRevisavelCell}>
+                                  <strong className={styles.valorOriginalTextoLongo}>
+                                    {valorOuTraco(
+                                      valorExibicaoPublicoAlvo(
+                                        item,
+                                        'desc_populacao_beneficiada_original',
+                                        'desc_populacao_beneficiada_revisada'
+                                      )
+                                    )}
+                                  </strong>
+                                  <button
+                                    type="button"
+                                    className={`${styles.acaoTextualButton} ${styles.corrigirInlineButton}`}
+                                    onClick={() =>
+                                      iniciarEdicaoPublicoAlvo(
+                                        item,
+                                        'desc_populacao_beneficiada_original',
+                                        'desc_populacao_beneficiada_revisada'
+                                      )
+                                    }
+                                  >
+                                    Corrigir
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </article>
+                      )
+                    })}
+                  </div>
+                </section>
+              )}
+            </>
+          )}
+        </div>
+
+        {instrumento && (
+          <aside className={styles.rightColumn}>
+            <section className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <h2>Dados do Instrumento</h2>
+              </div>
+
+              <dl className={styles.readonlyGrid}>
+                <div>
+                  <dt>Identificador Buscado</dt>
+                  <dd>{valorOuTraco(instrumento.identificador_busca)}</dd>
+                </div>
+
+                <div>
+                  <dt>Tipo</dt>
+                  <dd>{formatarValorTecnico(instrumento.tipo_instrumento)}</dd>
+                </div>
+
+                <div>
+                  <dt>Nº da Proposta</dt>
+                  <dd>{valorOuTraco(instrumento.nr_proposta)}</dd>
+                </div>
+
+                <div>
+                  <dt>Nº do Instrumento</dt>
+                  <dd>{valorOuTraco(instrumento.nr_instrumento)}</dd>
+                </div>
+
+                <div>
+                  <dt>Nº do TED</dt>
+                  <dd>{valorOuTraco(instrumento.nr_ted)}</dd>
+                </div>
+
+                <div>
+                  <dt>Tipo de Obra</dt>
+                  <dd>{formatarValorTecnico(instrumento.tipo_obra)}</dd>
+                </div>
+
+                <div className={styles.fullItem}>
+                  <dt>Objeto</dt>
+                  <dd>{valorOuTraco(instrumento.objeto)}</dd>
+                </div>
+
+                <div>
+                  <dt>Nome do Proponente</dt>
+                  <dd>{valorOuTraco(instrumento.nome_proponente || instrumento.orgao)}</dd>
+                </div>
+
+                <div className={styles.compactItem}>
+                  <dt>UF</dt>
+                  <dd>{valorOuTraco(instrumento.uf)}</dd>
+                </div>
+
+                <div>
+                  <dt>Situação Atual</dt>
+                  <dd>{valorOuTraco(instrumento.situacao_atual)}</dd>
+                </div>
+
+                {(instrumento.link_transferegov || instrumento.link_saci) && (
+                  <div className={`${styles.fullItem} ${styles.linksItem}`}>
+                    <dt>Links</dt>
+                    <dd className={styles.officialLinks}>
+                      {instrumento.link_transferegov && (
+                        <a
+                          className={styles.officialLink}
+                          href={instrumento.link_transferegov}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Transferegov
+                        </a>
+                      )}
+
+                      {instrumento.link_transferegov && instrumento.link_saci && (
+                        <span aria-hidden="true">·</span>
+                      )}
+
+                      {instrumento.link_saci && (
+                        <a
+                          className={styles.officialLink}
+                          href={instrumento.link_saci}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          SACI
+                        </a>
+                      )}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            </section>
+
+            <section className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <h2>Observação geral do instrumento</h2>
+              </div>
+
+              {observacaoEmEdicao ? (
+                <div className={styles.observacaoEditor}>
+                  <textarea
+                    className={styles.textarea}
+                    value={rascunhoObservacaoGeral}
+                    onChange={(event) =>
+                      setRascunhoObservacaoGeral(event.target.value)
+                    }
+                    rows={4}
+                    placeholder="Registre observações gerais da revisão."
+                  />
+
+                  <div className={styles.acoesRevisaoInline}>
+                    <button type="button" onClick={aplicarObservacaoGeral}>
+                      Aplicar
+                    </button>
+                    <button type="button" onClick={cancelarEdicaoObservacaoGeral}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.observacaoResumo}>
+                  {observacaoGeralTexto ? (
+                    <>
+                      <p>{observacaoGeralTexto}</p>
+                      <div
+                        className={styles.acaoTextualInline}
+                        aria-label="Ações da observação geral"
+                      >
+                        <span className={styles.acaoTextualItem}>
+                          <button
+                            type="button"
+                            className={styles.acaoTextualButton}
+                            onClick={abrirEdicaoObservacaoGeral}
+                          >
+                            Editar
+                          </button>
+                        </span>
+                        <span
+                          className={styles.acaoTextualSeparator}
+                          aria-hidden="true"
+                        >
+                          |
+                        </span>
+                        <span className={styles.acaoTextualItem}>
+                          <button
+                            type="button"
+                            className={styles.acaoTextualButton}
+                            onClick={removerObservacaoGeral}
+                          >
+                            Remover
+                          </button>
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className={styles.emptyObservation}>Ainda não cadastrada.</p>
+                      <div
+                        className={styles.acaoTextualInline}
+                        aria-label="Ações da observação geral"
+                      >
+                        <span className={styles.acaoTextualItem}>
+                          <button
+                            type="button"
+                            className={styles.acaoTextualButton}
+                            onClick={abrirEdicaoObservacaoGeral}
+                          >
+                            Inserir
+                          </button>
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </section>
+          </aside>
+        )}
+      </div>
+
+    </main>
+  )
+}

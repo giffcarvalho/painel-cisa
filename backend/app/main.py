@@ -8,7 +8,8 @@ from app.api import mapa
 from app.api import pesquisa_instrumento
 from app.core.database import lifespan_db
 from app.api import extrator_dados
- 
+from app.api import auth
+from app.api import revisao_instrumento
  
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -66,7 +67,19 @@ app.include_router(
     prefix="/api/v1/extrator-dados",
     tags=["Extrator de Dados"],
 )
- 
+
+app.include_router(
+    auth.router,
+    prefix="/api/v1/auth",
+    tags=["Auth"]
+)
+
+app.include_router(
+    revisao_instrumento.router,
+    prefix="/api/v1/revisao-instrumento",
+    tags=["Revisão Instrumento"],
+)
+
 @app.get("/health", tags=["Infra"])
 async def health_check():
     return {"status": "ok", "version": settings.APP_VERSION}

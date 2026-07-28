@@ -386,6 +386,14 @@
   transform: rotate(180deg);
 }
 
+.requiredColumnChip {
+  border-color: #bbf7d0 !important;
+  background: #f0fdf4 !important;
+  color: #166534 !important;
+  cursor: not-allowed !important;
+  opacity: 1 !important;
+}
+
 .chips,
 .summaryChips,
 .selectedColumnsSummary {
@@ -446,6 +454,11 @@
   border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.14);
+}
+
+.multiMenuUp {
+  top: auto;
+  bottom: calc(100% + 4px);
 }
 
 .searchWrap,
@@ -708,6 +721,16 @@
   color: #1e3a8a;
 }
 
+.groupAction:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.fieldBadgeRequired {
+  background: #dcfce7;
+  color: #166534;
+}
+
 .checkboxGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -742,6 +765,21 @@
 .checkboxCard input {
   margin-top: 2px;
   accent-color: #2563eb;
+}
+
+.checkboxCardRequired {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  cursor: default;
+}
+
+.checkboxCardRequired:hover {
+  border-color: #86efac;
+  background: #ecfdf5;
+}
+
+.checkboxCardRequired input {
+  cursor: not-allowed;
 }
 
 .checkboxContent {

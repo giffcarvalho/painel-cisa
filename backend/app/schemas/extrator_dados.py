@@ -17,6 +17,7 @@ class CampoCatalogo(BaseModel):
     visivel: bool
     exportavel: bool
     padrao: bool
+    obrigatorio: bool = False
     descricao: str = ""
 
 class TipoTabelaItem(BaseModel):
@@ -54,7 +55,7 @@ class FiltrosResponse(BaseModel):
 
 class ExtratorRequest(BaseModel):
     tipo_tabela: TipoTabela
-    field_ids: list[str] = Field(min_length=1, max_length=80)
+    field_ids: list[str] = Field(min_length=1)
     filtros: dict[str, list[Any] | Any] = Field(default_factory=dict)
 
     @field_validator("field_ids")

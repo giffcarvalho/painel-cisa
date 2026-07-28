@@ -12,7 +12,7 @@ TIPOS_TABELA = {
         "label": "Por município",
         "view": "territorio.vw_base_municipal",
         "descricao": "Uma linha por município.",
-        "ordem": ["cod_municipio", "nome"],
+        "ordem": ["cod_municipio", "nome_municipio"],
     },
     "setor_censitario": {
         "label": "Por setor censitário",
@@ -28,10 +28,15 @@ TIPOS_TABELA = {
     },
 }
 
+COLUNAS_OBRIGATORIAS = {
+    "municipio": ["cod_municipio", "nome_municipio"],
+    "setor_censitario": ["cod_setor"],
+    "instrumento": ["nr_instrumento"],
+}
+
 
 CAMPOS_IGNORADOS = {
     "municipio": {
-        "nome_municipio",
         "jenks_deficit_agua_rural_ibge",
         "jenks_deficit_esgoto_rural_ibge",
         "jenks_deficit_residuo_rural_ibge",
@@ -65,7 +70,7 @@ CAMPOS_IGNORADOS = {
 
 CAMPOS_PADRAO = {
     "municipio": {
-        "nome",
+        "nome_municipio",
         "sigla_uf",
         "regiao",
         "semiarido_2022",
@@ -117,7 +122,7 @@ CAMPOS_CATALOGADOS = {
     "municipio": {
         "Identificação": [
             ("cod_municipio", "Código do município"),
-            ("nome", "Nome do município"),
+            ("nome_municipio", "Nome do município"),
             ("cod_uf", "Código da UF"),
             ("sigla_uf", "Sigla da UF"),
             ("regiao", "Região"),
@@ -478,7 +483,7 @@ CAMPOS_CATALOGADOS = {
         ],
     },
     "instrumento": {
-        "Identificação básica": [
+        "Identificação Básica": [
             ("nr_instrumento", "Número do instrumento"),
             ("nr_proposta", "Número da proposta"),
             ("operacao", "Operação"),
@@ -720,6 +725,7 @@ def montar_catalogo() -> list[dict]:
                         "visivel": True,
                         "exportavel": True,
                         "padrao": column in CAMPOS_PADRAO[tipo_tabela],
+                        "obrigatorio": column in COLUNAS_OBRIGATORIAS[tipo_tabela],
                         "descricao": "",
                     }
                 )
@@ -736,4 +742,10 @@ def listar_campos(tipo_tabela: str) -> list[dict]:
         field
         for field in FIELD_CATALOG
         if field["tipo_tabela"] == tipo_tabela
+    ]
+
+def listar_field_ids_obrigatorios(tipo_tabela: str) -> list[str]:
+    return [
+        f"{tipo_tabela}.{column}"
+        for column in COLUNAS_OBRIGATORIAS.get(tipo_tabela, [])
     ]

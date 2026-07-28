@@ -1,0 +1,177 @@
+.container {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+}
+
+.loginButton,
+.profileButton {
+  min-height: 42px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.loginButton {
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  background: #1351b4;
+  color: #fff;
+  padding: 0 17px;
+  text-decoration: none;
+  box-shadow: 0 3px 12px rgba(19, 81, 180, 0.22);
+}
+
+.loginButton svg {
+  width: 17px;
+  height: 17px;
+}
+
+.loginButton:hover {
+  background: #0c326f;
+}
+
+.profileButton {
+  display: inline-flex;
+  max-width: min(320px, 100%);
+  align-items: center;
+  gap: 9px;
+  border: 1px solid rgba(15, 23, 42, 0.11);
+  background: rgba(255, 255, 255, 0.94);
+  color: #25221d;
+  cursor: pointer;
+  padding: 4px 11px 4px 5px;
+}
+
+.profileButton:hover {
+  border-color: rgba(19, 81, 180, 0.25);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.07);
+}
+
+.loginButton:focus-visible,
+.profileButton:focus-visible,
+.logoutButton:focus-visible {
+  outline: 3px solid rgba(19, 81, 180, 0.28);
+  outline-offset: 2px;
+}
+
+.avatar {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #e8f0fc;
+  color: #1351b4;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.buttonName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  color: #5a6476;
+  transition: transform 160ms ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 100;
+  width: min(260px, calc(100vw - 32px));
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.13);
+}
+
+.identity {
+  display: grid;
+  gap: 3px;
+  padding: 14px 16px;
+  overflow-wrap: anywhere;
+}
+
+.identity strong {
+  color: #25221d;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.identity span {
+  color: #5a6476;
+  font-size: 12px;
+}
+
+.divider {
+  height: 1px;
+  background: rgba(15, 23, 42, 0.08);
+}
+
+.logoutButton {
+  display: flex;
+  width: 100%;
+  min-height: 42px;
+  align-items: center;
+  gap: 9px;
+  border: 0;
+  background: #fff;
+  color: #9f2323;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 9px 16px;
+  text-align: left;
+}
+
+.logoutButton:hover {
+  background: #fff5f5;
+}
+
+.logoutButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 640px) {
+  .buttonName {
+    display: none;
+  }
+
+  .profileButton {
+    gap: 4px;
+    padding-right: 8px;
+  }
+
+  .compactOnMobile {
+    width: 42px;
+    padding: 0;
+  }
+
+  .compactOnMobile span {
+    display: none;
+  }
+}
