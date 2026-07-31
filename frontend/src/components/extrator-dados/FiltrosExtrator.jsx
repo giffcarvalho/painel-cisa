@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, ChevronDown, RotateCcw, Search, X } from 'lucide-react'
 import { useBuscaFiltroExtrator } from '@/hooks/useExtratorDados'
 import styles from '../../pages/consulta-personalizada/ConsultaPersonalizada.module.css'
@@ -55,23 +55,50 @@ function BooleanFilter({ value = [], onChange }) {
   )
 }
 
+const MENU_HEIGHT_ESTIMATE = 284
+
 function MultiFilter({ tipoTabela, filtro, selected = [], onChange }) {
   const [open, setOpen] = useState(false)
   const [termo, setTermo] = useState('')
+  const [menuPlacement, setMenuPlacement] = useState('bottom')
   const ref = useRef(null)
+
+  const atualizarPosicaoMenu = useCallback(() => {
+    const rect = ref.current?.getBoundingClientRect()
+    if (!rect) return
+
+    const viewportHeight = window.visualViewport?.height || window.innerHeight
+    const espacoAbaixo = viewportHeight - rect.bottom
+    const espacoAcima = rect.top
+
+    setMenuPlacement(
+      espacoAbaixo < MENU_HEIGHT_ESTIMATE && espacoAcima > espacoAbaixo
+        ? 'top'
+        : 'bottom'
+    )
+  }, [])
 
   const buscaQuery = useBuscaFiltroExtrator(tipoTabela, filtro.campo, termo, filtro.busca)
 
   useEffect(() => {
     if (!open) return
 
+    atualizarPosicaoMenu()
+
     const close = (event) => {
       if (!ref.current?.contains(event.target)) setOpen(false)
     }
 
     document.addEventListener('mousedown', close)
-    return () => document.removeEventListener('mousedown', close)
-  }, [open])
+    window.addEventListener('resize', atualizarPosicaoMenu)
+    window.addEventListener('scroll', atualizarPosicaoMenu, true)
+
+    return () => {
+      document.removeEventListener('mousedown', close)
+      window.removeEventListener('resize', atualizarPosicaoMenu)
+      window.removeEventListener('scroll', atualizarPosicaoMenu, true)
+    }
+  }, [atualizarPosicaoMenu, open])
 
   const opcoes = useMemo(() => {
     const origem = filtro.busca ? buscaQuery.data?.data || [] : filtro.opcoes || []
@@ -106,7 +133,10 @@ function MultiFilter({ tipoTabela, filtro, selected = [], onChange }) {
       <button
         type="button"
         className={`${styles.multiTrigger} ${open ? styles.multiTriggerOpen : ''}`}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => {
+          if (!open) atualizarPosicaoMenu()
+          setOpen((current) => !current)
+        }}
       >
         <span>{selected.length ? `${selected.length} selecionado(s)` : 'Selecionar...'}</span>
         <ChevronDown className={styles.chevron} />
@@ -125,7 +155,11 @@ function MultiFilter({ tipoTabela, filtro, selected = [], onChange }) {
       )}
 
       {open && (
-        <div className={styles.multiMenu}>
+        <div
+          className={`${styles.multiMenu} ${
+            menuPlacement === 'top' ? styles.multiMenuUp : ''
+          }`}
+        >
           <div className={styles.searchWrap}>
             <Search size={15} />
             <input
@@ -170,7 +204,7 @@ function MultiFilter({ tipoTabela, filtro, selected = [], onChange }) {
 const FILTROS_PRINCIPAIS = {
   municipio: ['sigla_uf', 'cod_municipio', 'regiao', 'semiarido_2022', 'amazonia_legal', 'vale_jequetinhonha'],
   setor_censitario: ['sigla_uf', 'cod_municipio', 'regiao', 'situacao', 'situacao_detalhada', 'tipo'],
-  instrumento: ['uf', 'nome_proponente', 'nr_instrumento', 'nr_proposta', 'fase_instrumento', 'situacao_contratacao', 'tipo_instrumento'],
+  instrumento: ['nr_instrumento', 'nr_proposta', 'acao_padronizada', 'uf', 'situacao_contratacao', 'tipo_instrumento', 'carteira_ativa'],
 }
 
 function FiltroItem({ tipoTabela, filtro, value, updateFiltro }) {
@@ -221,7 +255,9 @@ export default function FiltrosExtrator({
       filtrosDisponiveis.find((filtro) => filtro.campo === campo)?.label || campo
 
     const principaisIds = FILTROS_PRINCIPAIS[tipoTabela] || []
-    const filtrosPrincipais = filtrosDisponiveis.filter((filtro) => principaisIds.includes(filtro.campo))
+    const filtrosPrincipais = principaisIds
+      .map((campo) => filtrosDisponiveis.find((filtro) => filtro.campo === campo))
+      .filter(Boolean)
     const filtrosAvancados = filtrosDisponiveis.filter((filtro) => !principaisIds.includes(filtro.campo))
 
   return (

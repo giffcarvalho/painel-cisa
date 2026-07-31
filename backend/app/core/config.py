@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     APP_TITLE: str = "Painel DSR – API"
     APP_VERSION: str = "1.0.0"
+    JWT_SECRET_KEY: str | None = None
+    AUTH_SECRET_KEY: str | None = None
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
     @computed_field
     @property
@@ -19,6 +23,15 @@ class Settings(BaseSettings):
         senha_segura = quote_plus(self.DB_PASSWORD)
 
         return f"postgresql+asyncpg://{self.DB_USER}:{senha_segura}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+
+    @property
+    def jwt_secret_key(self) -> str:
+        secret_key = self.JWT_SECRET_KEY or self.AUTH_SECRET_KEY
+
+        if not secret_key:
+            raise RuntimeError("Configure JWT_SECRET_KEY no ambiente da API.")
+
+        return secret_key
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -1,9 +1,11 @@
+// REATIVAR APÓS COMMIT
+// import AuthMenu from '@/components/auth/AuthMenu';
 import logoMcid from '../../assets/teste.png';
 
 export function Header() {
   return (
     <header className="h-[var(--header-height)] w-full bg-[#f8f7f5]/95 border-b border-black/[0.06] flex items-center px-6 justify-between shrink-0 z-30 relative backdrop-blur-md shadow-[2px_0_18px_-10px_rgba(15,23,42,0.22)] hover:shadow-[2px_0_24px_-10px_rgba(15,23,42,0.28)]">      
-      <div className="flex items-center">
+      <div className="flex min-w-0 items-center">
         {/* Logo Institucional */}
         <img
           src={logoMcid}
@@ -15,15 +17,19 @@ export function Header() {
         <div className="w-px h-6 bg-black/[0.06] mx-5" />
 
         {/* Nome do Sistema */}
-        <div className="flex flex-col justify-center">
+        <div className="hidden min-w-0 flex-col justify-center sm:flex">
           <span className="font-semibold text-[#25221d] text-[17px] tracking-tight leading-tight">
             Painel DSR
           </span>
-          <span className="text-[11.5px] font-medium text-[#7b7265]">
+          <span className="hidden truncate text-[11.5px] font-medium text-[#7b7265] md:block">
             Departamento de Saneamento Rural e de Pequenos Municípios
           </span>
         </div>
       </div>
+      {/* REATIVAR APÓS COMMIT */}
+      {/* <div className="ml-4 flex min-w-0 shrink-0 items-center">
+        <AuthMenu compactOnMobile />
+      </div> */}
     </header>
   );
 }

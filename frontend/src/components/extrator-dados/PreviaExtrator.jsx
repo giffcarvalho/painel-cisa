@@ -44,11 +44,13 @@ export default function PreviaExtrator({
   ufObrigatoriaMessage,
   filtrosAtivosCount = 0,
   previewGerada = false,
+  exportacaoDisponivel: exportacaoDisponivelProp,
   maxColumns = 80,
 }) {
   const rows = preview?.data || []
   const columns = preview?.columns || selectedColumns
-  const exportacaoDisponivel = previewGerada && Boolean(preview)
+  const exportacaoDisponivel =
+    exportacaoDisponivelProp ?? (previewGerada && Boolean(preview))
 
   const totalFormatado =
     typeof totalRegistros === 'number' ? totalRegistros.toLocaleString('pt-BR') : null
@@ -126,7 +128,7 @@ export default function PreviaExtrator({
         <div className={styles.emptyState}>
           <div className={styles.emptyStateContent}>
             <strong>Há colunas selecionadas acima do limite.</strong>
-            <span>Reduza a seleção para no máximo {maxColumns} colunas.</span>
+            <span>Para visualizar a prévia, reduza a seleção para no máximo {maxColumns} colunas.</span>
           </div>
         </div>
       ) : isLoading ? (
