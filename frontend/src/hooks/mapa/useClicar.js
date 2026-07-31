@@ -1,30 +1,56 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
+import estilos from "../../components/mapa/Popup.module.css"
 
 
 //esse hook é responsável pelas ações decorrentes de clique nas feições
 
-export function useClicar(mapRef, layers) {
-    //useEffect que gera o popup ao clicar na feicao
+export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
+        
+    const featureSelecionadaRef = useRef(null);
+    const popupRef = useRef(null);
+
     useEffect(() => {
         const map = mapRef.current;
         if (!map) return;
+        
 
         const camadas = [ "enderecos_2022", "setores_censitarios_2022_fill", "geometrias_carteira_dsr", "geometrias_carteira_drf", "informacoes_municipais", "informacoes_setores_censitarios"];
         
+
         function handleClick(e) {
             const features = map.queryRenderedFeatures(e.point, { layers: camadas });
 
-            if (!features.length) return;
+            if (!features.length) {
+                if (featureSelecionadaRef.current) {
+                    map.setFeatureState(featureSelecionadaRef.current,{ selected: false });
+                    featureSelecionadaRef.current = null;
+                    setFeatureSelecionada(null);
+                }
+                return;
+            }
 
             const f = features[0];
-            console.log(f);
-            console.log("ID da feature:", f.id);
             const props = f.properties;
             const layerConfig = layers.find(l => l.id === f.layer.id);
             
+
+            if (modoAnalise && f.layer.id !== "geometrias_carteira_dsr" && featureSelecionadaRef.current) {
+                map.setFeatureState(featureSelecionadaRef.current, {selected: false});
+                featureSelecionadaRef.current = null;
+                setFeatureSelecionada(null);
+            }
             
-            //console.log(props);
+            if (modoAnalise && f.layer.id === "geometrias_carteira_dsr") {
+                if (featureSelecionadaRef.current) {
+                    map.setFeatureState(featureSelecionadaRef.current, { selected: false });
+                }
+                const estado = {source: f.source, sourceLayer: f.sourceLayer, id: f.id};
+                map.setFeatureState(estado, {selected: true});
+                featureSelecionadaRef.current = estado;
+                setFeatureSelecionada(f);
+            }
+
             
             let html = "";
             
@@ -94,20 +120,20 @@ export function useClicar(mapRef, layers) {
                     <strong>DPPO:</strong> ${Number(props.dppo_domicilios_particulares_permanentes_ocupados).toLocaleString("pt-BR")}<br>
                 `;
 
-                const variavelConfig = layerConfig?.variaveis?.find(v => v.value === layerConfig?.variavelSel);
+                const variavelConfig = layerConfig?.variaveis?.find(v => v.atributo === layerConfig?.variavelSel);
 
                 if (variavelConfig) {
 
                     let valor;
                     
                     if (variavelConfig.tipo === "booleana") {
-                        valor = props[variavelConfig.value] ? "Sim" : "Não";
+                        valor = props[variavelConfig.atributo] ? "Sim" : "Não";
                     }
-                    else if (variavelConfig.value.startsWith("jenks_")) {
-                        const campo = variavelConfig.value.replace(/^jenks_/, "");
+                    else if (variavelConfig.atributo.startsWith("jenks_")) {
+                        const campo = variavelConfig.atributo.replace(/^jenks_/, "");
                         valor = props[campo] != null? `${(props[campo] * 1).toFixed(2)}%`: null;
                     } else {
-                        valor = props[variavelConfig.value];
+                        valor = props[variavelConfig.atributo];
                     }
 
 
@@ -130,20 +156,20 @@ export function useClicar(mapRef, layers) {
                     <strong>Subgrupo:</strong> ${props.subgrupo}<br>
                 `;
 
-                const variavelConfig = layerConfig?.variaveis?.find(v => v.value === layerConfig?.variavelSel);
+                const variavelConfig = layerConfig?.variaveis?.find(v => v.atributo === layerConfig?.variavelSel);
 
                 if (variavelConfig) {
 
                     let valor;
                     
                     if (variavelConfig.tipo === "booleana") {
-                        valor = props[variavelConfig.value] ? "Sim" : "Não";
+                        valor = props[variavelConfig.atributo] ? "Sim" : "Não";
                     }
-                    else if (variavelConfig.value.startsWith("jenks_")) {
-                        const campo = variavelConfig.value.replace(/^jenks_/, "");
+                    else if (variavelConfig.atributo.startsWith("jenks_")) {
+                        const campo = variavelConfig.atributo.replace(/^jenks_/, "");
                         valor = props[campo] != null? `${(props[campo] * 100).toFixed(2)}%`: null;
                     } else {
-                        valor = props[variavelConfig.value];
+                        valor = props[variavelConfig.atributo];
                     }
 
 
@@ -153,9 +179,12 @@ export function useClicar(mapRef, layers) {
                 }
             }
 
-
             
-            new maplibregl.Popup()
+            popupRef.current?.remove();
+            popupRef.current = new maplibregl.Popup({
+                className: estilos.popup,
+                maxWidth: "380px"
+            })
                 .setLngLat(e.lngLat)
                 .setHTML(html)
                 .addTo(map);
@@ -165,5 +194,16 @@ export function useClicar(mapRef, layers) {
 
         return () => {map.off("click", handleClick);};
 
-    }, [layers]);
+    }, [layers, modoAnalise]);
+
+    //useEffect para limpar a feição selecionar quando o modo analise é desativado
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map) return;
+        if (!modoAnalise && featureSelecionadaRef.current) {
+            map.setFeatureState(featureSelecionadaRef.current, { selected: false });
+            featureSelecionadaRef.current = null;
+            setFeatureSelecionada(null);
+        }
+    }, [modoAnalise]);
 }

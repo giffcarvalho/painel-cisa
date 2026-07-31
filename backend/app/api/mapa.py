@@ -1339,9 +1339,10 @@ async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMa
     params.update(params_filtro)
 
     sql = f"""
-        SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom', 'cod_tci_num') AS mvt
+        SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom', 'id_coordenada') AS mvt
         FROM (
             SELECT
+                id_coordenada,
                 cod_tci_num,
                 cod_tci,
                 nr_instrumento::text,
@@ -1406,9 +1407,10 @@ async def get_geometrias_carteira_drf(z: int, x: int, y: int, filtros: FiltrosMa
     params.update(params_filtro)
 
     sql = f"""
-        SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom', 'cod_tci_num') AS mvt
+        SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom', 'id_coordenada') AS mvt
         FROM (
             SELECT
+                id_coordenada,
                 cod_tci_num,
                 cod_tci,
                 nr_instrumento::text,
