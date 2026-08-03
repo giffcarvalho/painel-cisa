@@ -1549,3 +1549,18 @@ async def get_dados_municipios(
 
     result = await _execute_query(db, sql, params)
     return ListaDadosMunicipios(data=[DadosMunicipiosItem(**row) for row in result.mappings().all()])
+
+
+
+
+#---------------------------Análise das coordenadas--------------------------------
+#_buscar_revisao_existente é um select em tb_revisao_instrumento por instrumento e por usuario
+#_obter_revisao_por_id é um select em tb_revisao_instrumento por id_revisao e por usuario
+#_obter_ou_criar_revisao verifica se existe revisao, se existe, faz update, se não existe faz insert
+#_carregar_revisao_salva carrega as revisoes das tabelas especificas (municipio, localidade, obra)
+#_persistir_municipio_revisao faz update ou insert nas tabelas de revisao especificas
+#_montar_resposta_busca monta um objeto de reposta
+
+#buscar_instrumento_para_revisao chama _buscar_instrumento_carteira que busca o instrumento no banco e chama _montar_resposta_busca para esse instrumento, está dentro de um @get
+#salvar_revisao_instrumento parece que ela chama _obter_ou_criar_revisao, chama _persistir_municipio_revisao, chama _persistir_publico_alvo, chama _montar_resposta_busca, retorna um objeto RevisaoInstrumentoSalvoResponse
+#salvar_municipio_revisao parece que se não tiver alteração em um municipio, essa função é chamada e faz só um patch (atualização parcial)
