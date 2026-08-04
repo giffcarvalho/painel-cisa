@@ -497,6 +497,7 @@ export default function MapaSection() {
     const [featureSelecionada, setFeatureSelecionada] = useState(null);
     const [modoAnalise, setModoAnalise] = useState(false);
     const [analises, setAnalises] = useState({});
+    const [coordenadas, setCoordenadas] = useState([]);
     const mapContainer = useRef(null);
     const mapRef = useCriarMapa(mapContainer);
     const coordRef = useRef(null);
@@ -647,6 +648,53 @@ export default function MapaSection() {
             setModoAnalise(false);
         }
     }, [modoAnalise, instrumentoSelecionado, layers]);
+
+    
+    
+    
+    
+    console.log(analises);
+    console.log(filtros);
+    console.log(featureSelecionada);
+
+
+    function objetosIguais(a, b) {
+        return JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
+    }
+
+
+    const atualizarAnaliseCoordenada = (idCoordenada, analise) => {
+        setCoordenadas((current) =>
+            current.map((coordenada) => {
+            if (coordenada.id_coordenda !== idCoordenada) return coordenada
+
+            const atualizado = {
+                ...coordenada,
+                analise_sugerida: analise,
+                justificativa: analise === 'manter' ? '' : coordenada.justificativa,
+            }
+
+            return {
+                ...atualizado,
+                _municipioAlterado: !objetosIguais(
+                dadosMunicipioPersistencia(atualizado),
+                municipio._municipioOriginal
+                ),
+            }
+            })
+        )
+    }
+
+    const montarPayloadCoordenada = (coordenada, idRevisaoAtual = idRevisao) => ({
+        id_revisao: idRevisaoAtual,
+        instrumento,
+        id_coordenada: coordenada.id_coordenada,
+        coordenada: coordenada._coordenadaAlterada
+            ? dadosCoordenadaPersistencia(coordenada)
+            : null,
+    })
+
+
 
 
     return ( 
