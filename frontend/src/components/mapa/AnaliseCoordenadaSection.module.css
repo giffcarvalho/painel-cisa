@@ -1,8 +1,13 @@
-.painel {
+.caixa_externa {
     position: absolute;
     top: 45px;
     right: 300px;
     width: 250px;
+    z-index: 1;
+}
+
+
+.painel_opcoes {
     background: aliceblue;
     border: 1px solid #999;
     border-radius: 4px;
@@ -10,7 +15,7 @@
     z-index: 1;
 }
 
-.painel h4 {
+.painel_opcoes h4 {
     margin: 0 0 6px 0;
     font-size: 14px;
     font-weight: 600;
@@ -43,4 +48,23 @@
 .erro_solicitar {
     background-color: rgb(255, 115, 80);
     border-radius: 4px;
+}
+
+.botao_salvar {
+  width: 250px;
+  height: 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-top: 8px;
+  border-radius: 5px;
+  background: aliceblue;
+  font-size: 14px;
+}
+
+.botao_salvar_ativo {
+    background: #00529e;
+    color: white;
+    cursor: pointer;
 }

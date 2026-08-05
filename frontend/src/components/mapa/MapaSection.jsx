@@ -16,6 +16,7 @@ import { useAplicarZoom } from "@/hooks/mapa/useAplicarZoom";
 import { useAtualizarSources } from "@/hooks/mapa/useAtualizarSources";
 import { useTrocarSimbologia } from "@/hooks/mapa/useTrocarSimbologia";
 import { useClicar } from "@/hooks/mapa/useClicar";
+import { listarDadosAnaliseCoordenadas } from "../../api/mapa";
  
 
 export default function MapaSection() { 
@@ -496,8 +497,12 @@ export default function MapaSection() {
     const [coord, setCoord] = useState({ lat: "", long: "" });
     const [featureSelecionada, setFeatureSelecionada] = useState(null);
     const [modoAnalise, setModoAnalise] = useState(false);
-    const [analises, setAnalises] = useState({});
     const [coordenadas, setCoordenadas] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    const [message, setMessage] = useState('')
+    const [messageType, setMessageType] = useState('')
+
     const mapContainer = useRef(null);
     const mapRef = useCriarMapa(mapContainer);
     const coordRef = useRef(null);
@@ -650,50 +655,137 @@ export default function MapaSection() {
     }, [modoAnalise, instrumentoSelecionado, layers]);
 
     
-    
-    
-    
-    console.log(analises);
-    console.log(filtros);
-    console.log(featureSelecionada);
 
+    //chama a api pegando os dados das coordenadas do instrumento que estiver filtrado
+    //copia os dados vindos da api para dentro de _coordenadaOriginal (_coordenadaOriginal vira um objeto dentro do objeto Coordenadas)
+    //cria a flag _coordenadaAlterada
+    //salva isso dentro do estado Coordenadas
+    useEffect(() => {
+        async function buscarAnaliseCoordenadas() {
+            if (!instrumentoSelecionado) {
+                setCoordenadas([]);
+                return;
+            }
 
+            try {
+                setLoading(true);
+                const dadosAnaliseCoordenadas = 
+                    await listarDadosAnaliseCoordenadas({nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento, cod_tci: filtros.cod_tci});
+
+                const coordenadas = (dadosAnaliseCoordenadas || []).map(coordenada => ({
+                    ...coordenada,
+                    _coordenadaOriginal: {
+                        id_coordenada: coordenada.id_coordenada,
+                        situacao_analise: coordenada.situacao_analise,
+                        cod_tci: coordenada.cod_tci,
+                    },
+                    _coordenadaAlterada: false,
+                }));
+                
+                setCoordenadas(coordenadas);
+
+            } catch (erro) {
+                console.error(erro);
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        buscarAnaliseCoordenadas();
+
+    }, [filtros.nr_proposta, filtros.nr_instrumento, filtros.cod_tci]);
+   
+
+    console.log(coordenadas);
+      
+
+    //pega um objeto coordenada e limpa as colunas, deixando apenas as colunas que devem persisitir para envio ao backend
+    function dadosCoordenadaPersistencia(coordenada) {
+        return {
+            id_coordenada: coordenada.id_coordenada,
+            situacao_analise: coordenada.situacao_analise ?? null,
+            cod_tci: coordenada.cod_tci,
+        }
+    }
+
+    //apenas testa se dois objetos são iguais
     function objetosIguais(a, b) {
         return JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
     }
 
 
-    const atualizarAnaliseCoordenada = (idCoordenada, analise) => {
+
+    //recebe uma coordenada específica e sua analise. Percorre o array de coordenadas do instrumento filtrado.
+    //procrura no array até encontrar a coordenada específica recebida. Pega a analise recebida e atualiza jogando o novo valor no array. 
+    //o estao Coordenadas vai ser atualizado, pois isso está dentro de um set
+    //gera um objeto coordenada atualizada com a nova análise
+    //compara se os dados a serem persistidos de coordendas atualizada são iguais a original, gerando a flag _coordenadaAlterada
+    //ou seja essa função atualiza o estado e gera uma flag pra indicar se a atualização efetivou uma alteração ou não
+    const atualizarAnaliseCoordenada = (idCoordenada, novaAnalise) => {
         setCoordenadas((current) =>
             current.map((coordenada) => {
-            if (coordenada.id_coordenda !== idCoordenada) return coordenada
+            if (coordenada.id_coordenada !== idCoordenada) return coordenada
 
             const atualizado = {
                 ...coordenada,
-                analise_sugerida: analise,
-                justificativa: analise === 'manter' ? '' : coordenada.justificativa,
+                situacao_analise: novaAnalise
             }
 
             return {
                 ...atualizado,
-                _municipioAlterado: !objetosIguais(
-                dadosMunicipioPersistencia(atualizado),
-                municipio._municipioOriginal
+                _coordenadaAlterada: !objetosIguais(
+                dadosCoordenadaPersistencia(atualizado),
+                coordenada._coordenadaOriginal
                 ),
             }
             })
         )
     }
 
-    const montarPayloadCoordenada = (coordenada, idRevisaoAtual = idRevisao) => ({
-        id_revisao: idRevisaoAtual,
-        instrumento,
-        id_coordenada: coordenada.id_coordenada,
-        coordenada: coordenada._coordenadaAlterada
-            ? dadosCoordenadaPersistencia(coordenada)
-            : null,
-    })
+    
+    //apenas testa se no estado coordenadas, tem alguma coordenada com alteração
+    const possuiCoordenadasAlteradas = () => coordenadas.some(coordenada => coordenada._coordenadaAlterada);
 
+
+    //prepara os dados para envio ao backend
+    const montarPayloadAnaliseCoordenadas = () => ({
+        coordenadas: coordenadas
+            .filter(coordenada => coordenada._coordenadaAlterada)
+            .map(dadosCoordenadaPersistencia),
+        cod_tci
+    });
+
+
+
+    //essa função é chamada quando o usuário clicar no botão de salvar
+    //chama montar payload e chama a função que envia os dados ao backend
+    const salvarAnaliseCoordenadas = async () => {
+        if (!possuiCoordenadasAlteradas()) return;
+
+        setLoading(true);
+        setMessage("");
+        setMessageType("");
+
+        try {
+            const payload = montarPayloadAnaliseCoordenadas();
+
+            const data =
+                await revisaoCoodenadaApi.salvarAnaliseCoordenadas(payload);
+
+            
+            setMessage(data.mensagem);
+            setMessageType("success");
+
+        } catch (err) {
+            setMessage(
+                err?.response?.data?.detail ??
+                "Não foi possível salvar as alterações."
+            );
+            setMessageType("error");
+        } finally {
+            setLoading(false);
+        }
+    };
 
 
 
@@ -713,7 +805,7 @@ export default function MapaSection() {
             <button className={`${estilos.botaoAnalisarCoordenadas} ${modoAnalise ? estilos.ativo : ""}`} onClick={toggleModoAnalise}> {modoAnalise ? "Análise Ativa" : "Analisar Coordenadas"}</button>
             {painelCamadas && (<CamadasSection layers={layers} toggleLayer={toggleLayer} alterarVariavel={alterarVariavel} setPainelCamadas={setPainelCamadas}/>)}
             {painelLegenda && (<LegendaSection layers={layers} zoomAtual={zoomAtual} setPainelLegenda={setPainelLegenda} painelCamadas={painelCamadas}/>)}
-            <AnaliseCoordenadaSection featureSelecionada={featureSelecionada} analises={analises} setAnalises={setAnalises}/>
+            <AnaliseCoordenadaSection featureSelecionada={featureSelecionada} coordenadas={coordenadas} atualizarAnaliseCoordenada={atualizarAnaliseCoordenada} possuiCoordenadasAlteradas={possuiCoordenadasAlteradas()} salvarAnaliseCoordenadas={salvarAnaliseCoordenadas}/>
             <InputSection coord={coord} setCoord={setCoord} irParaCoordenada={irParaCoordenada} limparCoordenada={limparCoordenada}/>
             <div ref={coordRef} className={estilos.coordenadasMouse}> Lat: -- | Lon: -- </div>
             {(painelDetalhe && painelFiltros && filtros.cod_municipio) && (<DetalheSection setPainelDetalhe={setPainelDetalhe}/>)}

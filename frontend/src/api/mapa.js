@@ -203,6 +203,14 @@ export async function listarDadosMunicipios(filtros = {}) {
 }
 
 
+export async function listarDadosAnaliseCoordenadas(filtros = {}) {
+  
+  const res = await api.get("/mapa/dados_analise_coordenadas", { params: toParams(filtros) });
+
+  return res.data.data;
+}
+
+
 
 
 const API_URL = new URL(import.meta.env.VITE_API_URL ?? "/api/v1", window.location.origin).toString().replace(/\/$/, "");
