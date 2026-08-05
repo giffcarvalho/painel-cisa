@@ -93,3 +93,14 @@ class DadosMunicipiosItem(BaseModel):
 
 class ListaDadosMunicipios(BaseModel):
     data: list[DadosMunicipiosItem]
+
+
+
+class DadosAnaliseCoordenadasItem(BaseModel):
+    id_coordenada: int
+    situacao_analise: str
+    cod_tci: str
+    
+
+class ListaDadosAnaliseCoordenadas(BaseModel):
+    data: list[DadosAnaliseCoordenadasItem]

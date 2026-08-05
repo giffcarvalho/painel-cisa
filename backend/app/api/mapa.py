@@ -23,6 +23,7 @@ from app.schemas.filtrosMapa import (
     CategoriaMetropolitanaItem, OpcoesFiltrosCategoriaMetropolitana,
     InvestimentoSaneamentoItem, ListaInvestimentoSaneamento,
     DadosMunicipiosItem, ListaDadosMunicipios,
+    DadosAnaliseCoordenadasItem, ListaDadosAnaliseCoordenadas,
 )
 
  
@@ -1357,6 +1358,7 @@ async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMa
                 situacao_obra,
                 link_transferegov,
                 link_saci,
+                situacao_analise,
                 ST_AsMVTGeom(
                     geom,
                     ST_TileEnvelope(:z, :x, :y),
@@ -1549,6 +1551,44 @@ async def get_dados_municipios(
 
     result = await _execute_query(db, sql, params)
     return ListaDadosMunicipios(data=[DadosMunicipiosItem(**row) for row in result.mappings().all()])
+
+
+# dados de análise das coordenadas
+@router.get("/dados_analise_coordenadas", response_model=ListaDadosAnaliseCoordenadas, summary="Dados da situação da análise das coordenadas")
+async def get_dados_analise_coordenadas(
+    response: Response,
+    filtros: FiltrosMapa = Depends(),
+    db: AsyncSession = Depends(get_db)):
+
+    response.headers["Cache-Control"] = "public, max-age=600"
+    
+    where_filtro, params_filtro = _build_where(filtros, allowed={"nr_instrumento", "nr_proposta", "cod_tci"})
+
+
+    sql = """
+        SELECT
+            id_coordenada,
+            situacao_analise,
+            cod_tci
+        FROM instrumento.tb_coordenada_analise
+    """
+
+    params = params_filtro
+    clauses = []
+
+    
+    if where_filtro: clauses.append(where_filtro)
+
+    if clauses:
+        sql += " WHERE " + " AND ".join(clauses)
+
+
+    sql += """
+        ORDER BY id_coordenada
+    """
+
+    result = await _execute_query(db, sql, params)
+    return ListaDadosAnaliseCoordenadas(data=[DadosAnaliseCoordenadasItem(**row) for row in result.mappings().all()])
 
 
 
