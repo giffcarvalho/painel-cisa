@@ -6,6 +6,11 @@ export default function AnaliseCoordenadaSection({featureSelecionada, coordenada
     if (!featureSelecionada) return null;
 
     const coordenada = coordenadas.find(c => c.id_coordenada === featureSelecionada.id);
+    
+    console.log(featureSelecionada);
+    console.log(coordenadas);
+    console.log(coordenadas.find(c => c.id_coordenada === featureSelecionada.id));
+
     const valorSelecionado = coordenada?.situacao_analise ?? "";
     
     function alterarAnalise(e) {atualizarAnaliseCoordenada(featureSelecionada.id, e.target.value)}

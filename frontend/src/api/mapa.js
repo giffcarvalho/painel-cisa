@@ -211,6 +211,12 @@ export async function listarDadosAnaliseCoordenadas(filtros = {}) {
 }
 
 
+export async function enviarAnaliseCoordenadas(payload) {
+  
+  const res = await api.post("/mapa/analise_coordenadas", payload);
+
+  return res.data;
+}
 
 
 const API_URL = new URL(import.meta.env.VITE_API_URL ?? "/api/v1", window.location.origin).toString().replace(/\/$/, "");

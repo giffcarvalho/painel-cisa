@@ -16,7 +16,7 @@ import { useAplicarZoom } from "@/hooks/mapa/useAplicarZoom";
 import { useAtualizarSources } from "@/hooks/mapa/useAtualizarSources";
 import { useTrocarSimbologia } from "@/hooks/mapa/useTrocarSimbologia";
 import { useClicar } from "@/hooks/mapa/useClicar";
-import { listarDadosAnaliseCoordenadas } from "../../api/mapa";
+import { listarDadosAnaliseCoordenadas, enviarAnaliseCoordenadas } from "../../api/mapa";
  
 
 export default function MapaSection() { 
@@ -770,7 +770,7 @@ export default function MapaSection() {
             const payload = montarPayloadAnaliseCoordenadas();
 
             const data =
-                await revisaoCoodenadaApi.salvarAnaliseCoordenadas(payload);
+                await enviarAnaliseCoordenadas(payload); 
 
             
             setMessage(data.mensagem);
@@ -805,7 +805,12 @@ export default function MapaSection() {
             <button className={`${estilos.botaoAnalisarCoordenadas} ${modoAnalise ? estilos.ativo : ""}`} onClick={toggleModoAnalise}> {modoAnalise ? "Análise Ativa" : "Analisar Coordenadas"}</button>
             {painelCamadas && (<CamadasSection layers={layers} toggleLayer={toggleLayer} alterarVariavel={alterarVariavel} setPainelCamadas={setPainelCamadas}/>)}
             {painelLegenda && (<LegendaSection layers={layers} zoomAtual={zoomAtual} setPainelLegenda={setPainelLegenda} painelCamadas={painelCamadas}/>)}
-            <AnaliseCoordenadaSection featureSelecionada={featureSelecionada} coordenadas={coordenadas} atualizarAnaliseCoordenada={atualizarAnaliseCoordenada} possuiCoordenadasAlteradas={possuiCoordenadasAlteradas()} salvarAnaliseCoordenadas={salvarAnaliseCoordenadas}/>
+            <AnaliseCoordenadaSection 
+                featureSelecionada={featureSelecionada}
+                coordenadas={coordenadas}
+                atualizarAnaliseCoordenada={atualizarAnaliseCoordenada}
+                possuiCoordenadasAlteradas={possuiCoordenadasAlteradas()}
+                salvarAnaliseCoordenadas={salvarAnaliseCoordenadas}/>
             <InputSection coord={coord} setCoord={setCoord} irParaCoordenada={irParaCoordenada} limparCoordenada={limparCoordenada}/>
             <div ref={coordRef} className={estilos.coordenadasMouse}> Lat: -- | Lon: -- </div>
             {(painelDetalhe && painelFiltros && filtros.cod_municipio) && (<DetalheSection setPainelDetalhe={setPainelDetalhe}/>)}
