@@ -2,12 +2,14 @@
 
 import logging
 from typing import Annotated
-from fastapi import APIRouter, Depends, Query, Response, HTTPException
+from fastapi import APIRouter, Depends, Query, Response, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
+from app.api.auth import obter_usuario_atual
 from app.core.database import get_db
+from app.schemas.auth import UsuarioAutenticado
 import jenkspy
 import time
 from threading import Lock
@@ -24,8 +26,10 @@ from app.schemas.filtrosMapa import (
     InvestimentoSaneamentoItem, ListaInvestimentoSaneamento,
     DadosMunicipiosItem, ListaDadosMunicipios,
     DadosAnaliseCoordenadasItem, ListaDadosAnaliseCoordenadas,
+    CoordenadaAnaliseCreate, AnaliseCoordenadasSalvaResponse,
 )
-
+from app.schemas.revisao_instrumento import (InstrumentoRevisaoInfo)
+from app.api.revisao_instrumento import (_buscar_instrumento_carteira, _buscar_instrumento_ted)
  
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -1553,7 +1557,11 @@ async def get_dados_municipios(
     return ListaDadosMunicipios(data=[DadosMunicipiosItem(**row) for row in result.mappings().all()])
 
 
-# dados de análise das coordenadas
+
+
+#---------------------------Funcionalidade de análise das coordenadas--------------------------------
+
+# rota que busca na tabela do banco os dados de siuação atual da análise das coordenadas
 @router.get("/dados_analise_coordenadas", response_model=ListaDadosAnaliseCoordenadas, summary="Dados da situação da análise das coordenadas")
 async def get_dados_analise_coordenadas(
     response: Response,
@@ -1592,18 +1600,202 @@ async def get_dados_analise_coordenadas(
 
 
 
+#chama _buscar_instrumento_carteira que busca o instrumento no banco e mont um objeto instrumento com os dados do instrumento
+async def _buscar_instrumento_para_analise(
+    db: AsyncSession,
+    *,
+    nr_instrumento: str | None = None,
+    nr_proposta: str | None = None,
+    cod_tci: str | None = None,
+) -> InstrumentoRevisaoInfo:
+    identificador = nr_instrumento or nr_proposta or cod_tci
+    if identificador is None:
+        raise HTTPException(
+            status_code=400,
+            detail="É necessário informar um identificador do instrumento."
+        )
 
-#---------------------------Análise das coordenadas--------------------------------
-#_buscar_revisao_existente é um select em tb_revisao_instrumento por instrumento e por usuario
-#_obter_revisao_por_id é um select em tb_revisao_instrumento por id_revisao e por usuario
-#_obter_ou_criar_revisao verifica se existe revisao, se existe, faz update, se não existe faz insert
-#_carregar_revisao_salva carrega as revisoes das tabelas especificas (municipio, localidade, obra)
-#_persistir_municipio_revisao faz update ou insert nas tabelas de revisao especificas
-#_montar_resposta_busca monta um objeto de reposta
+    instrumento = await _buscar_instrumento_carteira(db, identificador)
 
-#buscar_instrumento_para_revisao chama _buscar_instrumento_carteira que busca o instrumento no banco e chama _montar_resposta_busca para esse instrumento, está dentro de um @get
-#salvar_revisao_instrumento parece que ela chama _obter_ou_criar_revisao, chama _persistir_municipio_revisao, chama _persistir_publico_alvo, chama _montar_resposta_busca, retorna um objeto RevisaoInstrumentoSalvoResponse
-#salvar_municipio_revisao parece que se não tiver alteração em um municipio, essa função é chamada e faz só um patch (atualização parcial)
+    if instrumento is None:
+        instrumento = await _buscar_instrumento_ted(db, identificador)
+
+    if instrumento is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Instrumento, proposta ou TED não encontrado nas bases oficiais.",
+        )
+
+    return instrumento
 
 
 
+
+# função que cria uma revisão do instrumento, e faz insert de um registro em tb_revisao_instrumento
+async def _criar_revisao_instrumento(
+    db: AsyncSession,
+    instrumento: InstrumentoRevisaoInfo,
+    id_usuario: int,
+) -> dict:
+    result = await db.execute(
+        text(
+            """
+            INSERT INTO painel_dsr.tb_revisao_instrumento (
+                identificador_busca,
+                tipo_instrumento,
+                nr_instrumento,
+                nr_proposta,
+                nr_ted,
+                id_usuario,
+                status
+            )
+            VALUES (
+                :identificador_busca,
+                :tipo_instrumento,
+                :nr_instrumento,
+                :nr_proposta,
+                :nr_ted,
+                :id_usuario,
+                'enviado'
+            )
+            RETURNING
+                id_revisao,
+                status,
+                criado_em,
+                atualizado_em,
+                enviado_em
+            """
+        ),
+        {
+            "identificador_busca": instrumento.identificador_busca,
+            "tipo_instrumento": instrumento.tipo_instrumento,
+            "nr_instrumento": instrumento.nr_instrumento,
+            "nr_proposta": instrumento.nr_proposta,
+            "nr_ted": instrumento.nr_ted,
+            "id_usuario": id_usuario,
+        },
+    )
+
+    return dict(result.mappings().one())
+
+
+
+# função que insere a analise das coordenadas no banco, fazendo insert em tb_revisao_instrumento_coordenada
+# devolve informações adicionais como o id_revisao_coordenada gerada pelo banco e a data de criação do registro
+async def _persistir_coordenada_revisao(
+    db: AsyncSession,
+    id_revisao: int,
+    coordenada: CoordenadaAnaliseCreate,
+) -> dict:
+    result = await db.execute(
+        text(
+            """
+            INSERT INTO painel_dsr.tb_revisao_instrumento_coordenada (
+                id_revisao,
+                id_coordenada,
+                cod_tci,
+                situacao_analise
+            )
+            VALUES (
+                :id_revisao,
+                :id_coordenada,
+                :cod_tci,
+                :situacao_analise
+            )
+            RETURNING
+                id_revisao_coordenada,
+                id_revisao,
+                id_coordenada,
+                cod_tci,
+                situacao_analise,
+                criado_em
+            """
+        ),
+        {
+            "id_revisao": id_revisao,
+            "id_coordenada": coordenada.id_coordenada,
+            "cod_tci": coordenada.cod_tci,
+            "situacao_analise": coordenada.situacao_analise,
+        },
+    )
+
+    return dict(result.mappings().one())
+
+
+# orquestra o salvamento da analise das coordenadas
+# chama _buscar_instrumento_para_analise
+# chama _criar_revisao_instrumento e aguarda retornar o id_revisao
+# chama _persistir_coordenada_revisao a qual vai inserir a analise das coordenadas no banco
+# retorna mensagens de erro
+@router.post(
+    "/analise_coordenadas",
+    response_model=AnaliseCoordenadasSalvaResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Salva análise das coordenadas",
+)
+async def salvar_analise_coordenadas(
+    payload: AnaliseCoordenadasCreate,
+    usuario_atual: UsuarioAutenticado = Depends(obter_usuario_atual),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        db.info["grupo_salvamento_revisao"] = "analise_coordenadas"
+
+        instrumento = await _buscar_instrumento_para_analise(
+            db,
+            nr_instrumento=payload.nr_instrumento,
+            nr_proposta=payload.nr_proposta,
+            cod_tci=payload.cod_tci,
+        )
+
+        revisao = await _criar_revisao_instrumento(
+            db,
+            instrumento,
+            usuario_atual.id_usuario,
+        )
+
+        id_revisao = revisao["id_revisao"]
+
+        for coordenada in payload.coordenadas:
+            await _persistir_coordenada_revisao(
+                db,
+                id_revisao,
+                coordenada,
+            )
+
+        await db.commit()
+
+        return AnaliseCoordenadasSalvaResponse(
+            id_revisao=id_revisao,
+            mensagem="Análises das coordenadas salvas com sucesso.",
+        )
+
+    except HTTPException:
+        await db.rollback()
+        raise
+
+    except SQLAlchemyError as exc:
+        await db.rollback()
+        logger.exception(
+            "Erro ao salvar análise das coordenadas: "
+            "tipo_excecao=%s grupo=%s",
+            type(exc).__name__,
+            db.info.get("grupo_salvamento_revisao", "analise_coordenadas"),
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao salvar a análise das coordenadas.",
+        )
+
+    except Exception as exc:
+        await db.rollback()
+        logger.exception(
+            "Erro inesperado ao salvar análise das coordenadas: "
+            "tipo_excecao=%s grupo=%s",
+            type(exc).__name__,
+            db.info.get("grupo_salvamento_revisao", "analise_coordenadas"),
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao salvar a análise das coordenadas.",
+        )

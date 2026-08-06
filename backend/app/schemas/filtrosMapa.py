@@ -1,6 +1,7 @@
 """Schema dos filtros/segmentações do mapa."""
 
 from pydantic import BaseModel
+from typing import Literal
 
 
 class UfItem(BaseModel):
@@ -100,7 +101,27 @@ class DadosAnaliseCoordenadasItem(BaseModel):
     id_coordenada: int
     situacao_analise: str
     cod_tci: str
-    
 
 class ListaDadosAnaliseCoordenadas(BaseModel):
     data: list[DadosAnaliseCoordenadasItem]
+
+
+
+class CoordenadaAnaliseCreate(BaseModel):
+    id_coordenada: int
+    cod_tci: str
+    situacao_analise: Literal[
+        "Correta",
+        "Errada (correção a ser solicitada)",
+        "Errada (correção já solicitada)",
+    ]
+
+class AnaliseCoordenadasCreate(BaseModel):
+    nr_instrumento: str | None = None
+    nr_proposta: str | None = None
+    cod_tci: str | None = None
+    coordenadas: list[CoordenadaAnaliseCreate]
+
+class AnaliseCoordenadasSalvaResponse(BaseModel):
+    id_revisao: int
+    mensagem: str
