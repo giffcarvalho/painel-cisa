@@ -51,6 +51,13 @@ export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
                 setFeatureSelecionada(f);
             }
 
+            // Não abre popup da Carteira DSR durante a análise
+            if (modoAnalise && f.layer.id === "geometrias_carteira_dsr") {
+                popupRef.current?.remove();
+                popupRef.current = null;
+                return;
+            }
+
             
             let html = "";
             
@@ -71,7 +78,7 @@ export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
                 `;
             }
 
-            if (f.layer.id === "geometrias_carteira_dsr") {
+            if (!modoAnalise && f.layer.id === "geometrias_carteira_dsr") {
                 html += `
                 <strong> Modalidade </strong> <br>
                 ${props.modalidade}<br/>
@@ -180,6 +187,7 @@ export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
             }
 
             
+
             popupRef.current?.remove();
             popupRef.current = new maplibregl.Popup({
                 className: estilos.popup,
