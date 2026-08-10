@@ -99,7 +99,7 @@ class ListaDadosMunicipios(BaseModel):
 
 class DadosAnaliseCoordenadasItem(BaseModel):
     id_coordenada: int
-    situacao_analise: str
+    situacao_analise: str | None = None
     cod_tci: str
 
 class ListaDadosAnaliseCoordenadas(BaseModel):

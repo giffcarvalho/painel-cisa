@@ -26,7 +26,7 @@ from app.schemas.filtrosMapa import (
     InvestimentoSaneamentoItem, ListaInvestimentoSaneamento,
     DadosMunicipiosItem, ListaDadosMunicipios,
     DadosAnaliseCoordenadasItem, ListaDadosAnaliseCoordenadas,
-    CoordenadaAnaliseCreate, AnaliseCoordenadasSalvaResponse,
+    CoordenadaAnaliseCreate, AnaliseCoordenadasCreate, AnaliseCoordenadasSalvaResponse,
 )
 from app.schemas.revisao_instrumento import (InstrumentoRevisaoInfo)
 from app.api.revisao_instrumento import (_buscar_instrumento_carteira, _buscar_instrumento_ted)
@@ -1578,7 +1578,7 @@ async def get_dados_analise_coordenadas(
             id_coordenada,
             situacao_analise,
             cod_tci
-        FROM instrumento.tb_coordenada_analise
+        FROM instrumento.vw_geometrias_carteira_dsr
     """
 
     params = params_filtro
