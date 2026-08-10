@@ -1315,6 +1315,50 @@ async def get_municipios_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
     )
 
 
+# geometria dos biomas
+@router.get("/biomas/{z}/{x}/{y}.pbf", summary="Biomas - IBGE")
+async def get_biomas(z: int, x: int, y: int, filtros: FiltrosMapa = Depends(), db: AsyncSession = Depends(get_db)):
+
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_bioma"})
+    
+    base_where = """
+        geom && ST_TileEnvelope(:z, :x, :y)
+    """
+
+    if where_filtro:
+        base_where += f" AND {where_filtro}"
+
+    params = {"z": z, "x": x, "y": y}
+    params.update(params_filtro)
+
+    sql = f"""
+        SELECT ST_AsMVT(tile, 'poligonos', 4096, 'geom', 'cod_bioma') AS mvt
+        FROM (
+            SELECT
+                cod_bioma,
+                cod,
+                nome_bioma,
+                ST_AsMVTGeom(
+                    geom,
+                    ST_TileEnvelope(:z, :x, :y),
+                    4096,
+                    256,
+                    true
+                ) AS geom
+            FROM territorio.vw_bioma
+            WHERE {base_where}
+        ) AS tile;
+    """
+
+        
+    result = await _execute_query(db, sql, params) # transformar esse bloco em uma função e depois só chamar ela nas rotas?
+    row = result.fetchone()
+    return Response(
+        content=row.mvt if row and row.mvt else b"",
+        media_type="application/x-protobuf",
+        headers={"Cache-Control": "public, max-age=300"}
+    )
+
 
 
 # geometrias da carteira dsr
@@ -1647,7 +1691,8 @@ async def _criar_revisao_instrumento(
                 nr_proposta,
                 nr_ted,
                 id_usuario,
-                status
+                status,
+                enviado_em
             )
             VALUES (
                 :identificador_busca,
@@ -1656,7 +1701,8 @@ async def _criar_revisao_instrumento(
                 :nr_proposta,
                 :nr_ted,
                 :id_usuario,
-                'enviado'
+                'enviado',
+                NOW()
             )
             RETURNING
                 id_revisao,
