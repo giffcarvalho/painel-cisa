@@ -305,6 +305,12 @@ export function urlMunicipios2022(filtros={}) {
 }
 
 
+export function urlBiomas(filtros={}) {
+  const params = toParams(filtros);
+  return `${API_URL}/mapa/biomas/{z}/{x}/{y}.pbf?${params}`
+}
+
+
 export function urlGeometriasCarteiraDsr(filtros={}) {
   const params = toParams(filtros);
   return `${API_URL}/mapa/geometrias_carteira_dsr/{z}/{x}/{y}.pbf?${params}`
