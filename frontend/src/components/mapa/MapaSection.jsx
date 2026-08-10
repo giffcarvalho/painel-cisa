@@ -16,6 +16,7 @@ import { useAplicarZoom } from "@/hooks/mapa/useAplicarZoom";
 import { useAtualizarSources } from "@/hooks/mapa/useAtualizarSources";
 import { useTrocarSimbologia } from "@/hooks/mapa/useTrocarSimbologia";
 import { useClicar } from "@/hooks/mapa/useClicar";
+import { useAuth } from "@/context/auth/useAuth";
 import { listarDadosAnaliseCoordenadas, enviarAnaliseCoordenadas } from "../../api/mapa";
  
 
@@ -499,6 +500,7 @@ export default function MapaSection() {
     const [modoAnalise, setModoAnalise] = useState(false);
     const [coordenadas, setCoordenadas] = useState([]);
     const [loading, setLoading] = useState(false);
+    const { isAuthenticated, openLoginModal } = useAuth();
 
     const [message, setMessage] = useState('')
     const [messageType, setMessageType] = useState('')
@@ -642,6 +644,10 @@ export default function MapaSection() {
             alert("Ative a camada Carteira DSR e filtre um único instrumento para poder ativar a análise.");
             return;
         }
+        if (!isAuthenticated) {
+            openLoginModal();
+            return;
+        }
         setModoAnalise(v => !v);
     }
 
@@ -696,7 +702,8 @@ export default function MapaSection() {
     }, [filtros.nr_proposta, filtros.nr_instrumento, filtros.cod_tci]);
    
 
-    console.log(coordenadas);
+    //console.log(coordenadas);
+    //console.log(featureSelecionada);
       
 
     //pega um objeto coordenada e limpa as colunas, deixando apenas as colunas que devem persisitir para envio ao backend

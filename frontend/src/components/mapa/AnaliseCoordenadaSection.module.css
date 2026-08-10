@@ -1,7 +1,7 @@
 .caixa_externa {
     position: absolute;
     top: 45px;
-    right: 300px;
+    right: 500px;
     width: 250px;
     z-index: 1;
 }
