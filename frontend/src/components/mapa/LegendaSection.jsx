@@ -65,6 +65,16 @@ export default function LegendaSection({layers, zoomAtual, setPainelLegenda, pai
                         ))}
 
 
+                        {layer.simbologia.tipo === "categorica" && layer.simbologia.simbolo === "poligono" && layer.simbologia.classes.map(classe => (
+                            <div className={estilos.itemLegenda} key={classe.valor}>
+                                <span className={estilos.poligono}
+                                        style={{ background: classe.cor }}
+                                />
+                                {classe.label}
+                            </div>
+                        ))}
+
+
 
                         {layer.simbologia.tipo === "simples" && layer.simbologia.simbolo === "linha" && (
                             <div className={estilos.itemLegenda}>

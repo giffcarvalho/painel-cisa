@@ -156,6 +156,27 @@ export default function MapaSection() {
         },
 
         {
+            id: "biomas",
+            nome: "Biomas",
+            visivel: false,
+            minzoom: 3,
+            simbologia: {
+                tipo: "categorica",
+                simbolo: "poligono",
+                atributo: "cod",
+                classes: [
+                    {valor: 1, label: "Amazônia", cor: "#a8fe00"},
+                    {valor: 2, label: "Caatinga", cor: "#b5b86b"},
+                    {valor: 3, label: "Cerrado", cor: "#fdb381"},
+                    {valor: 4, label: "Mata Atlântica", cor: "#b8f869"},
+                    {valor: 5, label: "Pampa", cor: "#ffdd9e"},
+                    {valor: 6, label: "Pantanal", cor: "#ff9dfc"},
+                    {valor: 7, label: "Ilhas Oceânicas", cor: "#0ca9b4"},
+                ]
+            }
+        },
+
+        {
             id: "geometrias_carteira_drf",
             nome: "Carteira ativa DRF",
             visivel: false,
@@ -702,8 +723,7 @@ export default function MapaSection() {
     }, [filtros.nr_proposta, filtros.nr_instrumento, filtros.cod_tci]);
    
 
-    //console.log(coordenadas);
-    //console.log(featureSelecionada);
+    console.log(coordenadas);
       
 
     //pega um objeto coordenada e limpa as colunas, deixando apenas as colunas que devem persisitir para envio ao backend
@@ -756,10 +776,12 @@ export default function MapaSection() {
 
     //prepara os dados para envio ao backend
     const montarPayloadAnaliseCoordenadas = () => ({
+        nr_instrumento: filtros.nr_instrumento,
+        nr_proposta: filtros.nr_proposta,
+        cod_tci: filtros.cod_tci,
         coordenadas: coordenadas
             .filter(coordenada => coordenada._coordenadaAlterada)
-            .map(dadosCoordenadaPersistencia),
-        cod_tci
+            .map(dadosCoordenadaPersistencia)
     });
 
 
@@ -767,6 +789,7 @@ export default function MapaSection() {
     //essa função é chamada quando o usuário clicar no botão de salvar
     //chama montar payload e chama a função que envia os dados ao backend
     const salvarAnaliseCoordenadas = async () => {
+        console.log("ENTROU EM salvarAnaliseCoordenadas");
         if (!possuiCoordenadasAlteradas()) return;
 
         setLoading(true);
@@ -774,16 +797,19 @@ export default function MapaSection() {
         setMessageType("");
 
         try {
+            console.log("ANTES DE montarPayload");
             const payload = montarPayloadAnaliseCoordenadas();
-
-            const data =
-                await enviarAnaliseCoordenadas(payload); 
-
+            console.log("DEPOIS DE montarPayload");
+            console.log("Payload para salvar:", payload);
+            
+            const data = await enviarAnaliseCoordenadas(payload); 
+            
             
             setMessage(data.mensagem);
             setMessageType("success");
 
         } catch (err) {
+            console.error("ERRO AO SALVAR:", err);
             setMessage(
                 err?.response?.data?.detail ??
                 "Não foi possível salvar as alterações."
