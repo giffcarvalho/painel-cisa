@@ -1606,7 +1606,8 @@ async def get_dados_municipios(
 #---------------------------Funcionalidade de análise das coordenadas--------------------------------
 
 # rota que busca na tabela do banco os dados de siuação atual da análise das coordenadas
-@router.get("/dados_analise_coordenadas", response_model=ListaDadosAnaliseCoordenadas, summary="Dados da situação da análise das coordenadas")
+# não foi usado o build where nessa rota, pois ela precisaria de alias. O where é construído com if
+@router.get("/dados_analise_coordenadas", response_model=ListaDadosAnaliseCoordenadas, summary="Dados da situação da última análise das coordenadas")
 async def get_dados_analise_coordenadas(
     response: Response,
     filtros: FiltrosMapa = Depends(),
@@ -1614,29 +1615,46 @@ async def get_dados_analise_coordenadas(
 
     response.headers["Cache-Control"] = "public, max-age=600"
     
-    where_filtro, params_filtro = _build_where(filtros, allowed={"nr_instrumento", "nr_proposta", "cod_tci"})
+    clauses = []
+    params = {}
 
+    if filtros.nr_instrumento:
+        clauses.append("geo.nr_instrumento::text = ANY(CAST(:nr_instrumento AS text[]))")
+        params["nr_instrumento"] = filtros.nr_instrumento
+
+    if filtros.nr_proposta:
+        clauses.append("geo.nr_proposta = ANY(CAST(:nr_proposta AS text[]))")
+        params["nr_proposta"] = filtros.nr_proposta
+
+    if filtros.cod_tci:
+        clauses.append("geo.cod_tci = ANY(CAST(:cod_tci AS text[]))")
+        params["cod_tci"] = filtros.cod_tci
 
     sql = """
+        WITH
+        rev AS (
         SELECT
             id_coordenada,
             situacao_analise,
-            cod_tci
-        FROM instrumento.vw_geometrias_carteira_dsr
+            cod_tci,
+            ROW_NUMBER() OVER(PARTITION BY id_coordenada ORDER BY criado_em DESC) AS n_linha
+        FROM painel_dsr.tb_revisao_instrumento_coordenada
+        )
+        SELECT
+            geo.id_coordenada,
+            rev.situacao_analise,
+            geo.cod_tci,
+            geo.nr_instrumento,
+            geo.nr_proposta
+        FROM instrumento.vw_geometrias_carteira_dsr geo
+        LEFT JOIN rev ON rev.id_coordenada = geo.id_coordenada AND rev.n_linha = 1
     """
-
-    params = params_filtro
-    clauses = []
-
     
-    if where_filtro: clauses.append(where_filtro)
-
     if clauses:
         sql += " WHERE " + " AND ".join(clauses)
 
-
     sql += """
-        ORDER BY id_coordenada
+        ORDER BY geo.id_coordenada
     """
 
     result = await _execute_query(db, sql, params)

@@ -101,6 +101,8 @@ class DadosAnaliseCoordenadasItem(BaseModel):
     id_coordenada: int
     situacao_analise: str | None = None
     cod_tci: str
+    nr_instrumento: str | None = None
+    nr_proposta: str | None = None
 
 class ListaDadosAnaliseCoordenadas(BaseModel):
     data: list[DadosAnaliseCoordenadasItem]
