@@ -723,7 +723,7 @@ export default function MapaSection() {
     }, [filtros.nr_proposta, filtros.nr_instrumento, filtros.cod_tci]);
    
 
-    console.log(coordenadas);
+    //console.log(coordenadas);
       
 
     //pega um objeto coordenada e limpa as colunas, deixando apenas as colunas que devem persisitir para envio ao backend
@@ -789,7 +789,6 @@ export default function MapaSection() {
     //essa função é chamada quando o usuário clicar no botão de salvar
     //chama montar payload e chama a função que envia os dados ao backend
     const salvarAnaliseCoordenadas = async () => {
-        console.log("ENTROU EM salvarAnaliseCoordenadas");
         if (!possuiCoordenadasAlteradas()) return;
 
         setLoading(true);
@@ -797,13 +796,22 @@ export default function MapaSection() {
         setMessageType("");
 
         try {
-            console.log("ANTES DE montarPayload");
             const payload = montarPayloadAnaliseCoordenadas();
-            console.log("DEPOIS DE montarPayload");
-            console.log("Payload para salvar:", payload);
-            
             const data = await enviarAnaliseCoordenadas(payload); 
-            
+
+            setCoordenadas(current =>
+                current.map(coordenada => {
+                    if (!coordenada._coordenadaAlterada) {
+                        return coordenada;
+                    }
+
+                    return {
+                        ...coordenada,
+                        _coordenadaOriginal: dadosCoordenadaPersistencia(coordenada),
+                        _coordenadaAlterada: false,
+                    };
+                })
+            );
             
             setMessage(data.mensagem);
             setMessageType("success");
