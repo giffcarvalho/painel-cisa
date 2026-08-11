@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { gerarMatch } from "../../utils/mapaUtils";
+import { gerarMatch, gerarMatchSituacaoAnalise } from "../../utils/mapaUtils";
 
 // esse hook faz a troca da simbologia do mapa de acordo com a variável escolhida
 
@@ -40,15 +40,71 @@ export function useTrocarSimbologia(mapRef, layers, modoAnalise) {
             
             // CAMADAS DE PONTO
             if (variavelConfig.simbolo === "ponto") {
-                if (modoAnalise && layer.id === "geometrias_carteira_dsr") {
-                    map.setPaintProperty(layer.id, "circle-color", "#ffffff");
-                    map.setPaintProperty(layer.id, "circle-stroke-color", strokeColorAnalise);
-                    map.setPaintProperty(layer.id, "circle-stroke-width", strokeWidthAnalise);
+
+                let expressaoCor;
+
+                if (
+                    modoAnalise &&
+                    layer.id === "geometrias_carteira_dsr" &&
+                    variavelConfig.atributo === "situacao_analise"
+                ) {
+                    expressaoCor = gerarMatchSituacaoAnalise(
+                        variavelConfig.atributo,
+                        variavelConfig.legenda,
+                        "cor",
+                        "#ffffff"
+                    );
                 } else {
-                    map.setPaintProperty(layer.id, "circle-color", gerarMatch(variavelConfig.atributo, variavelConfig.legenda, "cor", "#ffffff"));
-                    map.setPaintProperty(layer.id, "circle-stroke-color", gerarMatch(variavelConfig.atributo, variavelConfig.legenda, "strokeColor", "#b1b1b1"));
-                    map.setPaintProperty(layer.id, "circle-stroke-width", gerarMatch(variavelConfig.atributo, variavelConfig.legenda, "strokeWidth", 0));
+                    expressaoCor = gerarMatch(
+                        variavelConfig.atributo,
+                        variavelConfig.legenda,
+                        "cor",
+                        "#ffffff"
+                    );
                 }
+
+                map.setPaintProperty(
+                    layer.id,
+                    "circle-color",
+                    expressaoCor
+                );
+
+                if (modoAnalise && layer.id === "geometrias_carteira_dsr") {
+                    map.setPaintProperty(
+                        layer.id,
+                        "circle-stroke-color",
+                        strokeColorAnalise
+                    );
+
+                    map.setPaintProperty(
+                        layer.id,
+                        "circle-stroke-width",
+                        strokeWidthAnalise
+                    );
+                } else {
+                    map.setPaintProperty(
+                        layer.id,
+                        "circle-stroke-color",
+                        gerarMatch(
+                            variavelConfig.atributo,
+                            variavelConfig.legenda,
+                            "strokeColor",
+                            "#b1b1b1"
+                        )
+                    );
+
+                    map.setPaintProperty(
+                        layer.id,
+                        "circle-stroke-width",
+                        gerarMatch(
+                            variavelConfig.atributo,
+                            variavelConfig.legenda,
+                            "strokeWidth",
+                            0
+                        )
+                    );
+                }
+
                 continue;
             }
 

@@ -17,7 +17,7 @@ import { useAtualizarSources } from "@/hooks/mapa/useAtualizarSources";
 import { useTrocarSimbologia } from "@/hooks/mapa/useTrocarSimbologia";
 import { useClicar } from "@/hooks/mapa/useClicar";
 import { useAuth } from "@/context/auth/useAuth";
-import { listarDadosAnaliseCoordenadas, enviarAnaliseCoordenadas } from "../../api/mapa";
+import { listarDadosAnaliseCoordenadas, enviarAnaliseCoordenadas, urlGeometriasCarteiraDsr } from "../../api/mapa";
  
 
 export default function MapaSection() { 
@@ -249,6 +249,20 @@ export default function MapaSection() {
                         {valor: "paralisada", label: "Paralisada", cor: "#e2001e", strokeColor: "#000000", strokeWidth: 1.0},
                         {valor: "não se aplica", label: "Não se aplica", cor: "#ffffff", strokeColor: "#000000", strokeWidth: 1.0},
                         {valor: "cancelada", label: "Cancelada", cor: "#000000", strokeColor: "#000000", strokeWidth: 1.0},
+                    ]
+                },
+                {
+                    atributo: "situacao_analise",
+                    label: "Situacao da análise",
+                    tipo: "categorica",
+                    simbolo: "ponto",
+                    legenda: [
+                        {valor: "Correta", label: "Correta", cor: "#7fffd4", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Errada (correção a ser solicitada)", label: "Errada (correção a ser solicitada)", cor: "#ff7350", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Errada (correção já solicitada)", label: "Errada (correção já solicitada)", cor: "#ffa467", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Instrumento extinto", label: "Instrumento extinto", cor: "#000000", strokeColor: "#000000", strokeWidth: 0.0},
+                        {valor: "Coordenada excluída", label: "Coordenada excluída", cor: "#acacac", strokeColor: "#acacac", strokeWidth: 0.0},
+                        {valor: "Coordenada nova/não analisada", label: "Coordenada nova/não analisada", cor: "#ffffff", strokeColor: "#969696", strokeWidth: 2.0},
                     ]
                 },
             ]
@@ -722,8 +736,6 @@ export default function MapaSection() {
 
     }, [filtros.nr_proposta, filtros.nr_instrumento, filtros.cod_tci]);
    
-
-    //console.log(coordenadas);
       
 
     //pega um objeto coordenada e limpa as colunas, deixando apenas as colunas que devem persisitir para envio ao backend
@@ -744,30 +756,46 @@ export default function MapaSection() {
 
     //recebe uma coordenada específica e sua analise. Percorre o array de coordenadas do instrumento filtrado.
     //procrura no array até encontrar a coordenada específica recebida. Pega a analise recebida e atualiza jogando o novo valor no array. 
-    //o estao Coordenadas vai ser atualizado, pois isso está dentro de um set
+    //o estado Coordenadas vai ser atualizado, pois isso está dentro de um set
     //gera um objeto coordenada atualizada com a nova análise
     //compara se os dados a serem persistidos de coordendas atualizada são iguais a original, gerando a flag _coordenadaAlterada
     //ou seja essa função atualiza o estado e gera uma flag pra indicar se a atualização efetivou uma alteração ou não
     const atualizarAnaliseCoordenada = (idCoordenada, novaAnalise) => {
+        
+        const map = mapRef.current;
+
+        if (map) {
+            map.setFeatureState(
+                {
+                    source: "geometrias_carteira_dsr",
+                    sourceLayer: "pontos",
+                    id: idCoordenada
+                },
+                {
+                    situacaoAnalise: novaAnalise
+                }
+            );
+        }
+
         setCoordenadas((current) =>
             current.map((coordenada) => {
-            if (coordenada.id_coordenada !== idCoordenada) return coordenada
+                if (coordenada.id_coordenada !== idCoordenada) return coordenada;
 
-            const atualizado = {
-                ...coordenada,
-                situacao_analise: novaAnalise
-            }
+                const atualizado = {
+                    ...coordenada,
+                    situacao_analise: novaAnalise
+                };
 
-            return {
-                ...atualizado,
-                _coordenadaAlterada: !objetosIguais(
-                dadosCoordenadaPersistencia(atualizado),
-                coordenada._coordenadaOriginal
-                ),
-            }
+                return {
+                    ...atualizado,
+                    _coordenadaAlterada: !objetosIguais(
+                        dadosCoordenadaPersistencia(atualizado),
+                        coordenada._coordenadaOriginal
+                    ),
+                };
             })
-        )
-    }
+        );
+    };
 
     
     //apenas testa se no estado coordenadas, tem alguma coordenada com alteração
@@ -784,7 +812,7 @@ export default function MapaSection() {
             .map(dadosCoordenadaPersistencia)
     });
 
-
+   
 
     //essa função é chamada quando o usuário clicar no botão de salvar
     //chama montar payload e chama a função que envia os dados ao backend
@@ -797,7 +825,29 @@ export default function MapaSection() {
 
         try {
             const payload = montarPayloadAnaliseCoordenadas();
-            const data = await enviarAnaliseCoordenadas(payload); 
+            const data = await enviarAnaliseCoordenadas(payload);
+            
+            // Remove a situação temporária das coordenadas que foram salvas
+            const map = mapRef.current;
+            if (map) {
+                const source = map.getSource("geometrias_carteira_dsr");
+                
+                if (source) {
+                    const url = `${urlGeometriasCarteiraDsr(filtros)}&t=${Date.now()}`;
+                    source.setTiles([url]);
+                }
+
+                payload.coordenadas.forEach((coordenada) => {
+                    map.removeFeatureState(
+                        {
+                            source: "geometrias_carteira_dsr",
+                            sourceLayer: "pontos",
+                            id: coordenada.id_coordenada
+                        },
+                        "situacaoAnalise"
+                    );
+                });
+            }
 
             setCoordenadas(current =>
                 current.map(coordenada => {
@@ -817,7 +867,6 @@ export default function MapaSection() {
             setMessageType("success");
 
         } catch (err) {
-            console.error("ERRO AO SALVAR:", err);
             setMessage(
                 err?.response?.data?.detail ??
                 "Não foi possível salvar as alterações."

@@ -204,7 +204,7 @@ export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
 
     }, [layers, modoAnalise]);
 
-    //useEffect para limpar a feição selecionar quando o modo analise é desativado
+    //useEffect para limpar a feição selecionada quando o modo analise é desativado
     useEffect(() => {
         const map = mapRef.current;
         if (!map) return;
