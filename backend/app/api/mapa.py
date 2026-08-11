@@ -1388,33 +1388,54 @@ async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMa
     params.update(params_filtro)
 
     sql = f"""
+        WITH ultima_analise AS (
+            SELECT
+                id_coordenada,
+                situacao_analise,
+                ROW_NUMBER() OVER (
+                    PARTITION BY id_coordenada
+                    ORDER BY criado_em DESC
+                ) AS n_linha
+            FROM painel_dsr.tb_revisao_instrumento_coordenada
+        )
         SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom', 'id_coordenada') AS mvt
         FROM (
             SELECT
-                id_coordenada,
-                cod_tci_num,
-                cod_tci,
-                nr_instrumento::text,
-                nr_proposta,
-                tipo_instrumento,
-                modalidade,
-                componente,
-                objeto,
-                valor_global,
-                valor_repasse,
-                situacao_projeto,
-                situacao_obra,
-                link_transferegov,
-                link_saci,
-                situacao_analise,
+                ct.id_coordenada,
+                ct.cod_tci_num,
+                ct.cod_tci,
+                ct.nr_instrumento::text,
+                ct.nr_proposta,
+                ct.tipo_instrumento,
+                ct.modalidade,
+                ct.componente,
+                ct.objeto,
+                ct.valor_global,
+                ct.valor_repasse,
+                ct.situacao_projeto,
+                ct.situacao_obra,
+                CASE
+                    WHEN 
+                        ct.modalidade ILIKE 'Extinto' OR
+                        ct.situacao_projeto ILIKE 'Extinto' OR
+                        ct.situacao_obra ILIKE 'cancelada'
+                    THEN 'Instrumento extinto'
+                    WHEN ct.ativo IS FALSE THEN 'Coordenada excluída'
+                    WHEN ua.situacao_analise IS NULL THEN 'Coordenada nova/não analisada'
+                    ELSE ua.situacao_analise
+                END AS situacao_analise,
+                ct.ativo,
+                ct.link_transferegov,
+                ct.link_saci,
                 ST_AsMVTGeom(
-                    geom,
+                    ct.geom,
                     ST_TileEnvelope(:z, :x, :y),
                     4096,
                     256,
                     true
                 ) AS geom
             FROM instrumento.vw_geometrias_carteira_dsr ct
+            LEFT JOIN ultima_analise ua ON ua.id_coordenada = ct.id_coordenada AND ua.n_linha = 1
             WHERE {base_where}
         ) AS tile;
     """
@@ -1710,7 +1731,8 @@ async def _criar_revisao_instrumento(
                 nr_ted,
                 id_usuario,
                 status,
-                enviado_em
+                enviado_em,
+                id_revisao_anterior
             )
             VALUES (
                 :identificador_busca,
@@ -1720,7 +1742,17 @@ async def _criar_revisao_instrumento(
                 :nr_ted,
                 :id_usuario,
                 'enviado',
-                NOW()
+                NOW(),
+                (
+                    SELECT id_revisao
+                    FROM painel_dsr.tb_revisao_instrumento anterior
+                    WHERE anterior.tipo_instrumento = CAST(:tipo_instrumento AS varchar)
+                      AND anterior.status = 'enviado'
+                      AND ((CAST(:tipo_instrumento AS varchar) = 'ted' AND anterior.nr_ted = CAST(:nr_ted AS integer))
+                        OR (CAST(:tipo_instrumento AS varchar) <> 'ted' AND NULLIF(BTRIM(anterior.nr_instrumento), '') = NULLIF(BTRIM(CAST(:nr_instrumento AS varchar)), '')))
+                    ORDER BY anterior.enviado_em DESC NULLS LAST, anterior.id_revisao DESC
+                    LIMIT 1
+                )
             )
             RETURNING
                 id_revisao,
@@ -1741,6 +1773,48 @@ async def _criar_revisao_instrumento(
     )
 
     return dict(result.mappings().one())
+
+
+
+# função que busca no banco a ultima análise de cada coordenada para testar se realmente o que veio do frontend está alterando a situação de alguma coordenada
+# o resultado disso é usado depois para que somente seja enviado ao banco novos registros de revisão se realmente chegou alguma situação nova
+async def _buscar_coordenadas_alteradas(
+    db: AsyncSession,
+    coordenadas: list[CoordenadaAnaliseCreate],
+) -> list[CoordenadaAnaliseCreate]:
+
+    if not coordenadas:
+        return []
+
+    ids_coordenadas = [c.id_coordenada for c in coordenadas]
+
+    result = await db.execute(
+        text(
+            """
+            SELECT DISTINCT ON (id_coordenada)
+                id_coordenada,
+                situacao_analise
+            FROM painel_dsr.tb_revisao_instrumento_coordenada
+            WHERE id_coordenada = ANY(:ids_coordenadas)
+            ORDER BY id_coordenada, criado_em DESC
+            """
+        ),
+        {
+            "ids_coordenadas": ids_coordenadas,
+        },
+    )
+
+    situacoes_atuais = {
+        row["id_coordenada"]: row["situacao_analise"]
+        for row in result.mappings()
+    }
+
+    return [
+        coordenada
+        for coordenada in coordenadas
+        if situacoes_atuais.get(coordenada.id_coordenada)
+        != coordenada.situacao_analise
+    ]
 
 
 
@@ -1812,6 +1886,14 @@ async def salvar_analise_coordenadas(
             cod_tci=payload.cod_tci,
         )
 
+        coordenadas_alteradas = await _buscar_coordenadas_alteradas(db, payload.coordenadas)
+        
+        if not coordenadas_alteradas:
+            return AnaliseCoordenadasSalvaResponse(
+                id_revisao=None,
+                mensagem="Nenhuma alteração foi identificada.",
+            )
+        
         revisao = await _criar_revisao_instrumento(
             db,
             instrumento,
@@ -1820,7 +1902,7 @@ async def salvar_analise_coordenadas(
 
         id_revisao = revisao["id_revisao"]
 
-        for coordenada in payload.coordenadas:
+        for coordenada in coordenadas_alteradas:
             await _persistir_coordenada_revisao(
                 db,
                 id_revisao,
