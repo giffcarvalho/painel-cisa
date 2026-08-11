@@ -1,6 +1,11 @@
 import api from './axios'
 
 export const revisaoInstrumentoApi = {
+  buscarMeusInstrumentos: async () => {
+    const { data } = await api.get('/revisao-instrumento/meus-instrumentos')
+    return data
+  },
+
   buscarInstrumento: async (identificador) => {
     const { data } = await api.get('/revisao-instrumento/instrumentos', {
       params: { identificador },

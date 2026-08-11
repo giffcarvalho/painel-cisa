@@ -54,6 +54,14 @@ export const router = createBrowserRouter([
             ),
           },
           {
+            path: 'revisao-instrumento/:numeroInstrumento',
+            element: (
+            <ProtectedRoute>
+            <RevisaoInstrumento />
+            </ProtectedRoute>
+            ),
+          },
+          {
             path: 'manual',
             element: <ManualLayout />,
             children: [

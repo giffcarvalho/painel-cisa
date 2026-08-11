@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Check, ChevronDown, Plus, Save, Search, Send, X } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { revisaoInstrumentoApi } from '@/api/revisaoInstrumento'
 import { useAuth } from '@/context/auth/useAuth'
 import styles from './RevisaoInstrumento.module.css'
+import { formatPercentualPontos } from '../../utils/formatters'
 
 const ACOES_MUNICIPIO = [
   { value: 'manter', label: 'Manter', icon: Check },
@@ -73,6 +75,14 @@ function formatarMunicipioUf(nome, uf) {
   if (!nome) return '-'
   if (String(nome).includes('/')) return nome
   return uf ? `${nome}/${uf}` : nome
+}
+
+function formatarValorMonetario(value) {
+  if (value === null || value === undefined || value === '') return '-'
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(Number(value))
 }
 
 function numeroOuNull(value) {
@@ -226,6 +236,7 @@ function copiarPublicoAlvo(publicoAlvo = []) {
     desc_populacao_beneficiada_revisada:
       item.desc_populacao_beneficiada_revisada ?? null,
     conferido_em: item.conferido_em ?? null,
+    valido_ate: item.valido_ate ?? null,
     _publicoAlvoOriginal: dadosPublicoAlvoOriginal(item),
     _camposAlterados: {},
   }))
@@ -282,8 +293,10 @@ function municipioTemHistorico(municipio) {
 
 function statusVisualMunicipio(municipio) {
   if (municipioTemAlteracoes(municipio)) return 'Alterações não salvas'
-  if (municipioTemHistorico(municipio) || municipio._salvoNestaSessao) return 'Conferência registrada'
-  return 'Revisão pendente'
+  if (municipio.revisao_municipio_conferida_em) {
+    return `Ação salva — ${formatarDataConferencia(municipio.revisao_municipio_conferida_em)}${formatarValidade(municipio.valido_ate) ? ` · ${formatarValidade(municipio.valido_ate)}` : ''}`
+  }
+  return 'Ainda não conferida'
 }
 
 function formatarDataConferencia(value) {
@@ -294,34 +307,121 @@ function formatarDataConferencia(value) {
 
   if (!ano || !mes || !dia) return 'Ainda não conferida'
 
-  return `Última conferência em ${dia}/${mes}/${ano}`
+  const hora = String(value).match(/[T ](\d{2}):(\d{2})/)
+  return hora
+    ? `Conferida em ${dia}/${mes}/${ano} às ${hora[1]}h${hora[2]}`
+    : `Conferida em ${dia}/${mes}/${ano}`
 }
 
-function formatarDataHistorico(value) {
-  const data = value ? new Date(value) : null
+function formatarDataAtualizacaoRascunho(value) {
+  if (!value) return null
 
-  if (!data || Number.isNaN(data.getTime())) return 'Data não informada'
+  const data = new Date(value)
+  if (Number.isNaN(data.getTime())) return null
 
-  const hoje = new Date()
-  const mesmaData =
-    data.getFullYear() === hoje.getFullYear() &&
-    data.getMonth() === hoje.getMonth() &&
-    data.getDate() === hoje.getDate()
+  const dia = String(data.getDate()).padStart(2, '0')
+  const mes = String(data.getMonth() + 1).padStart(2, '0')
+  const ano = data.getFullYear()
+  const hora = String(data.getHours()).padStart(2, '0')
+  const minuto = String(data.getMinutes()).padStart(2, '0')
 
-  if (mesmaData) return 'Hoje'
-
-  return data.toLocaleDateString('pt-BR')
+  return `${dia}/${mes}/${ano} às ${hora}h${minuto}`
 }
 
-function formatarHoraHistorico(value) {
-  const data = value ? new Date(value) : null
+function mensagemEstadoRascunho(data) {
+  if (!data?.rascunho_usuario) {
+    return 'Nenhum rascunho aberto para este instrumento.'
+  }
 
-  if (!data || Number.isNaN(data.getTime())) return null
+  const ultimaAtualizacao = formatarDataAtualizacaoRascunho(
+    data.rascunho_usuario.atualizado_em
+  )
 
-  return data.toLocaleTimeString('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  return ultimaAtualizacao
+    ? `Rascunho aberto · Última atualização em ${ultimaAtualizacao}`
+    : 'Rascunho aberto'
+}
+
+function contextoRevisao(data, usuarioAtualNome) {
+  const rascunho = data?.rascunho_usuario
+  if (rascunho) {
+    return {
+      status: 'Rascunho',
+      tone: 'draft',
+      responsavel: rascunho.responsavel_nome || usuarioAtualNome,
+      detalhe: formatarDataAtualizacaoRascunho(rascunho.atualizado_em)
+        ? `Atualizado em ${formatarDataAtualizacaoRascunho(rascunho.atualizado_em)}`
+        : null,
+    }
+  }
+
+  const ultimaRevisao = data?.ultima_revisao_usuario
+  if (ultimaRevisao?.aplicado_em) {
+    return {
+      status: 'Revisão aplicada',
+      tone: 'applied',
+      responsavel: usuarioAtualNome,
+      detalhe: `Aplicada em ${formatarDataAtualizacaoRascunho(ultimaRevisao.aplicado_em)}`,
+    }
+  }
+
+  if (ultimaRevisao?.enviado_em || data?.status === 'enviado') {
+    return {
+      status: 'Enviada — aguardando aplicação',
+      tone: 'sent',
+      responsavel: usuarioAtualNome,
+      detalhe: ultimaRevisao?.enviado_em
+        ? `Enviada em ${formatarDataAtualizacaoRascunho(ultimaRevisao.enviado_em)}`
+        : null,
+    }
+  }
+
+  return {
+    status: 'Sem rascunho atual',
+    tone: 'neutral',
+    responsavel: null,
+    detalhe: null,
+  }
+}
+
+function formatarValidade(value) {
+  if (!value) return null
+  const dataParte = String(value).split(/[T ]/)[0]
+  const [ano, mes, dia] = dataParte.split('-')
+  return ano && mes && dia ? `Válida até ${dia}/${mes}/${ano}` : null
+}
+
+function resumoConferenciaSecao(itens, tipo) {
+  const total = itens.length
+  const revisados = itens.filter((item) =>
+    tipo === 'localidades'
+      ? item.origem_registro === 'adicionado_tecnico' || Boolean(item.acao_sugerida)
+      : item.relacao_instrumento !== 'nao_analisada'
+  )
+  const maisRecente = revisados.reduce((mais, item) => {
+    const data = item.conferido_em
+    if (!data) return mais
+    if (!mais || Date.parse(data) > Date.parse(mais)) return data
+    return mais
+  }, null)
+  const validade = revisados.reduce((menor, item) => {
+    if (!item.valido_ate) return menor
+    if (!menor || Date.parse(item.valido_ate) < Date.parse(menor)) return item.valido_ate
+    return menor
+  }, null)
+
+  if (!total) {
+    return tipo === 'localidades' ? 'Nenhuma localidade cadastrada' : 'Nenhuma obra analisada'
+  }
+  if (!revisados.length) {
+    return 'Ainda não conferida'
+  }
+  if (revisados.length < total) {
+    return `${revisados.length} de ${total} ${tipo === 'localidades' ? 'localidades revisadas' : 'obras analisadas'}${maisRecente ? ` · Última alteração em ${formatarDataConferencia(maisRecente).replace('Conferida em ', '')}` : ' · Alterações não salvas'}`
+  }
+  return maisRecente
+    ? `Conferida em ${formatarDataConferencia(maisRecente).replace('Conferida em ', '')}${formatarValidade(validade) ? ` · ${formatarValidade(validade)}` : ''}`
+    : 'Todas revisadas · Alterações não salvas'
 }
 
 function nomeUsuario(usuario) {
@@ -356,70 +456,6 @@ function criarItemHistorico({ data, titulo, usuarioNome, descricao }) {
   }
 }
 
-function montarHistoricoRevisao({
-  municipios = [],
-  publicoAlvo = [],
-  historicoSessao = [],
-  usuarioNome,
-}) {
-  const itens = [...historicoSessao]
-
-  municipios.forEach((municipio) => {
-    const municipioUf = formatarMunicipioUf(municipio.nome, municipio.uf)
-
-    if (municipio.revisao_municipio_conferida_em) {
-      itens.push(
-        criarItemHistorico({
-          data: municipio.revisao_municipio_conferida_em,
-          titulo: `Município ${municipioUf} atualizado`,
-          usuarioNome,
-        })
-      )
-    }
-
-    if (municipio.localidades_conferidas_em) {
-      itens.push(
-        criarItemHistorico({
-          data: municipio.localidades_conferidas_em,
-          titulo: `Localidades de ${municipioUf} revisadas`,
-          usuarioNome,
-        })
-      )
-    }
-
-    if (municipio.obras_conferidas_em) {
-      itens.push(
-        criarItemHistorico({
-          data: municipio.obras_conferidas_em,
-          titulo: `Obras de ${municipioUf} revisadas`,
-          usuarioNome,
-        })
-      )
-    }
-  })
-
-  const publicoAlvoConferidoEm = dataConferenciaPublicoAlvo(publicoAlvo)
-  if (publicoAlvoConferidoEm) {
-    itens.push(
-      criarItemHistorico({
-        data: publicoAlvoConferidoEm,
-        titulo: 'População beneficiada revisada',
-        usuarioNome,
-      })
-    )
-  }
-
-  return itens
-    .filter((item) => item.titulo)
-    .sort((a, b) => {
-      const dataA = Date.parse(a.data)
-      const dataB = Date.parse(b.data)
-
-      if (Number.isNaN(dataA) || Number.isNaN(dataB)) return 0
-      return dataB - dataA
-    })
-}
-
 function dataConferenciaPublicoAlvo(publicoAlvo = []) {
   return publicoAlvo.reduce((maisRecente, item) => {
     const conferidoEm = item.conferido_em
@@ -434,6 +470,16 @@ function dataConferenciaPublicoAlvo(publicoAlvo = []) {
     }
 
     return timestampAtual > timestampMaisRecente ? conferidoEm : maisRecente
+  }, null)
+}
+
+function validadeConferenciaPublicoAlvo(publicoAlvo = []) {
+  return publicoAlvo.reduce((menorValidade, item) => {
+    if (!item.conferido_em || !item.valido_ate) return menorValidade
+    if (!menorValidade || Date.parse(item.valido_ate) < Date.parse(menorValidade)) {
+      return item.valido_ate
+    }
+    return menorValidade
   }, null)
 }
 
@@ -485,6 +531,8 @@ function copiarMunicipios(municipios = []) {
 
 export default function RevisaoInstrumento() {
   const { usuario } = useAuth()
+  const navigate = useNavigate()
+  const { numeroInstrumento } = useParams()
   const [identificador, setIdentificador] = useState('')
   const [dadosBusca, setDadosBusca] = useState(null)
   const [idRevisao, setIdRevisao] = useState(null)
@@ -501,27 +549,28 @@ export default function RevisaoInstrumento() {
   const [justificativasLocalidadeAbertas, setJustificativasLocalidadeAbertas] = useState({})
   const [justificativasObraAbertas, setJustificativasObraAbertas] = useState({})
   const [edicoesPublicoAlvo, setEdicoesPublicoAlvo] = useState({})
-  const [salvandoMunicipio, setSalvandoMunicipio] = useState({})
   const [erroMunicipio, setErroMunicipio] = useState({})
   const [observacaoEmEdicao, setObservacaoEmEdicao] = useState(false)
   const [rascunhoObservacaoGeral, setRascunhoObservacaoGeral] = useState('')
-  const [historicoSessao, setHistoricoSessao] = useState([])
+  const [, setHistoricoSessao] = useState([])
 
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState('')
+  const [confirmarEnvioParcial, setConfirmarEnvioParcial] = useState(false)
+  const [meusInstrumentos, setMeusInstrumentos] = useState([])
+  const [filtroMeusInstrumentos, setFiltroMeusInstrumentos] = useState('')
+  const [carregandoMeusInstrumentos, setCarregandoMeusInstrumentos] = useState(true)
+  const [erroMeusInstrumentos, setErroMeusInstrumentos] = useState('')
+  const [detalhesInstrumentoAbertos, setDetalhesInstrumentoAbertos] = useState(false)
 
-  const instrumento = dadosBusca?.instrumento ?? null
+  const instrumento = numeroInstrumento ? dadosBusca?.instrumento ?? null : null
+  const temRascunhoAberto = dadosBusca?.status === 'rascunho'
+  const modoSomenteLeitura = dadosBusca?.status === 'enviado'
   const usuarioAtualNome = nomeUsuario(usuario)
+  const contextoAtual = contextoRevisao(dadosBusca, usuarioAtualNome)
   const observacaoGeralTexto = observacaoGeral.trim()
-  const historicoRevisao = montarHistoricoRevisao({
-    municipios,
-    publicoAlvo,
-    historicoSessao,
-    usuarioNome: usuarioAtualNome,
-  })
-
   const registrarEventoHistorico = (titulo, descricao) => {
     setHistoricoSessao((current) => [
       criarItemHistorico({
@@ -567,11 +616,7 @@ export default function RevisaoInstrumento() {
     setRascunhoObservacaoGeral('')
     setObservacaoEmEdicao(false)
   }
-  const buscarInstrumento = async (event) => {
-    event.preventDefault()
-
-    const termo = identificador.trim()
-
+  const abrirInstrumento = useCallback(async (termo) => {
     if (!termo) {
       setMessage('Informe um número de instrumento, proposta ou TED.')
       setMessageType('error')
@@ -592,7 +637,6 @@ export default function RevisaoInstrumento() {
     setJustificativasLocalidadeAbertas({})
     setJustificativasObraAbertas({})
     setEdicoesPublicoAlvo({})
-    setSalvandoMunicipio({})
     setErroMunicipio({})
     setObservacaoEmEdicao(false)
     setRascunhoObservacaoGeral('')
@@ -606,16 +650,72 @@ export default function RevisaoInstrumento() {
       setRascunhoObservacaoGeral(data.observacao_geral ?? '')
       setMunicipios(copiarMunicipios(data.municipios))
       setPublicoAlvo(copiarPublicoAlvo(data.publico_alvo))
+      setMessage(mensagemEstadoRascunho(data))
+      setMessageType('info')
     } catch (err) {
       setMessage(
-        err?.response?.data?.detail ||
+        (typeof err?.response?.data?.detail === 'object'
+          ? err.response.data.detail.mensagem || 'A revisão possui pendências.'
+          : err?.response?.data?.detail) ||
           'Não foi possível localizar o instrumento informado.'
       )
       setMessageType('error')
     } finally {
       setIsLoading(false)
     }
+  }, [])
+
+  const navegarParaInstrumento = (termo) => {
+    const valor = String(termo ?? '').trim()
+    if (!valor) {
+      setMessage('Informe um número de instrumento, proposta ou TED.')
+      setMessageType('error')
+      return
+    }
+
+    navigate(`/revisao-instrumento/${encodeURIComponent(valor)}`)
   }
+
+  const buscarInstrumento = async (event) => {
+    event.preventDefault()
+    navegarParaInstrumento(identificador)
+  }
+
+  useEffect(() => {
+    if (!numeroInstrumento) return
+
+    const valor = String(numeroInstrumento).trim()
+    Promise.resolve().then(() => abrirInstrumento(valor))
+  }, [abrirInstrumento, numeroInstrumento])
+
+  useEffect(() => {
+    let ativo = true
+
+    revisaoInstrumentoApi.buscarMeusInstrumentos()
+      .then((resposta) => {
+        if (ativo) setMeusInstrumentos(resposta.data ?? [])
+      })
+      .catch(() => {
+        if (ativo) setErroMeusInstrumentos('Não foi possível carregar seus instrumentos agora.')
+      })
+      .finally(() => {
+        if (ativo) setCarregandoMeusInstrumentos(false)
+      })
+
+    return () => { ativo = false }
+  }, [usuario?.id_usuario])
+
+  const meusInstrumentosFiltrados = meusInstrumentos.filter((item) => {
+    const termo = filtroMeusInstrumentos.trim().toLowerCase()
+    if (!termo) return true
+    return [
+      item.nr_instrumento,
+      item.nr_proposta,
+      item.municipios_beneficiados,
+      item.uf,
+      item.tipo_instrumento_label,
+    ].some((valor) => String(valor ?? '').toLowerCase().includes(termo))
+  })
 
   const atualizarMunicipio = (codMunicipio, campo, valor) => {
     setMunicipios((current) =>
@@ -1241,7 +1341,6 @@ export default function RevisaoInstrumento() {
 
     const payload = montarPayloadMunicipio(municipio, idRevisaoAtual)
 
-    setSalvandoMunicipio((current) => ({ ...current, [codMunicipio]: true }))
     setErroMunicipio((current) => ({ ...current, [codMunicipio]: '' }))
     setMessage('')
     setMessageType('')
@@ -1263,8 +1362,6 @@ export default function RevisaoInstrumento() {
         throw new Error(mensagem, { cause: err })
       }
       return idRevisaoAtual
-    } finally {
-      setSalvandoMunicipio((current) => ({ ...current, [codMunicipio]: false }))
     }
   }
 
@@ -1289,9 +1386,24 @@ export default function RevisaoInstrumento() {
     publico_alvo: montarPayloadPublicoAlvo(),
   })
 
+  const existemItensNaoConferidos = () =>
+    municipios.some(
+      (municipio) =>
+        municipio.acao_sugerida == null ||
+        municipio.localidades.some(
+          (localidade) =>
+            localidade.origem_registro !== 'adicionado_tecnico' &&
+            !localidade.acao_sugerida
+        ) ||
+        municipio.obras_saneamento.some(
+          (obra) => obra.relacao_instrumento === 'nao_analisada'
+        )
+    ) || publicoAlvo.some((item) => !item.conferido_em)
+
   const salvarRevisao = async (status) => {
     if (!instrumento) return
 
+    const eraRascunhoExistente = Boolean(idRevisao)
     setIsSaving(true)
     setMessage('')
     setMessageType('')
@@ -1308,6 +1420,29 @@ export default function RevisaoInstrumento() {
               ...current,
               id_revisao: data.id_revisao,
               status: data.status ?? current.status,
+              rascunho_usuario:
+                data.status === 'rascunho'
+                  ? {
+                      id_revisao: data.id_revisao,
+                      status: data.status,
+                      criado_em: data.criado_em,
+                      atualizado_em: data.atualizado_em,
+                      id_usuario: usuario?.id_usuario,
+                      responsavel_nome: usuarioAtualNome,
+                    }
+                  : null,
+              ultima_revisao_usuario:
+                data.status === 'enviado'
+                  ? {
+                      id_revisao: data.id_revisao,
+                      status: data.status,
+                      criado_em: data.criado_em,
+                      atualizado_em: data.atualizado_em,
+                      enviado_em: data.enviado_em,
+                      aplicado_em: null,
+                    }
+                  : current.ultima_revisao_usuario,
+              completude: data.completude ?? current.completude,
               status_revisao_geral:
                 data.status_revisao_geral ?? current.status_revisao_geral,
               status_revisao_geral_label:
@@ -1317,17 +1452,32 @@ export default function RevisaoInstrumento() {
           : current
       )
       setPublicoAlvo(copiarPublicoAlvo(data.publico_alvo ?? publicoAlvo))
+      setConfirmarEnvioParcial(false)
       registrarEventoHistorico(
         status === 'enviado' ? 'Revisão enviada' : 'Rascunho salvo',
         status === 'enviado'
           ? 'Revisão finalizada e enviada.'
           : 'Todo o estado atual da revisão foi salvo.'
       )
-      setMessage(`${data.mensagem} ID da revisão: ${data.id_revisao}.`)
+      setMessage(
+        status === 'enviado'
+          ? 'Revisão enviada com sucesso'
+          : eraRascunhoExistente
+            ? 'Rascunho atualizado com sucesso'
+            : 'Rascunho salvo com sucesso'
+      )
       setMessageType('success')
+      if (status !== 'enviado') {
+        window.setTimeout(() => {
+          setMessage('')
+          setMessageType('')
+        }, 4000)
+      }
     } catch (err) {
       setMessage(
-        err?.response?.data?.detail ||
+        (typeof err?.response?.data?.detail === 'object'
+          ? err.response.data.detail.mensagem || 'A revisão possui pendências.'
+          : err?.response?.data?.detail) ||
           err?.message ||
           'Não foi possível salvar a revisão. Verifique sua autenticação e tente novamente.'
       )
@@ -1337,8 +1487,36 @@ export default function RevisaoInstrumento() {
     }
   }
 
+  const iniciarEnvio = () => {
+    if (existemItensNaoConferidos()) {
+      setConfirmarEnvioParcial(true)
+      return
+    }
+    salvarRevisao('enviado')
+  }
+
+  const iniciarNovaRevisao = async () => {
+    if (!instrumento) return
+    setIsLoading(true)
+    try {
+      const data = await revisaoInstrumentoApi.buscarInstrumento(
+        instrumento.identificador_busca,
+      )
+      setDadosBusca(data)
+      setIdRevisao(data.id_revisao ?? null)
+      setObservacaoGeral(data.observacao_geral ?? '')
+      setRascunhoObservacaoGeral(data.observacao_geral ?? '')
+      setMunicipios(copiarMunicipios(data.municipios ?? []))
+      setPublicoAlvo(copiarPublicoAlvo(data.publico_alvo ?? []))
+      setMessage(mensagemEstadoRascunho(data))
+      setMessageType('info')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
-    <main className={styles.page}>
+    <main className={`${styles.page} ${instrumento ? styles.pageDetail : styles.pageIndex}`}>
       <header className={styles.header}>
         <div>
           <h1>Revisão de Instrumento</h1>
@@ -1349,7 +1527,18 @@ export default function RevisaoInstrumento() {
 
         {instrumento && (
           <div className={styles.headerActions}>
-            <div className={styles.headerActionGroup}>
+            {modoSomenteLeitura ? (
+              <div className={styles.headerActionGroup}>
+                <span className={styles.statusChip}>Revisão enviada</span>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={iniciarNovaRevisao}
+                >
+                  Iniciar nova revisão
+                </button>
+              </div>
+            ) : <div className={styles.headerActionGroup}>
               <Tooltip text="Salva o estado atual de toda a revisão.">
                 <button
                   type="button"
@@ -1361,62 +1550,243 @@ export default function RevisaoInstrumento() {
                   {isSaving ? 'Salvando...' : 'Salvar rascunho'}
                 </button>
               </Tooltip>
-            </div>
+            </div>}
 
-            <div className={styles.headerActionGroup}>
+            {!modoSomenteLeitura && <div className={styles.headerActionGroup}>
               <Tooltip text="Finaliza e envia a revisão.">
                 <button
                   type="button"
                   className={styles.primaryButton}
-                  onClick={() => salvarRevisao('enviado')}
+                  onClick={iniciarEnvio}
                   disabled={isSaving}
                 >
                   <Send size={18} />
                   {isSaving ? 'Enviando...' : 'Enviar revisão'}
                 </button>
               </Tooltip>
-            </div>
+            </div>}
           </div>
         )}
       </header>
 
-      <div className={styles.mainGrid}>
+      <div className={`${styles.mainGrid} ${instrumento ? styles.mainGridDetail : styles.mainGridSingle}`}>
         <div className={styles.leftColumn}>
-          <form className={styles.searchPanel} onSubmit={buscarInstrumento}>
-            <label>
-              <span>Instrumento, proposta ou TED</span>
+          {!instrumento && (
+          <section className={styles.consultSection} aria-labelledby="consultar-instrumento-titulo">
+            <div className={styles.sectionTitleBlock}>
+              <h2 id="consultar-instrumento-titulo">Consultar instrumento</h2>
+            </div>
+
+            <form className={styles.searchPanel} onSubmit={buscarInstrumento}>
+              <label>
+                <span>Número do instrumento, proposta ou TED</span>
               <input
-                value={identificador}
+                value={numeroInstrumento ?? identificador}
                 onChange={(event) => setIdentificador(event.target.value)}
                 placeholder="Ex.: número do instrumento, proposta ou TED"
               />
-            </label>
+              </label>
 
             <button type="submit" disabled={isLoading}>
               <Search size={18} />
               {isLoading ? 'Buscando...' : 'Buscar'}
             </button>
-          </form>
 
-          {message && (
-            <div
-              className={messageType === 'success' ? styles.successBox : styles.errorBox}
-              role={messageType === 'success' ? 'status' : 'alert'}
-            >
-              {message}
+            {message && (
+              <div
+                className={styles.searchMessage}
+                role={messageType === 'success' || messageType === 'info' ? 'status' : 'alert'}
+              >
+                {message}
+              </div>
+            )}
+
+            </form>
+          </section>
+          )}
+
+          {instrumento && (
+            <section className={styles.reviewContext} aria-labelledby="contexto-revisao-titulo">
+              <div className={styles.reviewContextMain}>
+                <div className={styles.reviewContextTitleLine}>
+                  <h2 id="contexto-revisao-titulo">
+                    Instrumento {valorOuTraco(instrumento.nr_instrumento || instrumento.nr_ted)}
+                  </h2>
+                  <span className={`${styles.reviewStatusBadge} ${styles[`reviewStatus_${contextoAtual.tone}`]}`}>
+                    {contextoAtual.status}
+                  </span>
+                </div>
+                <p className={styles.reviewContextObject}>{valorOuTraco(instrumento.objeto)}</p>
+                <p className={styles.reviewContextMeta}>
+                  {contextoAtual.responsavel && <>Responsável: {contextoAtual.responsavel}</>}
+                  {contextoAtual.responsavel && contextoAtual.detalhe && <span aria-hidden="true"> · </span>}
+                  {contextoAtual.detalhe}
+                </p>
+                {dadosBusca?.situacao_colaborativa?.status_label && (
+                  <p className={styles.reviewContextNotice}>{dadosBusca.situacao_colaborativa.status_label}</p>
+                )}
+                {message && (
+                  <p className={styles.reviewContextMessage} role={messageType === 'error' ? 'alert' : 'status'}>
+                    {message}
+                  </p>
+                )}
+                {temRascunhoAberto && existemItensNaoConferidos() && (
+                  <p className={styles.reviewContextNotice} role="status">
+                    Há itens ainda não conferidos. Você pode continuar revisando ou enviar somente as alterações já registradas.
+                  </p>
+                )}
+              </div>
+            </section>
+          )}
+
+          {!instrumento && meusInstrumentos.length > 0 && (
+            <section className={styles.meusInstrumentosSection} aria-labelledby="meus-instrumentos-titulo">
+              <div className={styles.meusInstrumentosHeader}>
+                <div>
+                  <h2 id="meus-instrumentos-titulo">Meus instrumentos</h2>
+                  <p>Instrumentos atribuídos ao seu monitoramento.</p>
+                </div>
+                {meusInstrumentos.length > 0 && (
+                  <label className={styles.meusInstrumentosFiltro}>
+                    <span className={styles.srOnly}>Filtrar meus instrumentos</span>
+                    <Search size={16} aria-hidden="true" />
+                    <input
+                      value={filtroMeusInstrumentos}
+                      onChange={(event) => setFiltroMeusInstrumentos(event.target.value)}
+                      placeholder="Filtrar meus instrumentos..."
+                    />
+                  </label>
+                )}
+              </div>
+
+              {carregandoMeusInstrumentos && (
+                <p className={styles.meusInstrumentosEstado}>Carregando instrumentos...</p>
+              )}
+              {erroMeusInstrumentos && (
+                <p className={styles.meusInstrumentosErro} role="alert">{erroMeusInstrumentos}</p>
+              )}
+              {!carregandoMeusInstrumentos && !erroMeusInstrumentos && meusInstrumentos.length === 0 && (
+                <p className={styles.meusInstrumentosEstado}>Nenhum instrumento está atualmente atribuído ao seu monitoramento.</p>
+              )}
+              {!carregandoMeusInstrumentos && !erroMeusInstrumentos && meusInstrumentos.length > 0 && meusInstrumentosFiltrados.length === 0 && (
+                <p className={styles.meusInstrumentosEstado}>Nenhum instrumento corresponde ao filtro.</p>
+              )}
+
+              {meusInstrumentosFiltrados.length > 0 && (
+                <div className={styles.meusInstrumentosGrid}>
+                  {meusInstrumentosFiltrados.map((item) => {
+                    const identificadorCard = item.nr_ted ?? item.nr_instrumento
+                    return (
+                      <button
+                        type="button"
+                        className={styles.meuInstrumentoCard}
+                        key={`${item.tipo_instrumento}-${identificadorCard}`}
+                        onClick={() => navegarParaInstrumento(identificadorCard)}
+                      >
+                        <span className={styles.meuInstrumentoTopo}>
+                          <strong>{identificadorCard ?? '-'}</strong>
+                          <span>{item.uf ?? '-'}</span>
+                        </span>
+                        {item.nr_proposta && <span className={styles.meuInstrumentoProposta}>Proposta {item.nr_proposta}</span>}
+                        <span className={styles.meuInstrumentoMunicipio}>{item.municipios_beneficiados || 'Município não informado'}</span>
+                        <span className={styles.meuInstrumentoCampo}><small>Tipo</small>{item.tipo_instrumento_label || formatarValorTecnico(item.tipo_instrumento)}</span>
+                        <span className={styles.meuInstrumentoCampo}><small>Objeto</small><span className={styles.meuInstrumentoObjeto} title={item.objeto || undefined}>{item.objeto || '-'}</span></span>
+                        <span className={styles.meuInstrumentoCampo}><small>Execução</small>{formatPercentualPontos(item.percentual_fisico_aferido)}</span>
+                        <span className={styles.meuInstrumentoCampo}><small>Valor global</small>{formatarValorMonetario(item.valor_global)}</span>
+                        <span className={styles.meuInstrumentoStatus}>● {item.status_revisao_label}</span>
+                        <span className={styles.meuInstrumentoAbrir}>Abrir revisão →</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </section>
+          )}
+
+          {confirmarEnvioParcial && (
+            <div className={styles.confirmationBox} role="dialog" aria-modal="true" aria-labelledby="confirmar-envio-titulo">
+              <strong id="confirmar-envio-titulo">Esta revisão possui itens ainda não conferidos.</strong>
+              <p>Serão enviadas somente as alterações registradas e o estado atual. Os demais itens não serão modificados e permanecerão aguardando análise.</p>
+              <p>Deseja enviar a revisão?</p>
+              <div className={styles.confirmationActions}>
+                <button type="button" className={styles.secondaryButton} onClick={() => setConfirmarEnvioParcial(false)}>
+                  Continuar revisando
+                </button>
+                <button type="button" className={styles.primaryButton} onClick={() => salvarRevisao('enviado')}>
+                  Enviar mesmo assim
+                </button>
+              </div>
             </div>
           )}
 
           {instrumento && (
-            <>
-              <button
-                type="button"
-                className={`${styles.secondaryButton} ${styles.addMunicipioToggle}`}
-                onClick={() => setMostrarFormularioMunicipio(true)}
-              >
-                <Plus size={16} />
-                Adicionar Município
-              </button>
+            <fieldset disabled={modoSomenteLeitura} className={styles.reviewFieldset}>
+              <div className={styles.reviewModule}>
+                <section className={styles.generalReviewIntro} aria-labelledby="revisao-geral-titulo">
+                  <div>
+                    <h2 id="revisao-geral-titulo">Revisão do instrumento</h2>
+                  </div>
+
+                  <div className={styles.generalObservation}>
+                    <div className={styles.generalFieldHeading}>
+                      <h3>Observação geral</h3>
+                    </div>
+
+                    {observacaoEmEdicao ? (
+                      <div className={styles.observacaoEditor}>
+                        <textarea
+                          className={styles.textarea}
+                          value={rascunhoObservacaoGeral}
+                          onChange={(event) => setRascunhoObservacaoGeral(event.target.value)}
+                          rows={4}
+                          placeholder="Registre observações gerais da revisão."
+                        />
+                        <div className={styles.acoesRevisaoInline}>
+                          <button type="button" onClick={aplicarObservacaoGeral}>Aplicar</button>
+                          <button type="button" onClick={cancelarEdicaoObservacaoGeral}>Cancelar</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={styles.observacaoResumo}>
+                        <p className={!observacaoGeralTexto ? styles.emptyObservation : undefined}>
+                          {observacaoGeralTexto || 'Ainda não cadastrada.'}
+                        </p>
+                        <div className={styles.acaoTextualInline} aria-label="Ações da observação geral">
+                          <span className={styles.acaoTextualItem}>
+                            <button type="button" className={styles.acaoTextualButton} onClick={abrirEdicaoObservacaoGeral}>
+                              {observacaoGeralTexto ? 'Editar' : 'Inserir'}
+                            </button>
+                          </span>
+                          {observacaoGeralTexto && (
+                            <>
+                              <span className={styles.acaoTextualSeparator} aria-hidden="true">|</span>
+                              <span className={styles.acaoTextualItem}>
+                                <button type="button" className={styles.acaoTextualButton} onClick={removerObservacaoGeral}>Remover</button>
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                <div className={styles.municipalReview}>
+                <div className={styles.reviewModuleHeader}>
+                  <div>
+                    <h2>Municípios da revisão</h2>
+                    <p>Revise os dados do instrumento por município.</p>
+                  </div>
+
+                  <button
+                    type="button"
+                    className={`${styles.secondaryButton} ${styles.addMunicipioToggle}`}
+                    onClick={() => setMostrarFormularioMunicipio(true)}
+                  >
+                    <Plus size={16} />
+                    Adicionar Município
+                  </button>
+                </div>
 
               {mostrarFormularioMunicipio && (
                 <section className={styles.panel}>
@@ -1702,7 +2072,7 @@ export default function RevisaoInstrumento() {
                                 <h3>Localidades beneficiadas</h3>
                                 <span className={styles.sectionHeaderSeparator} aria-hidden="true"/>
                                 <span className={styles.sectionHeaderMeta}>
-                                  {formatarDataConferencia(municipio.localidades_conferidas_em)}
+                                  {resumoConferenciaSecao(municipio.localidades, 'localidades')}
                                 </span>
                               </div>
 
@@ -1982,7 +2352,7 @@ export default function RevisaoInstrumento() {
                                   <h3>Revisão de sobreposição de ação/obras</h3>
                                   <span className={styles.sectionHeaderSeparator} aria-hidden="true"/>
                                   <span className={styles.sectionHeaderMeta}>
-                                    {formatarDataConferencia(municipio.obras_conferidas_em)}
+                                    {resumoConferenciaSecao(municipio.obras_saneamento, 'obras')}
                                   </span>
                                 </div>
 
@@ -2174,24 +2544,6 @@ export default function RevisaoInstrumento() {
                               </div>
                             )}
 
-                            <div className={styles.municipioFooterActions}>
-                              <Tooltip text="Salva apenas as alterações deste município.">
-                                <button
-                                  type="button"
-                                  className={styles.municipioSaveButton}
-                                  disabled={
-                                    salvandoMunicipio[municipio.cod_municipio] ||
-                                    !municipioTemAlteracoes(municipio)
-                                  }
-                                  onClick={() => salvarMunicipio(municipio)}
-                                >
-                                  <Save size={16} />
-                                  {salvandoMunicipio[municipio.cod_municipio]
-                                    ? 'Salvando...'
-                                    : 'Salvar este município'}
-                                </button>
-                              </Tooltip>
-                            </div>
                           </div>
                         )}
                       </article>
@@ -2200,15 +2552,17 @@ export default function RevisaoInstrumento() {
                 )}
               </section>
 
+                </div>
+
               {publicoAlvo.length > 0 && (
-                <section className={`${styles.panel} ${styles.publicoAlvoSection}`}>
+                <section className={`${styles.panel} ${styles.publicoAlvoSection}`} aria-labelledby="revisao-geral-titulo">
                   <div className={styles.sectionHeader}>
-                    <h2>Revisão da população beneficiada</h2>
+                    <h2>População beneficiada</h2>
                     <span className={styles.sectionHeaderSeparator} aria-hidden="true"/>
                     <span className={styles.sectionHeaderMeta}>
                       {publicoAlvoTemAlteracoes(publicoAlvo)
                         ? 'Alterações não salvas'
-                        : formatarDataConferencia(dataConferenciaPublicoAlvo(publicoAlvo))}
+                        : `${formatarDataConferencia(dataConferenciaPublicoAlvo(publicoAlvo))}${formatarValidade(validadeConferenciaPublicoAlvo(publicoAlvo)) ? ` · ${formatarValidade(validadeConferenciaPublicoAlvo(publicoAlvo))}` : ''}`}
                     </span>
                   </div>
 
@@ -2378,18 +2732,38 @@ export default function RevisaoInstrumento() {
                   </div>
                 </section>
               )}
-            </>
+              </div>
+            </fieldset>
           )}
         </div>
 
         {instrumento && (
           <aside className={styles.rightColumn}>
             <section className={styles.panel}>
-              <div className={styles.panelHeader}>
-                <h2>Dados do Instrumento</h2>
-              </div>
+              <button
+                type="button"
+                className={styles.instrumentDetailsToggle}
+                aria-expanded={detalhesInstrumentoAbertos}
+                aria-controls="dados-instrumento-detalhes"
+                onClick={() => setDetalhesInstrumentoAbertos((abertos) => !abertos)}
+              >
+                <span>
+                  <strong>Dados do instrumento</strong>
+                  <small>
+                    {formatarValorTecnico(instrumento.tipo_instrumento)}
+                    {' · '}{instrumento.nr_proposta ? `Proposta ${instrumento.nr_proposta}` : 'Sem proposta'}
+                    {' · '}{valorOuTraco(instrumento.nome_proponente || instrumento.orgao)}
+                    {' · '}{valorOuTraco(instrumento.uf)}
+                  </small>
+                </span>
+                <span className={styles.instrumentDetailsAction}>
+                  {detalhesInstrumentoAbertos ? 'Ocultar detalhes' : 'Exibir detalhes'}
+                  <ChevronDown size={16} aria-hidden="true" />
+                </span>
+              </button>
 
-              <dl className={styles.readonlyGrid}>
+              {detalhesInstrumentoAbertos && (
+              <dl className={styles.readonlyGrid} id="dados-instrumento-detalhes">
                 <div>
                   <dt>Identificador Buscado</dt>
                   <dd>{valorOuTraco(instrumento.identificador_busca)}</dd>
@@ -2420,7 +2794,7 @@ export default function RevisaoInstrumento() {
                   <dd>{formatarValorTecnico(instrumento.tipo_obra)}</dd>
                 </div>
 
-                <div className={styles.fullItem}>
+                <div className={`${styles.fullItem} ${styles.instrumentObject}`}>
                   <dt>Objeto</dt>
                   <dd>{valorOuTraco(instrumento.objeto)}</dd>
                 </div>
@@ -2435,7 +2809,7 @@ export default function RevisaoInstrumento() {
                   <dd>{valorOuTraco(instrumento.uf)}</dd>
                 </div>
 
-                <div>
+                <div className={styles.fullItem}>
                   <dt>Situação Atual</dt>
                   <dd>{valorOuTraco(instrumento.situacao_atual)}</dd>
                 </div>
@@ -2473,89 +2847,6 @@ export default function RevisaoInstrumento() {
                   </div>
                 )}
               </dl>
-            </section>
-
-            <section className={styles.panel}>
-              <div className={styles.panelHeader}>
-                <h2>Observação geral do instrumento</h2>
-              </div>
-
-              {observacaoEmEdicao ? (
-                <div className={styles.observacaoEditor}>
-                  <textarea
-                    className={styles.textarea}
-                    value={rascunhoObservacaoGeral}
-                    onChange={(event) =>
-                      setRascunhoObservacaoGeral(event.target.value)
-                    }
-                    rows={4}
-                    placeholder="Registre observações gerais da revisão."
-                  />
-
-                  <div className={styles.acoesRevisaoInline}>
-                    <button type="button" onClick={aplicarObservacaoGeral}>
-                      Aplicar
-                    </button>
-                    <button type="button" onClick={cancelarEdicaoObservacaoGeral}>
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className={styles.observacaoResumo}>
-                  {observacaoGeralTexto ? (
-                    <>
-                      <p>{observacaoGeralTexto}</p>
-                      <div
-                        className={styles.acaoTextualInline}
-                        aria-label="Ações da observação geral"
-                      >
-                        <span className={styles.acaoTextualItem}>
-                          <button
-                            type="button"
-                            className={styles.acaoTextualButton}
-                            onClick={abrirEdicaoObservacaoGeral}
-                          >
-                            Editar
-                          </button>
-                        </span>
-                        <span
-                          className={styles.acaoTextualSeparator}
-                          aria-hidden="true"
-                        >
-                          |
-                        </span>
-                        <span className={styles.acaoTextualItem}>
-                          <button
-                            type="button"
-                            className={styles.acaoTextualButton}
-                            onClick={removerObservacaoGeral}
-                          >
-                            Remover
-                          </button>
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <p className={styles.emptyObservation}>Ainda não cadastrada.</p>
-                      <div
-                        className={styles.acaoTextualInline}
-                        aria-label="Ações da observação geral"
-                      >
-                        <span className={styles.acaoTextualItem}>
-                          <button
-                            type="button"
-                            className={styles.acaoTextualButton}
-                            onClick={abrirEdicaoObservacaoGeral}
-                          >
-                            Inserir
-                          </button>
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </div>
               )}
             </section>
           </aside>

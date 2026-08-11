@@ -1,10 +1,24 @@
 .page {
   display: flex;
+  width: 100%;
+  box-sizing: border-box;
   min-height: 100%;
   flex-direction: column;
+  align-items: center;
   gap: 20px;
   padding: 24px;
   color: #111827;
+}
+
+.header,
+.mainGrid {
+  width: 100%;
+  max-width: 1280px;
+}
+
+.pageDetail .header,
+.pageDetail .mainGrid {
+  max-width: 1440px;
 }
 
 .header {
@@ -86,12 +100,83 @@
   align-items: start;
 }
 
+.mainGridSingle {
+  max-width: 1040px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mainGridDetail {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.mainGridDetail .rightColumn {
+  order: 1;
+  width: 100%;
+}
+
+.mainGridDetail .leftColumn {
+  order: 2;
+}
+
+.pageDetail .header {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  padding-bottom: 2px;
+}
+
+.pageDetail .headerActions {
+  align-items: center;
+}
+
+.pageDetail .rightColumn > .panel:first-child {
+  border-color: #dbe3ef;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.pageDetail .rightColumn > .panel:first-child .panelHeader {
+  margin-bottom: 16px;
+}
+
+.pageDetail .rightColumn > .panel:first-child .panelHeader h2 {
+  font-size: 20px;
+}
+
+.pageDetail .readonlyGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: 24px;
+  row-gap: 16px;
+}
+
+.pageDetail .readonlyGrid .fullItem {
+  grid-column: 1 / -1;
+}
+
+.pageDetail .searchPanel {
+  width: 100%;
+  max-width: 920px;
+  margin: 0;
+  padding: 12px 14px;
+  border-color: #eef2f7;
+  background: #f8fafc;
+  box-shadow: none;
+}
+
 .leftColumn,
 .rightColumn {
+  --main-block-gap: 16px;
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--main-block-gap);
+}
+
+.leftColumn > fieldset {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--main-block-gap);
 }
 
 .searchPanel,
@@ -107,9 +192,177 @@
 .searchPanel {
   display: grid;
   grid-template-columns: minmax(260px, 1fr) auto;
+  width: min(100%, 760px);
+  box-sizing: border-box;
   gap: 12px;
   align-items: end;
+  margin: 0 auto;
   padding: 16px;
+}
+
+.searchPanel > .searchMessage {
+  grid-column: 1 / -1;
+}
+
+.meusInstrumentosSection {
+  display: grid;
+  gap: 14px;
+}
+
+.meusInstrumentosHeader {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.meusInstrumentosHeader h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 18px;
+}
+
+.meusInstrumentosHeader p {
+  margin: 4px 0 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.meusInstrumentosFiltro {
+  display: flex;
+  width: min(100%, 280px);
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #6b7280;
+  padding: 0 10px;
+}
+
+.meusInstrumentosFiltro input {
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  border: 0;
+  outline: 0;
+  color: #111827;
+  font: inherit;
+  font-size: 13px;
+}
+
+.meusInstrumentosGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 280px));
+  justify-content: center;
+  gap: 14px;
+}
+
+.meuInstrumentoCard {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #374151;
+  padding: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+
+.meuInstrumentoCard:hover,
+.meuInstrumentoCard:focus-visible {
+  border-color: #93c5fd;
+  background: #f8fbff;
+  outline: 0;
+}
+
+.meuInstrumentoTopo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.meuInstrumentoTopo strong {
+  color: #111827;
+  font-size: 20px;
+}
+
+.meuInstrumentoTopo span {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.meuInstrumentoProposta,
+.meuInstrumentoMunicipio {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+.meuInstrumentoMunicipio {
+  min-height: 36px;
+  color: #111827;
+  font-weight: 700;
+}
+
+.meuInstrumentoCampo {
+  display: grid;
+  gap: 2px;
+  color: #374151;
+  font-size: 13px;
+}
+
+.meuInstrumentoCampo small {
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.meuInstrumentoObjeto {
+  display: -webkit-box;
+  overflow: hidden;
+  min-height: 50px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.meuInstrumentoStatus {
+  color: #1e3a8a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.meuInstrumentoAbrir {
+  justify-self: end;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.meusInstrumentosEstado,
+.meusInstrumentosErro {
+  margin: 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.meusInstrumentosErro {
+  color: #b91c1c;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }
 
 .searchPanel label,
@@ -412,7 +665,7 @@ button:disabled {
 .municipiosList {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--main-block-gap);
 }
 
 .municipioCard {
@@ -669,6 +922,9 @@ button:disabled {
 }
 
 .municipioContent {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
   padding: 0 16px 16px;
 }
 
@@ -729,11 +985,33 @@ button:disabled {
 
 .revisaoDuasColunas {
   display: block;
-  margin-top: 18px;
+  margin-top: 0;
 }
 
 .revisaoDuasColunas .subsection {
   margin-top: 0;
+}
+
+.confirmationBox {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  background: #fffbeb;
+  color: #78350f;
+  font-size: 13px;
+}
+
+.confirmationBox p {
+  margin: 0;
+}
+
+.confirmationActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
 }
 
 .localidadesSection,
@@ -1222,36 +1500,6 @@ button:disabled {
   font-weight: 700;
 }
 
-.municipioFooterActions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.municipioSaveButton {
-  display: inline-flex;
-  min-height: 36px;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #334155;
-  padding: 0 12px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.municipioSaveButton:hover:not(:disabled) {
-  border-color: #94a3b8;
-  background: #f8fafc;
-  color: #0f172a;
-}
-
 .observacaoResumo,
 .observacaoEditor {
   display: grid;
@@ -1318,27 +1566,31 @@ button:disabled {
   font-weight: 600;
 }
 
-.errorBox,
-.successBox {
-  padding: 12px;
-  border-radius: 8px;
+.searchMessage {
+  margin-top: 2px;
+  color: #475569;
   font-size: 13px;
-  font-weight: 700;
-}
-
-.errorBox {
-  border: 1px solid #fecaca;
-  background: #fef2f2;
-  color: #b91c1c;
-}
-
-.successBox {
-  border: 1px solid #bbf7d0;
-  background: #f0fdf4;
-  color: #166534;
+  font-weight: 500;
+  line-height: 1.45;
 }
 
 @media (max-width: 1180px) {
+  .pageDetail .header {
+    grid-template-columns: 1fr;
+  }
+
+  .pageDetail .headerActions {
+    justify-content: flex-start;
+  }
+
+  .pageDetail .readonlyGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .meusInstrumentosGrid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 280px));
+  }
+
   .readonlyGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1403,13 +1655,26 @@ button:disabled {
     flex-direction: column;
   }
 
-  .headerActionGroup {
-    width: 100%;
+  .pageDetail .readonlyGrid {
+    grid-template-columns: 1fr;
   }
 
-  .municipioFooterActions {
+  .meusInstrumentosHeader {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .meusInstrumentosFiltro {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .meusInstrumentosGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .headerActionGroup {
+    width: 100%;
   }
 
   .municipioSummary {
@@ -1434,5 +1699,945 @@ button:disabled {
   .primaryButton,
   .secondaryButton {
     width: 100%;
+  }
+}
+
+/* Contexto compacto e separação entre revisão geral e municipal. */
+.pageDetail .reviewContext {
+  order: 1;
+  padding: 17px 24px;
+  border: 1px solid #dfe3e8;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 3%);
+}
+
+.reviewContextMain {
+  display: grid;
+  gap: 5px;
+}
+
+.reviewContextTitleLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.reviewContextTitleLine h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.reviewContextObject {
+  overflow: hidden;
+  margin: 0;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reviewContextMeta,
+.reviewContextNotice,
+.reviewContextMessage {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.reviewContextNotice {
+  color: #475569;
+}
+
+.reviewContextMessage {
+  color: #1e40af;
+  font-weight: 600;
+}
+
+.reviewStatusBadge {
+  flex: 0 0 auto;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.reviewStatus_draft {
+  border-color: #facc15;
+  background: #fefce8;
+  color: #854d0e;
+}
+
+.reviewStatus_sent {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.reviewStatus_applied {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.reviewStatus_neutral {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.pageDetail .rightColumn > .panel:first-child {
+  padding: 0;
+}
+
+.instrumentDetailsToggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 0;
+  background: transparent;
+  color: #334155;
+  padding: 14px 20px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.instrumentDetailsToggle > span:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.instrumentDetailsToggle strong {
+  color: #334155;
+  font-size: 14px;
+}
+
+.instrumentDetailsToggle small {
+  overflow: hidden;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.instrumentDetailsAction {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.instrumentDetailsToggle[aria-expanded='true'] .instrumentDetailsAction svg {
+  transform: rotate(180deg);
+}
+
+.pageDetail .instrumentDetailsToggle + .readonlyGrid {
+  margin: 0;
+  padding: 4px 20px 18px;
+  border-top: 1px solid #eef2f7;
+}
+
+.pageDetail .reviewModule {
+  display: flex;
+  flex-direction: column;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.generalReviewIntro {
+  order: 1;
+  padding: 24px 0 4px;
+}
+
+.generalReviewIntro > div:first-child {
+  padding-bottom: 16px;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.generalReviewIntro h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 20px;
+}
+
+.generalReviewIntro > div:first-child p {
+  margin: 5px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.generalObservation {
+  display: grid;
+  gap: 10px;
+  padding: 20px 0 4px;
+}
+
+.generalFieldHeading h3 {
+  margin: 0;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pageDetail .publicoAlvoSection {
+  order: 2;
+  padding-top: 18px;
+}
+
+.municipalReview {
+  order: 3;
+  margin-top: 24px;
+  border-top: 1px solid #cbd5e1;
+  background: linear-gradient(
+    to bottom,
+    #f4f8fd 0,
+    #f4f8fd 5px,
+    #ffffff 5px,
+    #ffffff 100%
+  );
+}
+
+.pageDetail .municipalReview .reviewModuleHeader {
+  padding-top: 20px;
+}
+
+@media (max-width: 720px) {
+  .pageDetail .reviewContext {
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .reviewContextTitleLine,
+  .instrumentDetailsToggle {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .reviewContextObject,
+  .instrumentDetailsToggle small {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+}
+
+/* Revisão: módulos amplos e ficha contínua, sem limitar a revisão pela busca. */
+.consultSection,
+.reviewModule {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.consultSection {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.sectionTitleBlock {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.sectionTitleBlock h2,
+.reviewModuleHeader h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.pageIndex .searchPanel {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.reviewFieldset {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.reviewModule {
+  width: 100%;
+  padding: 0 28px 30px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.reviewModuleHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 0 18px;
+  border-bottom: 1px solid #dfe3e8;
+}
+
+.reviewModuleHeader p {
+  margin: 5px 0 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.pageDetail {
+  gap: 0;
+  padding: 28px clamp(24px, 3vw, 48px) 40px;
+  background: #f5f6f8;
+}
+
+.pageDetail .header {
+  margin-bottom: 24px;
+}
+
+.pageDetail .mainGridDetail {
+  gap: 24px;
+  border: 0;
+  background: transparent;
+}
+
+.pageDetail .rightColumn {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.pageDetail .leftColumn {
+  gap: 24px;
+  width: 100%;
+}
+
+.pageDetail .rightColumn > .panel {
+  padding: 24px 28px;
+  border: 0;
+  border-bottom: 1px solid #e5e7eb;
+  border-radius: 0;
+  box-shadow: none;
+  background: #ffffff;
+}
+
+.pageDetail .rightColumn > .panel:first-child {
+  border-color: #e5e7eb;
+  background: #ffffff;
+}
+
+.pageDetail .rightColumn > .panel:last-child {
+  border-bottom: 0;
+}
+
+.pageDetail .panelHeader {
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.pageDetail .panelHeader h2,
+.pageDetail .sectionHeader h2 {
+  font-size: 19px;
+  letter-spacing: -0.01em;
+}
+
+.pageDetail .consultSection {
+  width: 100%;
+  padding: 24px 28px;
+}
+
+.pageDetail .searchPanel {
+  width: min(100%, 820px);
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.pageDetail .reviewFieldset {
+  display: block;
+}
+
+.pageDetail .reviewModule > .panel {
+  border-right: 0;
+  border-left: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.pageDetail .reviewModule > .panel:not(.publicoAlvoSection) {
+  margin-top: 20px;
+  padding: 20px 0;
+}
+
+.pageDetail .municipiosList {
+  gap: 0;
+  width: 100%;
+  padding: 0;
+}
+
+.pageDetail .municipioCard {
+  border: 0;
+  border-bottom: 1px solid #dfe3e8;
+  border-radius: 0;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.pageDetail .municipioCardAberto {
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.pageDetail .municipioSummary {
+  grid-template-columns: minmax(260px, 1fr) minmax(0, auto);
+  gap: 16px 28px;
+  padding: 22px 0;
+}
+
+.pageDetail .municipioSummary:hover {
+  background: #fafafa;
+}
+
+.pageDetail .municipioContent {
+  gap: 26px;
+  padding: 2px 0 30px;
+}
+
+.pageDetail .subsection {
+  margin-top: 0;
+  padding-top: 22px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.pageDetail .municipioContent > .reviewGrid {
+  padding-top: 4px;
+}
+
+.pageDetail .publicoAlvoSection {
+  gap: 18px;
+  margin: 0;
+  padding: 26px 0 0;
+  border: 0;
+  border-radius: 0;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.pageDetail .publicoAlvoList {
+  gap: 0;
+}
+
+.pageDetail .publicoAlvoItem {
+  gap: 16px;
+  border: 0;
+  border-top: 1px solid #eef0f3;
+  border-radius: 0;
+  padding: 18px 0;
+}
+
+.pageDetail .publicoAlvoItem:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.pageDetail .tableScroller {
+  border-color: #e5e7eb;
+  border-radius: 4px;
+}
+
+.pageDetail .table th {
+  background: #fafafa;
+}
+
+@media (max-width: 720px) {
+  .pageDetail {
+    padding: 20px 0 32px;
+  }
+
+  .pageDetail .header {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .pageDetail .rightColumn,
+  .pageDetail .consultSection,
+  .pageDetail .reviewModule {
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+  }
+
+  .pageDetail .rightColumn > .panel,
+  .pageDetail .consultSection {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .pageDetail .reviewModule {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .pageDetail .searchPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .pageDetail .reviewModuleHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pageDetail .addMunicipioToggle {
+    width: 100%;
+  }
+}
+
+/* Refinamento de fluxo e hierarquia da página detalhada. */
+.pageDetail .mainGridDetail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.pageDetail .leftColumn {
+  display: contents;
+}
+
+.pageDetail .consultSection {
+  order: 1;
+}
+
+.pageDetail .rightColumn {
+  order: 2;
+}
+
+.pageDetail .confirmationBox {
+  order: 3;
+}
+
+.pageDetail .reviewFieldset {
+  order: 4;
+}
+
+.pageDetail .consultSection {
+  gap: 15px;
+  padding: 20px 24px;
+  border-color: #dfe3e8;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 3%);
+}
+
+.pageDetail .sectionTitleBlock {
+  padding-bottom: 10px;
+}
+
+.pageDetail .sectionTitleBlock h2,
+.pageDetail .panelHeader h2,
+.pageDetail .reviewModuleHeader h2 {
+  font-size: 18px;
+  font-weight: 650;
+}
+
+.pageDetail .rightColumn {
+  border-color: #dfe3e8;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 3%);
+}
+
+.pageDetail .rightColumn > .panel {
+  padding: 18px 24px;
+}
+
+.pageDetail .rightColumn > .panel:first-child .panelHeader {
+  margin-bottom: 13px;
+}
+
+.pageDetail .panelHeader {
+  margin-bottom: 13px;
+  padding-bottom: 9px;
+}
+
+.pageDetail .readonlyGrid {
+  column-gap: 22px;
+  row-gap: 11px;
+}
+
+.pageDetail .readonlyGrid dt {
+  margin-bottom: 3px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.pageDetail .readonlyGrid dd {
+  color: #334155;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.pageDetail .readonlyGrid .instrumentObject {
+  padding-top: 3px;
+}
+
+.pageDetail .readonlyGrid .instrumentObject dd {
+  max-width: 110ch;
+  color: #334155;
+  font-weight: 400;
+  line-height: 1.55;
+}
+
+.pageDetail .observacaoResumo p {
+  max-width: 110ch;
+  color: #475569;
+  line-height: 1.55;
+}
+
+.pageDetail .reviewModule {
+  padding: 0 28px 30px;
+  border: 0;
+  border-top: 2px solid #94a3b8;
+  border-radius: 0;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 3%);
+}
+
+.pageDetail .reviewModuleHeader {
+  align-items: flex-end;
+  padding: 24px 0 17px;
+  border-bottom-color: #cbd5e1;
+}
+
+.pageDetail .reviewModuleHeader h2 {
+  color: #0f172a;
+  font-size: 20px;
+}
+
+.pageDetail .reviewModuleHeader p {
+  max-width: 68ch;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.pageDetail .municipioSummary {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px 32px;
+  padding: 21px 2px;
+}
+
+.pageDetail .municipioTitleGroup {
+  gap: 6px;
+}
+
+.pageDetail .municipioTitleLine {
+  gap: 7px 12px;
+}
+
+.pageDetail .municipioTitleGroup h2 {
+  color: #334155;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.pageDetail .municipioTitleGroup p {
+  color: #7c8798;
+  font-size: 12px;
+}
+
+.pageDetail .summaryMeta {
+  align-items: center;
+  gap: 5px 12px;
+}
+
+.pageDetail .summaryMeta > span:not(.statusChip) {
+  min-height: auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #64748b;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.pageDetail .summaryMeta .statusChip {
+  min-height: 26px;
+  padding: 4px 9px;
+  font-weight: 600;
+}
+
+.pageDetail .summaryActions {
+  padding-left: 8px;
+}
+
+.pageDetail .municipioContent {
+  gap: 28px;
+  padding-top: 4px;
+}
+
+.pageDetail .subsection {
+  padding-top: 20px;
+  border-top-color: #e2e8f0;
+}
+
+.pageDetail .sectionHeader h3,
+.pageDetail .sectionHeaderTitle {
+  color: #334155;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.pageDetail .sectionHeaderMeta {
+  color: #7c8798;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.pageDetail .sectionHeaderSeparator {
+  background: #e2e8f0;
+}
+
+.pageDetail .reviewGrid label,
+.pageDetail .fieldGroup,
+.pageDetail .municipioAcaoLinha {
+  font-weight: 500;
+}
+
+.pageDetail .publicoAlvoSection .sectionHeader h2 {
+  color: #334155;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.pageDetail .publicoAlvoSection {
+  gap: 15px;
+  padding-top: 22px;
+}
+
+.pageDetail .publicoAlvoItem {
+  gap: 13px;
+  padding: 16px 0;
+  border-top-color: #e2e8f0;
+}
+
+.pageDetail .publicoAlvoHeader h3 {
+  max-width: 110ch;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.pageDetail .publicoAlvoGrid {
+  gap: 18px 28px;
+}
+
+.pageDetail .publicoAlvoCampo {
+  gap: 7px;
+}
+
+.pageDetail .publicoAlvoCampo > span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.pageDetail .publicoAlvoCampo strong {
+  color: #334155;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.pageDetail .publicoAlvoCampo .valorOriginalTextoLongo {
+  color: #475569;
+  font-weight: 400;
+}
+
+.pageDetail .valorRevisavelCell {
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.pageDetail .corrigirInlineButton {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 720px) {
+  .pageDetail .rightColumn {
+    border-top: 1px solid #dfe3e8;
+    border-bottom: 1px solid #dfe3e8;
+  }
+
+  .pageDetail .reviewModule {
+    border-top: 2px solid #94a3b8;
+  }
+
+  .pageDetail .municipioSummary {
+    gap: 14px;
+    padding-right: 0;
+    padding-left: 0;
+  }
+}
+
+/* Mantém estes ajustes como a camada final da ficha detalhada. */
+.pageDetail .rightColumn > .panel:first-child {
+  padding: 0;
+}
+
+.pageDetail .reviewModule {
+  display: flex;
+  flex-direction: column;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.pageDetail .publicoAlvoSection {
+  order: 2;
+}
+
+.pageDetail .municipalReview {
+  order: 3;
+  border-top: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.pageDetail .municipalReview .reviewModuleHeader {
+  border-bottom: 0;
+}
+
+.pageDetail .municipiosList {
+  gap: 12px;
+}
+
+.pageDetail .municipioCard {
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  background: #ffffff;
+  box-shadow: none;
+  transition: border-color 0.16s ease, background-color 0.16s ease;
+}
+
+.pageDetail .municipioCard:hover,
+.pageDetail .municipioCardAberto {
+  border-color: #cbd5e1;
+  background: #fcfcfd;
+}
+
+.pageDetail .municipioSummary {
+  padding: 15px 16px;
+}
+
+.pageDetail .municipioSummary:hover {
+  background: #f8fafc;
+}
+
+.pageDetail .municipioTitleGroup {
+  gap: 5px;
+}
+
+.pageDetail .municipioTitleGroup h2 {
+  color: #334155;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.pageDetail .municipioTitleGroup p {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.pageDetail .summaryMeta > span:not(.statusChip) {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.pageDetail .summaryMeta .statusChip {
+  min-height: 24px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pageDetail .summaryActions {
+  padding-left: 4px;
+}
+
+.pageDetail .reviewButton {
+  min-height: 32px;
+  gap: 5px;
+  border-color: #d7dde5;
+  border-radius: 6px;
+  color: #475569;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pageDetail .reviewButton svg {
+  width: 15px;
+  height: 15px;
+}
+
+.pageDetail .municipioContent {
+  padding: 4px 16px 20px;
+}
+
+/* Subtítulos equivalentes da revisão compartilham uma única hierarquia. */
+.pageDetail .generalFieldHeading h3,
+.pageDetail .publicoAlvoSection .sectionHeader h2,
+.pageDetail .municipalReview .reviewModuleHeader h2,
+.pageDetail .sectionHeader h3,
+.pageDetail .sectionHeaderTitle {
+  margin: 0;
+  color: #334155;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.pageDetail .generalObservation {
+  gap: 10px;
+  padding: 18px 0 0;
+}
+
+.pageDetail .publicoAlvoSection {
+  gap: 10px;
+  padding-top: 18px;
+}
+
+@media (max-width: 720px) {
+  .pageDetail .reviewModule {
+    border-top: 0;
   }
 }
