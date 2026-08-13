@@ -105,6 +105,10 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+.pageIndex .mainGridSingle {
+  max-width: 1280px;
+}
+
 .mainGridDetail {
   display: flex;
   flex-direction: column;
@@ -206,7 +210,8 @@
 
 .meusInstrumentosSection {
   display: grid;
-  gap: 14px;
+  gap: 18px;
+  padding-top: 6px;
 }
 
 .meusInstrumentosHeader {
@@ -219,7 +224,8 @@
 .meusInstrumentosHeader h2 {
   margin: 0;
   color: #111827;
-  font-size: 18px;
+  font-size: 21px;
+  letter-spacing: -0.01em;
 }
 
 .meusInstrumentosHeader p {
@@ -230,7 +236,7 @@
 
 .meusInstrumentosFiltro {
   display: flex;
-  width: min(100%, 280px);
+  width: min(100%, 320px);
   min-width: 0;
   align-items: center;
   gap: 8px;
@@ -255,30 +261,38 @@
 
 .meusInstrumentosGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 280px));
-  justify-content: center;
-  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 16px;
 }
 
 .meuInstrumentoCard {
-  display: grid;
+  display: flex;
   min-width: 0;
-  gap: 7px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  height: 100%;
+  box-sizing: border-box;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid #dfe3e8;
+  border-radius: 9px;
   background: #ffffff;
   color: #374151;
-  padding: 12px;
+  padding: 18px 18px 0;
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.16s ease, background 0.16s ease;
+  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
 }
 
 .meuInstrumentoCard:hover,
 .meuInstrumentoCard:focus-visible {
   border-color: #93c5fd;
   background: #f8fbff;
+  box-shadow: 0 3px 10px rgb(15 23 42 / 7%);
   outline: 0;
+}
+
+.meuInstrumentoCard:focus-visible {
+  box-shadow: 0 0 0 2px #bfdbfe, 0 3px 10px rgb(15 23 42 / 7%);
 }
 
 .meuInstrumentoTopo {
@@ -290,13 +304,14 @@
 
 .meuInstrumentoTopo strong {
   color: #111827;
-  font-size: 20px;
+  font-size: 22px;
+  line-height: 1.2;
 }
 
 .meuInstrumentoTopo span {
   color: #6b7280;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .meuInstrumentoProposta,
@@ -306,43 +321,118 @@
 }
 
 .meuInstrumentoMunicipio {
-  min-height: 36px;
+  margin-top: 8px;
   color: #111827;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.meuInstrumentoProposta {
+  min-height: 17px;
+  margin-top: 2px;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.meuInstrumentoMetadados {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(112px, 0.8fr);
+  gap: 16px;
+  margin-top: 18px;
 }
 
 .meuInstrumentoCampo {
   display: grid;
-  gap: 2px;
+  min-width: 0;
+  align-content: start;
+  gap: 5px;
   color: #374151;
   font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .meuInstrumentoCampo small {
-  color: #6b7280;
+  color: #7c8798;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.meuInstrumentoObjetoCampo {
+  margin-top: 18px;
 }
 
 .meuInstrumentoObjeto {
   display: -webkit-box;
   overflow: hidden;
-  min-height: 50px;
+  min-height: 58px;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
+  color: #475569;
+  line-height: 1.48;
+}
+
+.meuInstrumentoExecucao {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  color: #334155;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.meuInstrumentoProgresso {
+  display: block;
+  min-width: 36px;
+  height: 4px;
+  flex: 1 1 auto;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e5e7eb;
+}
+
+.meuInstrumentoProgresso > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #64748b;
+}
+
+.meuInstrumentoValor {
+  color: #1f2937;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .meuInstrumentoStatus {
-  color: #1e3a8a;
-  font-size: 12px;
-  font-weight: 700;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid #d7dde5;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #475569;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.meuInstrumentoRodape {
+  display: flex;
+  justify-content: flex-end;
+  margin: auto -18px 0;
+  border-top: 1px solid #eef0f3;
+  padding: 12px 18px;
 }
 
 .meuInstrumentoAbrir {
-  justify-self: end;
   color: #1d4ed8;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .meusInstrumentosEstado,
@@ -1588,7 +1678,7 @@ button:disabled {
   }
 
   .meusInstrumentosGrid {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 280px));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .readonlyGrid {
@@ -1970,13 +2060,65 @@ button:disabled {
 }
 
 .pageIndex .searchPanel {
-  width: 100%;
+  width: min(100%, 900px);
   margin: 0;
   padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+}
+
+.readOnlyNotice {
+  width: fit-content;
+  margin: 2px 0 0;
+  border-radius: 999px;
+  background: var(--cisa-primary-light);
+  color: var(--cisa-text-secondary);
+  padding: 4px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.readOnlyValue {
+  display: grid;
+  gap: 4px;
+}
+
+.readOnlyValue > span {
+  color: var(--cisa-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.readOnlyValue > p {
+  margin: 0;
+  color: var(--cisa-text-primary);
+  line-height: 1.5;
+}
+
+@media (max-width: 480px) {
+  .meuInstrumentoMetadados {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.pageIndex .consultSection {
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+.pageIndex .sectionTitleBlock {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.pageIndex .sectionTitleBlock h2 {
+  color: #334155;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .reviewFieldset {
@@ -2014,7 +2156,7 @@ button:disabled {
 .pageDetail {
   gap: 0;
   padding: 28px clamp(24px, 3vw, 48px) 40px;
-  background: #f5f6f8;
+  background: transparent;
 }
 
 .pageDetail .header {

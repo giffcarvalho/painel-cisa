@@ -92,6 +92,12 @@ function numeroOuNull(value) {
   return Number.isNaN(numero) ? null : numero
 }
 
+function percentualParaBarra(value) {
+  const percentual = Number(value)
+  if (Number.isNaN(percentual)) return 0
+  return Math.min(100, Math.max(0, percentual))
+}
+
 function normalizarRelacaoInstrumento(value) {
   return RELACOES_INSTRUMENTO.some((option) => option.value === value)
     ? value
@@ -329,29 +335,40 @@ function formatarDataAtualizacaoRascunho(value) {
 }
 
 function mensagemEstadoRascunho(data) {
+  if (data?.revisao_pendente_aplicacao) return ''
   if (!data?.rascunho_usuario) {
     return 'Nenhum rascunho aberto para este instrumento.'
   }
-
-  const ultimaAtualizacao = formatarDataAtualizacaoRascunho(
-    data.rascunho_usuario.atualizado_em
-  )
-
-  return ultimaAtualizacao
-    ? `Rascunho aberto · Última atualização em ${ultimaAtualizacao}`
-    : 'Rascunho aberto'
+  return ''
 }
 
 function contextoRevisao(data, usuarioAtualNome) {
+  const revisaoPendente = data?.revisao_pendente_aplicacao
+  if (revisaoPendente) {
+    const responsavel = revisaoPendente.responsavel_nome || 'responsável não identificado'
+    const enviadaEm = formatarDataAtualizacaoRascunho(revisaoPendente.enviado_em)
+    const quantidade = data?.quantidade_revisoes_pendentes ?? 1
+    return {
+      status: `Revisão enviada por ${responsavel} — aguardando aplicação`,
+      tone: 'sent',
+      responsavel: null,
+      detalhe: `${enviadaEm ? `Enviada em ${enviadaEm}. ` : ''}Os dados exibidos ainda correspondem à base oficial anterior.${
+        quantidade > 1 ? ` Há ${quantidade} revisões aguardando aplicação; esta é a mais recente.` : ''
+      }`,
+    }
+  }
+
   const rascunho = data?.rascunho_usuario
   if (rascunho) {
+    const responsavel = rascunho.responsavel_nome || usuarioAtualNome
+    const ultimaAtualizacao = formatarDataAtualizacaoRascunho(rascunho.atualizado_em)
     return {
       status: 'Rascunho',
       tone: 'draft',
-      responsavel: rascunho.responsavel_nome || usuarioAtualNome,
-      detalhe: formatarDataAtualizacaoRascunho(rascunho.atualizado_em)
-        ? `Atualizado em ${formatarDataAtualizacaoRascunho(rascunho.atualizado_em)}`
-        : null,
+      responsavel: null,
+      detalhe: ultimaAtualizacao
+        ? `Rascunho aberto por ${responsavel} · Última atualização em ${ultimaAtualizacao}`
+        : `Rascunho aberto por ${responsavel}`,
     }
   }
 
@@ -567,7 +584,10 @@ export default function RevisaoInstrumento() {
 
   const instrumento = numeroInstrumento ? dadosBusca?.instrumento ?? null : null
   const temRascunhoAberto = dadosBusca?.status === 'rascunho'
-  const modoSomenteLeitura = dadosBusca?.status === 'enviado'
+  const podeEditarInstrumento = dadosBusca?.pode_editar === true
+  const somenteLeituraPorAtribuicao = Boolean(instrumento) && !podeEditarInstrumento
+  const modoSomenteLeitura = dadosBusca?.status === 'enviado' || somenteLeituraPorAtribuicao
+  const canEditRevision = podeEditarInstrumento && dadosBusca?.status !== 'enviado'
   const usuarioAtualNome = nomeUsuario(usuario)
   const contextoAtual = contextoRevisao(dadosBusca, usuarioAtualNome)
   const observacaoGeralTexto = observacaoGeral.trim()
@@ -1442,6 +1462,21 @@ export default function RevisaoInstrumento() {
                       aplicado_em: null,
                     }
                   : current.ultima_revisao_usuario,
+              revisao_pendente_aplicacao:
+                data.status === 'enviado'
+                  ? {
+                      id_revisao: data.id_revisao,
+                      id_usuario: usuario?.id_usuario,
+                      status: data.status,
+                      enviado_em: data.enviado_em,
+                      aplicado_em: null,
+                      responsavel_nome: usuarioAtualNome,
+                    }
+                  : current.revisao_pendente_aplicacao,
+              quantidade_revisoes_pendentes:
+                data.status === 'enviado'
+                  ? (current.quantidade_revisoes_pendentes ?? 0) + 1
+                  : current.quantidade_revisoes_pendentes,
               completude: data.completude ?? current.completude,
               status_revisao_geral:
                 data.status_revisao_geral ?? current.status_revisao_geral,
@@ -1525,7 +1560,7 @@ export default function RevisaoInstrumento() {
           </p>
         </div>
 
-        {instrumento && (
+        {instrumento && podeEditarInstrumento && (
           <div className={styles.headerActions}>
             {modoSomenteLeitura ? (
               <div className={styles.headerActionGroup}>
@@ -1552,7 +1587,7 @@ export default function RevisaoInstrumento() {
               </Tooltip>
             </div>}
 
-            {!modoSomenteLeitura && <div className={styles.headerActionGroup}>
+            {canEditRevision && <div className={styles.headerActionGroup}>
               <Tooltip text="Finaliza e envia a revisão.">
                 <button
                   type="button"
@@ -1622,6 +1657,18 @@ export default function RevisaoInstrumento() {
                   {contextoAtual.responsavel && contextoAtual.detalhe && <span aria-hidden="true"> · </span>}
                   {contextoAtual.detalhe}
                 </p>
+                {dadosBusca?.revisao_pendente_aplicacao && (
+                  <p className={styles.reviewContextNotice} role="status">
+                    {dadosBusca.rascunho_usuario
+                      ? 'Você também possui um rascunho aberto para este instrumento.'
+                      : 'Você não possui rascunho aberto para este instrumento.'}
+                  </p>
+                )}
+                {somenteLeituraPorAtribuicao && (
+                  <p className={styles.readOnlyNotice} role="status">
+                    Somente leitura · Este instrumento não está atribuído ao seu monitoramento.
+                  </p>
+                )}
                 {dadosBusca?.situacao_colaborativa?.status_label && (
                   <p className={styles.reviewContextNotice}>{dadosBusca.situacao_colaborativa.status_label}</p>
                 )}
@@ -1630,7 +1677,7 @@ export default function RevisaoInstrumento() {
                     {message}
                   </p>
                 )}
-                {temRascunhoAberto && existemItensNaoConferidos() && (
+                {canEditRevision && temRascunhoAberto && existemItensNaoConferidos() && (
                   <p className={styles.reviewContextNotice} role="status">
                     Há itens ainda não conferidos. Você pode continuar revisando ou enviar somente as alterações já registradas.
                   </p>
@@ -1676,6 +1723,7 @@ export default function RevisaoInstrumento() {
                 <div className={styles.meusInstrumentosGrid}>
                   {meusInstrumentosFiltrados.map((item) => {
                     const identificadorCard = item.nr_ted ?? item.nr_instrumento
+                    const percentualExecucao = formatPercentualPontos(item.percentual_fisico_aferido)
                     return (
                       <button
                         type="button"
@@ -1687,14 +1735,46 @@ export default function RevisaoInstrumento() {
                           <strong>{identificadorCard ?? '-'}</strong>
                           <span>{item.uf ?? '-'}</span>
                         </span>
-                        {item.nr_proposta && <span className={styles.meuInstrumentoProposta}>Proposta {item.nr_proposta}</span>}
                         <span className={styles.meuInstrumentoMunicipio}>{item.municipios_beneficiados || 'Município não informado'}</span>
-                        <span className={styles.meuInstrumentoCampo}><small>Tipo</small>{item.tipo_instrumento_label || formatarValorTecnico(item.tipo_instrumento)}</span>
-                        <span className={styles.meuInstrumentoCampo}><small>Objeto</small><span className={styles.meuInstrumentoObjeto} title={item.objeto || undefined}>{item.objeto || '-'}</span></span>
-                        <span className={styles.meuInstrumentoCampo}><small>Execução</small>{formatPercentualPontos(item.percentual_fisico_aferido)}</span>
-                        <span className={styles.meuInstrumentoCampo}><small>Valor global</small>{formatarValorMonetario(item.valor_global)}</span>
-                        <span className={styles.meuInstrumentoStatus}>● {item.status_revisao_label}</span>
-                        <span className={styles.meuInstrumentoAbrir}>Abrir revisão →</span>
+                        <span className={styles.meuInstrumentoProposta}>
+                          {item.nr_proposta ? `Proposta ${item.nr_proposta}` : null}
+                        </span>
+
+                        <span className={styles.meuInstrumentoMetadados}>
+                          <span className={styles.meuInstrumentoCampo}>
+                            <small>Tipo</small>
+                            <span>{item.tipo_instrumento_label || formatarValorTecnico(item.tipo_instrumento)}</span>
+                          </span>
+                          <span className={styles.meuInstrumentoCampo}>
+                            <small>Execução</small>
+                            <span className={styles.meuInstrumentoExecucao}>
+                              <span className={styles.meuInstrumentoProgresso} aria-hidden="true">
+                                <span style={{ width: `${percentualParaBarra(item.percentual_fisico_aferido)}%` }} />
+                              </span>
+                              <span>{percentualExecucao}</span>
+                            </span>
+                          </span>
+                        </span>
+
+                        <span className={`${styles.meuInstrumentoCampo} ${styles.meuInstrumentoObjetoCampo}`}>
+                          <small>Objeto</small>
+                          <span className={styles.meuInstrumentoObjeto} title={item.objeto || undefined}>{item.objeto || '-'}</span>
+                        </span>
+
+                        <span className={styles.meuInstrumentoMetadados}>
+                          <span className={styles.meuInstrumentoCampo}>
+                            <small>Valor global</small>
+                            <span className={styles.meuInstrumentoValor}>{formatarValorMonetario(item.valor_global)}</span>
+                          </span>
+                          <span className={styles.meuInstrumentoCampo}>
+                            <small>Status da revisão</small>
+                            <span className={styles.meuInstrumentoStatus}>{item.status_revisao_label}</span>
+                          </span>
+                        </span>
+
+                        <span className={styles.meuInstrumentoRodape}>
+                          <span className={styles.meuInstrumentoAbrir}>Abrir revisão →</span>
+                        </span>
                       </button>
                     )
                   })}
@@ -1703,7 +1783,7 @@ export default function RevisaoInstrumento() {
             </section>
           )}
 
-          {confirmarEnvioParcial && (
+          {canEditRevision && confirmarEnvioParcial && (
             <div className={styles.confirmationBox} role="dialog" aria-modal="true" aria-labelledby="confirmar-envio-titulo">
               <strong id="confirmar-envio-titulo">Esta revisão possui itens ainda não conferidos.</strong>
               <p>Serão enviadas somente as alterações registradas e o estado atual. Os demais itens não serão modificados e permanecerão aguardando análise.</p>
@@ -1720,7 +1800,7 @@ export default function RevisaoInstrumento() {
           )}
 
           {instrumento && (
-            <fieldset disabled={modoSomenteLeitura} className={styles.reviewFieldset}>
+            <fieldset className={styles.reviewFieldset}>
               <div className={styles.reviewModule}>
                 <section className={styles.generalReviewIntro} aria-labelledby="revisao-geral-titulo">
                   <div>
@@ -1732,7 +1812,7 @@ export default function RevisaoInstrumento() {
                       <h3>Observação geral</h3>
                     </div>
 
-                    {observacaoEmEdicao ? (
+                    {canEditRevision && observacaoEmEdicao ? (
                       <div className={styles.observacaoEditor}>
                         <textarea
                           className={styles.textarea}
@@ -1751,7 +1831,7 @@ export default function RevisaoInstrumento() {
                         <p className={!observacaoGeralTexto ? styles.emptyObservation : undefined}>
                           {observacaoGeralTexto || 'Ainda não cadastrada.'}
                         </p>
-                        <div className={styles.acaoTextualInline} aria-label="Ações da observação geral">
+                        {canEditRevision && <div className={styles.acaoTextualInline} aria-label="Ações da observação geral">
                           <span className={styles.acaoTextualItem}>
                             <button type="button" className={styles.acaoTextualButton} onClick={abrirEdicaoObservacaoGeral}>
                               {observacaoGeralTexto ? 'Editar' : 'Inserir'}
@@ -1765,7 +1845,7 @@ export default function RevisaoInstrumento() {
                               </span>
                             </>
                           )}
-                        </div>
+                        </div>}
                       </div>
                     )}
                   </div>
@@ -1774,21 +1854,25 @@ export default function RevisaoInstrumento() {
                 <div className={styles.municipalReview}>
                 <div className={styles.reviewModuleHeader}>
                   <div>
-                    <h2>Municípios da revisão</h2>
-                    <p>Revise os dados do instrumento por município.</p>
+                    <h2>Municípios do instrumento</h2>
+                    <p>
+                      {canEditRevision
+                        ? 'Revise os dados do instrumento por município.'
+                        : 'Consulte os dados do instrumento por município.'}
+                    </p>
                   </div>
 
-                  <button
+                  {canEditRevision && <button
                     type="button"
                     className={`${styles.secondaryButton} ${styles.addMunicipioToggle}`}
                     onClick={() => setMostrarFormularioMunicipio(true)}
                   >
                     <Plus size={16} />
                     Adicionar Município
-                  </button>
+                  </button>}
                 </div>
 
-              {mostrarFormularioMunicipio && (
+              {canEditRevision && mostrarFormularioMunicipio && (
                 <section className={styles.panel}>
                   <div className={styles.panelHeader}>
                     <h2>Adicionar município</h2>
@@ -2013,43 +2097,47 @@ export default function RevisaoInstrumento() {
                                       {formatarDataConferencia(municipio.revisao_municipio_conferida_em)}
                                     </span>
                                   </div>
-                                  <div
-                                    className={styles.acaoTextualInline}
-                                    role="group"
-                                    aria-label="Revisão do Município"
-                                  >
-                                    {ACOES_MUNICIPIO.map((acao, acaoIndex) => {
-                                      const isActive = municipio.acao_sugerida === acao.value
+                                  {canEditRevision ? (
+                                    <div
+                                      className={styles.acaoTextualInline}
+                                      role="group"
+                                      aria-label="Revisão do Município"
+                                    >
+                                      {ACOES_MUNICIPIO.map((acao, acaoIndex) => {
+                                        const isActive = municipio.acao_sugerida === acao.value
 
-                                      return (
-                                        <span key={acao.value} className={styles.acaoTextualItem}>
-                                          <button
-                                            type="button"
-                                            className={`${styles.acaoTextualButton} ${
-                                              isActive ? styles.acaoTextualButtonActive : ''
-                                            }`}
-                                            aria-pressed={isActive}
-                                            onClick={() =>
-                                              atualizarAcaoMunicipio(
-                                                municipio.cod_municipio,
-                                                acao.value
-                                              )
-                                            }
-                                          >
-                                            {acao.label}
-                                          </button>
+                                        return (
+                                          <span key={acao.value} className={styles.acaoTextualItem}>
+                                            <button
+                                              type="button"
+                                              className={`${styles.acaoTextualButton} ${
+                                                isActive ? styles.acaoTextualButtonActive : ''
+                                              }`}
+                                              aria-pressed={isActive}
+                                              onClick={() =>
+                                                atualizarAcaoMunicipio(
+                                                  municipio.cod_municipio,
+                                                  acao.value
+                                                )
+                                              }
+                                            >
+                                              {acao.label}
+                                            </button>
 
-                                          {acaoIndex < ACOES_MUNICIPIO.length - 1 && (
-                                            <span className={styles.acaoTextualSeparator}>|</span>
-                                          )}
-                                        </span>
-                                      )
-                                    })}
-                                  </div>
+                                            {acaoIndex < ACOES_MUNICIPIO.length - 1 && (
+                                              <span className={styles.acaoTextualSeparator}>|</span>
+                                            )}
+                                          </span>
+                                        )
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <span>{ACOES_MUNICIPIO.find((acao) => acao.value === municipio.acao_sugerida)?.label || 'Não revisado'}</span>
+                                  )}
                                 </div>
                               )}
 
-                              {municipio.acao_sugerida === 'remover' && (
+                              {municipio.acao_sugerida === 'remover' && canEditRevision && (
                                 <label className={styles.justificativaMunicipio}>
                                   <span>Justificativa</span>
                                   <textarea
@@ -2064,6 +2152,12 @@ export default function RevisaoInstrumento() {
                                     rows={3}
                                   />
                                 </label>
+                              )}
+                              {municipio.acao_sugerida === 'remover' && !canEditRevision && municipio.justificativa && (
+                                <div className={styles.readOnlyValue}>
+                                  <span>Justificativa</span>
+                                  <p>{municipio.justificativa}</p>
+                                </div>
                               )}
                             </div>
 
@@ -2128,6 +2222,12 @@ export default function RevisaoInstrumento() {
                                                 <span className={styles.addedChip}>
                                                   Incluída nesta revisão
                                                 </span>
+                                              ) : !canEditRevision ? (
+                                                <span>
+                                                  {ACOES_LOCALIDADE_EXISTENTE.find(
+                                                    (acao) => acao.value === localidade.acao_sugerida
+                                                  )?.label || 'Não revisada'}
+                                                </span>
                                               ) : (
                                                 <div
                                                   className={styles.acaoTextualInline}
@@ -2189,7 +2289,7 @@ export default function RevisaoInstrumento() {
                                                 valorOuTraco(
                                                   localidade.qtde_familias_ben_sugerida
                                                 )
-                                              ) : isCorrigir ? (
+                                              ) : isCorrigir && canEditRevision ? (
                                                 <div className={styles.familiasCell}>
                                                   <span>
                                                     Atual:{' '}
@@ -2215,6 +2315,11 @@ export default function RevisaoInstrumento() {
                                                     />
                                                   </label>
                                                 </div>
+                                              ) : isCorrigir ? (
+                                                valorOuTraco(
+                                                  localidade.qtde_familias_ben_sugerida ??
+                                                    localidade.qtde_familias_ben_original
+                                                )
                                               ) : (
                                                 valorOuTraco(
                                                   localidade.qtde_familias_ben_original
@@ -2223,7 +2328,9 @@ export default function RevisaoInstrumento() {
                                             </td>
 
                                             <td>
-                                              {mostrarJustificativa ? (
+                                              {!canEditRevision ? (
+                                                valorOuTraco(localidade.justificativa)
+                                              ) : mostrarJustificativa ? (
                                                 <div className={styles.justificativaAberta}>
                                                   <textarea
                                                     value={localidade.justificativa ?? ''}
@@ -2273,7 +2380,7 @@ export default function RevisaoInstrumento() {
                                 </table>
                               </div>
 
-                              {!isNovaLocalidadeAberta ? (
+                              {canEditRevision && (!isNovaLocalidadeAberta ? (
                                 <button
                                   type="button"
                                   className={`${styles.secondaryButton} ${styles.addLocalidadeToggle}`}
@@ -2343,7 +2450,7 @@ export default function RevisaoInstrumento() {
                                     Cancelar
                                   </button>
                                 </div>
-                              )}
+                              ))}
                             </div>
 
                             <div className={styles.revisaoDuasColunas}>
@@ -2409,26 +2516,32 @@ export default function RevisaoInstrumento() {
                                               </td>
                                               <td>{valorOuTraco(obra.orgao)}</td>
                                               <td>
-                                                <select
-                                                  value={obra.relacao_instrumento}
-                                                  onChange={(event) =>
-                                                    atualizarObra(
-                                                      municipio.cod_municipio,
-                                                      obra.id_obra,
-                                                      'relacao_instrumento',
-                                                      event.target.value
-                                                    )
-                                                  }
-                                                >
-                                                  {RELACOES_INSTRUMENTO.map((relacao) => (
-                                                    <option
-                                                      key={relacao.value}
-                                                      value={relacao.value}
-                                                    >
-                                                      {relacao.label}
-                                                    </option>
-                                                  ))}
-                                                </select>
+                                                {canEditRevision ? (
+                                                  <select
+                                                    value={obra.relacao_instrumento}
+                                                    onChange={(event) =>
+                                                      atualizarObra(
+                                                        municipio.cod_municipio,
+                                                        obra.id_obra,
+                                                        'relacao_instrumento',
+                                                        event.target.value
+                                                      )
+                                                    }
+                                                  >
+                                                    {RELACOES_INSTRUMENTO.map((relacao) => (
+                                                      <option
+                                                        key={relacao.value}
+                                                        value={relacao.value}
+                                                      >
+                                                        {relacao.label}
+                                                      </option>
+                                                    ))}
+                                                  </select>
+                                                ) : (
+                                                  RELACOES_INSTRUMENTO.find(
+                                                    (relacao) => relacao.value === obra.relacao_instrumento
+                                                  )?.label || 'Não analisada'
+                                                )}
                                               </td>
                                               {mostrarConfirmacao && (
                                                 <td>
@@ -2437,7 +2550,7 @@ export default function RevisaoInstrumento() {
                                                     <span className={styles.confirmacaoNeutra}>
                                                       —
                                                     </span>
-                                                  ) : (
+                                                  ) : canEditRevision ? (
                                                     <select
                                                       value={obra.confirmacao_status}
                                                       onChange={(event) =>
@@ -2460,11 +2573,17 @@ export default function RevisaoInstrumento() {
                                                         </option>
                                                       ))}
                                                     </select>
+                                                  ) : (
+                                                    confirmacoesPermitidas(obra.relacao_instrumento).find(
+                                                      (confirmacao) => confirmacao.value === obra.confirmacao_status
+                                                    )?.label || '—'
                                                   )}
                                                 </td>
                                               )}
                                               <td>
-                                                {mostrarJustificativaObra ? (
+                                                {!canEditRevision ? (
+                                                  valorOuTraco(obra.justificativa)
+                                                ) : mostrarJustificativaObra ? (
                                                   <div className={styles.justificativaAberta}>
                                                     <textarea
                                                       value={obra.justificativa ?? ''}
@@ -2599,7 +2718,7 @@ export default function RevisaoInstrumento() {
                           <div className={styles.publicoAlvoGrid}>
                             <div className={styles.publicoAlvoCampo}>
                               <span>População beneficiada</span>
-                              {editandoPopulacao ? (
+                              {canEditRevision && editandoPopulacao ? (
                                 <div className={styles.campoRevisaoInline}>
                                   <input
                                     value={edicoesPublicoAlvo[chaveEdicaoPopulacao]}
@@ -2644,7 +2763,7 @@ export default function RevisaoInstrumento() {
                                       )
                                     )}
                                   </strong>
-                                  <button
+                                  {canEditRevision && <button
                                     type="button"
                                     className={`${styles.acaoTextualButton} ${styles.corrigirInlineButton}`}
                                     onClick={() =>
@@ -2656,14 +2775,14 @@ export default function RevisaoInstrumento() {
                                     }
                                   >
                                     Corrigir
-                                  </button>
+                                  </button>}
                                 </div>
                               )}
                             </div>
 
                             <div className={styles.publicoAlvoCampo}>
                               <span>Descrição da população beneficiada</span>
-                              {editandoDescricao ? (
+                              {canEditRevision && editandoDescricao ? (
                                 <div className={styles.campoRevisaoInline}>
                                   <textarea
                                     value={edicoesPublicoAlvo[chaveEdicaoDescricao]}
@@ -2709,7 +2828,7 @@ export default function RevisaoInstrumento() {
                                       )
                                     )}
                                   </strong>
-                                  <button
+                                  {canEditRevision && <button
                                     type="button"
                                     className={`${styles.acaoTextualButton} ${styles.corrigirInlineButton}`}
                                     onClick={() =>
@@ -2721,7 +2840,7 @@ export default function RevisaoInstrumento() {
                                     }
                                   >
                                     Corrigir
-                                  </button>
+                                  </button>}
                                 </div>
                               )}
                             </div>

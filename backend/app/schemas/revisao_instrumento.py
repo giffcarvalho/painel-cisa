@@ -210,6 +210,7 @@ class RevisaoInstrumentoBuscaResponse(RevisaoInstrumentoBase):
     id_revisao: int | None = None
     identificador_busca: str
     instrumento: InstrumentoRevisaoInfo
+    pode_editar: bool = False
     status: str | None = None
     status_revisao_geral: str = "pendente"
     status_revisao_geral_label: str = "Revisão pendente"
@@ -218,6 +219,8 @@ class RevisaoInstrumentoBuscaResponse(RevisaoInstrumentoBase):
     publico_alvo: list[PublicoAlvoRevisaoItem] = Field(default_factory=list)
     dados_oficiais: dict[str, Any] | None = None
     rascunho_usuario: dict[str, Any] | None = None
+    revisao_pendente_aplicacao: dict[str, Any] | None = None
+    quantidade_revisoes_pendentes: int = 0
     ultima_revisao_usuario: dict[str, Any] | None = None
     situacao_atualizacao: dict[str, Any] = Field(default_factory=dict)
     situacao_validade: dict[str, Any] = Field(default_factory=dict)

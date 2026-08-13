@@ -29,7 +29,7 @@ from app.schemas.revisao_instrumento import (
     RevisaoInstrumentoMunicipioSalvoResponse,
     RevisaoInstrumentoSalvoResponse,
 )
-from app.services.permissoes_revisao import exigir_permissao_edicao
+from app.services.permissoes_revisao import exigir_permissao_edicao, pode_editar_instrumento
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -741,6 +741,45 @@ async def _buscar_revisao_existente(
     return dict(row) if row else None
 
 
+async def _buscar_revisoes_pendentes_aplicacao(
+    db: AsyncSession,
+    instrumento: InstrumentoRevisaoInfo,
+) -> tuple[dict | None, int]:
+    result = await _execute_query(
+        db,
+        """
+        SELECT
+            r.id_revisao,
+            r.id_usuario,
+            r.status,
+            r.enviado_em,
+            r.aplicado_em,
+            u.nome AS responsavel_nome
+        FROM painel_dsr.tb_revisao_instrumento AS r
+        JOIN painel_dsr.tb_usuario AS u
+          ON u.id_usuario = r.id_usuario
+        WHERE r.tipo_instrumento = :tipo_instrumento
+          AND r.status = 'enviado'
+          AND r.enviado_em IS NOT NULL
+          AND r.aplicado_em IS NULL
+          AND (
+                (:tipo_instrumento = 'ted' AND r.nr_ted = :nr_ted)
+             OR (:tipo_instrumento <> 'ted'
+                 AND NULLIF(BTRIM(r.nr_instrumento), '') =
+                     NULLIF(BTRIM(:nr_instrumento), ''))
+          )
+        ORDER BY r.enviado_em DESC, r.id_revisao DESC
+        """,
+        {
+            "tipo_instrumento": instrumento.tipo_instrumento,
+            "nr_instrumento": instrumento.nr_instrumento,
+            "nr_ted": instrumento.nr_ted,
+        },
+    )
+    revisoes = [dict(row) for row in result.mappings().all()]
+    return (revisoes[0] if revisoes else None), len(revisoes)
+
+
 async def _obter_revisao_por_id(
     db: AsyncSession,
     id_revisao: int,
@@ -940,7 +979,7 @@ async def _buscar_situacoes_revisao(
     db: AsyncSession,
     instrumento: InstrumentoRevisaoInfo,
     id_usuario: int,
-) -> tuple[dict, dict | None, dict | None, dict]:
+) -> tuple[dict, dict | None, dict | None, dict | None, int, dict]:
     params = {
         "tipo_instrumento": instrumento.tipo_instrumento,
         "nr_instrumento": instrumento.nr_instrumento,
@@ -953,11 +992,13 @@ async def _buscar_situacoes_revisao(
           OR (:tipo_instrumento <> 'ted'
               AND NULLIF(BTRIM(nr_instrumento), '') = NULLIF(BTRIM(:nr_instrumento), '')))
     """
+    revisao_pendente, quantidade_pendentes = (
+        await _buscar_revisoes_pendentes_aplicacao(db, instrumento)
+    )
     pendentes = await _execute_query(
         db,
         f"""
         SELECT COUNT(*) AS quantidade,
-               COUNT(*) FILTER (WHERE aplicado_em IS NULL) AS quantidade_pendentes,
                MAX(enviado_em) AS ultima_revisao_enviada_em,
                MAX(aplicado_em) AS ultima_aplicacao_em
         FROM painel_dsr.tb_revisao_instrumento
@@ -969,7 +1010,6 @@ async def _buscar_situacoes_revisao(
 
     resumo = dict(pendentes.mappings().one())
     quantidade = int(resumo["quantidade"] or 0)
-    quantidade_pendentes = int(resumo["quantidade_pendentes"] or 0)
     if quantidade == 0:
         situacao = {
             "status": "sem_revisao_enviada",
@@ -1029,7 +1069,14 @@ async def _buscar_situacoes_revisao(
             else None
         ),
     }
-    return situacao, (dict(draft) if draft else None), (dict(ultima_usuario) if ultima_usuario else None), colaborativa
+    return (
+        situacao,
+        (dict(draft) if draft else None),
+        (dict(ultima_usuario) if ultima_usuario else None),
+        revisao_pendente,
+        quantidade_pendentes,
+        colaborativa,
+    )
 
 
 async def _buscar_meus_instrumentos(
@@ -1808,9 +1855,15 @@ async def _montar_resposta_busca(
     instrumento: InstrumentoRevisaoInfo,
     usuario_atual: UsuarioAutenticado,
 ) -> RevisaoInstrumentoBuscaResponse:
-    situacao_atualizacao, revisao, ultima_revisao_usuario, situacao_colaborativa = await _buscar_situacoes_revisao(
-        db, instrumento, usuario_atual.id_usuario
-    )
+    pode_editar = await pode_editar_instrumento(db, usuario_atual, instrumento)
+    (
+        situacao_atualizacao,
+        revisao,
+        ultima_revisao_usuario,
+        revisao_pendente_aplicacao,
+        quantidade_revisoes_pendentes,
+        situacao_colaborativa,
+    ) = await _buscar_situacoes_revisao(db, instrumento, usuario_atual.id_usuario)
     id_revisao = revisao["id_revisao"] if revisao else None
     municipios_salvos: dict[int, dict] = {}
     localidades_salvas: list[dict] = []
@@ -2021,6 +2074,7 @@ async def _montar_resposta_busca(
         id_revisao=id_revisao,
         identificador_busca=instrumento.identificador_busca,
         instrumento=instrumento,
+        pode_editar=pode_editar,
         status=revisao["status"] if revisao else None,
         status_revisao_geral=status_revisao_geral,
         status_revisao_geral_label=status_revisao_geral_label,
@@ -2036,6 +2090,8 @@ async def _montar_resposta_busca(
             }
             if revisao else None
         ),
+        revisao_pendente_aplicacao=revisao_pendente_aplicacao,
+        quantidade_revisoes_pendentes=quantidade_revisoes_pendentes,
         ultima_revisao_usuario=ultima_revisao_usuario,
         situacao_atualizacao=situacao_atualizacao,
         situacao_colaborativa=situacao_colaborativa,
