@@ -17,8 +17,8 @@ export function useTrocarSimbologia(mapRef, layers, modoAnalise) {
 
             const variavelConfig = layer.variaveis.find(v => v.atributo === layer.variavelSel);
             const simbolo = layer.variaveis[0]?.simbolo;
-            const strokeColorAnalise = ["case", ["boolean", ["feature-state", "selected"], false], "#ffff00", "#b1b1b1"];
-            const strokeWidthAnalise = ["case", ["boolean", ["feature-state", "selected"], false], 3, 2];
+            const strokeColorAnalise = ["case", ["boolean", ["feature-state", "selected"], false], "#ce33f5", "#b1b1b1"];
+            const strokeWidthAnalise = ["case", ["boolean", ["feature-state", "selected"], false], 4, 2];
 
             // sem variável selecionada
             if (!variavelConfig) {
