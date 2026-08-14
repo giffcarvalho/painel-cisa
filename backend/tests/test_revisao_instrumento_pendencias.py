@@ -93,7 +93,9 @@ class RevisoesPendentesAplicacaoTest(unittest.IsolatedAsyncioTestCase):
     def test_contrato_expoe_pendencia_global_separada_do_rascunho(self):
         campos = RevisaoInstrumentoBuscaResponse.model_fields
 
+        self.assertIn("rascunho_global", campos)
         self.assertIn("rascunho_usuario", campos)
+        self.assertIn("pode_editar_revisao", campos)
         self.assertIn("revisao_pendente_aplicacao", campos)
         self.assertIn("quantidade_revisoes_pendentes", campos)
 

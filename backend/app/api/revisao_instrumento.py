@@ -1,6 +1,7 @@
 """Endpoints da revisão de instrumentos DSR."""
 
 import logging
+import unicodedata
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -15,6 +16,7 @@ from app.schemas.revisao_instrumento import (
     InstrumentoRevisaoInfo,
     MeuInstrumentoRevisaoItem,
     MeusInstrumentosRevisaoResponse,
+    MunicipioOficialItem,
     LocalidadeRevisaoAlteracao,
     LocalidadeRevisaoItem,
     MunicipioRevisaoAlteracao,
@@ -33,6 +35,14 @@ from app.services.permissoes_revisao import exigir_permissao_edicao, pode_editar
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+def _remover_acentos(valor: str) -> str:
+    return "".join(
+        caractere
+        for caractere in unicodedata.normalize("NFD", valor)
+        if unicodedata.category(caractere) != "Mn"
+    )
 
 
 TABELAS_MUNICIPIO = {
@@ -702,36 +712,36 @@ async def _buscar_publico_alvo(
     ]
 
 
-async def _buscar_revisao_existente(
+async def _buscar_rascunho_global(
     db: AsyncSession,
     instrumento: InstrumentoRevisaoInfo,
-    id_usuario: int,
 ) -> dict | None:
     result = await _execute_query(
         db,
         """
         SELECT
-            id_revisao,
-            id_usuario,
-            status,
-            observacao_geral,
-            criado_em,
-            atualizado_em,
-            enviado_em
-        FROM painel_dsr.tb_revisao_instrumento
-        WHERE id_usuario = :id_usuario
-          AND tipo_instrumento = :tipo_instrumento
-          AND status = 'rascunho'
+            r.id_revisao,
+            r.id_usuario,
+            u.nome AS responsavel_nome,
+            r.status,
+            r.observacao_geral,
+            r.criado_em,
+            r.atualizado_em,
+            r.enviado_em
+        FROM painel_dsr.tb_revisao_instrumento AS r
+        JOIN painel_dsr.tb_usuario AS u
+          ON u.id_usuario = r.id_usuario
+        WHERE r.tipo_instrumento = :tipo_instrumento
+          AND r.status = 'rascunho'
           AND (
-                (:tipo_instrumento = 'ted' AND nr_ted = :nr_ted)
+                (:tipo_instrumento = 'ted' AND r.nr_ted = :nr_ted)
              OR (:tipo_instrumento <> 'ted'
-                 AND NULLIF(BTRIM(nr_instrumento), '') = NULLIF(BTRIM(:nr_instrumento), ''))
+                 AND NULLIF(BTRIM(r.nr_instrumento), '') = NULLIF(BTRIM(:nr_instrumento), ''))
           )
-        ORDER BY atualizado_em DESC NULLS LAST, criado_em DESC
+        ORDER BY r.atualizado_em DESC NULLS LAST, r.criado_em DESC, r.id_revisao DESC
         LIMIT 1
         """,
         {
-            "id_usuario": id_usuario,
             "tipo_instrumento": instrumento.tipo_instrumento,
             "nr_instrumento": instrumento.nr_instrumento,
             "nr_ted": instrumento.nr_ted,
@@ -739,6 +749,22 @@ async def _buscar_revisao_existente(
     )
     row = result.mappings().one_or_none()
     return dict(row) if row else None
+
+
+def _rascunho_para_contrato(rascunho: dict, id_usuario: int) -> dict:
+    return {
+        **rascunho,
+        "eh_autor": rascunho["id_usuario"] == id_usuario,
+    }
+
+
+def _detalhe_conflito_rascunho(rascunho: dict | None = None) -> dict:
+    detail = {
+        "mensagem": "Já existe um rascunho em andamento para este instrumento."
+    }
+    if rascunho is not None:
+        detail["rascunho_global"] = rascunho
+    return detail
 
 
 async def _buscar_revisoes_pendentes_aplicacao(
@@ -784,6 +810,7 @@ async def _obter_revisao_por_id(
     db: AsyncSession,
     id_revisao: int,
     id_usuario: int,
+    instrumento: InstrumentoRevisaoInfo,
 ) -> dict:
     result = await _execute_query(
         db,
@@ -791,6 +818,9 @@ async def _obter_revisao_por_id(
         SELECT
             id_revisao,
             id_usuario,
+            tipo_instrumento,
+            nr_instrumento,
+            nr_ted,
             status,
             observacao_geral,
             criado_em,
@@ -815,6 +845,21 @@ async def _obter_revisao_por_id(
             detail="A revisão pertence a outro usuário.",
         )
 
+    mesma_identidade = row["tipo_instrumento"] == instrumento.tipo_instrumento
+    if instrumento.tipo_instrumento == "ted":
+        mesma_identidade = mesma_identidade and row["nr_ted"] == instrumento.nr_ted
+    else:
+        mesma_identidade = mesma_identidade and (
+            (row["nr_instrumento"] or "").strip()
+            == (instrumento.nr_instrumento or "").strip()
+        )
+
+    if not mesma_identidade:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A revisão informada não pertence a este instrumento.",
+        )
+
     return dict(row)
 
 
@@ -828,7 +873,9 @@ async def _obter_ou_criar_revisao(
     observacao_geral: str | None = None,
 ) -> dict:
     if id_revisao is not None:
-        revisao = await _obter_revisao_por_id(db, id_revisao, id_usuario)
+        revisao = await _obter_revisao_por_id(
+            db, id_revisao, id_usuario, instrumento
+        )
         if revisao["status"] != "rascunho":
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -866,9 +913,16 @@ async def _obter_ou_criar_revisao(
         )
         return dict(result.mappings().one())
 
-    revisao_existente = await _buscar_revisao_existente(db, instrumento, id_usuario)
+    revisao_existente = await _buscar_rascunho_global(db, instrumento)
 
     if revisao_existente is not None:
+        if revisao_existente["id_usuario"] != id_usuario:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=_detalhe_conflito_rascunho(
+                    _rascunho_para_contrato(revisao_existente, id_usuario)
+                ),
+            )
         if status_revisao == "enviado":
             return await _obter_ou_criar_revisao(
                 db, instrumento, id_usuario,
@@ -1035,7 +1089,7 @@ async def _buscar_situacoes_revisao(
             "ultima_aplicacao_em": resumo["ultima_aplicacao_em"],
         }
 
-    draft = await _buscar_revisao_existente(db, instrumento, id_usuario)
+    draft = await _buscar_rascunho_global(db, instrumento)
     ultima_usuario_result = await _execute_query(
         db,
         f"""
@@ -1050,21 +1104,12 @@ async def _buscar_situacoes_revisao(
     )
     ultima_usuario = ultima_usuario_result.mappings().one_or_none()
 
-    outros_result = await _execute_query(
-        db,
-        f"""
-        SELECT COUNT(*) AS quantidade
-        FROM painel_dsr.tb_revisao_instrumento
-        WHERE {filtro} AND status = 'rascunho' AND id_usuario <> :id_usuario
-        """,
-        params,
-    )
-    outros = int(outros_result.scalar() or 0)
+    outros = int(bool(draft and draft["id_usuario"] != id_usuario))
     colaborativa = {
         "outros_rascunhos_existentes": outros > 0,
         "quantidade_outros_rascunhos": outros,
         "status_label": (
-            "Outros técnicos também estão revisando este instrumento."
+            "Já existe um rascunho em andamento para este instrumento."
             if outros
             else None
         ),
@@ -1177,6 +1222,129 @@ async def _buscar_meus_instrumentos(
     ]
 
 
+async def _buscar_municipios_oficiais(
+    db: AsyncSession,
+    termo: str,
+    limite: int = 20,
+) -> list[MunicipioOficialItem]:
+    termo_limpo = termo.strip()
+    if len(termo_limpo) < 2:
+        return []
+
+    result = await _execute_query(
+        db,
+        """
+        SELECT
+            m.cod_municipio,
+            m.nome_municipio,
+            m.cod_uf,
+            BTRIM(uf.sigla_uf) AS sigla_uf,
+            uf.nome_uf
+        FROM territorio.tb_municipio AS m
+        INNER JOIN territorio.tb_uf AS uf
+          ON uf.cod_uf = m.cod_uf
+        WHERE CAST(m.cod_municipio AS TEXT) = :termo_codigo
+           OR TRANSLATE(
+                LOWER(m.nome_municipio),
+                'áàâãäéèêëíìîïóòôõöúùûüç',
+                'aaaaaeeeeiiiiooooouuuuc'
+              ) LIKE :termo_texto
+           OR LOWER(BTRIM(uf.sigla_uf)) LIKE :termo_texto
+           OR TRANSLATE(
+                LOWER(uf.nome_uf),
+                'áàâãäéèêëíìîïóòôõöúùûüç',
+                'aaaaaeeeeiiiiooooouuuuc'
+              ) LIKE :termo_texto
+           OR TRANSLATE(
+                LOWER(m.nome_municipio || '/' || BTRIM(uf.sigla_uf)),
+                'áàâãäéèêëíìîïóòôõöúùûüç',
+                'aaaaaeeeeiiiiooooouuuuc'
+              ) LIKE :termo_texto
+        ORDER BY m.nome_municipio, BTRIM(uf.sigla_uf), m.cod_municipio
+        LIMIT :limite
+        """,
+        {
+            "termo_codigo": termo_limpo,
+            "termo_texto": f"%{_remover_acentos(termo_limpo.lower())}%",
+            "limite": limite,
+        },
+    )
+    return [MunicipioOficialItem(**dict(row)) for row in result.mappings().all()]
+
+
+async def _validar_municipio_adicionado(
+    db: AsyncSession,
+    municipio: MunicipioRevisaoAlteracao,
+) -> MunicipioOficialItem:
+    if (
+        municipio.origem_registro != "adicionado_tecnico"
+        or municipio.acao_sugerida != "adicionar"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                "Município incluído pelo técnico deve ter origem "
+                "'adicionado_tecnico' e ação 'adicionar'."
+            ),
+        )
+
+    result = await _execute_query(
+        db,
+        """
+        SELECT
+            m.cod_municipio,
+            m.nome_municipio,
+            m.cod_uf,
+            BTRIM(uf.sigla_uf) AS sigla_uf,
+            uf.nome_uf
+        FROM territorio.tb_municipio AS m
+        INNER JOIN territorio.tb_uf AS uf
+          ON uf.cod_uf = m.cod_uf
+        WHERE m.cod_municipio = :cod_municipio
+        """,
+        {"cod_municipio": municipio.cod_municipio},
+    )
+    row = result.mappings().one_or_none()
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Código de município inexistente no cadastro territorial oficial.",
+        )
+    return MunicipioOficialItem(**dict(row))
+
+
+async def _validar_municipios_adicionados_no_instrumento(
+    db: AsyncSession,
+    instrumento: InstrumentoRevisaoInfo,
+    municipios: list[MunicipioRevisaoItem | MunicipioRevisaoAlteracao],
+) -> None:
+    adicionados = [
+        municipio
+        for municipio in municipios
+        if municipio.origem_registro == "adicionado_tecnico"
+    ]
+    if not adicionados:
+        return
+
+    codigos_base = {
+        municipio.cod_municipio
+        for municipio in await _buscar_municipios(db, instrumento)
+    }
+    repetido = next(
+        (
+            municipio.cod_municipio
+            for municipio in adicionados
+            if municipio.cod_municipio in codigos_base
+        ),
+        None,
+    )
+    if repetido is not None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="O município selecionado já pertence ao instrumento.",
+        )
+
+
 async def _carregar_revisao_salva(
     db: AsyncSession,
     id_revisao: int,
@@ -1185,14 +1353,20 @@ async def _carregar_revisao_salva(
         db,
         """
         SELECT
-            cod_municipio,
-            origem_registro,
-            acao_sugerida,
-            justificativa,
-            conferido_em,
-            valido_ate
-        FROM painel_dsr.tb_revisao_instrumento_municipio
-        WHERE id_revisao = :id_revisao
+            rm.cod_municipio,
+            m.nome_municipio AS nome,
+            BTRIM(uf.sigla_uf) AS uf,
+            rm.origem_registro,
+            rm.acao_sugerida,
+            rm.justificativa,
+            rm.conferido_em,
+            rm.valido_ate
+        FROM painel_dsr.tb_revisao_instrumento_municipio AS rm
+        JOIN territorio.tb_municipio AS m
+          ON m.cod_municipio = rm.cod_municipio
+        JOIN territorio.tb_uf AS uf
+          ON uf.cod_uf = m.cod_uf
+        WHERE rm.id_revisao = :id_revisao
         """,
         {"id_revisao": id_revisao},
     )
@@ -1330,7 +1504,27 @@ async def _persistir_municipio_revisao(
     obras_salvas: list[ObraSaneamentoRevisaoItem] = []
 
     db.info["grupo_salvamento_revisao"] = "municipio"
+    if municipio is None and any(
+        localidade.origem_registro == "adicionado_tecnico"
+        for localidade in localidades
+    ):
+        await _validar_municipio_adicionado(
+            db,
+            MunicipioRevisaoAlteracao(
+                cod_municipio=cod_municipio,
+                origem_registro="adicionado_tecnico",
+                acao_sugerida="adicionar",
+            ),
+        )
     if municipio is not None:
+        if municipio.origem_registro == "adicionado_tecnico":
+            oficial = await _validar_municipio_adicionado(db, municipio)
+            municipio = municipio.model_copy(
+                update={
+                    "nome": oficial.nome_municipio,
+                    "uf": oficial.sigla_uf,
+                }
+            )
         update_result = await db.execute(
             text(
                 """
@@ -1400,6 +1594,22 @@ async def _persistir_municipio_revisao(
             )
 
         cod_localidade_municipio = localidade.cod_municipio or cod_municipio
+        if cod_localidade_municipio != cod_municipio:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="A localidade deve pertencer ao município que está sendo salvo.",
+            )
+        if localidade.origem_registro == "adicionado_tecnico" and (
+            localidade.cod_comunidade_rural is not None
+            or localidade.acao_sugerida != "adicionar"
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=(
+                    "Localidade informada manualmente deve usar ação 'adicionar' "
+                    "e não pode indicar comunidade rural cadastrada."
+                ),
+            )
         nome_informado = (
             localidade.nome_localidade_informada
             or (
@@ -1408,6 +1618,13 @@ async def _persistir_municipio_revisao(
                 else None
             )
         )
+        if localidade.origem_registro == "adicionado_tecnico":
+            nome_informado = " ".join((nome_informado or "").split()) or None
+            if nome_informado is None:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    detail="Informe o nome da localidade adicionada.",
+                )
         params = {
             "id_revisao": id_revisao,
             "cod_municipio": cod_localidade_municipio,
@@ -1759,8 +1976,14 @@ async def _persistir_publico_alvo(
             )
 
         campos_enviados = item.model_fields_set
-        populacao_enviada = "populacao_beneficiada_revisada" in campos_enviados
-        desc_enviada = "desc_populacao_beneficiada_revisada" in campos_enviados
+        populacao_enviada = (
+            "populacao_beneficiada_revisada" in campos_enviados
+            and item.populacao_beneficiada_revisada is not None
+        )
+        desc_enviada = (
+            "desc_populacao_beneficiada_revisada" in campos_enviados
+            and item.desc_populacao_beneficiada_revisada is not None
+        )
 
         if not populacao_enviada and not desc_enviada:
             continue
@@ -1855,7 +2078,9 @@ async def _montar_resposta_busca(
     instrumento: InstrumentoRevisaoInfo,
     usuario_atual: UsuarioAutenticado,
 ) -> RevisaoInstrumentoBuscaResponse:
-    pode_editar = await pode_editar_instrumento(db, usuario_atual, instrumento)
+    possui_permissao_edicao = await pode_editar_instrumento(
+        db, usuario_atual, instrumento
+    )
     (
         situacao_atualizacao,
         revisao,
@@ -1864,6 +2089,15 @@ async def _montar_resposta_busca(
         quantidade_revisoes_pendentes,
         situacao_colaborativa,
     ) = await _buscar_situacoes_revisao(db, instrumento, usuario_atual.id_usuario)
+    rascunho_global = (
+        _rascunho_para_contrato(revisao, usuario_atual.id_usuario)
+        if revisao
+        else None
+    )
+    eh_autor_rascunho = bool(rascunho_global and rascunho_global["eh_autor"])
+    pode_editar_revisao = possui_permissao_edicao and (
+        revisao is None or eh_autor_rascunho
+    )
     id_revisao = revisao["id_revisao"] if revisao else None
     municipios_salvos: dict[int, dict] = {}
     localidades_salvas: list[dict] = []
@@ -1887,8 +2121,8 @@ async def _montar_resposta_busca(
         if municipio is None:
             municipio = MunicipioRevisaoItem(
                 cod_municipio=cod_municipio,
-                nome=None,
-                uf=None,
+                nome=municipio_salvo["nome"],
+                uf=municipio_salvo["uf"],
                 origem_registro=municipio_salvo["origem_registro"],
                 acao_sugerida=municipio_salvo["acao_sugerida"],
                 justificativa=municipio_salvo["justificativa"],
@@ -2074,7 +2308,8 @@ async def _montar_resposta_busca(
         id_revisao=id_revisao,
         identificador_busca=instrumento.identificador_busca,
         instrumento=instrumento,
-        pode_editar=pode_editar,
+        pode_editar=possui_permissao_edicao,
+        pode_editar_revisao=pode_editar_revisao,
         status=revisao["status"] if revisao else None,
         status_revisao_geral=status_revisao_geral,
         status_revisao_geral_label=status_revisao_geral_label,
@@ -2082,13 +2317,9 @@ async def _montar_resposta_busca(
         municipios=municipios,
         publico_alvo=publico_alvo,
         dados_oficiais=instrumento.dados_oficiais,
+        rascunho_global=rascunho_global,
         rascunho_usuario=(
-            {
-                **{key: revisao[key] for key in ("id_revisao", "status", "criado_em", "atualizado_em")},
-                "id_usuario": usuario_atual.id_usuario,
-                "responsavel_nome": usuario_atual.nome,
-            }
-            if revisao else None
+            rascunho_global if eh_autor_rascunho else None
         ),
         revisao_pendente_aplicacao=revisao_pendente_aplicacao,
         quantidade_revisoes_pendentes=quantidade_revisoes_pendentes,
@@ -2111,6 +2342,21 @@ async def listar_meus_instrumentos(
     return MeusInstrumentosRevisaoResponse(
         data=await _buscar_meus_instrumentos(db, usuario_atual)
     )
+
+
+@router.get(
+    "/municipios-oficiais",
+    response_model=list[MunicipioOficialItem],
+    summary="Busca municípios no cadastro territorial oficial",
+)
+async def listar_municipios_oficiais(
+    q: Annotated[str, Query(min_length=2, max_length=100)],
+    limite: Annotated[int, Query(ge=1, le=50)] = 20,
+    usuario_atual: UsuarioAutenticado = Depends(obter_usuario_atual),
+    db: AsyncSession = Depends(get_db),
+):
+    del usuario_atual
+    return await _buscar_municipios_oficiais(db, q, limite)
 
 
 @router.get(
@@ -2154,6 +2400,9 @@ async def salvar_revisao_instrumento(
     await exigir_permissao_edicao(db, usuario_atual, instrumento)
 
     try:
+        await _validar_municipios_adicionados_no_instrumento(
+            db, instrumento, payload.municipios
+        )
         db.info["grupo_salvamento_revisao"] = "revisao"
         revisao = await _obter_ou_criar_revisao(
             db,
@@ -2215,7 +2464,7 @@ async def salvar_revisao_instrumento(
 
         if payload.status == "enviado" and not resposta_atualizada.completude["possui_manifestacao"] and not payload.observacao_geral:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={
                     "mensagem": "Registre ao menos uma alteração ou decisão antes de enviar a revisão.",
                     "completude": resposta_atualizada.completude,
@@ -2262,27 +2511,44 @@ async def salvar_revisao_instrumento(
             completude=resposta_atualizada.completude,
         )
 
-    except HTTPException:
+    except HTTPException as exc:
         await db.rollback()
+        logger.warning(
+            "Revisão de instrumento rejeitada: http_status=%s grupo=%s "
+            "id_revisao=%s status_solicitado=%s qtd_municipios=%s qtd_publico_alvo=%s",
+            exc.status_code,
+            db.info.get("grupo_salvamento_revisao", "revisao"),
+            payload.id_revisao,
+            payload.status,
+            len(payload.municipios),
+            len(payload.publico_alvo),
+        )
         raise
 
     except SQLAlchemyError as exc:
         await db.rollback()
-        if "uq_revisao_rascunho_usuario_instrumento" in str(exc) or "duplicate key" in str(exc).lower():
-            draft = await _buscar_revisao_existente(
-                db, instrumento, usuario_atual.id_usuario
-            )
+        if (
+            "uq_revisao_rascunho_instrumento" in str(exc)
+            or "duplicate key" in str(exc).lower()
+        ):
+            draft = await _buscar_rascunho_global(db, instrumento)
             if draft is not None:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
-                    detail="Já existe um rascunho deste instrumento para o usuário autenticado.",
+                    detail=_detalhe_conflito_rascunho(
+                        _rascunho_para_contrato(draft, usuario_atual.id_usuario)
+                    ),
                 ) from exc
         logger.exception(
             "Erro ao salvar revisão de instrumento: tipo_excecao=%s grupo=%s "
-            "id_revisao=%s",
+            "id_revisao=%s status_solicitado=%s qtd_municipios=%s "
+            "qtd_publico_alvo=%s",
             type(exc).__name__,
             db.info.get("grupo_salvamento_revisao", "revisao"),
             payload.id_revisao,
+            payload.status,
+            len(payload.municipios),
+            len(payload.publico_alvo),
         )
         raise HTTPException(
             status_code=500,
@@ -2293,10 +2559,14 @@ async def salvar_revisao_instrumento(
         await db.rollback()
         logger.exception(
             "Erro inesperado ao salvar revisão de instrumento: "
-            "tipo_excecao=%s grupo=%s id_revisao=%s",
+            "tipo_excecao=%s grupo=%s id_revisao=%s status_solicitado=%s "
+            "qtd_municipios=%s qtd_publico_alvo=%s",
             type(exc).__name__,
             db.info.get("grupo_salvamento_revisao", "revisao"),
             payload.id_revisao,
+            payload.status,
+            len(payload.municipios),
+            len(payload.publico_alvo),
         )
         raise HTTPException(
             status_code=500,
@@ -2328,6 +2598,10 @@ async def salvar_municipio_revisao(
         )
 
     try:
+        if payload.municipio is not None:
+            await _validar_municipios_adicionados_no_instrumento(
+                db, payload.instrumento, [payload.municipio]
+            )
         db.info["grupo_salvamento_revisao"] = "revisao"
         revisao = await _obter_ou_criar_revisao(
             db,
@@ -2369,6 +2643,18 @@ async def salvar_municipio_revisao(
 
     except SQLAlchemyError as exc:
         await db.rollback()
+        if (
+            "uq_revisao_rascunho_instrumento" in str(exc)
+            or "duplicate key" in str(exc).lower()
+        ):
+            draft = await _buscar_rascunho_global(db, payload.instrumento)
+            if draft is not None:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=_detalhe_conflito_rascunho(
+                        _rascunho_para_contrato(draft, usuario_atual.id_usuario)
+                    ),
+                ) from exc
         logger.exception(
             "Erro ao salvar município da revisão: tipo_excecao=%s "
             "grupo=%s id_revisao=%s cod_municipio=%s "

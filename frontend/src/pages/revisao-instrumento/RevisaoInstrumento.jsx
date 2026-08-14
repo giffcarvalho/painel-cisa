@@ -38,8 +38,10 @@ const CONFIRMACOES_STATUS = [
 
 const MUNICIPIO_NOVO_INICIAL = {
   cod_municipio: '',
-  nome: '',
-  uf: '',
+  nome_municipio: '',
+  cod_uf: '',
+  sigla_uf: '',
+  nome_uf: '',
 }
 
 const LOCALIDADE_NOVA_INICIAL = {
@@ -336,10 +338,21 @@ function formatarDataAtualizacaoRascunho(value) {
 
 function mensagemEstadoRascunho(data) {
   if (data?.revisao_pendente_aplicacao) return ''
-  if (!data?.rascunho_usuario) {
-    return 'Nenhum rascunho aberto para este instrumento.'
+  if (!data?.rascunho_global) {
+    return 'Sem rascunho atual'
   }
   return ''
+}
+
+function descricaoRascunhoGlobal(data) {
+  const rascunho = data?.rascunho_global
+  if (!rascunho) return null
+
+  const responsavel = rascunho.responsavel_nome || 'responsável não identificado'
+  const ultimaAtualizacao = formatarDataAtualizacaoRascunho(rascunho.atualizado_em)
+  return ultimaAtualizacao
+    ? `Rascunho aberto por ${responsavel} · Última atualização em ${ultimaAtualizacao}`
+    : `Rascunho aberto por ${responsavel}`
 }
 
 function contextoRevisao(data, usuarioAtualNome) {
@@ -358,17 +371,13 @@ function contextoRevisao(data, usuarioAtualNome) {
     }
   }
 
-  const rascunho = data?.rascunho_usuario
+  const rascunho = data?.rascunho_global
   if (rascunho) {
-    const responsavel = rascunho.responsavel_nome || usuarioAtualNome
-    const ultimaAtualizacao = formatarDataAtualizacaoRascunho(rascunho.atualizado_em)
     return {
       status: 'Rascunho',
       tone: 'draft',
       responsavel: null,
-      detalhe: ultimaAtualizacao
-        ? `Rascunho aberto por ${responsavel} · Última atualização em ${ultimaAtualizacao}`
-        : `Rascunho aberto por ${responsavel}`,
+      detalhe: descricaoRascunhoGlobal(data),
     }
   }
 
@@ -558,6 +567,11 @@ export default function RevisaoInstrumento() {
   const [municipioAberto, setMunicipioAberto] = useState(null)
   const [observacaoGeral, setObservacaoGeral] = useState('')
   const [novoMunicipio, setNovoMunicipio] = useState(MUNICIPIO_NOVO_INICIAL)
+  const [buscaMunicipioOficial, setBuscaMunicipioOficial] = useState('')
+  const [municipiosOficiais, setMunicipiosOficiais] = useState([])
+  const [buscandoMunicipioOficial, setBuscandoMunicipioOficial] = useState(false)
+  const [municipioOficialSelecionado, setMunicipioOficialSelecionado] = useState(null)
+  const [erroMunicipioOficial, setErroMunicipioOficial] = useState('')
   const [localidadeNovoMunicipio, setLocalidadeNovoMunicipio] = useState(LOCALIDADE_NOVA_INICIAL)
   const [localidadesNovoMunicipio, setLocalidadesNovoMunicipio] = useState([])
   const [mostrarFormularioMunicipio, setMostrarFormularioMunicipio] = useState(false)
@@ -583,11 +597,13 @@ export default function RevisaoInstrumento() {
   const [detalhesInstrumentoAbertos, setDetalhesInstrumentoAbertos] = useState(false)
 
   const instrumento = numeroInstrumento ? dadosBusca?.instrumento ?? null : null
-  const temRascunhoAberto = dadosBusca?.status === 'rascunho'
+  const temRascunhoAberto = Boolean(dadosBusca?.rascunho_global)
+  const ehAutorRascunho = dadosBusca?.rascunho_global?.eh_autor === true
   const podeEditarInstrumento = dadosBusca?.pode_editar === true
   const somenteLeituraPorAtribuicao = Boolean(instrumento) && !podeEditarInstrumento
-  const modoSomenteLeitura = dadosBusca?.status === 'enviado' || somenteLeituraPorAtribuicao
-  const canEditRevision = podeEditarInstrumento && dadosBusca?.status !== 'enviado'
+  const bloqueadoPorRascunhoAlheio = temRascunhoAberto && !ehAutorRascunho
+  const modoSomenteLeitura = dadosBusca?.status === 'enviado' || somenteLeituraPorAtribuicao || bloqueadoPorRascunhoAlheio
+  const canEditRevision = dadosBusca?.pode_editar_revisao === true && dadosBusca?.status !== 'enviado'
   const usuarioAtualNome = nomeUsuario(usuario)
   const contextoAtual = contextoRevisao(dadosBusca, usuarioAtualNome)
   const observacaoGeralTexto = observacaoGeral.trim()
@@ -652,6 +668,13 @@ export default function RevisaoInstrumento() {
     setPublicoAlvo([])
     setMunicipioAberto(null)
     setObservacaoGeral('')
+    setNovoMunicipio(MUNICIPIO_NOVO_INICIAL)
+    setBuscaMunicipioOficial('')
+    setMunicipiosOficiais([])
+    setMunicipioOficialSelecionado(null)
+    setErroMunicipioOficial('')
+    setLocalidadeNovoMunicipio(LOCALIDADE_NOVA_INICIAL)
+    setLocalidadesNovoMunicipio([])
     setMostrarFormularioMunicipio(false)
     setNovaLocalidadeAbertaPorMunicipio({})
     setJustificativasLocalidadeAbertas({})
@@ -820,25 +843,76 @@ export default function RevisaoInstrumento() {
     )
   }
 
-  const adicionarMunicipio = () => {
-    const codMunicipio = numeroOuNull(novoMunicipio.cod_municipio)
-
-    if (!codMunicipio) {
-      setMessage('Informe o código IBGE do município a adicionar.')
-      setMessageType('error')
+  const buscarMunicipioOficial = async () => {
+    const termo = buscaMunicipioOficial.trim()
+    if (termo.length < 2) {
+      setMunicipiosOficiais([])
+      setErroMunicipioOficial('Informe ao menos dois caracteres do nome, UF ou código IBGE.')
       return
     }
 
-    if (municipios.some((municipio) => municipio.cod_municipio === codMunicipio)) {
-      setMessage('Este município já está na revisão.')
-      setMessageType('error')
+    setBuscandoMunicipioOficial(true)
+    setErroMunicipioOficial('')
+    try {
+      const encontrados = await revisaoInstrumentoApi.buscarMunicipiosOficiais(termo)
+      setMunicipiosOficiais(encontrados)
+      if (!encontrados.length) {
+        setErroMunicipioOficial('Nenhum município foi encontrado no cadastro territorial oficial.')
+      }
+    } catch (err) {
+      setMunicipiosOficiais([])
+      setErroMunicipioOficial(
+        err?.response?.data?.detail ||
+          'Não foi possível consultar o cadastro territorial de municípios.'
+      )
+    } finally {
+      setBuscandoMunicipioOficial(false)
+    }
+  }
+
+  const selecionarMunicipioOficial = (municipio) => {
+    const existente = municipios.find(
+      (item) => Number(item.cod_municipio) === Number(municipio.cod_municipio)
+    )
+    if (existente) {
+      setErroMunicipioOficial(
+        existente.origem_registro === 'adicionado_tecnico'
+          ? 'Este município já foi adicionado ao rascunho.'
+          : 'Este município já pertence ao instrumento.'
+      )
+      return
+    }
+    setNovoMunicipio(municipio)
+    setMunicipioOficialSelecionado(municipio)
+    setBuscaMunicipioOficial(`${municipio.nome_municipio}/${municipio.sigla_uf}`)
+    setMunicipiosOficiais([])
+    setErroMunicipioOficial('')
+  }
+
+  const adicionarMunicipio = () => {
+    const codMunicipio = numeroOuNull(novoMunicipio.cod_municipio)
+
+    if (!codMunicipio || municipioOficialSelecionado?.cod_municipio !== codMunicipio) {
+      setErroMunicipioOficial('Selecione um município válido no cadastro territorial oficial.')
+      return
+    }
+
+    const existente = municipios.find(
+      (municipio) => Number(municipio.cod_municipio) === codMunicipio
+    )
+    if (existente) {
+      setErroMunicipioOficial(
+        existente.origem_registro === 'adicionado_tecnico'
+          ? 'Este município já foi adicionado ao rascunho.'
+          : 'Este município já pertence ao instrumento.'
+      )
       return
     }
 
     const novoItem = {
       cod_municipio: codMunicipio,
-      nome: novoMunicipio.nome.trim() || null,
-      uf: novoMunicipio.uf.trim().toUpperCase() || null,
+      nome: municipioOficialSelecionado.nome_municipio,
+      uf: municipioOficialSelecionado.sigla_uf,
       origem_registro: 'adicionado_tecnico',
       acao_sugerida: 'adicionar',
       justificativa: '',
@@ -877,6 +951,10 @@ export default function RevisaoInstrumento() {
     ])
 
     setNovoMunicipio(MUNICIPIO_NOVO_INICIAL)
+    setBuscaMunicipioOficial('')
+    setMunicipiosOficiais([])
+    setMunicipioOficialSelecionado(null)
+    setErroMunicipioOficial('')
     setLocalidadeNovoMunicipio(LOCALIDADE_NOVA_INICIAL)
     setLocalidadesNovoMunicipio([])
     setMostrarFormularioMunicipio(false)
@@ -1339,70 +1417,26 @@ export default function RevisaoInstrumento() {
     )
   }
 
-  const salvarMunicipio = async (
-    municipio,
-    idRevisaoAtual = idRevisao,
-    { propagarErro = false } = {}
-  ) => {
-    if (!instrumento || !municipioTemAlteracoes(municipio)) return idRevisaoAtual
-
-    const mensagemValidacao = validarMunicipioAntesSalvar(municipio)
-    const codMunicipio = municipio.cod_municipio
-
-    if (mensagemValidacao) {
-      setErroMunicipio((current) => ({ ...current, [codMunicipio]: mensagemValidacao }))
-      setMessage(mensagemValidacao)
-      setMessageType('error')
-      if (propagarErro) {
-        throw new Error(mensagemValidacao)
-      }
-      return idRevisaoAtual
-    }
-
-    const payload = montarPayloadMunicipio(municipio, idRevisaoAtual)
-
-    setErroMunicipio((current) => ({ ...current, [codMunicipio]: '' }))
-    setMessage('')
-    setMessageType('')
-
-    try {
-      const data = await revisaoInstrumentoApi.salvarMunicipio(payload)
-      aplicarResultadoMunicipio(payload, data)
-      setMessage(`${data.mensagem} ID da revisão: ${data.id_revisao}.`)
-      setMessageType('success')
-      return data.id_revisao
-    } catch (err) {
-      const mensagem =
-        err?.response?.data?.detail ||
-        'Não foi possível salvar as alterações deste município.'
-      setErroMunicipio((current) => ({ ...current, [codMunicipio]: mensagem }))
-      setMessage(mensagem)
-      setMessageType('error')
-      if (propagarErro) {
-        throw new Error(mensagem, { cause: err })
-      }
-      return idRevisaoAtual
-    }
-  }
-
-  const salvarPendenciasMunicipais = async (idRevisaoInicial = idRevisao) => {
-    let idAtual = idRevisaoInicial
-
-    for (const municipio of municipios) {
-      if (municipioTemAlteracoes(municipio)) {
-        idAtual = await salvarMunicipio(municipio, idAtual, { propagarErro: true })
-      }
-    }
-
-    return idAtual
-  }
-
   const montarPayloadRevisao = (status, idRevisaoAtual) => ({
     id_revisao: idRevisaoAtual,
     status,
     observacao_geral: observacaoGeral.trim() || null,
     instrumento,
-    municipios: [],
+    municipios: municipios
+      .filter(municipioTemAlteracoes)
+      .map((municipio) => {
+        const alteracoes = montarPayloadMunicipio(municipio, idRevisaoAtual)
+        return {
+          cod_municipio: municipio.cod_municipio,
+          nome: municipio.nome ?? null,
+          uf: municipio.uf ?? null,
+          origem_registro: municipio.origem_registro,
+          acao_sugerida: alteracoes.municipio?.acao_sugerida ?? null,
+          justificativa: alteracoes.municipio?.justificativa ?? null,
+          localidades: alteracoes.localidades,
+          obras_saneamento: alteracoes.obras_saneamento,
+        }
+      }),
     publico_alvo: montarPayloadPublicoAlvo(),
   })
 
@@ -1429,10 +1463,14 @@ export default function RevisaoInstrumento() {
     setMessageType('')
 
     try {
-      const idAtual = await salvarPendenciasMunicipais(idRevisao)
-      const data = await revisaoInstrumentoApi.salvarRevisao(
-        montarPayloadRevisao(status, idAtual)
-      )
+      const municipioInvalido = municipios
+        .filter(municipioTemAlteracoes)
+        .find((municipio) => validarMunicipioAntesSalvar(municipio))
+      if (municipioInvalido) {
+        throw new Error(validarMunicipioAntesSalvar(municipioInvalido))
+      }
+      const payloadRevisao = montarPayloadRevisao(status, idRevisao)
+      const data = await revisaoInstrumentoApi.salvarRevisao(payloadRevisao)
       setIdRevisao(data.id_revisao)
       setDadosBusca((current) =>
         current
@@ -1440,6 +1478,19 @@ export default function RevisaoInstrumento() {
               ...current,
               id_revisao: data.id_revisao,
               status: data.status ?? current.status,
+              pode_editar_revisao: data.status !== 'enviado' && current.pode_editar,
+              rascunho_global:
+                data.status === 'rascunho'
+                  ? {
+                      id_revisao: data.id_revisao,
+                      status: data.status,
+                      criado_em: data.criado_em,
+                      atualizado_em: data.atualizado_em,
+                      id_usuario: usuario?.id_usuario,
+                      responsavel_nome: usuarioAtualNome,
+                      eh_autor: true,
+                    }
+                  : null,
               rascunho_usuario:
                 data.status === 'rascunho'
                   ? {
@@ -1449,6 +1500,7 @@ export default function RevisaoInstrumento() {
                       atualizado_em: data.atualizado_em,
                       id_usuario: usuario?.id_usuario,
                       responsavel_nome: usuarioAtualNome,
+                      eh_autor: true,
                     }
                   : null,
               ultima_revisao_usuario:
@@ -1487,6 +1539,18 @@ export default function RevisaoInstrumento() {
           : current
       )
       setPublicoAlvo(copiarPublicoAlvo(data.publico_alvo ?? publicoAlvo))
+      if (data.municipios?.length) {
+        data.municipios.forEach((retorno) => {
+          const original = municipios.find(
+            (municipio) => municipio.cod_municipio === retorno.cod_municipio
+          )
+          if (!original) return
+          aplicarResultadoMunicipio(
+            montarPayloadMunicipio(original, data.id_revisao),
+            { ...data, municipio: retorno }
+          )
+        })
+      }
       setConfirmarEnvioParcial(false)
       registrarEventoHistorico(
         status === 'enviado' ? 'Revisão enviada' : 'Rascunho salvo',
@@ -1554,15 +1618,31 @@ export default function RevisaoInstrumento() {
     <main className={`${styles.page} ${instrumento ? styles.pageDetail : styles.pageIndex}`}>
       <header className={styles.header}>
         <div>
-          <h1>Revisão de Instrumento</h1>
-          <p>
-            Consulte, registre e envie os ajustes por instrumento da Carteira DSR. 
-          </p>
+          {instrumento ? (
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() => navigate('/revisao-instrumento')}
+            >
+              Retornar
+            </button>
+          ) : (
+            <>
+              <h1>Revisão de Instrumento</h1>
+              <p>
+                Consulte, registre e envie os ajustes por instrumento da Carteira DSR.
+              </p>
+            </>
+          )}
         </div>
 
         {instrumento && podeEditarInstrumento && (
           <div className={styles.headerActions}>
-            {modoSomenteLeitura ? (
+            {bloqueadoPorRascunhoAlheio ? (
+              <div className={styles.headerActionGroup}>
+                <span className={styles.statusChip}>Rascunho em andamento</span>
+              </div>
+            ) : modoSomenteLeitura ? (
               <div className={styles.headerActionGroup}>
                 <span className={styles.statusChip}>Revisão enviada</span>
                 <button
@@ -1659,9 +1739,7 @@ export default function RevisaoInstrumento() {
                 </p>
                 {dadosBusca?.revisao_pendente_aplicacao && (
                   <p className={styles.reviewContextNotice} role="status">
-                    {dadosBusca.rascunho_usuario
-                      ? 'Você também possui um rascunho aberto para este instrumento.'
-                      : 'Você não possui rascunho aberto para este instrumento.'}
+                    {descricaoRascunhoGlobal(dadosBusca) || 'Sem rascunho atual'}
                   </p>
                 )}
                 {somenteLeituraPorAtribuicao && (
@@ -1669,8 +1747,10 @@ export default function RevisaoInstrumento() {
                     Somente leitura · Este instrumento não está atribuído ao seu monitoramento.
                   </p>
                 )}
-                {dadosBusca?.situacao_colaborativa?.status_label && (
-                  <p className={styles.reviewContextNotice}>{dadosBusca.situacao_colaborativa.status_label}</p>
+                {bloqueadoPorRascunhoAlheio && (
+                  <p className={styles.readOnlyNotice} role="status">
+                    Já existe um rascunho em andamento para este instrumento.
+                  </p>
                 )}
                 {message && (
                   <p className={styles.reviewContextMessage} role={messageType === 'error' ? 'alert' : 'status'}>
@@ -1873,52 +1953,69 @@ export default function RevisaoInstrumento() {
                 </div>
 
               {canEditRevision && mostrarFormularioMunicipio && (
-                <section className={styles.panel}>
+                <section className={`${styles.panel} ${styles.addMunicipioPanel}`}>
                   <div className={styles.panelHeader}>
                     <h2>Adicionar município</h2>
                   </div>
 
                   <div className={styles.addGrid}>
-                    <label>
-                      <span>Código IBGE</span>
+                    <label className={styles.municipioOficialSearch}>
+                      <span>Município oficial</span>
                       <input
-                        type="number"
-                        value={novoMunicipio.cod_municipio}
-                        onChange={(event) =>
-                          setNovoMunicipio((current) => ({
-                            ...current,
-                            cod_municipio: event.target.value,
-                          }))
-                        }
+                        value={buscaMunicipioOficial}
+                        placeholder="Digite município, UF ou código IBGE"
+                        aria-invalid={Boolean(erroMunicipioOficial)}
+                        aria-describedby={erroMunicipioOficial ? 'erro-municipio-oficial' : undefined}
+                        onChange={(event) => {
+                          setBuscaMunicipioOficial(event.target.value)
+                          setNovoMunicipio(MUNICIPIO_NOVO_INICIAL)
+                          setMunicipioOficialSelecionado(null)
+                          setMunicipiosOficiais([])
+                          setErroMunicipioOficial('')
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault()
+                            buscarMunicipioOficial()
+                          }
+                        }}
                       />
                     </label>
 
-                    <label>
-                      <span>Nome</span>
-                      <input
-                        value={novoMunicipio.nome}
-                        onChange={(event) =>
-                          setNovoMunicipio((current) => ({
-                            ...current,
-                            nome: event.target.value,
-                          }))
-                        }
-                      />
-                    </label>
+                    <button type="button" onClick={buscarMunicipioOficial} disabled={buscandoMunicipioOficial}>
+                      {buscandoMunicipioOficial ? 'Buscando…' : 'Buscar'}
+                    </button>
 
-                    <label>
-                      <span>UF</span>
-                      <input
-                        maxLength={2}
-                        value={novoMunicipio.uf}
-                        onChange={(event) =>
-                          setNovoMunicipio((current) => ({
-                            ...current,
-                            uf: event.target.value,
-                          }))
-                        }
-                      />
-                    </label>
+                    {erroMunicipioOficial && (
+                      <p id="erro-municipio-oficial" className={styles.municipioOficialErro} role="alert">
+                        {erroMunicipioOficial}
+                      </p>
+                    )}
+
+                    {municipioOficialSelecionado && (
+                      <div className={styles.municipioOficialSelecionado} role="status">
+                        <strong>{formatarMunicipioUf(novoMunicipio.nome_municipio, novoMunicipio.sigla_uf)}</strong>
+                        <span>Código IBGE: {novoMunicipio.cod_municipio}</span>
+                        <span>{novoMunicipio.nome_uf}</span>
+                      </div>
+                    )}
+
+                    {municipiosOficiais.length > 0 && (
+                      <div className={styles.municipiosOficiaisResultados} role="listbox" aria-label="Municípios encontrados">
+                        {municipiosOficiais.map((municipio) => (
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected="false"
+                            key={municipio.cod_municipio}
+                            onClick={() => selecionarMunicipioOficial(municipio)}
+                          >
+                            <strong>{formatarMunicipioUf(municipio.nome_municipio, municipio.sigla_uf)}</strong>
+                            <span>— {municipio.cod_municipio}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
                     <div className={styles.addMunicipioLocalidades}>
                       <h3>Localidades do município</h3>
@@ -1988,6 +2085,10 @@ export default function RevisaoInstrumento() {
                       onClick={() => {
                         setMostrarFormularioMunicipio(false)
                         setNovoMunicipio(MUNICIPIO_NOVO_INICIAL)
+                        setBuscaMunicipioOficial('')
+                        setMunicipiosOficiais([])
+                        setMunicipioOficialSelecionado(null)
+                        setErroMunicipioOficial('')
                         setLocalidadeNovoMunicipio(LOCALIDADE_NOVA_INICIAL)
                         setLocalidadesNovoMunicipio([])
                       }}
@@ -2081,14 +2182,7 @@ export default function RevisaoInstrumento() {
                         {isAberto && (
                           <div className={styles.municipioContent}>
                             <div className={styles.reviewGrid}>
-                              {municipio.origem_registro === 'adicionado_tecnico' ? (
-                                <div className={styles.fieldGroup}>
-                                  <span>Situação na revisão</span>
-                                  <span className={styles.addedChip}>
-                                    Incluído nesta revisão
-                                  </span>
-                                </div>
-                              ) : (
+                              {municipio.origem_registro !== 'adicionado_tecnico' && (
                                 <div className={styles.municipioAcaoLinha}>
                                   <div className={styles.sectionHeader}>
                                     <span className={styles.sectionHeaderTitle}>Revisão do Município</span>
@@ -2209,11 +2303,6 @@ export default function RevisaoInstrumento() {
                                                 <span>
                                                   {valorOuTraco(localidade.nome_localidade)}
                                                 </span>
-                                                {isAdicionada && (
-                                                  <span className={styles.addedChip}>
-                                                    Incluída nesta revisão
-                                                  </span>
-                                                )}
                                               </div>
                                             </td>
 
@@ -2676,7 +2765,7 @@ export default function RevisaoInstrumento() {
               {publicoAlvo.length > 0 && (
                 <section className={`${styles.panel} ${styles.publicoAlvoSection}`} aria-labelledby="revisao-geral-titulo">
                   <div className={styles.sectionHeader}>
-                    <h2>População beneficiada</h2>
+                    <h2>Público alvo</h2>
                     <span className={styles.sectionHeaderSeparator} aria-hidden="true"/>
                     <span className={styles.sectionHeaderMeta}>
                       {publicoAlvoTemAlteracoes(publicoAlvo)

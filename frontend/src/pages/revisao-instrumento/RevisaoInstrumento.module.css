@@ -343,6 +343,15 @@
   margin-top: 18px;
 }
 
+.meuInstrumentoObjetoCampo + .meuInstrumentoMetadados {
+  align-items: start;
+  padding-bottom: 18px;
+}
+
+.meuInstrumentoObjetoCampo + .meuInstrumentoMetadados .meuInstrumentoCampo {
+  justify-items: start;
+}
+
 .meuInstrumentoCampo {
   display: grid;
   min-width: 0;
@@ -409,16 +418,20 @@
 }
 
 .meuInstrumentoStatus {
+  --status-padding-inline: 8px;
+
   width: fit-content;
   max-width: 100%;
   border: 1px solid #d7dde5;
   border-radius: 999px;
   background: #f8fafc;
   color: #475569;
-  padding: 3px 8px;
+  margin-inline-start: calc(-1 * var(--status-padding-inline));
+  padding: 3px var(--status-padding-inline);
   font-size: 11px;
   font-weight: 600;
   line-height: 1.35;
+  white-space: nowrap;
 }
 
 .meuInstrumentoRodape {
@@ -691,6 +704,76 @@ button:disabled {
 
 .addGrid button {
   width: fit-content;
+}
+
+.addMunicipioPanel {
+  margin-bottom: var(--main-block-gap);
+}
+
+.municipioOficialSearch {
+  grid-column: span 3;
+}
+
+.municipioOficialErro {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.municipioOficialSearch input[aria-invalid='true'] {
+  border-color: #dc2626;
+}
+
+.municipioOficialSelecionado {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  color: #1f2937;
+  font-size: 13px;
+}
+
+.municipioOficialSelecionado span {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.municipiosOficiaisResultados {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid #dbe3ec;
+  border-radius: 8px;
+  background: #fff;
+  padding: 6px;
+}
+
+.municipiosOficiaisResultados button {
+  display: flex;
+  width: 100%;
+  min-height: 40px;
+  align-items: center;
+  justify-content: space-between;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #1f2937;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.municipiosOficiaisResultados button:hover,
+.municipiosOficiaisResultados button:focus-visible {
+  background: #eff6ff;
+}
+
+.municipiosOficiaisResultados span {
+  color: #64748b;
+  font-size: 12px;
 }
 
 .addMunicipioLocalidades {
@@ -1701,6 +1784,10 @@ button:disabled {
   .publicoAlvoGrid,
   .addMunicipioLocalidadeRow {
     grid-template-columns: 1fr;
+  }
+
+  .municipioOficialSearch {
+    grid-column: 1;
   }
 
   .justificativaMunicipio {

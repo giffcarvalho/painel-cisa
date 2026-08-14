@@ -14,6 +14,13 @@ export const revisaoInstrumentoApi = {
     return data
   },
 
+  buscarMunicipiosOficiais: async (q) => {
+    const { data } = await api.get('/revisao-instrumento/municipios-oficiais', {
+      params: { q },
+    })
+    return Array.isArray(data) ? data : data.data ?? []
+  },
+
   salvarRevisao: async (payload) => {
     const { data } = await api.post('/revisao-instrumento/revisoes', payload)
     return data

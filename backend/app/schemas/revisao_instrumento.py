@@ -206,11 +206,20 @@ class MunicipioRevisaoItem(RevisaoInstrumentoBase):
     obras_saneamento: list[ObraSaneamentoRevisaoItem] = Field(default_factory=list)
 
 
+class MunicipioOficialItem(RevisaoInstrumentoBase):
+    cod_municipio: int
+    nome_municipio: str
+    cod_uf: int
+    sigla_uf: str
+    nome_uf: str
+
+
 class RevisaoInstrumentoBuscaResponse(RevisaoInstrumentoBase):
     id_revisao: int | None = None
     identificador_busca: str
     instrumento: InstrumentoRevisaoInfo
     pode_editar: bool = False
+    pode_editar_revisao: bool = False
     status: str | None = None
     status_revisao_geral: str = "pendente"
     status_revisao_geral_label: str = "Revisão pendente"
@@ -218,6 +227,7 @@ class RevisaoInstrumentoBuscaResponse(RevisaoInstrumentoBase):
     municipios: list[MunicipioRevisaoItem]
     publico_alvo: list[PublicoAlvoRevisaoItem] = Field(default_factory=list)
     dados_oficiais: dict[str, Any] | None = None
+    rascunho_global: dict[str, Any] | None = None
     rascunho_usuario: dict[str, Any] | None = None
     revisao_pendente_aplicacao: dict[str, Any] | None = None
     quantidade_revisoes_pendentes: int = 0
@@ -256,6 +266,13 @@ class RevisaoInstrumentoCreate(RevisaoInstrumentoBase):
     instrumento: InstrumentoRevisaoInfo
     municipios: list[MunicipioRevisaoItem] = Field(default_factory=list)
     publico_alvo: list[PublicoAlvoRevisaoAlteracao] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validar_municipios_sem_duplicidade(self):
+        codigos = [municipio.cod_municipio for municipio in self.municipios]
+        if len(codigos) != len(set(codigos)):
+            raise ValueError("Um município não pode aparecer mais de uma vez no mesmo rascunho.")
+        return self
 
 
 class MunicipioRevisaoAlteracao(RevisaoInstrumentoBase):
