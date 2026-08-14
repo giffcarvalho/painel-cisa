@@ -140,6 +140,7 @@ export default function MapaSection() {
                     {valor: "Povoado", label: "Povoado", cor: "#fdff74", strokeColor: "#000000", strokeWidth: 1},
                     {valor: "Lugarejo", label: "Lugarejo", cor: "#365809", strokeColor: "#000000", strokeWidth: 1},
                     {valor: "Núcleo Rural", label: "Núcleo Rural", cor: "#b8905c", strokeColor: "#000000", strokeWidth: 1},
+                    {valor: "Núcleo Urbano", label: "Núcleo Urbano", cor: "#000000", strokeColor: "#000000", strokeWidth: 1},
                     {valor: "Localidade Indígena", label: "Localidade Indígena", cor: "#880925", strokeColor: "#000000", strokeWidth: 1},
                     {valor: "Localidade Quilombola", label: "Localidade Quilombola", cor: "#442d2f", strokeColor: "#000000", strokeWidth: 1},
                     {valor: "Outras Localidades", label: "Outras Localidades", cor: "#ffffff", strokeColor: "#000000", strokeWidth: 1},
@@ -258,8 +259,10 @@ export default function MapaSection() {
                     simbolo: "ponto",
                     legenda: [
                         {valor: "Correta", label: "Correta", cor: "#7fffd4", strokeColor: "#000000", strokeWidth: 1.0},
-                        {valor: "Errada (correção a ser solicitada)", label: "Errada (correção a ser solicitada)", cor: "#ff7350", strokeColor: "#000000", strokeWidth: 1.0},
-                        {valor: "Errada (correção já solicitada)", label: "Errada (correção já solicitada)", cor: "#ffa467", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Município errado", label: "Município errado", cor: "#ff7350", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Local genérico - sede", label: "Local genérico - sede", cor: "#ff7350", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Local incoerente", label: "Local incoerente", cor: "#ff7350", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Incoerência urbano/rural", label: "Incoerência urbano/rural", cor: "#ff7350", strokeColor: "#000000", strokeWidth: 1.0},
                         {valor: "Instrumento extinto", label: "Instrumento extinto", cor: "#000000", strokeColor: "#000000", strokeWidth: 0.0},
                         {valor: "Coordenada excluída", label: "Coordenada excluída", cor: "#acacac", strokeColor: "#acacac", strokeWidth: 0.0},
                         {valor: "Coordenada nova/não analisada", label: "Coordenada nova/não analisada", cor: "#ffffff", strokeColor: "#969696", strokeWidth: 2.0},
@@ -548,7 +551,7 @@ export default function MapaSection() {
     useAdicionarLayers(mapRef, layers, filtros);
     useAplicarZoom(mapRef, filtros);
     useAtualizarSources(mapRef, filtros);
-    useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada);
+    const { selecionarCoordenada } = useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada);
     useTrocarSimbologia(mapRef, layers, modoAnalise);  
 
     
@@ -695,7 +698,7 @@ export default function MapaSection() {
         }
     }, [modoAnalise, instrumentoSelecionado, layers]);
 
-    
+    //console.log(coordenadas);
 
     //chama a api pegando os dados das coordenadas do instrumento que estiver filtrado
     //copia os dados vindos da api para dentro de _coordenadaOriginal (_coordenadaOriginal vira um objeto dentro do objeto Coordenadas)
@@ -712,7 +715,7 @@ export default function MapaSection() {
                 setLoading(true);
                 const dadosAnaliseCoordenadas = 
                     await listarDadosAnaliseCoordenadas({nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento, cod_tci: filtros.cod_tci});
-
+                
                 const coordenadas = (dadosAnaliseCoordenadas || []).map(coordenada => ({
                     ...coordenada,
                     _coordenadaOriginal: {
@@ -750,6 +753,47 @@ export default function MapaSection() {
     //apenas testa se dois objetos são iguais
     function objetosIguais(a, b) {
         return JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
+    }
+
+
+
+    //percorrer as coordenadas do instrumento selecionado
+    function navegarCoordenada(direcao) {
+        const map = mapRef.current;
+
+        if (!coordenadas.length) return;
+
+        // Busca o índice da coordenada selecionada atualmente
+        // Aceita tanto featureSelecionada.id_coordenada quanto featureSelecionada.id
+        const idAtual = featureSelecionada?.id_coordenada ?? featureSelecionada?.id;
+        
+        const indiceAtual = featureSelecionada 
+            ? coordenadas.findIndex(c => String(c.id_coordenada ?? c.id) === String(idAtual))
+            : -1;
+            
+        const indiceDestino = indiceAtual + direcao;
+
+        if (indiceDestino < 0 || indiceDestino >= coordenadas.length) return;
+
+        const coordenadaDestino = coordenadas[indiceDestino];
+
+        // A. Passa o OBJETO COMPLETO da coordenada para o hook
+        // (com isso o hook posiciona o pino/marcador e aplica o setFeatureState com segurança)
+        selecionarCoordenada(coordenadaDestino);
+
+        // B. Voa para a posição no mapa
+        if (map) {
+            const lng = Number(coordenadaDestino.longitude ?? coordenadaDestino.lng);
+            const lat = Number(coordenadaDestino.latitude ?? coordenadaDestino.lat);
+
+            if (!isNaN(lng) && !isNaN(lat)) {
+                map.flyTo({
+                    center: [lng, lat],
+                    zoom: 15,
+                    essential: true
+                });
+            }
+        }
     }
 
 
@@ -803,20 +847,20 @@ export default function MapaSection() {
 
 
     //prepara os dados para envio ao backend
-    const montarPayloadAnaliseCoordenadas = () => ({
+    const montarPayloadAnaliseCoordenadas = (observacao = "") => ({
         nr_instrumento: filtros.nr_instrumento,
         nr_proposta: filtros.nr_proposta,
         cod_tci: filtros.cod_tci,
+        observacao: observacao,
         coordenadas: coordenadas
             .filter(coordenada => coordenada._coordenadaAlterada)
             .map(dadosCoordenadaPersistencia)
     });
 
-   
-
+    
     //essa função é chamada quando o usuário clicar no botão de salvar
     //chama montar payload e chama a função que envia os dados ao backend
-    const salvarAnaliseCoordenadas = async () => {
+    const salvarAnaliseCoordenadas = async (observacao) => {
         if (!possuiCoordenadasAlteradas()) return;
 
         setLoading(true);
@@ -824,7 +868,7 @@ export default function MapaSection() {
         setMessageType("");
 
         try {
-            const payload = montarPayloadAnaliseCoordenadas();
+            const payload = montarPayloadAnaliseCoordenadas(observacao);
             const data = await enviarAnaliseCoordenadas(payload);
             
             // Remove a situação temporária das coordenadas que foram salvas
@@ -877,7 +921,7 @@ export default function MapaSection() {
         }
     };
 
-
+    const identificador = filtros?.cod_tci || filtros?.nr_instrumento || filtros?.nr_proposta || "";
 
     return ( 
         <div className={estilos.mapa_box}>
@@ -892,15 +936,21 @@ export default function MapaSection() {
             }
             <button className={estilos.botaoCamadas} onClick={() => setPainelCamadas(!painelCamadas)}> <Layers className={estilos.Icon}/> <p className={estilos.IconTexto}> Camadas</p> </button>
             <button className={estilos.botaoLegenda} onClick={() => setPainelLegenda(!painelLegenda)}> <List className={estilos.Icon}/> <p className={estilos.IconTexto}> Legenda</p> </button>
-            <button className={`${estilos.botaoAnalisarCoordenadas} ${modoAnalise ? estilos.ativo : ""}`} onClick={toggleModoAnalise}> {modoAnalise ? "Análise Ativa" : "Analisar Coordenadas"}</button>
+            <button className={`${estilos.botaoAnalisarCoordenadas} ${modoAnalise ? estilos.ativo : ""}`} onClick={toggleModoAnalise}> {modoAnalise ? `Análise ativa${identificador ? ` - ${identificador}` : ""}`: "Analisar Coordenadas"}</button>
             {painelCamadas && (<CamadasSection layers={layers} toggleLayer={toggleLayer} alterarVariavel={alterarVariavel} setPainelCamadas={setPainelCamadas}/>)}
             {painelLegenda && (<LegendaSection layers={layers} zoomAtual={zoomAtual} setPainelLegenda={setPainelLegenda} painelCamadas={painelCamadas}/>)}
-            <AnaliseCoordenadaSection 
-                featureSelecionada={featureSelecionada}
-                coordenadas={coordenadas}
-                atualizarAnaliseCoordenada={atualizarAnaliseCoordenada}
-                possuiCoordenadasAlteradas={possuiCoordenadasAlteradas()}
-                salvarAnaliseCoordenadas={salvarAnaliseCoordenadas}/>
+            {modoAnalise && (
+                <AnaliseCoordenadaSection 
+                    featureSelecionada={featureSelecionada}
+                    coordenadas={coordenadas}
+                    atualizarAnaliseCoordenada={atualizarAnaliseCoordenada}
+                    possuiCoordenadasAlteradas={possuiCoordenadasAlteradas()}
+                    salvarAnaliseCoordenadas={salvarAnaliseCoordenadas}
+                    navegarCoordenada={navegarCoordenada}
+                    loading={loading}
+                    sucessoEnviado={messageType === "success"}
+                />
+            )}
             <InputSection coord={coord} setCoord={setCoord} irParaCoordenada={irParaCoordenada} limparCoordenada={limparCoordenada}/>
             <div ref={coordRef} className={estilos.coordenadasMouse}> Lat: -- | Lon: -- </div>
             {(painelDetalhe && painelFiltros && filtros.cod_municipio) && (<DetalheSection setPainelDetalhe={setPainelDetalhe}/>)}

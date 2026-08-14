@@ -12,13 +12,11 @@
     border: 1px solid #999;
     border-radius: 4px;
     padding: 8px;
-    z-index: 1;
 }
 
 .painel_opcoes h4 {
-    margin: 0 0 6px 0;
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 500;
 }
 
 .conteudo {
@@ -26,6 +24,7 @@
     flex-direction: column;
     gap: 8px;
     font-size: 13px;
+    margin-top: 6px;
 }
 
 
@@ -36,23 +35,44 @@
 }
 
 .correta {
-    background-color: aquamarine;
+    background-color: #abfde2;
     border-radius: 4px;
 }
 
-.erro_solicitada {
-    background-color: rgb(255, 164, 103);
+.errada {
+    background-color: #ffa892;
     border-radius: 4px;
 }
 
-.erro_solicitar {
-    background-color: rgb(255, 115, 80);
-    border-radius: 4px;
+.caixa_navegacao {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 15px;
+    margin-top: 8px;
+    border-bottom: solid 1px rgb(146, 146, 146);
+}
+
+.texto_navegacao {
+    font-size: 13px;
+    color: blue;
+    cursor: pointer;
+}
+
+.texto_navegacao:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.contador {
+    font-weight: bold;
+    font-size: 12px;
+    padding: 0 8px;
 }
 
 .botao_salvar {
   width: 250px;
-  height: 30px;
+  height: 33px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -61,10 +81,173 @@
   border-radius: 5px;
   background: aliceblue;
   font-size: 14px;
+  font-weight: 500;
 }
 
 .botao_salvar_ativo {
     background: #00529e;
     color: white;
+    cursor: pointer;
+}
+
+/* OVERLAY EM TELA CHEIA (COM BLUR) */
+.overlay_modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.4); 
+    backdrop-filter: blur(4px);            
+    -webkit-backdrop-filter: blur(4px);    
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;                         
+}
+
+
+.janela_confirmacao {
+    width: 480px;                          
+    max-width: 90vw;                       
+    max-height: 95vh;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    border-radius: 8px;
+    background: #ffffff;                  
+    font-size: 13px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.2);
+    animation: surgimentoSuave 0.2s ease-out;
+}
+
+@keyframes surgimentoSuave {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.titulo_confirmacao {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #00529e;
+}
+
+.titulo_comentario {
+    font-size: 12px;
+    font-weight: 400;
+    margin: 3px 0 12px 5px;
+    color: #00529e;
+}
+
+.container_tabela {
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    background-color: #fafafa;
+}
+
+.tabela_resumo {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    text-align: left;
+}
+
+.tabela_resumo th {
+    background-color: #f0f4f8;
+    color: #333;
+    padding: 8px 10px;
+    border-bottom: 1px solid #ccc;
+    position: sticky;
+    top: 0;
+}
+
+.tabela_resumo td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #e5e5e5;
+    vertical-align: middle;
+}
+
+.coluna_id {
+    text-align: center;
+    font-weight: bold;
+    width: 35px;
+}
+
+.item_alterado {
+    font-weight: 600;
+    color: #00529e;
+}
+
+.janela_confirmacao form {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.texto_observacao {
+    width: 100%;
+    height: 80px;
+    box-sizing: border-box;
+    padding: 8px;
+    border: 1px solid #d0d0d0;
+    border-radius: 5px;
+    background-color: white;
+    color: #333;
+    font-size: 14px;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+}
+
+.texto_observacao:focus {
+    border: 1px solid #b0b0b0;
+    outline: none;
+}
+
+.area_botoes_confirmacao {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.botao_cancelar {
+    width: 170px;
+    height: 33px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 5px;
+    background: rgb(255, 34, 34);
+    font-size: 13px;
+    font-weight: 500;
+    color: aliceblue;
+    cursor: pointer;
+}
+
+
+.botao_confirmar {
+    width: 130px;
+    height: 33px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 5px;
+    background: rgb(0, 81, 148);
+    font-size: 13px;
+    font-weight: 500;
+    color: aliceblue;
     cursor: pointer;
 }

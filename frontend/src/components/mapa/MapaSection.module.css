@@ -77,11 +77,12 @@
   background: aliceblue;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 500;
   z-index: 1;
 }
 
 .ativo {
-    background: #1976d2;
+    background: #00943e;
     color: white;
 }
 
