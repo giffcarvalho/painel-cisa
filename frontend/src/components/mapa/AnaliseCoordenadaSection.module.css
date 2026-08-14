@@ -113,7 +113,7 @@
     max-height: 95vh;
     display: flex;
     flex-direction: column;
-    padding: 16px;
+    padding: 15px;
     border-radius: 8px;
     background: #ffffff;                  
     font-size: 13px;
@@ -134,7 +134,7 @@
 }
 
 .titulo_confirmacao {
-    margin: 0 0 12px 0;
+    margin: 0 0 10px 0;
     font-size: 14px;
     font-weight: 600;
     color: #00529e;
@@ -196,7 +196,7 @@
 
 .texto_observacao {
     width: 100%;
-    height: 80px;
+    height: 90px;
     box-sizing: border-box;
     padding: 8px;
     border: 1px solid #d0d0d0;
@@ -213,6 +213,44 @@
     border: 1px solid #b0b0b0;
     outline: none;
 }
+
+.container_pergunta_correcao {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
+.texto_pergunta {
+    font-size: 12px;
+    font-weight: 600;
+    color: #00529e;
+    margin: 0;
+}
+
+.opcoes_radio_correcao {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+}
+
+.label_radio {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    color: #333;
+    cursor: pointer;
+    user-select: none;
+}
+
+.label_radio input[type="radio"] {
+    cursor: pointer;
+    accent-color: #00529e;
+    margin: 0;
+}
+
 
 .area_botoes_confirmacao {
     display: flex;
@@ -250,4 +288,11 @@
     font-weight: 500;
     color: aliceblue;
     cursor: pointer;
+}
+
+
+.botao_confirmar:disabled {
+    background: rgb(219, 219, 219);
+    color: #333;
+    cursor: not-allowed;
 }

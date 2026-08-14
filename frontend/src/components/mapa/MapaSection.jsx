@@ -949,6 +949,7 @@ export default function MapaSection() {
                     navegarCoordenada={navegarCoordenada}
                     loading={loading}
                     sucessoEnviado={messageType === "success"}
+                    identificador={identificador}
                 />
             )}
             <InputSection coord={coord} setCoord={setCoord} irParaCoordenada={irParaCoordenada} limparCoordenada={limparCoordenada}/>
