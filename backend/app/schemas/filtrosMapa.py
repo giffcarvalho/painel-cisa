@@ -1,6 +1,6 @@
 """Schema dos filtros/segmentações do mapa."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Literal
 
 
@@ -103,6 +103,8 @@ class DadosAnaliseCoordenadasItem(BaseModel):
     cod_tci: str
     nr_instrumento: str | None = None
     nr_proposta: str | None = None
+    latitude: float
+    longitude: float
 
 class ListaDadosAnaliseCoordenadas(BaseModel):
     data: list[DadosAnaliseCoordenadasItem]
@@ -114,15 +116,26 @@ class CoordenadaAnaliseCreate(BaseModel):
     cod_tci: str
     situacao_analise: Literal[
         "Correta",
-        "Errada (correção a ser solicitada)",
-        "Errada (correção já solicitada)",
+        "Município errado",
+        "Local genérico - sede",
+        "Local incoerente",
+        "Incoerência urbano/rural",
     ]
 
 class AnaliseCoordenadasCreate(BaseModel):
     nr_instrumento: str | None = None
     nr_proposta: str | None = None
     cod_tci: str | None = None
+    observacao: str | None = None
     coordenadas: list[CoordenadaAnaliseCreate]
+
+    @field_validator("observacao", mode="before")
+    @classmethod
+    def sanitizar_observacao(cls, v: str | None) -> str | None:
+        if isinstance(v, str):
+            v = v.strip()
+            return v if v else None
+        return v
 
 class AnaliseCoordenadasSalvaResponse(BaseModel):
     id_revisao: int

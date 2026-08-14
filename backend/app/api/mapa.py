@@ -1666,7 +1666,9 @@ async def get_dados_analise_coordenadas(
             rev.situacao_analise,
             geo.cod_tci,
             geo.nr_instrumento,
-            geo.nr_proposta
+            geo.nr_proposta,
+            geo.latitude,
+            geo.longitude
         FROM instrumento.vw_geometrias_carteira_dsr geo
         LEFT JOIN rev ON rev.id_coordenada = geo.id_coordenada AND rev.n_linha = 1
     """
@@ -1719,6 +1721,7 @@ async def _criar_revisao_instrumento(
     db: AsyncSession,
     instrumento: InstrumentoRevisaoInfo,
     id_usuario: int,
+    observacao_geral: str | None = None,
 ) -> dict:
     result = await db.execute(
         text(
@@ -1732,6 +1735,7 @@ async def _criar_revisao_instrumento(
                 id_usuario,
                 status,
                 enviado_em,
+                observacao_geral,
                 id_revisao_anterior
             )
             VALUES (
@@ -1743,6 +1747,7 @@ async def _criar_revisao_instrumento(
                 :id_usuario,
                 'enviado',
                 NOW(),
+                NULLIF(BTRIM(:observacao_geral), ''),
                 (
                     SELECT id_revisao
                     FROM painel_dsr.tb_revisao_instrumento anterior
@@ -1769,6 +1774,7 @@ async def _criar_revisao_instrumento(
             "nr_proposta": instrumento.nr_proposta,
             "nr_ted": instrumento.nr_ted,
             "id_usuario": id_usuario,
+            "observacao_geral": observacao_geral,
         },
     )
 
@@ -1898,6 +1904,7 @@ async def salvar_analise_coordenadas(
             db,
             instrumento,
             usuario_atual.id_usuario,
+            observacao_geral=payload.observacao,
         )
 
         id_revisao = revisao["id_revisao"]
