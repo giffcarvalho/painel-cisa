@@ -1,5 +1,7 @@
 import estilos from "./AnaliseCoordenadaSection.module.css";
 import { useState } from "react";
+import { pdf } from '@react-pdf/renderer';
+import { AnaliseCoordenadaPdf } from './AnaliseCoordenadaPdf';
 
 
 export default function AnaliseCoordenadaSection({
@@ -11,11 +13,13 @@ export default function AnaliseCoordenadaSection({
     navegarCoordenada,
     loading,
     sucessoEnviado,
-    identificador
+    identificador,
+    situacaoCorrecao,
+    setSituacaoCorrecao,
+    observacaoGeral,
+    setObservacaoGeral
 }) {
     const [confirmacaoAberta, setConfirmacaoAberta] = useState(false);
-    const [observacao, setObservacao] = useState('');
-    const [correcaoSolicitada, setCorrecaoSolicitada] = useState("Não");
     const coordenada = featureSelecionada? coordenadas.find(c => c.id_coordenada === featureSelecionada.id): null;
     const valorSelecionado = coordenada?.situacao_analise ?? "";
     const indiceAtual = featureSelecionada? coordenadas.findIndex(coordenada => coordenada.id_coordenada === featureSelecionada.id): -1;
@@ -23,30 +27,53 @@ export default function AnaliseCoordenadaSection({
     const posicaoAtual = featureSelecionada && indiceAtual !== -1 ? indiceAtual + 1 : 0;
     const anteriorDesabilitado = coordenadas.length === 0 || indiceAtual <= 0;
     const proximaDesabilitado = coordenadas.length === 0 || (indiceAtual !== -1 && indiceAtual === coordenadas.length - 1);
-    const observacaoInicial = ""; 
-    const correcaoInicial = "Não";
-    const observacaoAlterada = observacao.trim() !== observacaoInicial;
-    const correcaoAlterada = correcaoSolicitada !== correcaoInicial;
-    const formularioAlterado = possuiCoordenadasAlteradas || observacaoAlterada || correcaoAlterada;
-    
     const obterTextoBotao = () => {
-        if (loading) return "Enviando ....";
-        if (!possuiCoordenadasAlteradas) return "Visualizar / Editar dados gerais";
+        if (loading) return "Carregando ....";
+        if (possuiCoordenadasAlteradas) return "Salvar e Enviar análise";
         if (sucessoEnviado) return "Análise Enviada";
-        return "Salvar e Enviar análise";
+        return "Visualizar / Editar dados gerais";
     };
     const abrirConfirmacao = () => {setConfirmacaoAberta(true)};
-    const fecharConfirmacao = () => {
-        setConfirmacaoAberta(false);
-        setObservacao('');
-    };
+    const fecharConfirmacao = () => {setConfirmacaoAberta(false)};
     const submeterConfirmacao = (e) => {
         e.preventDefault();
-        salvarAnaliseCoordenadas(observacao, correcaoSolicitada);
+        salvarAnaliseCoordenadas();
         fecharConfirmacao();
     };
     
-    function alterarAnalise(e) {atualizarAnaliseCoordenada(featureSelecionada.id, e.target.value)}
+    function alterarAnalise(e) {
+        if (featureSelecionada?.id) {
+            atualizarAnaliseCoordenada(featureSelecionada.id, e.target.value);
+        }
+    }
+
+
+    //função para gerar o resumo da anpalise em pdf 
+    const handleExportarPDF = async () => {
+    // 1. Gera o blob do documento PDF passando as props necessárias
+    const blob = await pdf(
+        <AnaliseCoordenadaPdf
+        identificador={identificador}
+        coordenadas={coordenadas}
+        observacaoGeral={observacaoGeral}
+        situacaoCorrecao={situacaoCorrecao}
+        />
+    ).toBlob();
+
+    // 2. Cria um link temporário de download
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = identificador
+        ? `Resumo_Analise_${identificador}.pdf`
+        : 'Resumo_Analise.pdf';
+
+    // 3. Simula o clique para baixar e limpa a memória
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    };
     
 
     return(
@@ -157,31 +184,45 @@ export default function AnaliseCoordenadaSection({
             {confirmacaoAberta && (
                 <div className={estilos.overlay_modal}>
                     <div className={estilos.janela_confirmacao}>
-                        <h4 className={estilos.titulo_confirmacao}>Resumo das Alterações {identificador ? `- Instrumento: ${identificador}` : ''}</h4>
                         
-                        {/* TABELA DE RESUMO */}
+                        <div className={estilos.titulo}>
+                            <h4 className={estilos.titulo_confirmacao}>Resumo da Análise {identificador ? `- Instrumento: ${identificador}` : ''}</h4>
+                            <button 
+                                type="button"
+                                className={estilos.botao_exportar}
+                                onClick={handleExportarPDF}
+                            >
+                                Exportar
+                            </button>
+                        </div>
+
+
                         <div className={estilos.container_tabela}>
                             <table className={estilos.tabela_resumo}>
                                 <thead>
                                     <tr>
-                                        <th>Id</th>
-                                        <th>Análise anterior</th>
-                                        <th>Análise atual</th>
+                                        <th>N</th>
+                                        <th>Latitude</th>
+                                        <th>Longitude</th>
+                                        <th>Análise</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {coordenadas.map((item, index) => {
-                                        const analiseAnterior = item._coordenadaOriginal?.situacao_analise ?? "Sem análise";
-                                        const analiseAtual = item._coordenadaAlterada 
+                                        const analiseExibida = item._coordenadaAlterada
                                             ? (item.situacao_analise || "Sem análise")
-                                            : "(não alterada)";
+                                            : (item._coordenadaOriginal?.situacao_analise || item.situacao_analise || "Sem análise");
+                                        
+                                        const latitudeExibida = item.latitude ?? item._coordenadaOriginal?.latitude ?? "-";
+                                        const longitudeExibida = item.longitude ?? item._coordenadaOriginal?.longitude ?? "-";
 
                                         return (
                                             <tr key={item.id_coordenada || index}>
-                                                <td className={estilos.coluna_id}>{index + 1}</td>
-                                                <td>{analiseAnterior}</td>
+                                                <td className={estilos.coluna_n}>{index + 1}</td>
+                                                <td className={estilos.coluna_l}>{latitudeExibida}</td>
+                                                <td className={estilos.coluna_l}>{longitudeExibida}</td>
                                                 <td className={item._coordenadaAlterada ? estilos.item_alterado : ""}>
-                                                    {analiseAtual}
+                                                    {analiseExibida}
                                                 </td>
                                             </tr>
                                         );
@@ -190,21 +231,15 @@ export default function AnaliseCoordenadaSection({
                             </table>
                         </div>
 
-                        <p className={estilos.titulo_comentario}>
-                            {possuiCoordenadasAlteradas 
-                                ? "Somente as coordenadas com alteração na análise serão enviadas" 
-                                : "Nenhuma alteração de coordenada realizada"}
-                        </p>
-
-                        {/* FORMULÁRIO DE ENVIO */}
+                                                
                         <form onSubmit={submeterConfirmacao}>
                             <textarea
                                 className={estilos.texto_observacao}
                                 rows="3"
                                 maxLength={150}
                                 placeholder="Observação (opcional)"
-                                value={observacao}
-                                onChange={(e) => setObservacao(e.target.value)}
+                                value={observacaoGeral}
+                                onChange={(e) => setObservacaoGeral(e.target.value)}
                             />
 
 
@@ -216,8 +251,8 @@ export default function AnaliseCoordenadaSection({
                                             type="radio"
                                             name="correcaoProponente"
                                             value="Sim"
-                                            checked={correcaoSolicitada === "Sim"}
-                                            onChange={(e) => setCorrecaoSolicitada(e.target.value)}
+                                            checked={situacaoCorrecao === "Sim"}
+                                            onChange={(e) => setSituacaoCorrecao(e.target.value)}
                                         />
                                         Sim
                                     </label>
@@ -227,8 +262,8 @@ export default function AnaliseCoordenadaSection({
                                             type="radio"
                                             name="correcaoProponente"
                                             value="Não"
-                                            checked={correcaoSolicitada === "Não"}
-                                            onChange={(e) => setCorrecaoSolicitada(e.target.value)}
+                                            checked={situacaoCorrecao === "Não"}
+                                            onChange={(e) => setSituacaoCorrecao(e.target.value)}
                                         />
                                         Não
                                     </label>
@@ -238,8 +273,8 @@ export default function AnaliseCoordenadaSection({
                                             type="radio"
                                             name="correcaoProponente"
                                             value="Sem necessidade"
-                                            checked={correcaoSolicitada === "Sem necessidade"}
-                                            onChange={(e) => setCorrecaoSolicitada(e.target.value)}
+                                            checked={situacaoCorrecao === "Sem necessidade"}
+                                            onChange={(e) => setSituacaoCorrecao(e.target.value)}
                                         />
                                         Não há necessidade de solicitar correção
                                     </label>
@@ -258,11 +293,18 @@ export default function AnaliseCoordenadaSection({
                                 <button 
                                     type="submit" 
                                     className={estilos.botao_confirmar}
-                                    disabled={!formularioAlterado || loading}
+                                    disabled={!possuiCoordenadasAlteradas || loading}
                                 >
                                     Confirmar e Enviar
                                 </button>
                             </div>
+
+                            {!possuiCoordenadasAlteradas && (
+                                <p className={estilos.mensagem_alteracao}>
+                                Não há alterações para enviar
+                                </p>
+                            )}
+
                         </form>
                     </div>
                 </div>

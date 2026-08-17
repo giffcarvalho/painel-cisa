@@ -537,15 +537,19 @@ export default function MapaSection() {
     const [featureSelecionada, setFeatureSelecionada] = useState(null);
     const [modoAnalise, setModoAnalise] = useState(false);
     const [coordenadas, setCoordenadas] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [situacaoCorrecao, setSituacaoCorrecao] = useState("Não");
+    const [observacaoGeral, setObservacaoGeral] = useState("");
     const { isAuthenticated, openLoginModal } = useAuth();
-
+    const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('')
     const [messageType, setMessageType] = useState('')
-
+    
     const mapContainer = useRef(null);
     const mapRef = useCriarMapa(mapContainer);
+    
     const coordRef = useRef(null);
+    const situacaoCorrecaoOriginalRef = useRef("Não");
+    const observacaoGeralOriginalRef = useRef("");
 
     //chamada das hooks com as funcionalidades principais
     useAdicionarLayers(mapRef, layers, filtros);
@@ -698,73 +702,14 @@ export default function MapaSection() {
         }
     }, [modoAnalise, instrumentoSelecionado, layers]);
 
-    //console.log(coordenadas);
-
-    //chama a api pegando os dados das coordenadas do instrumento que estiver filtrado
-    //copia os dados vindos da api para dentro de _coordenadaOriginal (_coordenadaOriginal vira um objeto dentro do objeto Coordenadas)
-    //cria a flag _coordenadaAlterada
-    //salva isso dentro do estado Coordenadas
-    useEffect(() => {
-        async function buscarAnaliseCoordenadas() {
-            if (!instrumentoSelecionado) {
-                setCoordenadas([]);
-                return;
-            }
-
-            try {
-                setLoading(true);
-                const dadosAnaliseCoordenadas = 
-                    await listarDadosAnaliseCoordenadas({nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento, cod_tci: filtros.cod_tci});
-                
-                const coordenadas = (dadosAnaliseCoordenadas || []).map(coordenada => ({
-                    ...coordenada,
-                    _coordenadaOriginal: {
-                        id_coordenada: coordenada.id_coordenada,
-                        situacao_analise: coordenada.situacao_analise,
-                        cod_tci: coordenada.cod_tci,
-                    },
-                    _coordenadaAlterada: false,
-                }));
-                
-                setCoordenadas(coordenadas);
-
-            } catch (erro) {
-                console.error(erro);
-            } finally {
-                setLoading(false);
-            }
-        }
         
-        buscarAnaliseCoordenadas();
-
-    }, [filtros.nr_proposta, filtros.nr_instrumento, filtros.cod_tci]);
-   
-      
-
-    //pega um objeto coordenada e limpa as colunas, deixando apenas as colunas que devem persisitir para envio ao backend
-    function dadosCoordenadaPersistencia(coordenada) {
-        return {
-            id_coordenada: coordenada.id_coordenada,
-            situacao_analise: coordenada.situacao_analise ?? null,
-            cod_tci: coordenada.cod_tci,
-        }
-    }
-
-    //apenas testa se dois objetos são iguais
-    function objetosIguais(a, b) {
-        return JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
-    }
-
-
-
-    //percorrer as coordenadas do instrumento selecionado
+    
+    //função para percorrer as coordenadas do instrumento selecionado
     function navegarCoordenada(direcao) {
         const map = mapRef.current;
 
         if (!coordenadas.length) return;
 
-        // Busca o índice da coordenada selecionada atualmente
-        // Aceita tanto featureSelecionada.id_coordenada quanto featureSelecionada.id
         const idAtual = featureSelecionada?.id_coordenada ?? featureSelecionada?.id;
         
         const indiceAtual = featureSelecionada 
@@ -777,11 +722,8 @@ export default function MapaSection() {
 
         const coordenadaDestino = coordenadas[indiceDestino];
 
-        // A. Passa o OBJETO COMPLETO da coordenada para o hook
-        // (com isso o hook posiciona o pino/marcador e aplica o setFeatureState com segurança)
         selecionarCoordenada(coordenadaDestino);
 
-        // B. Voa para a posição no mapa
         if (map) {
             const lng = Number(coordenadaDestino.longitude ?? coordenadaDestino.lng);
             const lat = Number(coordenadaDestino.latitude ?? coordenadaDestino.lat);
@@ -795,6 +737,143 @@ export default function MapaSection() {
             }
         }
     }
+    
+    
+    //chama a api pegando os dados das coordenadas do instrumento que estiver filtrado
+    //copia os dados vindos da api para dentro de _coordenadaOriginal (_coordenadaOriginal vira um objeto dentro do objeto Coordenadas)
+    //cria a flag _coordenadaAlterada
+    //salva isso dentro do estado Coordenadas
+    useEffect(() => {
+        async function buscarAnaliseCoordenadas() {
+            
+            setMessage("");
+            setMessageType("");
+            
+            if (!instrumentoSelecionado) {
+                setCoordenadas([]);
+                setSituacaoCorrecao("Não");
+                setObservacaoGeral("");
+                situacaoCorrecaoOriginalRef.current = "Não";
+                observacaoGeralOriginalRef.current = "";
+                return;
+            }
+
+            try {
+                setLoading(true);
+                const dadosAnaliseCoordenadas = 
+                    await listarDadosAnaliseCoordenadas({nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento, cod_tci: filtros.cod_tci});
+                
+                const listaApi = dadosAnaliseCoordenadas || [];
+                const situacaoCorrecaoInicial = listaApi[0]?.situacao_correcao || "Não";
+                const observacaoGeralInicial = listaApi[0]?.observacao_geral || "";
+                
+                setSituacaoCorrecao(situacaoCorrecaoInicial);
+                setObservacaoGeral(observacaoGeralInicial);
+                situacaoCorrecaoOriginalRef.current = situacaoCorrecaoInicial;
+                observacaoGeralOriginalRef.current = observacaoGeralInicial;    
+
+                const coordenadasMapeadas = listaApi.map(coordenada => ({
+                    ...coordenada,
+                    _coordenadaOriginal: {
+                        id_coordenada: coordenada.id_coordenada,
+                        situacao_analise: coordenada.situacao_analise ?? null,
+                        cod_tci: coordenada.cod_tci,
+                    },
+                    _coordenadaAlterada: false,
+                }));
+
+                setCoordenadas(coordenadasMapeadas);
+
+            } catch (erro) {
+                console.error("Erro ao buscar dados da análise:", erro);
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        buscarAnaliseCoordenadas();
+
+    }, [filtros.nr_proposta, filtros.nr_instrumento, filtros.cod_tci, instrumentoSelecionado]);
+   
+      
+
+    //pega um objeto coordenada e limpa as colunas, deixando apenas as colunas que devem persisitir para envio ao backend
+    const dadosCoordenadaPersistencia = (coordenada) => {
+    
+        const situacaoAtual = coordenada.situacao_analise 
+            ?? coordenada._coordenadaOriginal?.situacao_analise;
+
+        return {
+            id_coordenada: coordenada.id_coordenada,
+            cod_tci: coordenada.cod_tci || filtros.cod_tci || "",
+            situacao_analise: situacaoAtual || "Sem análise"
+        };
+    };
+
+
+
+    //apenas testa se dois objetos são iguais
+    function objetosIguais(a, b) {
+        return JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
+    }
+
+
+
+    //verifica se Houve Alteração Global (Rádio ou Observação)
+    const houveAlteracaoGlobal = () => {
+        const correcaoMudou = (situacaoCorrecao || "Não") !== (situacaoCorrecaoOriginalRef.current || "Não");
+        const obsMudou = (observacaoGeral || "").trim() !== (observacaoGeralOriginalRef.current || "").trim();
+        return correcaoMudou || obsMudou;
+    };
+
+
+    // Reavalia a flag _coordenadaAlterada para todo o array de coordenadas
+    // Se algo global mudou -> TODAS viram true
+    // Se nada global mudou -> Apenas as que mudaram situacao_analise viram true
+    const recalcularAlteracoesCoordenadas = (
+        coordenadasAtuais, 
+        ehGlobalAlterado = houveAlteracaoGlobal()
+    ) => {
+        return coordenadasAtuais.map(c => {
+            const itemAlteradoPontual = !objetosIguais(
+                dadosCoordenadaPersistencia(c),
+                c._coordenadaOriginal
+            );
+
+            return {
+                ...c,
+                _coordenadaAlterada: ehGlobalAlterado || itemAlteradoPontual,
+            };
+        });
+    };
+
+
+    //Handlers para atualização no React (Rádio e Observação)
+    const handleAlterarSituacaoCorrecao = (novaSituacao) => {
+        
+        setMessage("");
+        setMessageType("");
+        setSituacaoCorrecao(novaSituacao);
+        
+        const correcaoMudou = (novaSituacao || "Não") !== (situacaoCorrecaoOriginalRef.current || "Não");
+        const obsMudou = (observacaoGeral || "").trim() !== (observacaoGeralOriginalRef.current || "").trim();
+        const globalAlterado = correcaoMudou || obsMudou;
+
+        setCoordenadas(current => recalcularAlteracoesCoordenadas(current, globalAlterado));
+    };
+
+
+    const handleAlterarObservacaoGeral = (novaObservacao) => {
+        setMessage("");
+        setMessageType("");
+        setObservacaoGeral(novaObservacao);
+
+        const correcaoMudou = (situacaoCorrecao || "Não") !== (situacaoCorrecaoOriginalRef.current || "Não");
+        const obsMudou = (novaObservacao || "").trim() !== (observacaoGeralOriginalRef.current || "").trim();
+        const globalAlterado = correcaoMudou || obsMudou;
+
+        setCoordenadas(current => recalcularAlteracoesCoordenadas(current, globalAlterado));
+    };
 
 
 
@@ -805,9 +884,11 @@ export default function MapaSection() {
     //compara se os dados a serem persistidos de coordendas atualizada são iguais a original, gerando a flag _coordenadaAlterada
     //ou seja essa função atualiza o estado e gera uma flag pra indicar se a atualização efetivou uma alteração ou não
     const atualizarAnaliseCoordenada = (idCoordenada, novaAnalise) => {
-        
-        const map = mapRef.current;
 
+        setMessage("");
+        setMessageType("");
+
+        const map = mapRef.current;
         if (map) {
             map.setFeatureState(
                 {
@@ -821,46 +902,55 @@ export default function MapaSection() {
             );
         }
 
-        setCoordenadas((current) =>
-            current.map((coordenada) => {
+        setCoordenadas((current) => {
+            const atualizadas = current.map((coordenada) => {
                 if (coordenada.id_coordenada !== idCoordenada) return coordenada;
-
-                const atualizado = {
+                return {
                     ...coordenada,
                     situacao_analise: novaAnalise
                 };
+            });
 
-                return {
-                    ...atualizado,
-                    _coordenadaAlterada: !objetosIguais(
-                        dadosCoordenadaPersistencia(atualizado),
-                        coordenada._coordenadaOriginal
-                    ),
-                };
-            })
-        );
+            return recalcularAlteracoesCoordenadas(atualizadas);
+        });
     };
 
     
     //apenas testa se no estado coordenadas, tem alguma coordenada com alteração
-    const possuiCoordenadasAlteradas = () => coordenadas.some(coordenada => coordenada._coordenadaAlterada);
+    const possuiCoordenadasAlteradas = () => {
+        return houveAlteracaoGlobal() || coordenadas.some(c => c._coordenadaAlterada);
+    };
 
 
     //prepara os dados para envio ao backend
-    const montarPayloadAnaliseCoordenadas = (observacao = "") => ({
-        nr_instrumento: filtros.nr_instrumento,
-        nr_proposta: filtros.nr_proposta,
-        cod_tci: filtros.cod_tci,
-        observacao: observacao,
-        coordenadas: coordenadas
-            .filter(coordenada => coordenada._coordenadaAlterada)
-            .map(dadosCoordenadaPersistencia)
-    });
+    const montarPayloadAnaliseCoordenadas = () => {
+        const ehGlobal = houveAlteracaoGlobal();
+
+        const codTciValido = filtros.cod_tci 
+            || coordenadas[0]?.cod_tci 
+            || coordenadas[0]?._coordenadaOriginal?.cod_tci 
+            || "";
+
+        const coordenadasParaEnvio = ehGlobal
+            ? coordenadas.map(dadosCoordenadaPersistencia)
+            : coordenadas
+                .filter(c => c._coordenadaAlterada)
+                .map(dadosCoordenadaPersistencia);
+
+        return {
+            nr_instrumento: filtros.nr_instrumento || "",
+            nr_proposta: filtros.nr_proposta || "",
+            cod_tci: codTciValido,
+            situacao_correcao: situacaoCorrecao || "Não",
+            observacao_geral: (observacaoGeral || "").trim(),
+            coordenadas: coordenadasParaEnvio
+        };
+    };
 
     
     //essa função é chamada quando o usuário clicar no botão de salvar
     //chama montar payload e chama a função que envia os dados ao backend
-    const salvarAnaliseCoordenadas = async (observacao) => {
+    const salvarAnaliseCoordenadas = async () => {
         if (!possuiCoordenadasAlteradas()) return;
 
         setLoading(true);
@@ -868,43 +958,48 @@ export default function MapaSection() {
         setMessageType("");
 
         try {
-            const payload = montarPayloadAnaliseCoordenadas(observacao);
+            const payload = montarPayloadAnaliseCoordenadas();
+            
             const data = await enviarAnaliseCoordenadas(payload);
             
-            // Remove a situação temporária das coordenadas que foram salvas
             const map = mapRef.current;
             if (map) {
                 const source = map.getSource("geometrias_carteira_dsr");
-                
                 if (source) {
                     const url = `${urlGeometriasCarteiraDsr(filtros)}&t=${Date.now()}`;
                     source.setTiles([url]);
                 }
 
                 payload.coordenadas.forEach((coordenada) => {
-                    map.removeFeatureState(
-                        {
+                    if (coordenada?.id_coordenada !== undefined && coordenada?.id_coordenada !== null) {
+                        const target = {
                             source: "geometrias_carteira_dsr",
                             sourceLayer: "pontos",
                             id: coordenada.id_coordenada
-                        },
-                        "situacaoAnalise"
-                    );
+                        };
+
+                        try {
+                            const estadoAtual = map.getFeatureState(target);
+                            if (estadoAtual && Object.keys(estadoAtual).length > 0) {
+                                map.removeFeatureState(target, "situacaoAnalise");
+                            }
+                        } catch (erroMapbox) {
+                            console.warn(`Aviso ao limpar estado da coordenada ${coordenada.id_coordenada}:`, erroMapbox);
+                        }
+                    }
                 });
             }
 
-            setCoordenadas(current =>
-                current.map(coordenada => {
-                    if (!coordenada._coordenadaAlterada) {
-                        return coordenada;
-                    }
+            // Atualiza as referências originais com o novo estado salvo
+            situacaoCorrecaoOriginalRef.current = situacaoCorrecao;
+            observacaoGeralOriginalRef.current = observacaoGeral;
 
-                    return {
-                        ...coordenada,
-                        _coordenadaOriginal: dadosCoordenadaPersistencia(coordenada),
-                        _coordenadaAlterada: false,
-                    };
-                })
+            setCoordenadas(current =>
+                current.map(coordenada => ({
+                    ...coordenada,
+                    _coordenadaOriginal: dadosCoordenadaPersistencia(coordenada),
+                    _coordenadaAlterada: false,
+                }))
             );
             
             setMessage(data.mensagem);
@@ -920,6 +1015,9 @@ export default function MapaSection() {
             setLoading(false);
         }
     };
+
+    //console.log(coordenadas)
+    //console.log(payload);
 
     const identificador = filtros?.cod_tci || filtros?.nr_instrumento || filtros?.nr_proposta || "";
 
@@ -950,6 +1048,10 @@ export default function MapaSection() {
                     loading={loading}
                     sucessoEnviado={messageType === "success"}
                     identificador={identificador}
+                    situacaoCorrecao={situacaoCorrecao}
+                    setSituacaoCorrecao={handleAlterarSituacaoCorrecao}
+                    observacaoGeral={observacaoGeral}
+                    setObservacaoGeral={handleAlterarObservacaoGeral}
                 />
             )}
             <InputSection coord={coord} setCoord={setCoord} irParaCoordenada={irParaCoordenada} limparCoordenada={limparCoordenada}/>

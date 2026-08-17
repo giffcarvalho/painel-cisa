@@ -90,7 +90,7 @@
     cursor: pointer;
 }
 
-/* OVERLAY EM TELA CHEIA (COM BLUR) */
+
 .overlay_modal {
     position: fixed;
     top: 0;
@@ -133,6 +133,13 @@
     }
 }
 
+
+.titulo {
+    display: flex;
+    justify-content: space-between;
+}
+
+
 .titulo_confirmacao {
     margin: 0 0 10px 0;
     font-size: 14px;
@@ -140,11 +147,18 @@
     color: #00529e;
 }
 
-.titulo_comentario {
+
+.botao_exportar {
+    margin: 0 5px 10px 0;
     font-size: 12px;
-    font-weight: 400;
-    margin: 3px 0 12px 5px;
-    color: #00529e;
+    font-weight: 600;
+    padding: 0 8px 0 8px;
+    border-radius: 4px;
+}
+
+.botao_exportar:hover {
+    background-color: #b5d5ff;
+    cursor: pointer;
 }
 
 .container_tabela {
@@ -177,10 +191,14 @@
     vertical-align: middle;
 }
 
-.coluna_id {
+.coluna_n {
     text-align: center;
     font-weight: bold;
     width: 35px;
+}
+
+.coluna_l {
+    font-size: 11px;
 }
 
 .item_alterado {
@@ -203,6 +221,7 @@
     border-radius: 5px;
     background-color: white;
     color: #333;
+    margin-top: 8px;
     font-size: 14px;
     font-family: inherit;
     resize: none;
@@ -295,4 +314,13 @@
     background: rgb(219, 219, 219);
     color: #333;
     cursor: not-allowed;
+}
+
+
+.mensagem_alteracao {
+    font-size: 12px;
+    font-weight: 400;
+    align-self: flex-end;
+    margin: 3px 0 0 0;
+    color: #00529e;
 }
