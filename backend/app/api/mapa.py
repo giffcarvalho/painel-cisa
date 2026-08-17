@@ -1392,10 +1392,7 @@ async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMa
             SELECT
                 id_coordenada,
                 situacao_analise,
-                ROW_NUMBER() OVER (
-                    PARTITION BY id_coordenada
-                    ORDER BY criado_em DESC
-                ) AS n_linha
+                ROW_NUMBER() OVER (PARTITION BY id_coordenada ORDER BY criado_em DESC) AS n_linha
             FROM painel_dsr.tb_revisao_instrumento_coordenada
         )
         SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom', 'id_coordenada') AS mvt
@@ -1421,7 +1418,9 @@ async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMa
                         ct.situacao_obra ILIKE 'cancelada'
                     THEN 'Instrumento extinto'
                     WHEN ct.ativo IS FALSE THEN 'Coordenada excluída'
-                    WHEN ua.situacao_analise IS NULL THEN 'Coordenada nova/não analisada'
+                    WHEN
+                        ua.situacao_analise IS NULL OR
+                        ua.situacao_analise ILIKE 'Sem análise' THEN 'Coordenada nova/não analisada'
                     ELSE ua.situacao_analise
                 END AS situacao_analise,
                 ct.ativo,
@@ -1627,8 +1626,8 @@ async def get_dados_municipios(
 #---------------------------Funcionalidade de análise das coordenadas--------------------------------
 
 # rota que busca na tabela do banco os dados de siuação atual da análise das coordenadas
-# não foi usado o build where nessa rota, pois ela precisaria de alias. O where é construído com if
-@router.get("/dados_analise_coordenadas", response_model=ListaDadosAnaliseCoordenadas, summary="Dados da situação da última análise das coordenadas")
+# não foi usado o build where nessa rota, pois ela precisaria de alias. Como alternativa, o where foi construído com if
+@router.get("/dados_analise_coordenadas", response_model=ListaDadosAnaliseCoordenadas, summary="Busca os dados da última análise das coordenadas")
 async def get_dados_analise_coordenadas(
     response: Response,
     filtros: FiltrosMapa = Depends(),
@@ -1652,40 +1651,41 @@ async def get_dados_analise_coordenadas(
         params["cod_tci"] = filtros.cod_tci
 
     sql = """
-        WITH
-        rev AS (
-        SELECT
-            id_coordenada,
-            situacao_analise,
-            cod_tci,
-            ROW_NUMBER() OVER(PARTITION BY id_coordenada ORDER BY criado_em DESC) AS n_linha
-        FROM painel_dsr.tb_revisao_instrumento_coordenada
+        WITH ultimas_revisoes_coord AS (
+            SELECT DISTINCT ON (rc.id_coordenada)
+                rc.id_coordenada,
+                rc.id_revisao,
+                rc.situacao_analise,
+                rc.situacao_correcao
+            FROM painel_dsr.tb_revisao_instrumento_coordenada rc
+            ORDER BY rc.id_coordenada, rc.criado_em DESC NULLS LAST
         )
         SELECT
             geo.id_coordenada,
-            rev.situacao_analise,
             geo.cod_tci,
             geo.nr_instrumento,
             geo.nr_proposta,
             geo.latitude,
-            geo.longitude
+            geo.longitude,
+            rc.situacao_analise,
+            rc.situacao_correcao,
+            ri.observacao_geral
         FROM instrumento.vw_geometrias_carteira_dsr geo
-        LEFT JOIN rev ON rev.id_coordenada = geo.id_coordenada AND rev.n_linha = 1
+        LEFT JOIN ultimas_revisoes_coord rc ON rc.id_coordenada = geo.id_coordenada
+        LEFT JOIN painel_dsr.tb_revisao_instrumento ri ON ri.id_revisao = rc.id_revisao
     """
     
     if clauses:
         sql += " WHERE " + " AND ".join(clauses)
 
-    sql += """
-        ORDER BY geo.id_coordenada
-    """
 
     result = await _execute_query(db, sql, params)
     return ListaDadosAnaliseCoordenadas(data=[DadosAnaliseCoordenadasItem(**row) for row in result.mappings().all()])
 
 
 
-#chama _buscar_instrumento_carteira que busca o instrumento no banco e mont um objeto instrumento com os dados do instrumento
+
+#chama _buscar_instrumento_carteira que busca o instrumento no banco e monta um objeto instrumento com os dados do instrumento
 async def _buscar_instrumento_para_analise(
     db: AsyncSession,
     *,
@@ -1783,10 +1783,16 @@ async def _criar_revisao_instrumento(
 
 
 # função que busca no banco a ultima análise de cada coordenada para testar se realmente o que veio do frontend está alterando a situação de alguma coordenada
-# o resultado disso é usado depois para que somente seja enviado ao banco novos registros de revisão se realmente chegou alguma situação nova
+#além da situacao_analise de cada coordenadas, deve ser testado também:
+    #se houve alteração em situacao_correcao (que também está em tb_revisao_instrumento_coordenada)
+    #se houve alteração em observacao_geral (que está em tb_revisao_instrumento)
+#então, se houve alteracao somente em situacao_analise, a função continua só retornando as coordenadas que sofreram essa alteração
+#mas se houve alteração em observacao_geral ou situacao_correcao todas as coordenadas devem ser consideradas alteradas, pois esses campos são comuns a todas as coordenadas 
 async def _buscar_coordenadas_alteradas(
     db: AsyncSession,
     coordenadas: list[CoordenadaAnaliseCreate],
+    nova_observacao: str | None,
+    nova_situacao_correcao: str | None,
 ) -> list[CoordenadaAnaliseCreate]:
 
     if not coordenadas:
@@ -1794,33 +1800,45 @@ async def _buscar_coordenadas_alteradas(
 
     ids_coordenadas = [c.id_coordenada for c in coordenadas]
 
-    result = await db.execute(
-        text(
-            """
-            SELECT DISTINCT ON (id_coordenada)
-                id_coordenada,
-                situacao_analise
-            FROM painel_dsr.tb_revisao_instrumento_coordenada
-            WHERE id_coordenada = ANY(:ids_coordenadas)
-            ORDER BY id_coordenada, criado_em DESC
-            """
-        ),
-        {
-            "ids_coordenadas": ids_coordenadas,
-        },
-    )
+    sql = """
+        SELECT DISTINCT ON (rc.id_coordenada)
+            rc.id_coordenada,
+            rc.situacao_analise,
+            rc.situacao_correcao,
+            ri.observacao_geral
+        FROM painel_dsr.tb_revisao_instrumento_coordenada rc
+        INNER JOIN painel_dsr.tb_revisao_instrumento ri ON ri.id_revisao = rc.id_revisao
+        WHERE rc.id_coordenada = ANY(:ids_coordenadas)
+        ORDER BY rc.id_coordenada, rc.criado_em DESC
+    """
 
-    situacoes_atuais = {
-        row["id_coordenada"]: row["situacao_analise"]
-        for row in result.mappings()
-    }
+    result = await db.execute(text(sql), {"ids_coordenadas": ids_coordenadas})
+    linhas_banco = result.mappings().all()
+    
+    dados_atuais_banco = {row["id_coordenada"]: row for row in linhas_banco}
 
-    return [
-        coordenada
-        for coordenada in coordenadas
-        if situacoes_atuais.get(coordenada.id_coordenada)
-        != coordenada.situacao_analise
-    ]
+    if not dados_atuais_banco:
+        return coordenadas
+
+    primeira_linha = linhas_banco[0]
+    obs_atual_banco = primeira_linha["observacao_geral"]
+    correcao_atual_banco = primeira_linha["situacao_correcao"]
+    
+    obs_mudou = (obs_atual_banco or None) != (nova_observacao or None)
+    correcao_mudou = (correcao_atual_banco or None) != (nova_situacao_correcao or None)
+    
+    if obs_mudou or correcao_mudou:
+        return coordenadas
+    
+    coordenadas_alteradas = []
+    for c in coordenadas:
+        dado_banco = dados_atuais_banco.get(c.id_coordenada)
+        
+        
+        if not dado_banco or dado_banco["situacao_analise"] != c.situacao_analise:
+            coordenadas_alteradas.append(c)
+
+    return coordenadas_alteradas
 
 
 
@@ -1829,6 +1847,7 @@ async def _buscar_coordenadas_alteradas(
 async def _persistir_coordenada_revisao(
     db: AsyncSession,
     id_revisao: int,
+    situacao_correcao: str | None,
     coordenada: CoordenadaAnaliseCreate,
 ) -> dict:
     result = await db.execute(
@@ -1838,13 +1857,15 @@ async def _persistir_coordenada_revisao(
                 id_revisao,
                 id_coordenada,
                 cod_tci,
-                situacao_analise
+                situacao_analise,
+                situacao_correcao
             )
             VALUES (
                 :id_revisao,
                 :id_coordenada,
                 :cod_tci,
-                :situacao_analise
+                :situacao_analise,
+                :situacao_correcao
             )
             RETURNING
                 id_revisao_coordenada,
@@ -1852,6 +1873,7 @@ async def _persistir_coordenada_revisao(
                 id_coordenada,
                 cod_tci,
                 situacao_analise,
+                situacao_correcao,
                 criado_em
             """
         ),
@@ -1860,6 +1882,7 @@ async def _persistir_coordenada_revisao(
             "id_coordenada": coordenada.id_coordenada,
             "cod_tci": coordenada.cod_tci,
             "situacao_analise": coordenada.situacao_analise,
+            "situacao_correcao": situacao_correcao,
         },
     )
 
@@ -1875,7 +1898,7 @@ async def _persistir_coordenada_revisao(
     "/analise_coordenadas",
     response_model=AnaliseCoordenadasSalvaResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Salva análise das coordenadas",
+    summary="Coordena o salvamento da análise das coordenadas",
 )
 async def salvar_analise_coordenadas(
     payload: AnaliseCoordenadasCreate,
@@ -1892,7 +1915,13 @@ async def salvar_analise_coordenadas(
             cod_tci=payload.cod_tci,
         )
 
-        coordenadas_alteradas = await _buscar_coordenadas_alteradas(db, payload.coordenadas)
+        # Passamos também os campos globais para testar alterações
+        coordenadas_alteradas = await _buscar_coordenadas_alteradas(
+            db, 
+            payload.coordenadas,
+            nova_observacao=payload.observacao_geral,
+            nova_situacao_correcao=payload.situacao_correcao
+        )
         
         if not coordenadas_alteradas:
             return AnaliseCoordenadasSalvaResponse(
@@ -1904,7 +1933,7 @@ async def salvar_analise_coordenadas(
             db,
             instrumento,
             usuario_atual.id_usuario,
-            observacao_geral=payload.observacao,
+            observacao_geral=payload.observacao_geral,
         )
 
         id_revisao = revisao["id_revisao"]
@@ -1913,7 +1942,8 @@ async def salvar_analise_coordenadas(
             await _persistir_coordenada_revisao(
                 db,
                 id_revisao,
-                coordenada,
+                situacao_correcao=payload.situacao_correcao, # <--- vírgula corrigida
+                coordenada=coordenada,
             )
 
         await db.commit()
