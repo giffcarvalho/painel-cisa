@@ -29,9 +29,9 @@ export default function AnaliseCoordenadaSection({
     const proximaDesabilitado = coordenadas.length === 0 || (indiceAtual !== -1 && indiceAtual === coordenadas.length - 1);
     const obterTextoBotao = () => {
         if (loading) return "Carregando ....";
-        if (possuiCoordenadasAlteradas) return "Salvar e Enviar análise";
+        if (possuiCoordenadasAlteradas) return "Ver resumo / Salvar";
         if (sucessoEnviado) return "Análise Enviada";
-        return "Visualizar / Editar dados gerais";
+        return "Ver resumo / Salvar";
     };
     const abrirConfirmacao = () => {setConfirmacaoAberta(true)};
     const fecharConfirmacao = () => {setConfirmacaoAberta(false)};
@@ -50,29 +50,34 @@ export default function AnaliseCoordenadaSection({
 
     //função para gerar o resumo da anpalise em pdf 
     const handleExportarPDF = async () => {
-    // 1. Gera o blob do documento PDF passando as props necessárias
-    const blob = await pdf(
-        <AnaliseCoordenadaPdf
-        identificador={identificador}
-        coordenadas={coordenadas}
-        observacaoGeral={observacaoGeral}
-        situacaoCorrecao={situacaoCorrecao}
-        />
-    ).toBlob();
+    
+        const blob = await pdf(
+            <AnaliseCoordenadaPdf
+            identificador={identificador}
+            coordenadas={coordenadas}
+            observacaoGeral={observacaoGeral}
+            situacaoCorrecao={situacaoCorrecao}
+            />
+        ).toBlob();
 
-    // 2. Cria um link temporário de download
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = identificador
-        ? `Resumo_Analise_${identificador}.pdf`
-        : 'Resumo_Analise.pdf';
+        const identificadorFormatado = identificador 
+            ? String(identificador).trim().replace(/[/\\?%*:|"<>]/g, '-')
+            : null;
 
-    // 3. Simula o clique para baixar e limpa a memória
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+        const nomeArquivo = identificadorFormatado
+            ? `Analise_Coordenadas_Instrumento_${identificadorFormatado}.pdf`
+            : 'Analise_Coordenadas.pdf';
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = nomeArquivo;
+
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     };
     
 
@@ -192,7 +197,7 @@ export default function AnaliseCoordenadaSection({
                                 className={estilos.botao_exportar}
                                 onClick={handleExportarPDF}
                             >
-                                Exportar
+                                Gerar pdf
                             </button>
                         </div>
 
@@ -280,6 +285,13 @@ export default function AnaliseCoordenadaSection({
                                     </label>
                                 </div>
                             </div>
+                            
+
+                            {!possuiCoordenadasAlteradas && (
+                                <p className={estilos.mensagem_alteracao}>
+                                Não há alterações para enviar
+                                </p>
+                            )}
 
 
                             <div className={estilos.area_botoes_confirmacao}>
@@ -288,7 +300,7 @@ export default function AnaliseCoordenadaSection({
                                     className={estilos.botao_cancelar} 
                                     onClick={fecharConfirmacao}
                                 >
-                                    Voltar e continuar análise
+                                    Voltar
                                 </button>
                                 <button 
                                     type="submit" 
@@ -298,18 +310,10 @@ export default function AnaliseCoordenadaSection({
                                     Confirmar e Enviar
                                 </button>
                             </div>
-
-                            {!possuiCoordenadasAlteradas && (
-                                <p className={estilos.mensagem_alteracao}>
-                                Não há alterações para enviar
-                                </p>
-                            )}
-
                         </form>
                     </div>
                 </div>
             )}
-
         </div>
     )
 }

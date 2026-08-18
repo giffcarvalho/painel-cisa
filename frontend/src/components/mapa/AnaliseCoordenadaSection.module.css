@@ -113,7 +113,7 @@
     max-height: 95vh;
     display: flex;
     flex-direction: column;
-    padding: 15px;
+    padding: 12px;
     border-radius: 8px;
     background: #ffffff;                  
     font-size: 13px;
@@ -154,10 +154,11 @@
     font-weight: 600;
     padding: 0 8px 0 8px;
     border-radius: 4px;
+    background-color: rgb(0, 81, 148);
+    color: aliceblue;
 }
 
 .botao_exportar:hover {
-    background-color: #b5d5ff;
     cursor: pointer;
 }
 
@@ -270,16 +271,23 @@
     margin: 0;
 }
 
+.mensagem_alteracao {
+    font-size: 12px;
+    font-weight: 400;
+    align-self: flex-end;
+    margin: 3px 0 0 0;
+    color: #00529e;
+}
 
 .area_botoes_confirmacao {
     display: flex;
     justify-content: space-between;
     gap: 8px;
-    margin-top: 8px;
+    margin-top: 4px;
 }
 
 .botao_cancelar {
-    width: 170px;
+    width: 100px;
     height: 33px;
     display: flex;
     flex-direction: column;
@@ -317,10 +325,3 @@
 }
 
 
-.mensagem_alteracao {
-    font-size: 12px;
-    font-weight: 400;
-    align-self: flex-end;
-    margin: 3px 0 0 0;
-    color: #00529e;
-}
