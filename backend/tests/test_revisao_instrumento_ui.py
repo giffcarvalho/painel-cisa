@@ -10,6 +10,7 @@ ARQUIVO = (
     / "revisao-instrumento"
     / "RevisaoInstrumento.jsx"
 )
+ARQUIVO_VISUALIZACAO = ARQUIVO.with_name("VisualizarRevisao.jsx")
 
 
 class RevisaoInstrumentoRenderizacaoTest(unittest.TestCase):
@@ -50,6 +51,31 @@ class RevisaoInstrumentoRenderizacaoTest(unittest.TestCase):
         self.assertIn("const [municipios, setMunicipios] = useState([])", self.codigo)
         self.assertIn("const montarPayloadRevisao", self.codigo)
         self.assertIn("municipios\n      .filter(municipioTemAlteracoes)", self.codigo)
+
+    def test_status_exibe_id_real_e_oferece_visualizacao(self):
+        self.assertIn("Revisão nº ${revisaoPendente.id_revisao}", self.codigo)
+        self.assertIn("Visualizar revisão nº", self.codigo)
+        self.assertIn("revisao_pendente_aplicacao.id_revisao", self.codigo)
+
+
+class VisualizacaoRevisaoSomenteLeituraTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.codigo = ARQUIVO_VISUALIZACAO.read_text(encoding="utf-8")
+
+    def test_ficha_nao_chama_endpoints_de_persistencia(self):
+        self.assertIn("buscarRevisaoEnviada", self.codigo)
+        self.assertNotIn("salvarRevisao", self.codigo)
+        self.assertNotIn("salvarMunicipio", self.codigo)
+
+    def test_ficha_nao_renderiza_campos_editaveis(self):
+        self.assertNotIn("<input", self.codigo)
+        self.assertNotIn("<textarea", self.codigo)
+        self.assertNotIn("<select", self.codigo)
+
+    def test_ficha_identifica_revisao_especifica(self):
+        self.assertIn("Revisão nº {revisao.id_revisao}", self.codigo)
+        self.assertIn("idRevisao", self.codigo)
 
 
 if __name__ == "__main__":

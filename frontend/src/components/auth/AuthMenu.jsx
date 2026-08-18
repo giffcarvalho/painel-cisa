@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { ChevronDown, LogIn, LogOut } from 'lucide-react'
+import { ChevronDown, History, LogIn, LogOut } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/auth/useAuth'
 import styles from './AuthMenu.module.css'
@@ -91,6 +91,11 @@ export default function AuthMenu({ className = '', compactOnMobile = false }) {
     navigate('/', { replace: true })
   }
 
+  function handleMinhasRevisoes() {
+    setIsOpen(false)
+    navigate('/minhas-revisoes')
+  }
+
   if (!isAuthenticated) {
     return (
       <div className={`${styles.container} ${className}`}>
@@ -132,6 +137,10 @@ export default function AuthMenu({ className = '', compactOnMobile = false }) {
             {profile && <span>{profile}</span>}
           </div>
           <div className={styles.divider} />
+          <button type="button" className={styles.menuButton} role="menuitem" onClick={handleMinhasRevisoes}>
+            <History aria-hidden="true" />
+            Minhas revisões
+          </button>
           <button type="button" className={styles.logoutButton} role="menuitem" onClick={handleLogout}>
             <LogOut aria-hidden="true" />
             Sair

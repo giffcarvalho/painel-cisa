@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Check, ChevronDown, Plus, Save, Search, Send, X } from 'lucide-react'
+import { Check, ChevronDown, History, Plus, Save, Search, Send, X } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { revisaoInstrumentoApi } from '@/api/revisaoInstrumento'
 import { useAuth } from '@/context/auth/useAuth'
@@ -362,7 +362,7 @@ function contextoRevisao(data, usuarioAtualNome) {
     const enviadaEm = formatarDataAtualizacaoRascunho(revisaoPendente.enviado_em)
     const quantidade = data?.quantidade_revisoes_pendentes ?? 1
     return {
-      status: `Revisão enviada por ${responsavel} — aguardando aplicação`,
+      status: `Revisão nº ${revisaoPendente.id_revisao} enviada por ${responsavel} — aguardando aplicação`,
       tone: 'sent',
       responsavel: null,
       detalhe: `${enviadaEm ? `Enviada em ${enviadaEm}. ` : ''}Os dados exibidos ainda correspondem à base oficial anterior.${
@@ -1737,6 +1737,26 @@ export default function RevisaoInstrumento() {
                   {contextoAtual.responsavel && contextoAtual.detalhe && <span aria-hidden="true"> · </span>}
                   {contextoAtual.detalhe}
                 </p>
+                <button
+                  type="button"
+                  className={styles.viewRevisionButton}
+                  onClick={() => navigate(
+                    `/revisao-instrumento/${encodeURIComponent(instrumento.identificador_busca)}/revisoes`
+                  )}
+                >
+                  Histórico de revisões
+                </button>
+                {dadosBusca?.revisao_pendente_aplicacao?.id_revisao && (
+                  <button
+                    type="button"
+                    className={styles.viewRevisionButton}
+                    onClick={() => navigate(
+                      `/revisao-instrumento/${encodeURIComponent(instrumento.identificador_busca)}/revisoes/${dadosBusca.revisao_pendente_aplicacao.id_revisao}`
+                    )}
+                  >
+                    Visualizar revisão nº {dadosBusca.revisao_pendente_aplicacao.id_revisao}
+                  </button>
+                )}
                 {dadosBusca?.revisao_pendente_aplicacao && (
                   <p className={styles.reviewContextNotice} role="status">
                     {descricaoRascunhoGlobal(dadosBusca) || 'Sem rascunho atual'}

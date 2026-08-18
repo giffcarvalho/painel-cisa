@@ -15,6 +15,8 @@ import MapLayout from './components/layout/MapLayout'
 import PesquisaInstrumento from './pages/pesquisa-instrumento/PesquisaInstrumento'
 import ConsultaPersonalizada from './pages/consulta-personalizada/ConsultaPersonalizada'
 import RevisaoInstrumento from './pages/revisao-instrumento/RevisaoInstrumento'
+import VisualizarRevisao from './pages/revisao-instrumento/VisualizarRevisao'
+import HistoricoRevisoes from './pages/revisao-instrumento/HistoricoRevisoes'
 import Login from './pages/login/Login'
 
 const Mapa = lazy(() => import('@/pages/mapa/Mapa'))
@@ -58,6 +60,30 @@ export const router = createBrowserRouter([
             element: (
             <ProtectedRoute>
             <RevisaoInstrumento />
+            </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'minhas-revisoes',
+            element: (
+            <ProtectedRoute>
+            <HistoricoRevisoes escopo="pessoal" />
+            </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'revisao-instrumento/:numeroInstrumento/revisoes',
+            element: (
+            <ProtectedRoute>
+            <HistoricoRevisoes escopo="instrumento" />
+            </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'revisao-instrumento/:numeroInstrumento/revisoes/:idRevisao',
+            element: (
+            <ProtectedRoute>
+            <VisualizarRevisao />
             </ProtectedRoute>
             ),
           },

@@ -1932,6 +1932,22 @@ button:disabled {
   color: #475569;
 }
 
+.viewRevisionButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: start;
+  border: 0;
+  padding: 2px 0;
+  background: transparent;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .reviewContextMessage {
   color: #1e40af;
   font-weight: 600;

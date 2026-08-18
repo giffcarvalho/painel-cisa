@@ -238,6 +238,55 @@ class RevisaoInstrumentoBuscaResponse(RevisaoInstrumentoBase):
     completude: dict[str, Any] = Field(default_factory=dict)
 
 
+class UsuarioRevisaoInfo(RevisaoInstrumentoBase):
+    id_usuario: int
+    nome: str
+
+
+class RevisaoInstrumentoDetalheResponse(RevisaoInstrumentoBase):
+    id_revisao: int
+    id_revisao_anterior: int | None = None
+    status: str
+    observacao_geral: str | None = None
+    criado_em: datetime
+    atualizado_em: datetime
+    enviado_em: datetime | None = None
+    aplicado_em: datetime | None = None
+    base_referencia_em: datetime | None = None
+    identificador_busca: str
+    instrumento: InstrumentoRevisaoInfo
+    usuario: UsuarioRevisaoInfo
+    municipios: list[MunicipioRevisaoItem] = Field(default_factory=list)
+    publico_alvo: list[PublicoAlvoRevisaoItem] = Field(default_factory=list)
+
+
+class RevisaoHistoricoItem(RevisaoInstrumentoBase):
+    id_revisao: int
+    id_revisao_anterior: int | None = None
+    identificador_busca: str
+    tipo_instrumento: TipoInstrumento
+    nr_instrumento: str | None = None
+    nr_proposta: str | None = None
+    nr_ted: int | None = None
+    objeto: str | None = None
+    status: str
+    status_label: str
+    criado_em: datetime
+    atualizado_em: datetime
+    enviado_em: datetime | None = None
+    aplicado_em: datetime | None = None
+    usuario: UsuarioRevisaoInfo
+
+
+class HistoricoRevisoesResponse(RevisaoInstrumentoBase):
+    data: list[RevisaoHistoricoItem] = Field(default_factory=list)
+    pagina: int
+    limite: int
+    total: int
+    total_paginas: int
+    instrumento: InstrumentoRevisaoInfo | None = None
+
+
 class MeuInstrumentoRevisaoItem(RevisaoInstrumentoBase):
     nr_instrumento: str | None = None
     nr_proposta: str | None = None

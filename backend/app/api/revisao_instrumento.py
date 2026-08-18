@@ -14,6 +14,7 @@ from app.core.database import get_db
 from app.schemas.auth import UsuarioAutenticado
 from app.schemas.revisao_instrumento import (
     InstrumentoRevisaoInfo,
+    HistoricoRevisoesResponse,
     MeuInstrumentoRevisaoItem,
     MeusInstrumentosRevisaoResponse,
     MunicipioOficialItem,
@@ -27,9 +28,12 @@ from app.schemas.revisao_instrumento import (
     PublicoAlvoRevisaoItem,
     RevisaoInstrumentoBuscaResponse,
     RevisaoInstrumentoCreate,
+    RevisaoInstrumentoDetalheResponse,
     RevisaoInstrumentoMunicipioSave,
     RevisaoInstrumentoMunicipioSalvoResponse,
     RevisaoInstrumentoSalvoResponse,
+    RevisaoHistoricoItem,
+    UsuarioRevisaoInfo,
 )
 from app.services.permissoes_revisao import exigir_permissao_edicao, pode_editar_instrumento
 
@@ -138,6 +142,10 @@ def calcular_status_revisao(
 
 def _label_status_revisao(status_revisao: str) -> str:
     return STATUS_REVISAO_LABELS.get(status_revisao, STATUS_REVISAO_LABELS["pendente"])
+
+
+def _label_status_historico(aplicado_em) -> str:
+    return "Aplicada" if aplicado_em is not None else "Enviada — aguardando aplicação"
 
 
 def _item_tem_conferencia(acao: str | None) -> bool:
@@ -1375,19 +1383,34 @@ async def _carregar_revisao_salva(
         db,
         """
         SELECT
-            id_revisao_localidade,
-            cod_municipio,
-            cod_comunidade_rural,
-            nome_localidade_informada,
-            origem_registro,
-            acao_sugerida,
-            qtde_familias_ben_original,
-            qtde_familias_ben_sugerida,
-            justificativa,
-            conferido_em,
-            valido_ate
-        FROM painel_dsr.tb_revisao_instrumento_localidade
-        WHERE id_revisao = :id_revisao
+            rl.id_revisao_localidade,
+            rl.cod_municipio,
+            m.nome_municipio AS nome_municipio,
+            BTRIM(uf.sigla_uf) AS uf,
+            rl.cod_comunidade_rural,
+            COALESCE(
+                rl.nome_localidade_informada,
+                to_jsonb(cr)->>'nome_comunidade_rural',
+                to_jsonb(cr)->>'nome_localidade',
+                to_jsonb(cr)->>'nome',
+                to_jsonb(cr)->>'dsc_comunidade_rural'
+            ) AS nome_localidade,
+            rl.nome_localidade_informada,
+            rl.origem_registro,
+            rl.acao_sugerida,
+            rl.qtde_familias_ben_original,
+            rl.qtde_familias_ben_sugerida,
+            rl.justificativa,
+            rl.conferido_em,
+            rl.valido_ate
+        FROM painel_dsr.tb_revisao_instrumento_localidade AS rl
+        LEFT JOIN territorio.tb_comunidade_rural AS cr
+          ON cr.cod_comunidade_rural = rl.cod_comunidade_rural
+        LEFT JOIN territorio.tb_municipio AS m
+          ON m.cod_municipio = rl.cod_municipio
+        LEFT JOIN territorio.tb_uf AS uf
+          ON uf.cod_uf = m.cod_uf
+        WHERE rl.id_revisao = :id_revisao
         """,
         {"id_revisao": id_revisao},
     )
@@ -1396,19 +1419,25 @@ async def _carregar_revisao_salva(
         db,
         """
         SELECT
-            id_revisao_obra,
-            cod_municipio,
-            id_obra::text AS id_obra,
-            descricao,
-            orgao,
-            link_transferegov,
-            link_obrasgov,
-            relacao_instrumento,
-            confirmacao_status,
-            justificativa,
-            conferido_em,
-            valido_ate
+            ro.id_revisao_obra,
+            ro.cod_municipio,
+            m.nome_municipio AS nome_municipio,
+            BTRIM(uf.sigla_uf) AS uf,
+            ro.id_obra::text AS id_obra,
+            ro.descricao,
+            ro.orgao,
+            ro.link_transferegov,
+            ro.link_obrasgov,
+            ro.relacao_instrumento,
+            ro.confirmacao_status,
+            ro.justificativa,
+            ro.conferido_em,
+            ro.valido_ate
         FROM painel_dsr.tb_revisao_obra_saneamento ro
+        LEFT JOIN territorio.tb_municipio AS m
+          ON m.cod_municipio = ro.cod_municipio
+        LEFT JOIN territorio.tb_uf AS uf
+          ON uf.cod_uf = m.cod_uf
         WHERE ro.id_revisao = :id_revisao
         """,
         {"id_revisao": id_revisao},
@@ -1423,6 +1452,374 @@ async def _carregar_revisao_salva(
     datas: dict[int, dict] = {}
 
     return municipios, localidades, obras, datas
+
+
+def _revisao_corresponde_ao_identificador(revisao: dict, identificador: str) -> bool:
+    esperado = identificador.strip()
+    candidatos = {
+        str(valor).strip()
+        for valor in (
+            revisao.get("identificador_busca"),
+            revisao.get("nr_instrumento"),
+            revisao.get("nr_proposta"),
+            revisao.get("nr_ted"),
+        )
+        if valor is not None and str(valor).strip()
+    }
+    return esperado in candidatos
+
+
+async def _buscar_detalhe_revisao_enviada(
+    db: AsyncSession,
+    identificador: str,
+    id_revisao: int,
+) -> RevisaoInstrumentoDetalheResponse:
+    revisao_result = await _execute_query(
+        db,
+        """
+        SELECT
+            r.id_revisao,
+            r.id_revisao_anterior,
+            r.identificador_busca,
+            r.tipo_instrumento,
+            r.nr_instrumento,
+            r.nr_proposta,
+            r.nr_ted,
+            r.status,
+            r.observacao_geral,
+            r.criado_em,
+            r.atualizado_em,
+            r.enviado_em,
+            r.aplicado_em,
+            r.base_referencia_em,
+            u.id_usuario,
+            u.nome AS usuario_nome
+        FROM painel_dsr.tb_revisao_instrumento AS r
+        JOIN painel_dsr.tb_usuario AS u
+          ON u.id_usuario = r.id_usuario
+        WHERE r.id_revisao = :id_revisao
+        """,
+        {"id_revisao": id_revisao},
+    )
+    revisao_row = revisao_result.mappings().one_or_none()
+    if revisao_row is None:
+        raise HTTPException(status_code=404, detail="Revisão não encontrada.")
+
+    revisao = dict(revisao_row)
+    if not _revisao_corresponde_ao_identificador(revisao, identificador):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A revisão informada não pertence a este instrumento.",
+        )
+    if revisao["status"] != "enviado":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A revisão informada ainda não foi enviada.",
+        )
+
+    instrumento = None
+    identificadores_consulta = (
+        [revisao.get("nr_ted"), revisao.get("identificador_busca")]
+        if revisao["tipo_instrumento"] == "ted"
+        else [
+            revisao.get("nr_instrumento"),
+            revisao.get("nr_proposta"),
+            revisao.get("identificador_busca"),
+        ]
+    )
+    for candidato in identificadores_consulta:
+        if candidato is None or not str(candidato).strip():
+            continue
+        if revisao["tipo_instrumento"] == "ted":
+            instrumento = await _buscar_instrumento_ted(db, str(candidato).strip())
+        else:
+            instrumento = await _buscar_instrumento_carteira(
+                db, str(candidato).strip()
+            )
+        if instrumento is not None:
+            break
+
+    if instrumento is None:
+        instrumento = InstrumentoRevisaoInfo(
+            identificador_busca=revisao["identificador_busca"] or identificador,
+            tipo_instrumento=revisao["tipo_instrumento"],
+            nr_instrumento=revisao["nr_instrumento"],
+            nr_proposta=revisao["nr_proposta"],
+            nr_ted=revisao["nr_ted"],
+        )
+    else:
+        instrumento = instrumento.model_copy(
+            update={
+                "identificador_busca": revisao["identificador_busca"] or identificador,
+                "tipo_instrumento": revisao["tipo_instrumento"],
+                "nr_instrumento": revisao["nr_instrumento"],
+                "nr_proposta": revisao["nr_proposta"],
+                "nr_ted": revisao["nr_ted"],
+            }
+        )
+
+    municipios_salvos, localidades_salvas, obras_salvas, _ = (
+        await _carregar_revisao_salva(db, id_revisao)
+    )
+    codigos = {
+        *municipios_salvos.keys(),
+        *(item["cod_municipio"] for item in localidades_salvas),
+        *(item["cod_municipio"] for item in obras_salvas),
+    }
+    municipios: list[MunicipioRevisaoItem] = []
+    for codigo in sorted(codigos):
+        salvo = municipios_salvos.get(codigo, {})
+        item_descritivo = next(
+            (
+                item
+                for item in [*localidades_salvas, *obras_salvas]
+                if item["cod_municipio"] == codigo
+            ),
+            {},
+        )
+        localidades = [
+            LocalidadeRevisaoItem(**item)
+            for item in localidades_salvas
+            if item["cod_municipio"] == codigo
+        ]
+        obras = [
+            ObraSaneamentoRevisaoItem(**item)
+            for item in obras_salvas
+            if item["cod_municipio"] == codigo
+        ]
+        municipios.append(
+            MunicipioRevisaoItem(
+                cod_municipio=codigo,
+                nome=salvo.get("nome") or item_descritivo.get("nome_municipio"),
+                uf=salvo.get("uf") or item_descritivo.get("uf"),
+                origem_registro=salvo.get("origem_registro", "base_atual"),
+                acao_sugerida=salvo.get("acao_sugerida"),
+                justificativa=salvo.get("justificativa"),
+                conferido_em=salvo.get("conferido_em"),
+                valido_ate=salvo.get("valido_ate"),
+                localidades=localidades,
+                obras_saneamento=obras,
+            )
+        )
+
+    publico_result = await _execute_query(
+        db,
+        """
+        SELECT
+            rpa.id_revisao_publico_alvo,
+            rpa.id_projeto_investimento::text AS id_projeto_investimento,
+            :tipo_instrumento AS tipo_instrumento,
+            COALESCE(:nr_instrumento, CAST(:nr_ted AS varchar)) AS nr_instrumento,
+            COALESCE(
+                NULLIF(BTRIM(to_jsonb(pi)->>'descricao'), ''),
+                NULLIF(BTRIM(to_jsonb(pi)->>'nome_obra'), ''),
+                NULLIF(BTRIM(to_jsonb(pi)->>'nome_projeto'), ''),
+                NULLIF(BTRIM(to_jsonb(pi)->>'objeto'), '')
+            ) AS nome_obra,
+            rpa.populacao_beneficiada_original,
+            rpa.desc_populacao_beneficiada_original,
+            rpa.populacao_beneficiada_revisada,
+            rpa.desc_populacao_beneficiada_revisada,
+            rpa.conferido_em,
+            rpa.valido_ate
+        FROM painel_dsr.tb_revisao_instrumento_publico_alvo AS rpa
+        LEFT JOIN LATERAL (
+            SELECT projeto.*
+            FROM obrasgov.tb_projeto_investimento AS projeto
+            WHERE projeto.id_unico::text = rpa.id_projeto_investimento::text
+            LIMIT 1
+        ) AS pi ON TRUE
+        WHERE rpa.id_revisao = :id_revisao
+        ORDER BY rpa.id_revisao_publico_alvo
+        """,
+        {
+            "id_revisao": id_revisao,
+            "tipo_instrumento": revisao["tipo_instrumento"],
+            "nr_instrumento": revisao["nr_instrumento"],
+            "nr_ted": revisao["nr_ted"],
+        },
+    )
+    publico_alvo = [
+        PublicoAlvoRevisaoItem(**dict(row))
+        for row in publico_result.mappings().all()
+    ]
+
+    return RevisaoInstrumentoDetalheResponse(
+        **{
+            campo: revisao[campo]
+            for campo in (
+                "id_revisao",
+                "id_revisao_anterior",
+                "status",
+                "observacao_geral",
+                "criado_em",
+                "atualizado_em",
+                "enviado_em",
+                "aplicado_em",
+                "base_referencia_em",
+                "identificador_busca",
+            )
+        },
+        instrumento=instrumento,
+        usuario=UsuarioRevisaoInfo(
+            id_usuario=revisao["id_usuario"],
+            nome=revisao["usuario_nome"],
+        ),
+        municipios=municipios,
+        publico_alvo=publico_alvo,
+    )
+
+
+async def _listar_historico_revisoes(
+    db: AsyncSession,
+    *,
+    pagina: int,
+    limite: int,
+    id_usuario: int | None = None,
+    instrumento: InstrumentoRevisaoInfo | None = None,
+    busca: str | None = None,
+) -> HistoricoRevisoesResponse:
+    filtros = ["r.status = 'enviado'", "r.enviado_em IS NOT NULL"]
+    params: dict = {"limite": limite, "offset": (pagina - 1) * limite}
+
+    if id_usuario is not None:
+        filtros.append("r.id_usuario = :id_usuario")
+        params["id_usuario"] = id_usuario
+
+    if instrumento is not None:
+        filtros.extend(
+            [
+                "r.tipo_instrumento = :tipo_instrumento",
+                """(
+                    (:tipo_instrumento = 'ted' AND r.nr_ted = :nr_ted)
+                    OR (:tipo_instrumento <> 'ted' AND
+                        NULLIF(BTRIM(r.nr_instrumento), '') =
+                        NULLIF(BTRIM(:nr_instrumento), ''))
+                )""",
+            ]
+        )
+        params.update(
+            {
+                "tipo_instrumento": instrumento.tipo_instrumento,
+                "nr_instrumento": instrumento.nr_instrumento,
+                "nr_ted": instrumento.nr_ted,
+            }
+        )
+
+    busca_limpa = (busca or "").strip()
+    if busca_limpa:
+        filtros.append(
+            """(
+                CAST(r.id_revisao AS varchar) ILIKE :busca
+                OR COALESCE(r.nr_instrumento, '') ILIKE :busca
+                OR COALESCE(CAST(r.nr_ted AS varchar), '') ILIKE :busca
+                OR COALESCE(r.nr_proposta, '') ILIKE :busca
+                OR COALESCE(r.identificador_busca, '') ILIKE :busca
+            )"""
+        )
+        params["busca"] = f"%{busca_limpa}%"
+
+    clausula_where = " AND ".join(filtros)
+    total_result = await _execute_query(
+        db,
+        f"""
+        SELECT COUNT(*)
+        FROM painel_dsr.tb_revisao_instrumento AS r
+        WHERE {clausula_where}
+        """,
+        params,
+    )
+    total = int(total_result.scalar_one())
+
+    itens_result = await _execute_query(
+        db,
+        f"""
+        SELECT
+            r.id_revisao,
+            r.id_revisao_anterior,
+            r.identificador_busca,
+            r.tipo_instrumento,
+            r.nr_instrumento,
+            r.nr_proposta,
+            r.nr_ted,
+            COALESCE(
+                carteira.objeto,
+                NULLIF(BTRIM(ted.dados->>'objeto'), ''),
+                NULLIF(BTRIM(ted.dados->>'descricao'), ''),
+                NULLIF(BTRIM(ted.dados->>'objeto_ted'), '')
+            ) AS objeto,
+            r.status,
+            r.criado_em,
+            r.atualizado_em,
+            r.enviado_em,
+            r.aplicado_em,
+            u.id_usuario,
+            u.nome AS usuario_nome
+        FROM painel_dsr.tb_revisao_instrumento AS r
+        JOIN painel_dsr.tb_usuario AS u ON u.id_usuario = r.id_usuario
+        LEFT JOIN LATERAL (
+            SELECT v.objeto
+            FROM instrumento.vw_carteira_dsr AS v
+            WHERE r.tipo_instrumento <> 'ted'
+              AND (
+                    v.nr_instrumento::text = r.nr_instrumento
+                    OR v.nr_proposta::text = r.nr_proposta
+              )
+            LIMIT 1
+        ) AS carteira ON TRUE
+        LEFT JOIN LATERAL (
+            SELECT to_jsonb(t) AS dados
+            FROM instrumento.tb_ted AS t
+            WHERE r.tipo_instrumento = 'ted' AND t.nr_ted = r.nr_ted
+            LIMIT 1
+        ) AS ted ON TRUE
+        WHERE {clausula_where}
+        ORDER BY r.enviado_em DESC, r.id_revisao DESC
+        LIMIT :limite OFFSET :offset
+        """,
+        params,
+    )
+
+    itens = []
+    for row in itens_result.mappings().all():
+        dados = dict(row)
+        aplicado_em = dados["aplicado_em"]
+        itens.append(
+            RevisaoHistoricoItem(
+                **{
+                    campo: dados[campo]
+                    for campo in (
+                        "id_revisao",
+                        "id_revisao_anterior",
+                        "identificador_busca",
+                        "tipo_instrumento",
+                        "nr_instrumento",
+                        "nr_proposta",
+                        "nr_ted",
+                        "status",
+                        "criado_em",
+                        "atualizado_em",
+                        "enviado_em",
+                        "aplicado_em",
+                    )
+                },
+                objeto=dados.get("objeto") or (instrumento.objeto if instrumento else None),
+                status_label=_label_status_historico(aplicado_em),
+                usuario=UsuarioRevisaoInfo(
+                    id_usuario=dados["id_usuario"],
+                    nome=dados["usuario_nome"],
+                ),
+            )
+        )
+
+    return HistoricoRevisoesResponse(
+        data=itens,
+        pagina=pagina,
+        limite=limite,
+        total=total,
+        total_paginas=(total + limite - 1) // limite,
+        instrumento=instrumento,
+    )
 
 
 def _chave_localidade(localidade: LocalidadeRevisaoItem | dict) -> tuple:
@@ -2184,7 +2581,7 @@ async def _montar_resposta_busca(
             id_revisao_localidade=localidade_salva["id_revisao_localidade"],
             cod_municipio=cod_municipio,
             cod_comunidade_rural=localidade_salva["cod_comunidade_rural"],
-            nome_localidade=localidade_salva["nome_localidade_informada"],
+            nome_localidade=localidade_salva["nome_localidade"],
             nome_localidade_informada=localidade_salva["nome_localidade_informada"],
             origem_registro=localidade_salva["origem_registro"],
             acao_sugerida=localidade_salva["acao_sugerida"],
@@ -2383,6 +2780,76 @@ async def buscar_instrumento_para_revisao(
         )
 
     return await _montar_resposta_busca(db, instrumento, usuario_atual)
+
+
+@router.get(
+    "/revisoes/minhas",
+    response_model=HistoricoRevisoesResponse,
+    summary="Lista revisões enviadas pelo usuário autenticado",
+)
+async def listar_minhas_revisoes(
+    busca: Annotated[str | None, Query(max_length=100)] = None,
+    pagina: Annotated[int, Query(ge=1, alias="page")] = 1,
+    limite: Annotated[int, Query(ge=1, le=100, alias="limit")] = 20,
+    usuario_atual: UsuarioAutenticado = Depends(obter_usuario_atual),
+    db: AsyncSession = Depends(get_db),
+):
+    return await _listar_historico_revisoes(
+        db,
+        pagina=pagina,
+        limite=limite,
+        id_usuario=usuario_atual.id_usuario,
+        busca=busca,
+    )
+
+
+@router.get(
+    "/instrumentos/{identificador}/revisoes",
+    response_model=HistoricoRevisoesResponse,
+    summary="Lista revisões enviadas de um instrumento",
+)
+async def listar_revisoes_do_instrumento(
+    identificador: str,
+    pagina: Annotated[int, Query(ge=1, alias="page")] = 1,
+    limite: Annotated[int, Query(ge=1, le=100, alias="limit")] = 20,
+    usuario_atual: UsuarioAutenticado = Depends(obter_usuario_atual),
+    db: AsyncSession = Depends(get_db),
+):
+    del usuario_atual
+    identificador_limpo = identificador.strip()
+    instrumento = await _buscar_instrumento_carteira(db, identificador_limpo)
+    if instrumento is None:
+        instrumento = await _buscar_instrumento_ted(db, identificador_limpo)
+    if instrumento is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Instrumento, proposta ou TED não encontrado nas bases oficiais.",
+        )
+    return await _listar_historico_revisoes(
+        db,
+        pagina=pagina,
+        limite=limite,
+        instrumento=instrumento,
+    )
+
+
+@router.get(
+    "/instrumentos/{identificador}/revisoes/{id_revisao}",
+    response_model=RevisaoInstrumentoDetalheResponse,
+    summary="Consulta uma revisão enviada específica em modo somente leitura",
+)
+async def consultar_revisao_enviada(
+    identificador: str,
+    id_revisao: int,
+    usuario_atual: UsuarioAutenticado = Depends(obter_usuario_atual),
+    db: AsyncSession = Depends(get_db),
+):
+    del usuario_atual
+    return await _buscar_detalhe_revisao_enviada(
+        db,
+        identificador.strip(),
+        id_revisao,
+    )
 
 
 @router.post(

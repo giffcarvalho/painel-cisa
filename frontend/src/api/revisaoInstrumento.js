@@ -14,6 +14,28 @@ export const revisaoInstrumentoApi = {
     return data
   },
 
+  buscarRevisaoEnviada: async (identificador, idRevisao) => {
+    const { data } = await api.get(
+      `/revisao-instrumento/instrumentos/${encodeURIComponent(identificador)}/revisoes/${idRevisao}`,
+    )
+    return data
+  },
+
+  buscarMinhasRevisoes: async ({ busca, page = 1, limit = 20 } = {}) => {
+    const { data } = await api.get('/revisao-instrumento/revisoes/minhas', {
+      params: { busca: busca || undefined, page, limit },
+    })
+    return data
+  },
+
+  buscarHistoricoInstrumento: async (identificador, { page = 1, limit = 20 } = {}) => {
+    const { data } = await api.get(
+      `/revisao-instrumento/instrumentos/${encodeURIComponent(identificador)}/revisoes`,
+      { params: { page, limit } },
+    )
+    return data
+  },
+
   buscarMunicipiosOficiais: async (q) => {
     const { data } = await api.get('/revisao-instrumento/municipios-oficiais', {
       params: { q },
