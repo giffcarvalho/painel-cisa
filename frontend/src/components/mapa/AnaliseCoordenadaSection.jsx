@@ -12,14 +12,20 @@ export default function AnaliseCoordenadaSection({
     salvarAnaliseCoordenadas,
     navegarCoordenada,
     loading,
-    sucessoEnviado,
     identificador,
     situacaoCorrecao,
     setSituacaoCorrecao,
     observacaoGeral,
-    setObservacaoGeral
+    setObservacaoGeral,
+    painelFiltros,
+    setModoAnalise,
+    restaurarEstadoOriginal,
 }) {
+    
+    
     const [confirmacaoAberta, setConfirmacaoAberta] = useState(false);
+    const [erroEnvio, setErroEnvio] = useState(null);
+    const [sucessoEnvio, setSucessoEnvio] = useState(null);
     const coordenada = featureSelecionada? coordenadas.find(c => c.id_coordenada === featureSelecionada.id): null;
     const valorSelecionado = coordenada?.situacao_analise ?? "";
     const indiceAtual = featureSelecionada? coordenadas.findIndex(coordenada => coordenada.id_coordenada === featureSelecionada.id): -1;
@@ -27,25 +33,62 @@ export default function AnaliseCoordenadaSection({
     const posicaoAtual = featureSelecionada && indiceAtual !== -1 ? indiceAtual + 1 : 0;
     const anteriorDesabilitado = coordenadas.length === 0 || indiceAtual <= 0;
     const proximaDesabilitado = coordenadas.length === 0 || (indiceAtual !== -1 && indiceAtual === coordenadas.length - 1);
+    
     const obterTextoBotao = () => {
         if (loading) return "Carregando ....";
         if (possuiCoordenadasAlteradas) return "Ver resumo / Salvar";
-        if (sucessoEnviado) return "Análise Enviada";
-        return "Ver resumo / Salvar";
+        return "Ver resumo";
     };
-    const abrirConfirmacao = () => {setConfirmacaoAberta(true)};
-    const fecharConfirmacao = () => {setConfirmacaoAberta(false)};
-    const submeterConfirmacao = (e) => {
+
+    const abrirConfirmacao = () => {
+        setErroEnvio(null);
+        setSucessoEnvio(null);
+        setConfirmacaoAberta(true);
+    };
+
+    const fecharConfirmacao = () => {
+        setErroEnvio(null);
+        setSucessoEnvio(null);
+        setConfirmacaoAberta(false);
+    };
+
+    const submeterConfirmacao = async (e) => {
         e.preventDefault();
-        salvarAnaliseCoordenadas();
-        fecharConfirmacao();
+        setErroEnvio(null);
+        setSucessoEnvio(null);
+
+        try {
+            await salvarAnaliseCoordenadas();
+            setSucessoEnvio("Análise enviada com sucesso!");
+        } catch (error) {
+            setErroEnvio(error.message);
+        }
+    };
+
+    const handleObservacaoChange = (e) => {
+        setObservacaoGeral(e.target.value);
+        if (sucessoEnvio) setSucessoEnvio(null);
+        if (erroEnvio) setErroEnvio(null);
+    };
+
+    const handleSituacaoCorrecaoChange = (e) => {
+        setSituacaoCorrecao(e.target.value);
+        if (sucessoEnvio) setSucessoEnvio(null);
+        if (erroEnvio) setErroEnvio(null);
     };
     
+
     function alterarAnalise(e) {
         if (featureSelecionada?.id) {
             atualizarAnaliseCoordenada(featureSelecionada.id, e.target.value);
         }
     }
+
+    const handleCancelarAnalise = () => {
+        restaurarEstadoOriginal();
+        setModoAnalise(false);
+    };
+
 
 
     //função para gerar o resumo da anpalise em pdf 
@@ -82,7 +125,7 @@ export default function AnaliseCoordenadaSection({
     
 
     return(
-        <div className={estilos.caixa_externa}>
+        <div className={`${estilos.caixa_externa} ${painelFiltros ? estilos.comPainelFiltros : ""}`}>
             <div className={estilos.painel_opcoes}>
 
                 <h4>Selecionar coordenada:</h4>
@@ -185,6 +228,14 @@ export default function AnaliseCoordenadaSection({
                 {obterTextoBotao()}
             </button>
 
+            <button 
+                className={estilos.botao_cancelar_analise} 
+                onClick={handleCancelarAnalise} 
+                disabled={loading}
+            > 
+                Cancelar Análise
+            </button>
+
 
             {confirmacaoAberta && (
                 <div className={estilos.overlay_modal}>
@@ -196,6 +247,7 @@ export default function AnaliseCoordenadaSection({
                                 type="button"
                                 className={estilos.botao_exportar}
                                 onClick={handleExportarPDF}
+                                disabled={possuiCoordenadasAlteradas}
                             >
                                 Gerar pdf
                             </button>
@@ -241,10 +293,10 @@ export default function AnaliseCoordenadaSection({
                             <textarea
                                 className={estilos.texto_observacao}
                                 rows="3"
-                                maxLength={150}
+                                maxLength={180}
                                 placeholder="Observação (opcional)"
                                 value={observacaoGeral}
-                                onChange={(e) => setObservacaoGeral(e.target.value)}
+                                onChange={handleObservacaoChange}
                             />
 
 
@@ -257,7 +309,7 @@ export default function AnaliseCoordenadaSection({
                                             name="correcaoProponente"
                                             value="Sim"
                                             checked={situacaoCorrecao === "Sim"}
-                                            onChange={(e) => setSituacaoCorrecao(e.target.value)}
+                                            onChange={handleSituacaoCorrecaoChange}
                                         />
                                         Sim
                                     </label>
@@ -268,7 +320,7 @@ export default function AnaliseCoordenadaSection({
                                             name="correcaoProponente"
                                             value="Não"
                                             checked={situacaoCorrecao === "Não"}
-                                            onChange={(e) => setSituacaoCorrecao(e.target.value)}
+                                            onChange={handleSituacaoCorrecaoChange}
                                         />
                                         Não
                                     </label>
@@ -279,7 +331,7 @@ export default function AnaliseCoordenadaSection({
                                             name="correcaoProponente"
                                             value="Sem necessidade"
                                             checked={situacaoCorrecao === "Sem necessidade"}
-                                            onChange={(e) => setSituacaoCorrecao(e.target.value)}
+                                            onChange={handleSituacaoCorrecaoChange}
                                         />
                                         Não há necessidade de solicitar correção
                                     </label>
@@ -300,16 +352,28 @@ export default function AnaliseCoordenadaSection({
                                     className={estilos.botao_cancelar} 
                                     onClick={fecharConfirmacao}
                                 >
-                                    Voltar
+                                    {sucessoEnvio ? "Fechar" : "Voltar"}
                                 </button>
                                 <button 
                                     type="submit" 
                                     className={estilos.botao_confirmar}
                                     disabled={!possuiCoordenadasAlteradas || loading}
                                 >
-                                    Confirmar e Enviar
+                                    {loading ? "Enviando..." : "Confirmar e Enviar"}
                                 </button>
                             </div>
+
+
+                            {erroEnvio ? (
+                                <p className={estilos.mensagem_erro}>
+                                    {erroEnvio}
+                                </p>
+                            ) : sucessoEnvio ? (
+                                <p className={estilos.mensagem_sucesso}>
+                                    {sucessoEnvio}
+                                </p>
+                            ) : null}
+
                         </form>
                     </div>
                 </div>

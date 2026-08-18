@@ -9,6 +9,7 @@ import FiltroPainel from "./FiltroPainel";
 import LegendaSection from "./LegendaSection";
 import DetalheSection from "./DetalheSection";
 import InputSection from "./InputSection";
+import AuthMenu from "../auth/AuthMenu";
 import AnaliseCoordenadaSection from "./AnaliseCoordenadaSection";
 import { useCriarMapa } from "@/hooks/mapa/useCriarMapa";
 import { useAdicionarLayers } from "@/hooks/mapa/useAdicionarLayers";
@@ -543,10 +544,9 @@ export default function MapaSection() {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('')
     const [messageType, setMessageType] = useState('')
-    
     const mapContainer = useRef(null);
     const mapRef = useCriarMapa(mapContainer);
-    
+    const [carregandoMapa, setCarregandoMapa] = useState(false);
     const coordRef = useRef(null);
     const situacaoCorrecaoOriginalRef = useRef("Não");
     const observacaoGeralOriginalRef = useRef("");
@@ -559,6 +559,25 @@ export default function MapaSection() {
     useTrocarSimbologia(mapRef, layers, modoAnalise);  
 
     
+
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map) return;
+
+        const IniciarCarregamento = () => setCarregandoMapa(true);
+        const FinalizarCarregamento = () => setCarregandoMapa(false);
+        map.on("movestart", IniciarCarregamento);
+        map.on("dataloading", IniciarCarregamento);
+        map.on("idle", FinalizarCarregamento);
+
+        return () => {
+            map.off("movestart", IniciarCarregamento);
+            map.off("dataloading", IniciarCarregamento);
+            map.off("idle", FinalizarCarregamento);
+        };
+    }, []);
+
+
     useEffect(() => {
         const map = mapRef.current;
         if (!map) return;
@@ -835,10 +854,11 @@ export default function MapaSection() {
         ehGlobalAlterado = houveAlteracaoGlobal()
     ) => {
         return coordenadasAtuais.map(c => {
-            const itemAlteradoPontual = !objetosIguais(
-                dadosCoordenadaPersistencia(c),
-                c._coordenadaOriginal
-            );
+            // Substitua a comparação complexa por verificação de dados reais
+            const analiseAtual = c.situacao_analise ?? "";
+            const analiseOriginal = c._coordenadaOriginal?.situacao_analise ?? "";
+            
+            const itemAlteradoPontual = analiseAtual !== analiseOriginal;
 
             return {
                 ...c,
@@ -920,6 +940,48 @@ export default function MapaSection() {
     const possuiCoordenadasAlteradas = () => {
         return houveAlteracaoGlobal() || coordenadas.some(c => c._coordenadaAlterada);
     };
+
+
+
+    //restaura o estado das coordenadas usando a propriedade _coordenadaOriginal
+    //chamada quando o usuário inicia a análise mas resolve cancelar
+    const restaurarEstadoOriginal = () => {
+        
+        setCoordenadas(current => 
+            current.map(coordenada => {
+                const situacaoOriginal = coordenada._coordenadaOriginal?.situacao_analise ?? "";
+                
+                
+                const map = mapRef.current;
+                if (map && coordenada.id_coordenada) {
+                    map.setFeatureState(
+                        {
+                            source: "geometrias_carteira_dsr",
+                            sourceLayer: "pontos",
+                            id: coordenada.id_coordenada
+                        },
+                        { situacaoAnalise: situacaoOriginal }
+                    );
+                }
+
+                return {
+                    ...coordenada,
+                    situacao_analise: situacaoOriginal,
+                    _coordenadaAlterada: false
+                };
+            })
+        );
+
+        
+        if (situacaoCorrecaoOriginalRef.current !== undefined) {
+            setSituacaoCorrecao(situacaoCorrecaoOriginalRef.current);
+        }
+        if (observacaoGeralOriginalRef.current !== undefined) {
+            setObservacaoGeral(observacaoGeralOriginalRef.current);
+        }
+
+    };
+
 
 
     //prepara os dados para envio ao backend
@@ -1006,11 +1068,10 @@ export default function MapaSection() {
             setMessageType("success");
 
         } catch (err) {
-            setMessage(
-                err?.response?.data?.detail ??
-                "Não foi possível salvar as alterações."
-            );
+            const msgErro = err?.response?.data?.detail ?? "Não foi possível salvar as alterações.";
+            setMessage(msgErro);
             setMessageType("error");
+            throw new Error(msgErro); 
         } finally {
             setLoading(false);
         }
@@ -1034,7 +1095,14 @@ export default function MapaSection() {
             }
             <button className={estilos.botaoCamadas} onClick={() => setPainelCamadas(!painelCamadas)}> <Layers className={estilos.Icon}/> <p className={estilos.IconTexto}> Camadas</p> </button>
             <button className={estilos.botaoLegenda} onClick={() => setPainelLegenda(!painelLegenda)}> <List className={estilos.Icon}/> <p className={estilos.IconTexto}> Legenda</p> </button>
-            <button className={`${estilos.botaoAnalisarCoordenadas} ${modoAnalise ? estilos.ativo : ""}`} onClick={toggleModoAnalise}> {modoAnalise ? `Análise ativa${identificador ? ` - ${identificador}` : ""}`: "Analisar Coordenadas"}</button>
+            {isAuthenticated && (
+                <button 
+                    className={`${estilos.botaoAnalisarCoordenadas} ${modoAnalise ? estilos.ativo : ""} ${painelFiltros ? estilos.comPainelFiltros : ""}`} 
+                    onClick={toggleModoAnalise}
+                > 
+                    {modoAnalise ? `Análise ativa${identificador ? ` - ${identificador}` : ""}`: "Analisar Coordenadas"}
+                </button>
+                )}
             {painelCamadas && (<CamadasSection layers={layers} toggleLayer={toggleLayer} alterarVariavel={alterarVariavel} setPainelCamadas={setPainelCamadas}/>)}
             {painelLegenda && (<LegendaSection layers={layers} zoomAtual={zoomAtual} setPainelLegenda={setPainelLegenda} painelCamadas={painelCamadas}/>)}
             {modoAnalise && (
@@ -1052,11 +1120,23 @@ export default function MapaSection() {
                     setSituacaoCorrecao={handleAlterarSituacaoCorrecao}
                     observacaoGeral={observacaoGeral}
                     setObservacaoGeral={handleAlterarObservacaoGeral}
+                    painelFiltros={painelFiltros}
+                    setModoAnalise={setModoAnalise}
+                    restaurarEstadoOriginal={restaurarEstadoOriginal}
                 />
             )}
             <InputSection coord={coord} setCoord={setCoord} irParaCoordenada={irParaCoordenada} limparCoordenada={limparCoordenada}/>
             <div ref={coordRef} className={estilos.coordenadasMouse}> Lat: -- | Lon: -- </div>
             {(painelDetalhe && painelFiltros && filtros.cod_municipio) && (<DetalheSection setPainelDetalhe={setPainelDetalhe}/>)}
+            <div className={`${estilos.authMenuContainer} ${painelFiltros ? estilos.comPainelFiltros : ""}`}><AuthMenu /></div>
+
+            {carregandoMapa && (
+                <div className={estilos.caixa_carregando}>
+                    <span className={estilos.spinner}></span>
+                    Carregando camadas...
+                </div>
+            )}
+
             <div ref={mapContainer} className={estilos.mapContainer}/>
         </div>
     );

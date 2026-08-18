@@ -1,9 +1,14 @@
 .caixa_externa {
     position: absolute;
-    top: 45px;
-    right: 300px;
+    top: 95px;
+    right: 100px;
     width: 250px;
     z-index: 1;
+    transition: right 0.2s ease, top 0.2s ease;
+}
+
+.caixa_externa.comPainelFiltros {
+  right: 300px;
 }
 
 
@@ -84,10 +89,27 @@
   font-weight: 500;
 }
 
+
 .botao_salvar_ativo {
     background: #00529e;
     color: white;
     cursor: pointer;
+}
+
+.botao_cancelar_analise {
+  width: 250px;
+  height: 33px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-top: 8px;
+  border-radius: 5px;
+  background: rgb(255, 34, 34);
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
 }
 
 
@@ -160,6 +182,12 @@
 
 .botao_exportar:hover {
     cursor: pointer;
+}
+
+.botao_exportar:disabled {
+    background: rgb(219, 219, 219);
+    color: #333;
+    cursor: not-allowed;
 }
 
 .container_tabela {
@@ -325,3 +353,26 @@
 }
 
 
+.mensagem_erro {
+    color: #d32f2f;
+    background-color: #fde8e8;
+    border: 1px solid #f8b4b4;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+
+.mensagem_sucesso {
+    color: #155724;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-top: 10px;
+    text-align: center;
+}
