@@ -589,6 +589,7 @@ CAMPOS_CATALOGADOS = {
             ("data_primeiro_pagamento", "Data do primeiro pagamento"),
             ("data_ultimo_pagamento", "Data do último pagamento"),
             ("valor_pago", "Valor pago"),
+            ("percentual_financeiro_pago", "Percentual financeiro pago")
         ],
         "Informações da Mandatária - BD Gestores": [
             ("situacao_contrato", "Situação do contrato"),
