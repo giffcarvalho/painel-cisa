@@ -233,7 +233,7 @@ export default function AnaliseCoordenadaSection({
                 onClick={handleCancelarAnalise} 
                 disabled={loading}
             > 
-                Cancelar Análise
+                {possuiCoordenadasAlteradas ? "Cancelar Análise" : "Fechar Análise"}
             </button>
 
 
