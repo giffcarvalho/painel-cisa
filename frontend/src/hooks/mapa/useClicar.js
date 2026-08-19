@@ -160,12 +160,13 @@ export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
             }
             
             // Não abre popup da Carteira DSR durante a análise
+            /*
             if (modoAnalise && f.layer.id === "geometrias_carteira_dsr") {
                 popupRef.current?.remove();
                 popupRef.current = null;
                 return;
             }
-            
+            */
             
             let html = "";
             
@@ -186,7 +187,8 @@ export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
                 `;
             }
 
-            if (!modoAnalise && f.layer.id === "geometrias_carteira_dsr") {
+            //popup da carteira dsr. Havia uma proteção para não abrir o popup no modo análise, mas foi comentada por enquanto
+            if (/*!modoAnalise && */f.layer.id === "geometrias_carteira_dsr") {
                 html += `
                 <strong> Modalidade </strong> <br>
                 ${props.modalidade}<br/>
