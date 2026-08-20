@@ -684,8 +684,10 @@ async def _buscar_publico_alvo(
                 rpa.desc_populacao_beneficiada_original,
                 p.desc_populacao_beneficiada_original
             ) AS desc_populacao_beneficiada_original,
-            rpa.populacao_beneficiada_revisada,
-            rpa.desc_populacao_beneficiada_revisada,
+            rpa.status_populacao_beneficiada,
+            rpa.status_desc_populacao_beneficiada,
+            rpa.observacao_publico_alvo,
+            rpa.status_correcao_solicitada,
             rpa.conferido_em,
             rpa.valido_ate
         FROM projetos p
@@ -709,10 +711,12 @@ async def _buscar_publico_alvo(
             desc_populacao_beneficiada_original=row[
                 "desc_populacao_beneficiada_original"
             ],
-            populacao_beneficiada_revisada=row["populacao_beneficiada_revisada"],
-            desc_populacao_beneficiada_revisada=row[
-                "desc_populacao_beneficiada_revisada"
+            status_populacao_beneficiada=row["status_populacao_beneficiada"],
+            status_desc_populacao_beneficiada=row[
+                "status_desc_populacao_beneficiada"
             ],
+            observacao_publico_alvo=row["observacao_publico_alvo"],
+            status_correcao_solicitada=row["status_correcao_solicitada"],
             conferido_em=row["conferido_em"],
             valido_ate=row["valido_ate"],
         )
@@ -1618,8 +1622,10 @@ async def _buscar_detalhe_revisao_enviada(
             ) AS nome_obra,
             rpa.populacao_beneficiada_original,
             rpa.desc_populacao_beneficiada_original,
-            rpa.populacao_beneficiada_revisada,
-            rpa.desc_populacao_beneficiada_revisada,
+            rpa.status_populacao_beneficiada,
+            rpa.status_desc_populacao_beneficiada,
+            rpa.observacao_publico_alvo,
+            rpa.status_correcao_solicitada,
             rpa.conferido_em,
             rpa.valido_ate
         FROM painel_dsr.tb_revisao_instrumento_publico_alvo AS rpa
@@ -2372,19 +2378,6 @@ async def _persistir_publico_alvo(
                 ),
             )
 
-        campos_enviados = item.model_fields_set
-        populacao_enviada = (
-            "populacao_beneficiada_revisada" in campos_enviados
-            and item.populacao_beneficiada_revisada is not None
-        )
-        desc_enviada = (
-            "desc_populacao_beneficiada_revisada" in campos_enviados
-            and item.desc_populacao_beneficiada_revisada is not None
-        )
-
-        if not populacao_enviada and not desc_enviada:
-            continue
-
         await db.execute(
             text(
                 """
@@ -2393,8 +2386,10 @@ async def _persistir_publico_alvo(
                     id_projeto_investimento,
                     populacao_beneficiada_original,
                     desc_populacao_beneficiada_original,
-                    populacao_beneficiada_revisada,
-                    desc_populacao_beneficiada_revisada,
+                    status_populacao_beneficiada,
+                    status_desc_populacao_beneficiada,
+                    observacao_publico_alvo,
+                    status_correcao_solicitada,
                     conferido_em,
                     valido_ate,
                     atualizado_em
@@ -2404,16 +2399,10 @@ async def _persistir_publico_alvo(
                     :id_projeto_investimento,
                     :populacao_beneficiada_original,
                     :desc_populacao_beneficiada_original,
-                    CASE
-                        WHEN :populacao_enviada
-                        THEN :populacao_beneficiada_revisada
-                        ELSE NULL
-                    END,
-                    CASE
-                        WHEN :desc_enviada
-                        THEN :desc_populacao_beneficiada_revisada
-                        ELSE NULL
-                    END,
+                    :status_populacao_beneficiada,
+                    :status_desc_populacao_beneficiada,
+                    :observacao_publico_alvo,
+                    :status_correcao_solicitada,
                     NOW(),
                     NOW() + make_interval(days => COALESCE((
                         SELECT validade_dias FROM painel_dsr.tb_revisao_instrumento
@@ -2431,16 +2420,10 @@ async def _persistir_publico_alvo(
                         rpa.desc_populacao_beneficiada_original,
                         EXCLUDED.desc_populacao_beneficiada_original
                     ),
-                    populacao_beneficiada_revisada = CASE
-                        WHEN :populacao_enviada
-                        THEN EXCLUDED.populacao_beneficiada_revisada
-                        ELSE rpa.populacao_beneficiada_revisada
-                    END,
-                    desc_populacao_beneficiada_revisada = CASE
-                        WHEN :desc_enviada
-                        THEN EXCLUDED.desc_populacao_beneficiada_revisada
-                        ELSE rpa.desc_populacao_beneficiada_revisada
-                    END,
+                    status_populacao_beneficiada = EXCLUDED.status_populacao_beneficiada,
+                    status_desc_populacao_beneficiada = EXCLUDED.status_desc_populacao_beneficiada,
+                    observacao_publico_alvo = EXCLUDED.observacao_publico_alvo,
+                    status_correcao_solicitada = EXCLUDED.status_correcao_solicitada,
                     conferido_em = NOW(),
                     valido_ate = NOW() + make_interval(days => COALESCE((
                         SELECT validade_dias FROM painel_dsr.tb_revisao_instrumento
@@ -2456,14 +2439,10 @@ async def _persistir_publico_alvo(
                 "desc_populacao_beneficiada_original": (
                     projeto.desc_populacao_beneficiada_original
                 ),
-                "populacao_beneficiada_revisada": (
-                    item.populacao_beneficiada_revisada
-                ),
-                "desc_populacao_beneficiada_revisada": (
-                    item.desc_populacao_beneficiada_revisada
-                ),
-                "populacao_enviada": populacao_enviada,
-                "desc_enviada": desc_enviada,
+                "status_populacao_beneficiada": item.status_populacao_beneficiada,
+                "status_desc_populacao_beneficiada": item.status_desc_populacao_beneficiada,
+                "observacao_publico_alvo": item.observacao_publico_alvo,
+                "status_correcao_solicitada": item.status_correcao_solicitada,
             },
         )
 
@@ -2913,6 +2892,26 @@ async def salvar_revisao_instrumento(
             instrumento,
             payload.publico_alvo,
         )
+        if payload.status == "enviado":
+            pendente = next(
+                (
+                    item for item in publico_alvo_salvo
+                    if item.status_populacao_beneficiada is None
+                    or item.status_desc_populacao_beneficiada is None
+                ),
+                None,
+            )
+            if pendente is not None:
+                identificacao = pendente.nome_obra or pendente.id_projeto_investimento
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    detail={
+                        "mensagem": (
+                            "Confira a população beneficiada e sua descrição "
+                            f"para o projeto {identificacao} antes de enviar."
+                        )
+                    },
+                )
         resposta_atualizada = await _montar_resposta_busca(
             db,
             instrumento,

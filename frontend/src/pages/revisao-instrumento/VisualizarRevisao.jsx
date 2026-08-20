@@ -23,6 +23,18 @@ const CONFIRMACOES = {
   sobreposicao_confirmada: 'Sobreposição confirmada',
 }
 
+const STATUS_PUBLICO_ALVO = {
+  ok: 'Ok',
+  informacao_incorreta: 'Informação incorreta',
+  sem_informacao: 'Sem informação',
+}
+
+const CORRECAO_SOLICITADA_PUBLICO_ALVO = {
+  sim: 'Sim',
+  nao: 'Não',
+  nao_necessaria: 'Não há necessidade de solicitar correção',
+}
+
 function valor(value) {
   return value === null || value === undefined || value === '' ? '—' : value
 }
@@ -147,8 +159,12 @@ export default function VisualizarRevisao() {
             {revisao.publico_alvo.map((item) => (
               <article className={styles.card} key={item.id_revisao_publico_alvo}>
                 <h3>{valor(item.nome_obra || `Projeto ${item.id_projeto_investimento}`)}</h3>
-                <Comparacao label="População beneficiada" original={item.populacao_beneficiada_original} revisado={item.populacao_beneficiada_revisada} />
-                <Comparacao label="Descrição" original={item.desc_populacao_beneficiada_original} revisado={item.desc_populacao_beneficiada_revisada} />
+                <p><strong>População beneficiada:</strong> {valor(item.populacao_beneficiada_original)}</p>
+                <p><strong>Conferência:</strong> {STATUS_PUBLICO_ALVO[item.status_populacao_beneficiada] || 'Não conferida'}</p>
+                <p><strong>Descrição:</strong> {valor(item.desc_populacao_beneficiada_original)}</p>
+                <p><strong>Conferência da descrição:</strong> {STATUS_PUBLICO_ALVO[item.status_desc_populacao_beneficiada] || 'Não conferida'}</p>
+                {item.observacao_publico_alvo && <p className={styles.textBlock}><strong>Observação:</strong> {item.observacao_publico_alvo}</p>}
+                {item.status_correcao_solicitada && <p><strong>Correção solicitada:</strong> {CORRECAO_SOLICITADA_PUBLICO_ALVO[item.status_correcao_solicitada] || 'Não informada'}</p>}
                 <Metadados item={item} />
               </article>
             ))}

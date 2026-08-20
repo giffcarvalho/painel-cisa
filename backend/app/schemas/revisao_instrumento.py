@@ -22,6 +22,8 @@ ConfirmacaoStatus = Literal[
     "sobreposicao_confirmada",
 ]
 StatusRevisao = Literal["rascunho", "enviado"]
+StatusPublicoAlvo = Literal["ok", "informacao_incorreta", "sem_informacao"]
+CorrecaoSolicitadaPublicoAlvo = Literal["sim", "nao", "nao_necessaria"]
 
 CONFIRMACOES_COMPATIVEIS = {
     "nao_analisada": {"nao_confirmada"},
@@ -171,8 +173,10 @@ class PublicoAlvoRevisaoItem(RevisaoInstrumentoBase):
 
     populacao_beneficiada_original: str | None = None
     desc_populacao_beneficiada_original: str | None = None
-    populacao_beneficiada_revisada: str | None = None
-    desc_populacao_beneficiada_revisada: str | None = None
+    status_populacao_beneficiada: StatusPublicoAlvo | None = None
+    status_desc_populacao_beneficiada: StatusPublicoAlvo | None = None
+    observacao_publico_alvo: str | None = None
+    status_correcao_solicitada: CorrecaoSolicitadaPublicoAlvo | None = None
 
     conferido_em: datetime | None = None
     valido_ate: datetime | None = None
@@ -184,8 +188,10 @@ class PublicoAlvoRevisaoAlteracao(RevisaoInstrumentoBase):
 
     populacao_beneficiada_original: str | None = None
     desc_populacao_beneficiada_original: str | None = None
-    populacao_beneficiada_revisada: str | None = None
-    desc_populacao_beneficiada_revisada: str | None = None
+    status_populacao_beneficiada: StatusPublicoAlvo | None = None
+    status_desc_populacao_beneficiada: StatusPublicoAlvo | None = None
+    observacao_publico_alvo: str | None = None
+    status_correcao_solicitada: CorrecaoSolicitadaPublicoAlvo | None = None
 
 
 class MunicipioRevisaoItem(RevisaoInstrumentoBase):

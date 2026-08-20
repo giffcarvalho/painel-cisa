@@ -71,8 +71,10 @@ class VisualizacaoRevisaoEnviadaTest(unittest.IsolatedAsyncioTestCase):
             "nome_obra": "Sistema de abastecimento",
             "populacao_beneficiada_original": "850",
             "desc_populacao_beneficiada_original": "Original",
-            "populacao_beneficiada_revisada": "900",
-            "desc_populacao_beneficiada_revisada": "Revisada",
+            "status_populacao_beneficiada": "ok",
+            "status_desc_populacao_beneficiada": "informacao_incorreta",
+            "observacao_publico_alvo": "Descrição divergente.",
+            "status_correcao_solicitada": "sim",
             "conferido_em": agora,
             "valido_ate": agora,
         }
@@ -107,6 +109,8 @@ class VisualizacaoRevisaoEnviadaTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn("r.id_revisao = :id_revisao", primeira_sql)
         self.assertEqual(primeira_params["id_revisao"], 12)
         self.assertIn("tb_revisao_instrumento_publico_alvo", publico_sql)
+        self.assertIn("rpa.status_correcao_solicitada", publico_sql)
+        self.assertNotIn("rpa.correcao_solicitada", publico_sql)
         self.assertEqual(publico_params["id_revisao"], 12)
 
     async def test_rejeita_revisao_associada_a_outro_instrumento(self):

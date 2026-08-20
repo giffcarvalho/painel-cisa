@@ -86,44 +86,44 @@ class PublicoAlvoPersistenciaTest(unittest.IsolatedAsyncioTestCase):
         params = db.execute.await_args.args[1]
         return sql, params
 
-    async def test_persiste_apenas_populacao_como_texto(self):
+    async def test_persiste_status_populacao_normalizado(self):
         sql, params = await self._persistir(
             PublicoAlvoRevisaoAlteracao(
                 id_projeto_investimento="PROJ-1",
-                populacao_beneficiada_revisada="00125 pessoas",
+                status_populacao_beneficiada="informacao_incorreta",
             )
         )
-        self.assertEqual(params["populacao_beneficiada_revisada"], "00125 pessoas")
-        self.assertTrue(params["populacao_enviada"])
-        self.assertFalse(params["desc_enviada"])
+        self.assertEqual(params["status_populacao_beneficiada"], "informacao_incorreta")
         self.assertIn("ON CONFLICT (id_revisao, id_projeto_investimento)", sql)
 
-    async def test_persiste_apenas_descricao_sem_apagar_populacao(self):
+    async def test_persiste_status_descricao(self):
         sql, params = await self._persistir(
             PublicoAlvoRevisaoAlteracao(
                 id_projeto_investimento="PROJ-1",
-                desc_populacao_beneficiada_revisada="Moradores reassentados",
+                status_desc_populacao_beneficiada="sem_informacao",
             )
         )
-        self.assertFalse(params["populacao_enviada"])
-        self.assertTrue(params["desc_enviada"])
-        self.assertIn("ELSE rpa.populacao_beneficiada_revisada", sql)
+        self.assertEqual(params["status_desc_populacao_beneficiada"], "sem_informacao")
+        self.assertIn("status_desc_populacao_beneficiada", sql)
 
-    async def test_persiste_as_duas_correcoes_no_mesmo_upsert(self):
-        _, params = await self._persistir(
+    async def test_persiste_conferencia_completa_no_mesmo_upsert(self):
+        sql, params = await self._persistir(
             PublicoAlvoRevisaoAlteracao(
                 id_projeto_investimento="PROJ-1",
-                populacao_beneficiada_revisada="125",
-                desc_populacao_beneficiada_revisada="Moradores reassentados",
+                status_populacao_beneficiada="ok",
+                status_desc_populacao_beneficiada="informacao_incorreta",
+                observacao_publico_alvo="Descrição divergente.",
+                status_correcao_solicitada="nao_necessaria",
             )
         )
-        self.assertTrue(params["populacao_enviada"])
-        self.assertTrue(params["desc_enviada"])
+        self.assertEqual(params["observacao_publico_alvo"], "Descrição divergente.")
+        self.assertEqual(params["status_correcao_solicitada"], "nao_necessaria")
+        self.assertIn("status_correcao_solicitada", sql)
+        self.assertNotIn("rpa.correcao_solicitada", sql)
 
-    async def test_campo_vazio_nao_sobrescreve_correcao_valida(self):
+    async def test_rascunho_aceita_status_vazios(self):
         db = _Db()
         projeto = _projeto()
-        projeto.populacao_beneficiada_revisada = "125"
         with patch(
             "app.api.revisao_instrumento._buscar_publico_alvo",
             new=AsyncMock(side_effect=[[projeto], [projeto]]),
@@ -135,11 +135,12 @@ class PublicoAlvoPersistenciaTest(unittest.IsolatedAsyncioTestCase):
                 [
                     PublicoAlvoRevisaoAlteracao(
                         id_projeto_investimento="PROJ-1",
-                        populacao_beneficiada_revisada=None,
+                        status_populacao_beneficiada=None,
+                        status_desc_populacao_beneficiada=None,
                     )
                 ],
             )
-        db.execute.assert_not_awaited()
+        db.execute.assert_awaited_once()
 
 
 class MunicipioPersistenciaTest(unittest.IsolatedAsyncioTestCase):
@@ -401,7 +402,8 @@ class TransacaoRevisaoTest(unittest.IsolatedAsyncioTestCase):
             publico_alvo=[
                 {
                     "id_projeto_investimento": "PROJ-1",
-                    "populacao_beneficiada_revisada": "125",
+                    "status_populacao_beneficiada": "ok",
+                    "status_desc_populacao_beneficiada": "ok",
                 }
             ],
         )
@@ -462,7 +464,8 @@ class TransacaoRevisaoTest(unittest.IsolatedAsyncioTestCase):
             publico_alvo=[
                 {
                     "id_projeto_investimento": "PROJ-1",
-                    "populacao_beneficiada_revisada": "125",
+                    "status_populacao_beneficiada": "ok",
+                    "status_desc_populacao_beneficiada": "ok",
                 }
             ],
         )
@@ -475,7 +478,14 @@ class TransacaoRevisaoTest(unittest.IsolatedAsyncioTestCase):
 
         async def persistir_publico(*_args, **_kwargs):
             eventos.append("publico-alvo")
-            return [_projeto()]
+            return [
+                _projeto().model_copy(
+                    update={
+                        "status_populacao_beneficiada": "ok",
+                        "status_desc_populacao_beneficiada": "ok",
+                    }
+                )
+            ]
 
         with (
             patch("app.api.revisao_instrumento.exigir_permissao_edicao", new=AsyncMock()),

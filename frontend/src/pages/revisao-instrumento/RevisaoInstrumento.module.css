@@ -1473,7 +1473,7 @@ button:disabled {
   padding: 8px;
 }
 
-.table .justificativaToggle {
+.justificativaToggle {
   display: inline-flex;
   width: 28px;
   min-height: 28px;
@@ -1487,7 +1487,7 @@ button:disabled {
   cursor: pointer;
 }
 
-.table .justificativaToggle:hover {
+.justificativaToggle:hover {
   background: #f9fafb;
   color: #111827;
 }
@@ -1930,6 +1930,36 @@ button:disabled {
 
 .reviewContextNotice {
   color: #475569;
+}
+
+.publicoAlvoStatus {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  margin-top: 0.75rem;
+}
+
+.publicoAlvoStatus label,
+.publicoAlvoCorrecao {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+.publicoAlvoObservacao {
+  display: grid;
+  gap: 0.5rem;
+  grid-column: 1 / -1;
+}
+
+.publicoAlvoObservacao textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.publicoAlvoCorrecao {
+  grid-column: 1 / -1;
 }
 
 .viewRevisionButton {
@@ -2703,6 +2733,7 @@ button:disabled {
 }
 
 .pageDetail .publicoAlvoGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px 28px;
 }
 
@@ -2710,10 +2741,19 @@ button:disabled {
   gap: 7px;
 }
 
-.pageDetail .publicoAlvoCampo > span {
+.publicoAlvoCampoHeader {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.pageDetail .publicoAlvoCampoHeader > span {
   color: #64748b;
   font-size: 12px;
   font-weight: 500;
+  line-height: 1.4;
 }
 
 .pageDetail .publicoAlvoCampo strong {
@@ -2881,8 +2921,93 @@ button:disabled {
   padding-top: 18px;
 }
 
+.pageDetail .publicoAlvoCampo .acaoTextualInline,
+.pageDetail .publicoAlvoCorrecao .acaoTextualInline {
+  max-width: 100%;
+  white-space: normal;
+}
+
+.acaoTextualButton:focus-visible,
+.justificativaToggle:focus-visible,
+.justificativaFechar:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.acaoTextualButton:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.publicoAlvoAuxiliares {
+  display: grid;
+  gap: 14px;
+  padding-top: 2px;
+}
+
+.publicoAlvoObservacao {
+  display: grid;
+  width: min(100%, 720px);
+  gap: 8px;
+}
+
+.publicoAlvoCorrecao {
+  display: flex;
+  width: min(100%, 920px);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.publicoAlvoObservacao > span,
+.publicoAlvoCorrecao > span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.publicoAlvoObservacao .justificativaAberta {
+  grid-template-columns: minmax(0, 1fr) 28px;
+  width: min(100%, 620px);
+  align-items: start;
+}
+
+.pageDetail .reviewGrid {
+  grid-template-columns: minmax(0, 720px);
+}
+
+.pageDetail .municipioAcaoLinha,
+.pageDetail .justificativaMunicipio {
+  grid-column: 1;
+}
+
+.pageDetail .justificativaMunicipio {
+  display: grid;
+  width: min(100%, 620px);
+  gap: 6px;
+}
+
+.pageDetail .justificativaMunicipio textarea {
+  width: 100%;
+  min-height: 58px;
+  max-height: 160px;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
 @media (max-width: 720px) {
   .pageDetail .reviewModule {
     border-top: 0;
   }
+
+  .pageDetail .publicoAlvoGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .publicoAlvoCampoHeader,
+  .publicoAlvoCorrecao {
+    align-items: flex-start;
+  }
+
 }
