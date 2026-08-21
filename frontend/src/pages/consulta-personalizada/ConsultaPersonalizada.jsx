@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import ResumoConfiguracao from '@/components/extrator-dados/ResumoConfiguracao'
+import ResumoConfiguracao from '@/components/consulta-personalizada/ResumoConfiguracao'
 import {
   useCatalogoExtrator,
   useExportarExcelExtrator,
@@ -9,10 +9,10 @@ import {
   useContarRegistrosExtrator,
   useExportarCsvExtrator,
 } from '@/hooks/useExtratorDados'
-import TipoTabelaCards from '@/components/extrator-dados/TipoTabelaCards'
-import FiltrosExtrator from '@/components/extrator-dados/FiltrosExtrator'
-import SelecaoColunas from '@/components/extrator-dados/SelecaoColunas'
-import PreviaExtrator from '@/components/extrator-dados/PreviaExtrator'
+import TipoTabelaCards from '@/components/consulta-personalizada/TipoTabelaCards'
+import FiltrosExtrator from '@/components/consulta-personalizada/FiltrosExtrator'
+import SelecaoColunas from '@/components/consulta-personalizada/SelecaoColunas'
+import PreviaExtrator from '@/components/consulta-personalizada/PreviaExtrator'
 import styles from './ConsultaPersonalizada.module.css'
 
 const LIMITE_COLUNAS_PREVIA = 80

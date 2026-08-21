@@ -1303,11 +1303,7 @@ button:disabled {
 }
 
 .valorOriginalTextoLongo {
-  display: -webkit-box;
-  max-height: 4.2em;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  display: block;
   line-height: 1.4;
   overflow-wrap: break-word;
 }
@@ -1417,10 +1413,11 @@ button:disabled {
   font-weight: 600;
 }
 
-.publicoAlvoGrid {
+.publicoAlvoCampos {
   display: grid;
   grid-template-columns: minmax(180px, 0.8fr) minmax(260px, 1.2fr);
-  gap: 12px;
+  gap: 28px;
+  align-items: start;
 }
 
 .publicoAlvoCampo {
@@ -1781,7 +1778,7 @@ button:disabled {
   .addGrid,
   .reviewGrid,
   .addLocalidadeGrid,
-  .publicoAlvoGrid,
+  .publicoAlvoCampos,
   .addMunicipioLocalidadeRow {
     grid-template-columns: 1fr;
   }
@@ -1824,6 +1821,11 @@ button:disabled {
 }
 
 @media (max-width: 720px) {
+  .reviewContextStatusArea,
+  .reviewContextActions {
+    align-items: flex-start;
+  }
+
   .page {
     padding: 16px;
   }
@@ -1932,6 +1934,16 @@ button:disabled {
   color: #475569;
 }
 
+.reviewContextStatusArea,
+.reviewContextActions {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+}
+
+.reviewContextStatusArea { gap: 7px; }
+.reviewContextActions { gap: 3px; }
+
 .publicoAlvoStatus {
   display: flex;
   flex-wrap: wrap;
@@ -1966,7 +1978,7 @@ button:disabled {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  justify-self: start;
+  justify-self: end;
   border: 0;
   padding: 2px 0;
   background: transparent;
@@ -2732,24 +2744,20 @@ button:disabled {
   line-height: 1.5;
 }
 
-.pageDetail .publicoAlvoGrid {
+.pageDetail .publicoAlvoCampos {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px 28px;
+  gap: 28px;
 }
 
 .pageDetail .publicoAlvoCampo {
-  gap: 7px;
-}
-
-.publicoAlvoCampoHeader {
   display: flex;
   min-width: 0;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 14px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
 }
 
-.pageDetail .publicoAlvoCampoHeader > span {
+.pageDetail .publicoAlvoCampoTitulo {
   color: #64748b;
   font-size: 12px;
   font-weight: 500;
@@ -2765,6 +2773,171 @@ button:disabled {
 .pageDetail .publicoAlvoCampo .valorOriginalTextoLongo {
   color: #475569;
   font-weight: 400;
+}
+
+.publicoAlvoDescricaoConteudo {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  line-height: 1.5;
+}
+
+.publicoAlvoDescricaoToggle {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  font: inherit;
+  line-height: 1.5;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.publicoAlvoDescricaoToggle:hover {
+  text-decoration: underline;
+}
+
+.publicoAlvoDescricaoToggle:focus-visible {
+  border-radius: 2px;
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.publicoAlvoDescricaoMedicao {
+  position: absolute;
+  inset: 0 auto auto 0;
+  visibility: hidden;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+  pointer-events: none;
+}
+
+.publicoAlvoConferenciaAcao {
+  position: relative;
+  display: inline-flex;
+  margin-top: 2px;
+}
+
+.publicoAlvoConferir {
+  min-height: 28px;
+  color: #4b5563;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.publicoAlvoConferir:hover {
+  background: #eef2ff;
+  color: #1d4ed8;
+}
+
+.publicoAlvoConferir:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.publicoAlvoConferir:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.publicoAlvoBalao {
+  position: fixed;
+  z-index: 1000;
+  width: max-content;
+  min-width: 190px;
+  max-width: calc(100vw - 16px);
+  padding: 5px;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgb(15 23 42 / 10%);
+}
+
+.publicoAlvoBalao::before,
+.publicoAlvoBalao::after {
+  position: absolute;
+  content: '';
+  border-style: solid;
+}
+
+.publicoAlvoBalaoright::before {
+  top: 50%;
+  left: -8px;
+  margin-top: -7px;
+  border-width: 7px 8px 7px 0;
+  border-color: transparent #d1d5db transparent transparent;
+}
+
+.publicoAlvoBalaoright::after {
+  top: 50%;
+  left: -6px;
+  margin-top: -6px;
+  border-width: 6px 7px 6px 0;
+  border-color: transparent #ffffff transparent transparent;
+}
+
+.publicoAlvoBalaoleft::before {
+  top: 50%;
+  right: -8px;
+  margin-top: -7px;
+  border-width: 7px 0 7px 8px;
+  border-color: transparent transparent transparent #d1d5db;
+}
+
+.publicoAlvoBalaoleft::after {
+  top: 50%;
+  right: -6px;
+  margin-top: -6px;
+  border-width: 6px 0 6px 7px;
+  border-color: transparent transparent transparent #ffffff;
+}
+
+.publicoAlvoBalaobottom::before {
+  top: -8px;
+  left: 18px;
+  border-width: 0 7px 8px;
+  border-color: transparent transparent #d1d5db;
+}
+
+.publicoAlvoBalaobottom::after {
+  top: -6px;
+  left: 19px;
+  border-width: 0 6px 7px;
+  border-color: transparent transparent #ffffff;
+}
+
+.publicoAlvoOpcao {
+  display: flex;
+  min-height: 30px;
+  align-items: center;
+  gap: 8px;
+  border-radius: 4px;
+  padding: 5px 7px;
+  color: #374151;
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.publicoAlvoOpcao:hover {
+  background: #f3f4f6;
+}
+
+.publicoAlvoOpcao input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: #2563eb;
 }
 
 .pageDetail .valorRevisavelCell {
@@ -3001,13 +3174,14 @@ button:disabled {
     border-top: 0;
   }
 
-  .pageDetail .publicoAlvoGrid {
+  .pageDetail .publicoAlvoCampos {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .publicoAlvoCampoHeader,
-  .publicoAlvoCorrecao {
-    align-items: flex-start;
+  .pageDetail .publicoAlvoCampo {
+    display: flex;
   }
+
+  .publicoAlvoCorrecao { align-items: flex-start; }
 
 }

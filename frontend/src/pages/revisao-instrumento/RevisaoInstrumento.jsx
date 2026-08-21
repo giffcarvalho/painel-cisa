@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Check, ChevronDown, Plus, Save, Search, Send, X } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { revisaoInstrumentoApi } from '@/api/revisaoInstrumento'
+import Tooltip from '@/components/revisao-instrumento/Tooltip'
 import { useAuth } from '@/context/auth/useAuth'
 import styles from './RevisaoInstrumento.module.css'
 import { formatPercentualPontos } from '../../utils/formatters'
@@ -480,17 +482,6 @@ function nomeUsuario(usuario) {
   )
 }
 
-function Tooltip({ text, children }) {
-  return (
-    <span className={styles.tooltipWrapper}>
-      {children}
-      <span className={styles.tooltip} role="tooltip">
-        {text}
-      </span>
-    </span>
-  )
-}
-
 function criarItemHistorico({ data, titulo, usuarioNome, descricao }) {
   return {
     id: `${titulo}-${data ?? novaChaveLocal()}-${descricao ?? ''}`,
@@ -568,6 +559,143 @@ function copiarMunicipios(municipios = []) {
 }
 
 
+function DescricaoPublicoAlvo({ valor, expandida, onToggle }) {
+  const conteudoRef = useRef(null)
+  const medicaoRef = useRef(null)
+  const candidatoRef = useRef(null)
+  const [possuiConteudoOculto, setPossuiConteudoOculto] = useState(false)
+  const [textoRecolhido, setTextoRecolhido] = useState(valor)
+
+  useEffect(() => {
+    const conteudo = conteudoRef.current
+    const medicao = medicaoRef.current
+    const candidato = candidatoRef.current
+    if (!conteudo || !medicao || !candidato) return undefined
+
+    const medir = () => {
+      const palavras = String(valor).trim().split(/\s+/).filter(Boolean)
+      const lineHeight = Number.parseFloat(getComputedStyle(conteudo).lineHeight)
+      const alturaMaxima = lineHeight * 3 + 0.5
+      medicao.style.width = `${conteudo.clientWidth}px`
+      candidato.textContent = palavras.join(' ')
+      if (medicao.scrollHeight <= alturaMaxima) {
+        setPossuiConteudoOculto(false)
+        setTextoRecolhido(valor)
+        return
+      }
+      let inicio = 0
+      let fim = palavras.length
+      while (inicio < fim) {
+        const meio = Math.ceil((inicio + fim) / 2)
+        candidato.textContent = palavras.slice(0, meio).join(' ')
+        if (medicao.scrollHeight <= alturaMaxima) inicio = meio
+        else fim = meio - 1
+      }
+      setPossuiConteudoOculto(true)
+      setTextoRecolhido(palavras.slice(0, Math.max(1, inicio)).join(' '))
+    }
+
+    medir()
+    const observer = new ResizeObserver(medir)
+    observer.observe(conteudo)
+    return () => observer.disconnect()
+  }, [valor])
+
+  return (
+    <div ref={conteudoRef} className={styles.publicoAlvoDescricaoConteudo}>
+      <strong className={styles.valorOriginalTextoLongo}>
+        {expandida ? valor : textoRecolhido}
+        {(possuiConteudoOculto || expandida) && (
+          <> <button type="button" className={styles.publicoAlvoDescricaoToggle} onClick={onToggle}>
+            {expandida ? 'Ver menos' : 'Ver mais'}
+          </button></>
+        )}
+      </strong>
+      <span ref={medicaoRef} className={styles.publicoAlvoDescricaoMedicao} aria-hidden="true">
+        <span ref={candidatoRef} /> <span className={styles.publicoAlvoDescricaoToggle}>Ver mais</span>
+      </span>
+    </div>
+  )
+}
+
+function ConferenciaPublicoAlvo({ aberto, anchorRef, valor, campo, rotulo, instanceId, disabled, onToggle, onSelecionar, onFechar }) {
+  const painelRef = useRef(null)
+  const [posicao, setPosicao] = useState(null)
+
+  useEffect(() => {
+    if (!aberto) return undefined
+    const atualizarPosicao = () => {
+      const anchor = anchorRef.current
+      const painel = painelRef.current
+      if (!anchor || !painel) return
+      const ancora = anchor.getBoundingClientRect()
+      const largura = painel.offsetWidth
+      const altura = painel.offsetHeight
+      const espaco = 10
+      let lado = 'right'
+      let left = ancora.right + espaco
+      let top = ancora.top + (ancora.height - altura) / 2
+      if (left + largura > window.innerWidth - 8) {
+        if (ancora.left - largura - espaco >= 8) {
+          lado = 'left'
+          left = ancora.left - largura - espaco
+        } else {
+          lado = 'bottom'
+          left = Math.min(Math.max(8, ancora.left), window.innerWidth - largura - 8)
+          top = ancora.bottom + espaco
+        }
+      }
+      top = Math.min(Math.max(8, top), window.innerHeight - altura - 8)
+      setPosicao({ left, top, lado })
+    }
+    const aoClicarFora = (event) => {
+      if (!painelRef.current?.contains(event.target) && !anchorRef.current?.contains(event.target)) onFechar()
+    }
+    const aoPressionarTecla = (event) => {
+      if (event.key === 'Escape') {
+        onFechar()
+        anchorRef.current?.focus()
+      }
+    }
+    const frame = requestAnimationFrame(atualizarPosicao)
+    document.addEventListener('pointerdown', aoClicarFora)
+    document.addEventListener('keydown', aoPressionarTecla)
+    window.addEventListener('resize', atualizarPosicao)
+    window.addEventListener('scroll', atualizarPosicao, true)
+    return () => {
+      cancelAnimationFrame(frame)
+      document.removeEventListener('pointerdown', aoClicarFora)
+      document.removeEventListener('keydown', aoPressionarTecla)
+      window.removeEventListener('resize', atualizarPosicao)
+      window.removeEventListener('scroll', atualizarPosicao, true)
+    }
+  }, [aberto, anchorRef, onFechar])
+
+  return (
+    <div className={styles.publicoAlvoConferenciaAcao}>
+      <button ref={anchorRef} type="button" className={`${styles.acaoTextualInline} ${styles.publicoAlvoConferir}`}
+        aria-haspopup="true" aria-expanded={aberto} disabled={disabled} onClick={onToggle}>
+        Revisar
+      </button>
+      {aberto && createPortal(
+        <div ref={painelRef} className={`${styles.publicoAlvoBalao} ${posicao ? styles[`publicoAlvoBalao${posicao.lado}`] : ''}`}
+          style={posicao ? { left: posicao.left, top: posicao.top } : { visibility: 'hidden' }} role="radiogroup" aria-label={rotulo}>
+          {STATUS_PUBLICO_ALVO.map((opcao) => {
+            const id = `publico-alvo-${instanceId}-${campo}-${opcao.value}`
+            return (
+              <label className={styles.publicoAlvoOpcao} key={opcao.value} htmlFor={id}>
+                <input id={id} type="radio" name={`${campo}-${rotulo}`} value={opcao.value} checked={valor === opcao.value}
+                  onChange={() => onSelecionar(opcao.value)} />
+                <span>{opcao.label}</span>
+              </label>
+            )
+          })}
+        </div>, document.body
+      )}
+    </div>
+  )
+}
+
 export default function RevisaoInstrumento() {
   const { usuario } = useAuth()
   const navigate = useNavigate()
@@ -577,6 +705,9 @@ export default function RevisaoInstrumento() {
   const [idRevisao, setIdRevisao] = useState(null)
   const [municipios, setMunicipios] = useState([])
   const [publicoAlvo, setPublicoAlvo] = useState([])
+  const [descricoesPublicoAlvoExpandidas, setDescricoesPublicoAlvoExpandidas] = useState(() => new Set())
+  const [conferenciaPublicoAlvoAberta, setConferenciaPublicoAlvoAberta] = useState(null)
+  const conferenciaPublicoAlvoAncoraRef = useRef(null)
   const [municipioAberto, setMunicipioAberto] = useState(null)
   const [observacaoGeral, setObservacaoGeral] = useState('')
   const [novoMunicipio, setNovoMunicipio] = useState(MUNICIPIO_NOVO_INICIAL)
@@ -739,7 +870,10 @@ export default function RevisaoInstrumento() {
     if (!numeroInstrumento) return
 
     const valor = String(numeroInstrumento).trim()
-    Promise.resolve().then(() => abrirInstrumento(valor))
+    Promise.resolve().then(() => {
+      setIdentificador(valor)
+      abrirInstrumento(valor)
+    })
   }, [abrirInstrumento, numeroInstrumento])
 
   useEffect(() => {
@@ -1669,7 +1803,7 @@ export default function RevisaoInstrumento() {
               <label>
                 <span>Número do instrumento, proposta ou TED</span>
               <input
-                value={numeroInstrumento ?? identificador}
+                value={identificador}
                 onChange={(event) => setIdentificador(event.target.value)}
                 placeholder="Ex.: número do instrumento, proposta ou TED"
               />
@@ -1700,9 +1834,25 @@ export default function RevisaoInstrumento() {
                   <h2 id="contexto-revisao-titulo">
                     Instrumento {valorOuTraco(instrumento.nr_instrumento || instrumento.nr_ted)}
                   </h2>
-                  <span className={`${styles.reviewStatusBadge} ${styles[`reviewStatus_${contextoAtual.tone}`]}`}>
-                    {contextoAtual.status}
-                  </span>
+                  <div className={styles.reviewContextStatusArea}>
+                    <span className={`${styles.reviewStatusBadge} ${styles[`reviewStatus_${contextoAtual.tone}`]}`}>
+                      {contextoAtual.status}
+                    </span>
+                    <div className={styles.reviewContextActions}>
+                      <button type="button" className={styles.viewRevisionButton} onClick={() => navigate(
+                        `/revisao-instrumento/${encodeURIComponent(instrumento.identificador_busca)}/revisoes`
+                      )}>
+                        Histórico de revisões
+                      </button>
+                      {dadosBusca?.revisao_pendente_aplicacao?.id_revisao && (
+                        <button type="button" className={styles.viewRevisionButton} onClick={() => navigate(
+                          `/revisao-instrumento/${encodeURIComponent(instrumento.identificador_busca)}/revisoes/${dadosBusca.revisao_pendente_aplicacao.id_revisao}`
+                        )}>
+                          Visualizar revisão nº {dadosBusca.revisao_pendente_aplicacao.id_revisao}
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
                 <p className={styles.reviewContextObject}>{valorOuTraco(instrumento.objeto)}</p>
                 <p className={styles.reviewContextMeta}>
@@ -1710,26 +1860,6 @@ export default function RevisaoInstrumento() {
                   {contextoAtual.responsavel && contextoAtual.detalhe && <span aria-hidden="true"> · </span>}
                   {contextoAtual.detalhe}
                 </p>
-                <button
-                  type="button"
-                  className={styles.viewRevisionButton}
-                  onClick={() => navigate(
-                    `/revisao-instrumento/${encodeURIComponent(instrumento.identificador_busca)}/revisoes`
-                  )}
-                >
-                  Histórico de revisões
-                </button>
-                {dadosBusca?.revisao_pendente_aplicacao?.id_revisao && (
-                  <button
-                    type="button"
-                    className={styles.viewRevisionButton}
-                    onClick={() => navigate(
-                      `/revisao-instrumento/${encodeURIComponent(instrumento.identificador_busca)}/revisoes/${dadosBusca.revisao_pendente_aplicacao.id_revisao}`
-                    )}
-                  >
-                    Visualizar revisão nº {dadosBusca.revisao_pendente_aplicacao.id_revisao}
-                  </button>
-                )}
                 {dadosBusca?.revisao_pendente_aplicacao && (
                   <p className={styles.reviewContextNotice} role="status">
                     {descricaoRascunhoGlobal(dadosBusca) || 'Sem rascunho atual'}
@@ -2796,30 +2926,44 @@ export default function RevisaoInstrumento() {
                           })}
                         </div>
                       )
+                      const renderizarConferencia = (valor, campo, rotulo) => {
+                        const identificador = `${chave}-${campo}`
+                        const aberto = conferenciaPublicoAlvoAberta === identificador
+                        const anchorRef = aberto ? conferenciaPublicoAlvoAncoraRef : { current: null }
+                        return (
+                          <ConferenciaPublicoAlvo aberto={aberto} anchorRef={anchorRef} valor={valor} campo={campo} rotulo={rotulo} instanceId={chave}
+                            disabled={!canEditRevision}
+                            onToggle={() => setConferenciaPublicoAlvoAberta((atual) => atual === identificador ? null : identificador)}
+                            onFechar={() => setConferenciaPublicoAlvoAberta(null)}
+                            onSelecionar={(novoValor) => {
+                              atualizarPublicoAlvo(item.id_projeto_investimento, campo, novoValor)
+                              setConferenciaPublicoAlvoAberta(null)
+                            }} />
+                        )
+                      }
 
                       return (
                         <article className={styles.publicoAlvoItem} key={chave}>
-                          <div className={styles.publicoAlvoHeader}>
-                            <div>
-                              <h3>{valorOuTraco(item.nome_obra)}</h3>
-                            </div>
-                          </div>
-
-                          <div className={styles.publicoAlvoGrid}>
+                          <div className={styles.publicoAlvoCampos}>
                             <div className={styles.publicoAlvoCampo}>
-                              <div className={styles.publicoAlvoCampoHeader}>
-                                <span>População beneficiada</span>
-                                {renderizarControleSegmentado(STATUS_PUBLICO_ALVO, item.status_populacao_beneficiada, 'status_populacao_beneficiada', 'Conferência da população beneficiada')}
-                              </div>
+                              <span className={styles.publicoAlvoCampoTitulo}>População beneficiada</span>
                               <strong>{valorOuTraco(item.populacao_beneficiada_original)}</strong>
+                              {renderizarConferencia(item.status_populacao_beneficiada, 'status_populacao_beneficiada', 'Conferência da população beneficiada')}
                             </div>
 
                             <div className={styles.publicoAlvoCampo}>
-                              <div className={styles.publicoAlvoCampoHeader}>
-                                <span>Descrição da população beneficiada</span>
-                                {renderizarControleSegmentado(STATUS_PUBLICO_ALVO, item.status_desc_populacao_beneficiada, 'status_desc_populacao_beneficiada', 'Conferência da descrição da população beneficiada')}
-                              </div>
-                              <strong className={styles.valorOriginalTextoLongo}>{valorOuTraco(item.desc_populacao_beneficiada_original)}</strong>
+                              <span className={styles.publicoAlvoCampoTitulo}>Descrição da população beneficiada</span>
+                              <DescricaoPublicoAlvo
+                                valor={valorOuTraco(item.desc_populacao_beneficiada_original)}
+                                expandida={descricoesPublicoAlvoExpandidas.has(chave)}
+                                onToggle={() => setDescricoesPublicoAlvoExpandidas((atuais) => {
+                                  const proximas = new Set(atuais)
+                                  if (proximas.has(chave)) proximas.delete(chave)
+                                  else proximas.add(chave)
+                                  return proximas
+                                })}
+                              />
+                              {renderizarConferencia(item.status_desc_populacao_beneficiada, 'status_desc_populacao_beneficiada', 'Conferência da descrição da população beneficiada')}
                             </div>
                           </div>
 
