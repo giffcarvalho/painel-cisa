@@ -284,7 +284,7 @@ export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
                     }
                     else if (variavelConfig.atributo.startsWith("jenks_")) {
                         const campo = variavelConfig.atributo.replace(/^jenks_/, "");
-                        valor = props[campo] != null? `${(props[campo] * 100).toFixed(2)}%`: null;
+                        valor = props[campo] != null? `${(props[campo] * 1).toFixed(2)}%`: null;
                     } else {
                         valor = props[variavelConfig.atributo];
                     }
