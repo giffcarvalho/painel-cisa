@@ -74,7 +74,7 @@ export function useAdicionarLayers(mapRef, layers, filtros) {
                 minzoom: informacoes_municipais?.minzoom,
                 paint: {
                 "fill-color": "#e7e1e1",
-                "fill-opacity": 0.8
+                "fill-opacity": 0.95
                 }
             });
             
