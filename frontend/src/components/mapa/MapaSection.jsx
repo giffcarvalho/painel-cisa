@@ -461,6 +461,92 @@ export default function MapaSection() {
                         {valor: "sem resposta", label: "Sem resposta", cor: "#d62828"},
                     ]
                 },
+                {
+                    atributo: "seca_vigente",
+                    label: "Desastres - sit. vigente - Seca",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "SE_Estiagem", label: "Emergência - Estiagem", cor: "#f85104"},
+                        {valor: "SE_Seca", label: "Emergência - Seca", cor: "#e20000"},
+                        {valor: "SCP_Estiagem", label: "Calamidade - Estiagem", cor: "#fc008a"},
+                        {valor: "SCP_Seca", label: "Calamidade - Seca", cor: "#990054"},
+                        {valor: "Múltiplos", label: "Múltiplas situações", cor: "#000000"},
+                    ]
+                },
+                {
+                    atributo: "hidrologico_vigente",
+                    label: "Desastres - sit. vigente - Hidrológicos",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "SE_Inundações", label: "Emergência - Inundações", cor: "#f85104"},
+                        {valor: "SE_Alagamentos", label: "Emergência - Alagamentos", cor: "#e20000"},
+                        {valor: "SE_Enxurradas", label: "Emergência - Enxurradas", cor: "#fdad87"},
+                        {valor: "SCP_Inundações", label: "Calamidade - Inundações", cor: "#fc008a"},
+                        {valor: "SCP_Alagamentos", label: "Calamidade - Alagamentos", cor: "#990054"},
+                        {valor: "SCP_Enxurradas", label: "Calamidade - Enxurradas", cor: "#faa9d5"},
+                        {valor: "Múltiplos", label: "Múltiplas situações", cor: "#000000"},
+                    ]
+                },
+                {
+                    atributo: "tempestade_vigente",
+                    label: "Desastres - sit. vigente - Tempestades",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "SE_Tornados", label: "Emergência - Tornados", cor: "#f85104"},
+                        {valor: "SE_Tempestade de Raios", label: "Emergência - Raios", cor: "#fffb0e"},
+                        {valor: "SE_Granizo", label: "Emergência - Granizo", cor: "#01bdd6"},
+                        {valor: "SE_Chuvas intensas", label: "Emergência - Chuvas intensas", cor: "#4662ff"},
+                        {valor: "SE_Vendaval", label: "Emergência - Vendaval", cor: "#43ff52"},
+                        {valor: "SCP_Tornados", label: "Calamidade - Tornados", cor: "#e20000"},
+                        {valor: "SCP_Tempestade de Raios", label: "Calamidade - Raios", cor: "#aca900"},
+                        {valor: "SCP_Granizo", label: "Calamidade - Granizo", cor: "#006370"},
+                        {valor: "SCP_Chuvas intensas", label: "Calamidade - Chuvas intensas", cor: "#001799"},
+                        {valor: "SCP_Vendaval", label: "Calamidade - Vendaval", cor: "#00880b"},
+                        {valor: "Múltiplos", label: "Múltiplas situações", cor: "#000000"},
+                    ]
+                },
+                {
+                    atributo: "qtde_reconhecimento_seca",
+                    label: "Histórico de desastres - Seca",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "0", label: "0", cor: "#ffffff"},
+                        {valor: "1 a 2", label: "1 a 2", cor: "#f89393"},
+                        {valor: "3 a 5", label: "3 a 5", cor: "#ff3939"},
+                        {valor: "5 a 10", label: "5 a 10", cor: "#dd0000"},
+                        {valor: "> 10", label: "> 10", cor: "#860000"},
+                    ]
+                },
+                {
+                    atributo: "qtde_reconhecimento_hidrologico",
+                    label: "Histórico de desastres - Hidrológicos",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "0", label: "0", cor: "#ffffff"},
+                        {valor: "1 a 2", label: "1 a 2", cor: "#f89393"},
+                        {valor: "3 a 5", label: "3 a 5", cor: "#ff3939"},
+                        {valor: "5 a 10", label: "5 a 10", cor: "#dd0000"},
+                        {valor: "> 10", label: "> 10", cor: "#860000"},
+                    ]
+                },
+                {
+                    atributo: "qtde_reconhecimento_tempestade",
+                    label: "Histórico de desastres - Tempestades",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "0", label: "0", cor: "#ffffff"},
+                        {valor: "1 a 2", label: "1 a 2", cor: "#f89393"},
+                        {valor: "3 a 5", label: "3 a 5", cor: "#ff3939"},
+                        {valor: "5 a 10", label: "5 a 10", cor: "#dd0000"},
+                        {valor: "> 10", label: "> 10", cor: "#860000"},
+                    ]
+                },
             ]
         },
 
