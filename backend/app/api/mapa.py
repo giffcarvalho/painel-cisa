@@ -1284,6 +1284,12 @@ async def get_municipios_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
                 sinisa_adimplencia_agua,
                 sinisa_adimplencia_esgoto,
                 sinisa_declarou_possuir_pmsb,
+                seca_vigente,
+                hidrologico_vigente,
+                tempestade_vigente,
+                qtde_reconhecimento_seca,
+                qtde_reconhecimento_hidrologico,
+                qtde_reconhecimento_tempestade,
                 ST_AsMVTGeom(
                     ST_Simplify(
                         geom_2022,
