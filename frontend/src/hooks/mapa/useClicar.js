@@ -160,12 +160,13 @@ export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
             }
             
             // Não abre popup da Carteira DSR durante a análise
+            /*
             if (modoAnalise && f.layer.id === "geometrias_carteira_dsr") {
                 popupRef.current?.remove();
                 popupRef.current = null;
                 return;
             }
-            
+            */
             
             let html = "";
             
@@ -186,7 +187,8 @@ export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
                 `;
             }
 
-            if (!modoAnalise && f.layer.id === "geometrias_carteira_dsr") {
+            //popup da carteira dsr. Havia uma proteção para não abrir o popup no modo análise, mas foi comentada por enquanto
+            if (/*!modoAnalise && */f.layer.id === "geometrias_carteira_dsr") {
                 html += `
                 <strong> Modalidade </strong> <br>
                 ${props.modalidade}<br/>
@@ -282,7 +284,7 @@ export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
                     }
                     else if (variavelConfig.atributo.startsWith("jenks_")) {
                         const campo = variavelConfig.atributo.replace(/^jenks_/, "");
-                        valor = props[campo] != null? `${(props[campo] * 100).toFixed(2)}%`: null;
+                        valor = props[campo] != null? `${(props[campo] * 1).toFixed(2)}%`: null;
                     } else {
                         valor = props[variavelConfig.atributo];
                     }
