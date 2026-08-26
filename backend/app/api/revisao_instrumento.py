@@ -549,11 +549,17 @@ async def _buscar_obras_saneamento(
             obras.orgao,
             obras.link_transferegov,
             obras.link_obrasgov,
-            COALESCE(revisada.relacao_instrumento, 'nao_analisada') AS relacao_instrumento,
-            COALESCE(revisada.confirmacao_status, 'nao_confirmada') AS confirmacao_status,
-            revisada.justificativa,
-            revisada.conferido_em,
-            revisada.valido_ate
+            CASE WHEN revisada.valido_ate >= NOW()
+                THEN revisada.relacao_instrumento
+                ELSE 'nao_analisada'
+            END AS relacao_instrumento,
+            CASE WHEN revisada.valido_ate >= NOW()
+                THEN revisada.confirmacao_status
+                ELSE 'nao_confirmada'
+            END AS confirmacao_status,
+            CASE WHEN revisada.valido_ate >= NOW() THEN revisada.justificativa END AS justificativa,
+            CASE WHEN revisada.valido_ate >= NOW() THEN revisada.conferido_em END AS conferido_em,
+            CASE WHEN revisada.valido_ate >= NOW() THEN revisada.valido_ate END AS valido_ate
         FROM instrumento.vw_investimento_saneamento obras
         LEFT JOIN instrumento.vw_obra_saneamento_revisada revisada
           ON revisada.tipo_instrumento = CAST(:tipo_instrumento AS varchar)
@@ -750,27 +756,27 @@ async def _buscar_publico_alvo(
             p.desc_populacao_beneficiada_original,
             CASE WHEN rpa.id_revisao_publico_alvo IS NOT NULL
                 THEN rpa.status_populacao_beneficiada
-                ELSE revisado.status_populacao_beneficiada
+                WHEN revisado.valido_ate >= NOW() THEN revisado.status_populacao_beneficiada
             END AS status_populacao_beneficiada,
             CASE WHEN rpa.id_revisao_publico_alvo IS NOT NULL
                 THEN rpa.status_desc_populacao_beneficiada
-                ELSE revisado.status_desc_populacao_beneficiada
+                WHEN revisado.valido_ate >= NOW() THEN revisado.status_desc_populacao_beneficiada
             END AS status_desc_populacao_beneficiada,
             CASE WHEN rpa.id_revisao_publico_alvo IS NOT NULL
                 THEN rpa.observacao_publico_alvo
-                ELSE revisado.observacao_publico_alvo
+                WHEN revisado.valido_ate >= NOW() THEN revisado.observacao_publico_alvo
             END AS observacao_publico_alvo,
             CASE WHEN rpa.id_revisao_publico_alvo IS NOT NULL
                 THEN rpa.status_correcao_solicitada
-                ELSE revisado.status_correcao_solicitada
+                WHEN revisado.valido_ate >= NOW() THEN revisado.status_correcao_solicitada
             END AS status_correcao_solicitada,
             CASE WHEN rpa.id_revisao_publico_alvo IS NOT NULL
                 THEN rpa.conferido_em
-                ELSE revisado.conferido_em
+                WHEN revisado.valido_ate >= NOW() THEN revisado.conferido_em
             END AS conferido_em,
             CASE WHEN rpa.id_revisao_publico_alvo IS NOT NULL
                 THEN rpa.valido_ate
-                ELSE revisado.valido_ate
+                WHEN revisado.valido_ate >= NOW() THEN revisado.valido_ate
             END AS valido_ate
         FROM projetos p
         LEFT JOIN obrasgov.vw_publico_alvo_revisado revisado
@@ -845,6 +851,181 @@ async def _buscar_rascunho_global(
     )
     row = result.mappings().one_or_none()
     return dict(row) if row else None
+
+
+async def _buscar_ultima_revisao_aplicada(
+    db: AsyncSession,
+    instrumento: InstrumentoRevisaoInfo,
+) -> dict | None:
+    result = await _execute_query(
+        db,
+        """
+        SELECT r.id_revisao, r.observacao_geral, r.aplicado_em
+        FROM painel_dsr.tb_revisao_instrumento AS r
+        JOIN painel_dsr.tb_execucao_aplicacao_revisao AS e
+          ON e.id_execucao = r.id_execucao_atualizacao
+         AND e.status = 'sucesso'
+        WHERE r.tipo_instrumento = :tipo_instrumento
+          AND r.aplicado_em IS NOT NULL
+          AND (
+                (:tipo_instrumento = 'ted' AND r.nr_ted = :nr_ted)
+             OR (:tipo_instrumento <> 'ted'
+                 AND NULLIF(BTRIM(r.nr_instrumento), '') =
+                     NULLIF(BTRIM(:nr_instrumento), ''))
+          )
+        ORDER BY r.aplicado_em DESC, r.id_revisao DESC
+        LIMIT 1
+        """,
+        {
+            "tipo_instrumento": instrumento.tipo_instrumento,
+            "nr_instrumento": instrumento.nr_instrumento,
+            "nr_ted": instrumento.nr_ted,
+        },
+    )
+    row = result.mappings().one_or_none()
+    return dict(row) if row else None
+
+
+async def _carregar_estado_aplicado(
+    db: AsyncSession,
+    instrumento: InstrumentoRevisaoInfo,
+) -> tuple[dict[int, dict], list[dict]]:
+    params = {
+        "tipo_instrumento": instrumento.tipo_instrumento,
+        "nr_instrumento": instrumento.nr_instrumento,
+        "nr_ted": instrumento.nr_ted,
+    }
+    filtro_revisao = """
+        r.tipo_instrumento = :tipo_instrumento
+        AND r.aplicado_em IS NOT NULL
+        AND e.status = 'sucesso'
+        AND ((:tipo_instrumento = 'ted' AND r.nr_ted = :nr_ted)
+          OR (:tipo_instrumento <> 'ted'
+              AND NULLIF(BTRIM(r.nr_instrumento), '') =
+                  NULLIF(BTRIM(:nr_instrumento), '')))
+    """
+    municipios_result = await _execute_query(
+        db,
+        f"""
+        WITH ultima AS (
+            SELECT DISTINCT ON (rm.cod_municipio)
+                rm.cod_municipio,
+                rm.conferido_em,
+                rm.valido_ate,
+                rm.acao_sugerida
+            FROM painel_dsr.tb_revisao_instrumento_municipio AS rm
+            JOIN painel_dsr.tb_revisao_instrumento AS r
+              ON r.id_revisao = rm.id_revisao
+            JOIN painel_dsr.tb_execucao_aplicacao_revisao AS e
+              ON e.id_execucao = r.id_execucao_atualizacao
+            WHERE {filtro_revisao}
+            ORDER BY rm.cod_municipio, r.aplicado_em DESC, r.id_revisao DESC
+        )
+        SELECT cod_municipio, conferido_em, valido_ate
+        FROM ultima
+        WHERE acao_sugerida <> 'remover' AND valido_ate >= NOW()
+        """,
+        params,
+    )
+    localidades_result = await _execute_query(
+        db,
+        f"""
+        WITH candidatas AS (
+            SELECT
+                rl.*,
+                COALESCE(rl.cod_comunidade_rural, comunidade.cod_comunidade_rural)
+                    AS cod_comunidade_atual,
+                r.aplicado_em
+            FROM painel_dsr.tb_revisao_instrumento_localidade AS rl
+            JOIN painel_dsr.tb_revisao_instrumento AS r
+              ON r.id_revisao = rl.id_revisao
+            JOIN painel_dsr.tb_execucao_aplicacao_revisao AS e
+              ON e.id_execucao = r.id_execucao_atualizacao
+            LEFT JOIN LATERAL (
+                SELECT cr.cod_comunidade_rural
+                FROM territorio.tb_comunidade_rural AS cr
+                WHERE rl.cod_comunidade_rural IS NULL
+                  AND cr.cod_municipio = rl.cod_municipio
+                  AND LOWER(BTRIM(cr.nome_comunidade_rural)) =
+                      LOWER(BTRIM(rl.nome_localidade_informada))
+                ORDER BY cr.cod_comunidade_rural DESC
+                LIMIT 1
+            ) AS comunidade ON TRUE
+            WHERE {filtro_revisao}
+        ), ultima AS (
+            SELECT DISTINCT ON (cod_municipio, cod_comunidade_atual)
+                id_revisao_localidade,
+                cod_municipio,
+                cod_comunidade_atual AS cod_comunidade_rural,
+                conferido_em,
+                valido_ate,
+                acao_sugerida
+            FROM candidatas
+            WHERE cod_comunidade_atual IS NOT NULL
+            ORDER BY cod_municipio, cod_comunidade_atual,
+                     aplicado_em DESC, id_revisao DESC
+        )
+        SELECT id_revisao_localidade, cod_municipio, cod_comunidade_rural,
+               conferido_em, valido_ate
+        FROM ultima
+        WHERE acao_sugerida <> 'remover' AND valido_ate >= NOW()
+        """,
+        params,
+    )
+    municipios = {
+        row["cod_municipio"]: dict(row)
+        for row in municipios_result.mappings().all()
+    }
+    localidades = [dict(row) for row in localidades_result.mappings().all()]
+    return municipios, localidades
+
+
+def _sobrepor_estado_aplicado(
+    municipios: list[MunicipioRevisaoItem],
+    municipios_aplicados: dict[int, dict],
+    localidades_aplicadas: list[dict],
+) -> None:
+    municipios_por_codigo = {item.cod_municipio: item for item in municipios}
+    for cod_municipio, aplicado in municipios_aplicados.items():
+        municipio = municipios_por_codigo.get(cod_municipio)
+        if municipio is None or municipio.conferido_em is not None:
+            continue
+        municipio.origem_registro = "base_atual"
+        municipio.acao_sugerida = "manter"
+        municipio.revisao_municipio_conferida_em = aplicado["conferido_em"]
+        municipio.conferido_em = aplicado["conferido_em"]
+        municipio.valido_ate = aplicado["valido_ate"]
+
+    localidades_por_chave = {
+        (item["cod_municipio"], item["cod_comunidade_rural"]): item
+        for item in localidades_aplicadas
+    }
+    for municipio in municipios:
+        for indice, localidade in enumerate(municipio.localidades):
+            aplicado = localidades_por_chave.get(
+                (municipio.cod_municipio, localidade.cod_comunidade_rural)
+            )
+            if aplicado is None:
+                continue
+            municipio.localidades[indice] = localidade.model_copy(
+                update={
+                    "origem_registro": "base_atual",
+                    "acao_sugerida": "manter",
+                    "conferido_em": aplicado["conferido_em"],
+                    "valido_ate": aplicado["valido_ate"],
+                }
+            )
+
+
+def _observacao_geral_atual(
+    revisao: dict | None,
+    ultima_revisao_aplicada: dict | None,
+) -> str | None:
+    if revisao is not None:
+        return revisao.get("observacao_geral")
+    if ultima_revisao_aplicada is not None:
+        return ultima_revisao_aplicada.get("observacao_geral")
+    return None
 
 
 def _rascunho_para_contrato(rascunho: dict, id_usuario: int) -> dict:
@@ -2549,6 +2730,10 @@ async def _montar_resposta_busca(
     localidades_salvas: list[dict] = []
     obras_salvas: list[dict] = []
     datas_salvas: dict[int, dict] = {}
+    ultima_revisao_aplicada = await _buscar_ultima_revisao_aplicada(db, instrumento)
+    municipios_aplicados, localidades_aplicadas = await _carregar_estado_aplicado(
+        db, instrumento
+    )
 
     if id_revisao is not None:
         (
@@ -2608,6 +2793,10 @@ async def _montar_resposta_busca(
             municipios_por_codigo[localidade.cod_municipio] = municipio
 
         municipio.localidades.append(localidade)
+
+    _sobrepor_estado_aplicado(
+        municipios, municipios_aplicados, localidades_aplicadas
+    )
 
     for localidade_salva in localidades_salvas:
         cod_municipio = localidade_salva["cod_municipio"]
@@ -2739,11 +2928,32 @@ async def _montar_resposta_busca(
 
     for municipio in municipios:
         datas = datas_salvas.get(municipio.cod_municipio, {})
-        municipio.revisao_municipio_conferida_em = datas.get(
-            "revisao_municipio_conferida_em"
+        municipio.revisao_municipio_conferida_em = (
+            datas.get("revisao_municipio_conferida_em")
+            or municipio.revisao_municipio_conferida_em
         )
-        municipio.localidades_conferidas_em = datas.get("localidades_conferidas_em")
-        municipio.obras_conferidas_em = datas.get("obras_conferidas_em")
+        municipio.localidades_conferidas_em = (
+            datas.get("localidades_conferidas_em")
+            or max(
+                (
+                    item.conferido_em
+                    for item in municipio.localidades
+                    if item.conferido_em is not None
+                ),
+                default=None,
+            )
+        )
+        municipio.obras_conferidas_em = (
+            datas.get("obras_conferidas_em")
+            or max(
+                (
+                    item.conferido_em
+                    for item in municipio.obras_saneamento
+                    if item.conferido_em is not None
+                ),
+                default=None,
+            )
+        )
 
     status_revisao_geral, status_revisao_geral_label = (
         _calcular_status_revisao_municipios(municipios)
@@ -2760,7 +2970,9 @@ async def _montar_resposta_busca(
         status=revisao["status"] if revisao else None,
         status_revisao_geral=status_revisao_geral,
         status_revisao_geral_label=status_revisao_geral_label,
-        observacao_geral=revisao["observacao_geral"] if revisao else None,
+        observacao_geral=_observacao_geral_atual(
+            revisao, ultima_revisao_aplicada
+        ),
         municipios=municipios,
         publico_alvo=publico_alvo,
         dados_oficiais=instrumento.dados_oficiais,

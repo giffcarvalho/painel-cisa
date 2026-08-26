@@ -2764,6 +2764,21 @@ button:disabled {
   line-height: 1.4;
 }
 
+.publicoAlvoCampoTituloLinha {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.publicoAlvoCampoTraco,
+.publicoAlvoCampoStatus {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
 .pageDetail .publicoAlvoCampo strong {
   color: #334155;
   font-weight: 500;
@@ -3122,6 +3137,11 @@ button:disabled {
   display: grid;
   width: min(100%, 720px);
   gap: 8px;
+}
+
+.publicoAlvoObservacao .observacaoResumo,
+.publicoAlvoObservacao .observacaoEditor {
+  width: min(100%, 620px);
 }
 
 .publicoAlvoCorrecao {

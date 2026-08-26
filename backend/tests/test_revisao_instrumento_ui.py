@@ -10,7 +10,14 @@ ARQUIVO = (
     / "revisao-instrumento"
     / "RevisaoInstrumento.jsx"
 )
-ARQUIVO_VISUALIZACAO = ARQUIVO.with_name("VisualizarRevisao.jsx")
+ARQUIVO_VISUALIZACAO = (
+    Path(__file__).resolve().parents[2]
+    / "frontend"
+    / "src"
+    / "components"
+    / "revisao-instrumento"
+    / "VisualizarRevisao.jsx"
+)
 
 
 class RevisaoInstrumentoRenderizacaoTest(unittest.TestCase):
@@ -56,6 +63,17 @@ class RevisaoInstrumentoRenderizacaoTest(unittest.TestCase):
         self.assertIn("Revisão nº ${revisaoPendente.id_revisao}", self.codigo)
         self.assertIn("Visualizar revisão nº", self.codigo)
         self.assertIn("revisao_pendente_aplicacao.id_revisao", self.codigo)
+
+    def test_localidades_exibem_contagem_quantitativa_e_validade_conservadora(self):
+        self.assertIn("localidades analisadas", self.codigo)
+        self.assertIn("formatarValidade(validade)", self.codigo)
+        self.assertIn("Date.parse(item.valido_ate) < Date.parse(menor)", self.codigo)
+
+    def test_publico_alvo_exibe_status_vigente_ao_lado_do_subtitulo(self):
+        self.assertIn("publicoAlvoCampoTituloLinha", self.codigo)
+        self.assertIn("labelStatusPublicoAlvo(item.status_populacao_beneficiada)", self.codigo)
+        self.assertIn("labelStatusPublicoAlvo(item.status_desc_populacao_beneficiada)", self.codigo)
+        self.assertIn('aria-hidden="true">—</span>', self.codigo)
 
 
 class VisualizacaoRevisaoSomenteLeituraTest(unittest.TestCase):

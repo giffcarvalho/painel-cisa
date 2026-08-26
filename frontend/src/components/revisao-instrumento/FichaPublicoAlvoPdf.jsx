@@ -94,13 +94,6 @@ function FichaPublicoAlvoPdf({ revisao }) {
             {index < revisao.publico_alvo.length - 1 && <View style={styles.divider} />}
           </View>
         ))}
-
-        {revisao.observacao_geral && (
-          <View style={{ marginTop: 16 }}>
-            <Text style={styles.sectionTitle}>Observação geral</Text>
-            <Text>{revisao.observacao_geral}</Text>
-          </View>
-        )}
       </Page>
     </Document>
   )

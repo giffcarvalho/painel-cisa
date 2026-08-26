@@ -246,12 +246,8 @@ function dadosObraPersistencia(obra, codMunicipio) {
 
 function dadosPublicoAlvoOriginal(item) {
   return {
-    status_populacao_beneficiada:
-      item.status_populacao_beneficiada ??
-      (valorAusente(item.populacao_beneficiada_original) ? 'sem_informacao' : null),
-    status_desc_populacao_beneficiada:
-      item.status_desc_populacao_beneficiada ??
-      (valorAusente(item.desc_populacao_beneficiada_original) ? 'sem_informacao' : null),
+    status_populacao_beneficiada: item.status_populacao_beneficiada ?? null,
+    status_desc_populacao_beneficiada: item.status_desc_populacao_beneficiada ?? null,
     observacao_publico_alvo: limparTexto(item.observacao_publico_alvo),
     status_correcao_solicitada: item.status_correcao_solicitada ?? null,
   }
@@ -264,15 +260,12 @@ function copiarPublicoAlvo(publicoAlvo = []) {
       item.populacao_beneficiada_original ?? null,
     desc_populacao_beneficiada_original:
       item.desc_populacao_beneficiada_original ?? null,
-    status_populacao_beneficiada:
-      item.status_populacao_beneficiada ??
-      (valorAusente(item.populacao_beneficiada_original) ? 'sem_informacao' : null),
-    status_desc_populacao_beneficiada:
-      item.status_desc_populacao_beneficiada ??
-      (valorAusente(item.desc_populacao_beneficiada_original) ? 'sem_informacao' : null),
+    status_populacao_beneficiada: item.status_populacao_beneficiada ?? null,
+    status_desc_populacao_beneficiada: item.status_desc_populacao_beneficiada ?? null,
     observacao_publico_alvo: item.observacao_publico_alvo ?? '',
     status_correcao_solicitada: item.status_correcao_solicitada ?? null,
-    _observacaoAberta: !valorAusente(item.observacao_publico_alvo),
+    _observacaoEmEdicao: false,
+    _rascunhoObservacao: item.observacao_publico_alvo ?? '',
     conferido_em: item.conferido_em ?? null,
     valido_ate: item.valido_ate ?? null,
     _publicoAlvoOriginal: dadosPublicoAlvoOriginal(item),
@@ -331,7 +324,7 @@ function municipioTemHistorico(municipio) {
 
 function statusVisualMunicipio(municipio) {
   if (municipioTemAlteracoes(municipio)) return 'Alterações não salvas'
-  if (municipio.revisao_municipio_conferida_em) {
+  if (municipio.revisao_municipio_conferida_em && conferenciaVigente(municipio)) {
     return `Ação salva — ${formatarDataConferencia(municipio.revisao_municipio_conferida_em)}${formatarValidade(municipio.valido_ate) ? ` · ${formatarValidade(municipio.valido_ate)}` : ''}`
   }
   return 'Ainda não conferida'
@@ -447,12 +440,85 @@ function formatarValidade(value) {
   return ano && mes && dia ? `Válida até ${dia}/${mes}/${ano}` : null
 }
 
+function conferenciaVigente(item) {
+  if (!item?.conferido_em) return false
+  if (!item.valido_ate) return false
+  const validade = Date.parse(item.valido_ate)
+  return !Number.isNaN(validade) && validade >= Date.now()
+}
+
+function ObservacaoEditavel({
+  valor,
+  rascunho,
+  emEdicao,
+  podeEditar,
+  linhas = 4,
+  placeholder,
+  rotuloAcoes,
+  rotuloSalvar = 'Aplicar',
+  onAbrir,
+  onAlterarRascunho,
+  onSalvar,
+  onCancelar,
+  onRemover,
+}) {
+  const texto = valor.trim()
+
+  if (podeEditar && emEdicao) {
+    return (
+      <div className={styles.observacaoEditor}>
+        <textarea
+          className={styles.textarea}
+          value={rascunho}
+          onChange={(event) => onAlterarRascunho(event.target.value)}
+          rows={linhas}
+          placeholder={placeholder}
+        />
+        <div className={styles.acoesRevisaoInline}>
+          <button type="button" onClick={onSalvar}>{rotuloSalvar}</button>
+          <button type="button" onClick={onCancelar}>Cancelar</button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className={styles.observacaoResumo}>
+      <p className={!texto ? styles.emptyObservation : undefined}>
+        {texto || 'Ainda não cadastrada.'}
+      </p>
+      {podeEditar && (
+        <div className={styles.acaoTextualInline} aria-label={rotuloAcoes}>
+          <span className={styles.acaoTextualItem}>
+            <button type="button" className={styles.acaoTextualButton} onClick={onAbrir}>
+              {texto ? 'Editar' : 'Inserir'}
+            </button>
+          </span>
+          {texto && (
+            <>
+              <span className={styles.acaoTextualSeparator} aria-hidden="true">|</span>
+              <span className={styles.acaoTextualItem}>
+                <button type="button" className={styles.acaoTextualButton} onClick={onRemover}>Remover</button>
+              </span>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function labelStatusPublicoAlvo(value) {
+  return STATUS_PUBLICO_ALVO.find((item) => item.value === value)?.label ?? null
+}
+
 function resumoConferenciaSecao(itens, tipo) {
   const total = itens.length
   const revisados = itens.filter((item) =>
     tipo === 'localidades'
-      ? item.origem_registro === 'adicionado_tecnico' || Boolean(item.acao_sugerida)
-      : item.relacao_instrumento !== 'nao_analisada'
+      ? Boolean(item.acao_sugerida) && (!item.conferido_em || conferenciaVigente(item))
+      : item.relacao_instrumento !== 'nao_analisada' &&
+        (!item.conferido_em || conferenciaVigente(item))
   )
   const maisRecente = revisados.reduce((mais, item) => {
     const data = item.conferido_em
@@ -469,15 +535,16 @@ function resumoConferenciaSecao(itens, tipo) {
   if (!total) {
     return tipo === 'localidades' ? 'Nenhuma localidade cadastrada' : 'Nenhuma obra analisada'
   }
-  if (!revisados.length) {
-    return 'Ainda não conferida'
+  const quantidade = `${revisados.length} de ${total} ${
+    tipo === 'localidades' ? 'localidades analisadas' : 'obras analisadas'
+  }`
+  if (formatarValidade(validade)) {
+    return `${quantidade} · ${formatarValidade(validade)}`
   }
-  if (revisados.length < total) {
-    return `${revisados.length} de ${total} ${tipo === 'localidades' ? 'localidades revisadas' : 'obras analisadas'}${maisRecente ? ` · Última alteração em ${formatarDataConferencia(maisRecente).replace('Conferida em ', '')}` : ' · Alterações não salvas'}`
+  if (maisRecente) {
+    return `${quantidade} · Última alteração em ${formatarDataConferencia(maisRecente).replace('Conferida em ', '')}`
   }
-  return maisRecente
-    ? `Conferida em ${formatarDataConferencia(maisRecente).replace('Conferida em ', '')}${formatarValidade(validade) ? ` · ${formatarValidade(validade)}` : ''}`
-    : 'Todas revisadas · Alterações não salvas'
+  return revisados.length ? `${quantidade} · Alterações não salvas` : quantidade
 }
 
 function nomeUsuario(usuario) {
@@ -762,7 +829,6 @@ export default function RevisaoInstrumento() {
   const canEditRevision = dadosBusca?.pode_editar_revisao === true && dadosBusca?.status !== 'enviado'
   const usuarioAtualNome = nomeUsuario(usuario)
   const contextoAtual = contextoRevisao(dadosBusca, usuarioAtualNome)
-  const observacaoGeralTexto = observacaoGeral.trim()
   const registrarEventoHistorico = (titulo, descricao) => {
     setHistoricoSessao((current) => [
       criarItemHistorico({
@@ -1329,6 +1395,49 @@ export default function RevisaoInstrumento() {
         }
       })
     )
+  }
+
+  const atualizarEdicaoObservacaoPublicoAlvo = (idProjeto, alteracoes) => {
+    setPublicoAlvo((current) =>
+      current.map((item) =>
+        chavePublicoAlvo(item) === String(idProjeto)
+          ? { ...item, ...alteracoes }
+          : item
+      )
+    )
+  }
+
+  const abrirEdicaoObservacaoPublicoAlvo = (item) => {
+    atualizarEdicaoObservacaoPublicoAlvo(item.id_projeto_investimento, {
+      _observacaoEmEdicao: true,
+      _rascunhoObservacao: item.observacao_publico_alvo ?? '',
+    })
+  }
+
+  const salvarObservacaoPublicoAlvo = (item) => {
+    atualizarPublicoAlvo(
+      item.id_projeto_investimento,
+      'observacao_publico_alvo',
+      item._rascunhoObservacao ?? ''
+    )
+    atualizarEdicaoObservacaoPublicoAlvo(item.id_projeto_investimento, {
+      _observacaoEmEdicao: false,
+    })
+  }
+
+  const cancelarEdicaoObservacaoPublicoAlvo = (item) => {
+    atualizarEdicaoObservacaoPublicoAlvo(item.id_projeto_investimento, {
+      _observacaoEmEdicao: false,
+      _rascunhoObservacao: item.observacao_publico_alvo ?? '',
+    })
+  }
+
+  const removerObservacaoPublicoAlvo = (item) => {
+    atualizarPublicoAlvo(item.id_projeto_investimento, 'observacao_publico_alvo', '')
+    atualizarEdicaoObservacaoPublicoAlvo(item.id_projeto_investimento, {
+      _observacaoEmEdicao: false,
+      _rascunhoObservacao: '',
+    })
   }
 
   const atualizarNovaLocalidade = (codMunicipio, campo, valor) => {
@@ -2065,42 +2174,19 @@ export default function RevisaoInstrumento() {
                       <h3>Observação geral</h3>
                     </div>
 
-                    {canEditRevision && observacaoEmEdicao ? (
-                      <div className={styles.observacaoEditor}>
-                        <textarea
-                          className={styles.textarea}
-                          value={rascunhoObservacaoGeral}
-                          onChange={(event) => setRascunhoObservacaoGeral(event.target.value)}
-                          rows={4}
-                          placeholder="Registre observações gerais da revisão."
-                        />
-                        <div className={styles.acoesRevisaoInline}>
-                          <button type="button" onClick={aplicarObservacaoGeral}>Aplicar</button>
-                          <button type="button" onClick={cancelarEdicaoObservacaoGeral}>Cancelar</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className={styles.observacaoResumo}>
-                        <p className={!observacaoGeralTexto ? styles.emptyObservation : undefined}>
-                          {observacaoGeralTexto || 'Ainda não cadastrada.'}
-                        </p>
-                        {canEditRevision && <div className={styles.acaoTextualInline} aria-label="Ações da observação geral">
-                          <span className={styles.acaoTextualItem}>
-                            <button type="button" className={styles.acaoTextualButton} onClick={abrirEdicaoObservacaoGeral}>
-                              {observacaoGeralTexto ? 'Editar' : 'Inserir'}
-                            </button>
-                          </span>
-                          {observacaoGeralTexto && (
-                            <>
-                              <span className={styles.acaoTextualSeparator} aria-hidden="true">|</span>
-                              <span className={styles.acaoTextualItem}>
-                                <button type="button" className={styles.acaoTextualButton} onClick={removerObservacaoGeral}>Remover</button>
-                              </span>
-                            </>
-                          )}
-                        </div>}
-                      </div>
-                    )}
+                    <ObservacaoEditavel
+                      valor={observacaoGeral}
+                      rascunho={rascunhoObservacaoGeral}
+                      emEdicao={observacaoEmEdicao}
+                      podeEditar={canEditRevision}
+                      placeholder="Registre observações gerais da revisão."
+                      rotuloAcoes="Ações da observação geral"
+                      onAbrir={abrirEdicaoObservacaoGeral}
+                      onAlterarRascunho={setRascunhoObservacaoGeral}
+                      onSalvar={aplicarObservacaoGeral}
+                      onCancelar={cancelarEdicaoObservacaoGeral}
+                      onRemover={removerObservacaoGeral}
+                    />
                   </div>
                 </section>
 
@@ -3044,13 +3130,33 @@ export default function RevisaoInstrumento() {
                         <article className={styles.publicoAlvoItem} key={chave}>
                           <div className={styles.publicoAlvoCampos}>
                             <div className={styles.publicoAlvoCampo}>
-                              <span className={styles.publicoAlvoCampoTitulo}>População beneficiada</span>
+                              <div className={styles.publicoAlvoCampoTituloLinha}>
+                                <span className={styles.publicoAlvoCampoTitulo}>População beneficiada</span>
+                                {labelStatusPublicoAlvo(item.status_populacao_beneficiada) && (
+                                  <>
+                                    <span className={styles.publicoAlvoCampoTraco} aria-hidden="true">—</span>
+                                    <span className={styles.publicoAlvoCampoStatus}>
+                                      {labelStatusPublicoAlvo(item.status_populacao_beneficiada)}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
                               <strong>{valorOuTraco(item.populacao_beneficiada_original)}</strong>
                               {renderizarConferencia(item.status_populacao_beneficiada, 'status_populacao_beneficiada', 'Conferência da população beneficiada')}
                             </div>
 
                             <div className={styles.publicoAlvoCampo}>
-                              <span className={styles.publicoAlvoCampoTitulo}>Descrição da população beneficiada</span>
+                              <div className={styles.publicoAlvoCampoTituloLinha}>
+                                <span className={styles.publicoAlvoCampoTitulo}>Descrição da população beneficiada</span>
+                                {labelStatusPublicoAlvo(item.status_desc_populacao_beneficiada) && (
+                                  <>
+                                    <span className={styles.publicoAlvoCampoTraco} aria-hidden="true">—</span>
+                                    <span className={styles.publicoAlvoCampoStatus}>
+                                      {labelStatusPublicoAlvo(item.status_desc_populacao_beneficiada)}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
                               <DescricaoPublicoAlvo
                                 valor={valorOuTraco(item.desc_populacao_beneficiada_original)}
                                 expandida={descricoesPublicoAlvoExpandidas.has(chave)}
@@ -3068,23 +3174,24 @@ export default function RevisaoInstrumento() {
                           <div className={styles.publicoAlvoAuxiliares}>
                             <div className={styles.publicoAlvoObservacao}>
                               <span>Observação sobre o público-alvo</span>
-                              {item._observacaoAberta || !canEditRevision ? (
-                                <div className={styles.justificativaAberta}>
-                                  <textarea className={styles.textarea} rows={2} value={item.observacao_publico_alvo ?? ''} disabled={!canEditRevision}
-                                    onChange={(event) => atualizarPublicoAlvo(item.id_projeto_investimento, 'observacao_publico_alvo', event.target.value)} />
-                                  {canEditRevision && <button type="button" className={styles.justificativaFechar}
-                                    aria-label="Recolher observação sobre o público-alvo"
-                                    onClick={() => atualizarPublicoAlvo(item.id_projeto_investimento, '_observacaoAberta', false)}>
-                                    <X size={14} />
-                                  </button>}
-                                </div>
-                              ) : (
-                                <button type="button" className={styles.justificativaToggle}
-                                  aria-label="Adicionar observação sobre o público-alvo"
-                                  onClick={() => atualizarPublicoAlvo(item.id_projeto_investimento, '_observacaoAberta', true)}>
-                                  <Plus size={14} />
-                                </button>
-                              )}
+                              <ObservacaoEditavel
+                                valor={item.observacao_publico_alvo ?? ''}
+                                rascunho={item._rascunhoObservacao ?? ''}
+                                emEdicao={item._observacaoEmEdicao === true}
+                                podeEditar={canEditRevision}
+                                linhas={2}
+                                placeholder="Registre uma observação sobre o público-alvo."
+                                rotuloAcoes="Ações da observação sobre o público-alvo"
+                                rotuloSalvar="Salvar"
+                                onAbrir={() => abrirEdicaoObservacaoPublicoAlvo(item)}
+                                onAlterarRascunho={(valor) => atualizarEdicaoObservacaoPublicoAlvo(
+                                  item.id_projeto_investimento,
+                                  { _rascunhoObservacao: valor }
+                                )}
+                                onSalvar={() => salvarObservacaoPublicoAlvo(item)}
+                                onCancelar={() => cancelarEdicaoObservacaoPublicoAlvo(item)}
+                                onRemover={() => removerObservacaoPublicoAlvo(item)}
+                              />
                             </div>
 
                             {possuiProblema && (

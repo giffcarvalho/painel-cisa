@@ -5,12 +5,19 @@ from unittest.mock import AsyncMock, patch
 from fastapi import HTTPException
 
 from app.api.revisao_instrumento import (
+    _carregar_estado_aplicado,
     _buscar_detalhe_revisao_enviada,
     _buscar_localidades_municipio,
     _buscar_obras_saneamento,
+    _observacao_geral_atual,
     _revisao_corresponde_ao_identificador,
+    _sobrepor_estado_aplicado,
 )
-from app.schemas.revisao_instrumento import InstrumentoRevisaoInfo
+from app.schemas.revisao_instrumento import (
+    InstrumentoRevisaoInfo,
+    LocalidadeRevisaoItem,
+    MunicipioRevisaoItem,
+)
 
 
 class _Mappings:
@@ -33,6 +40,95 @@ class _Result:
 
 
 class VisualizacaoRevisaoEnviadaTest(unittest.IsolatedAsyncioTestCase):
+    def test_estado_aplicado_vigente_vira_manter_sem_alterar_valor_oficial(self):
+        agora = datetime(2026, 8, 25, 17, 8)
+        validade = datetime(2026, 9, 25, 17, 8)
+        municipio = MunicipioRevisaoItem(
+            cod_municipio=2603009,
+            nome="Cabrobó",
+            uf="PE",
+            localidades=[
+                LocalidadeRevisaoItem(
+                    cod_municipio=2603009,
+                    cod_comunidade_rural=1,
+                    nome_localidade="Localidade adicionada",
+                    qtde_familias_ben_original=10,
+                ),
+                LocalidadeRevisaoItem(
+                    cod_municipio=2603009,
+                    cod_comunidade_rural=2,
+                    nome_localidade="Vista Alegre",
+                    qtde_familias_ben_original=20,
+                ),
+                LocalidadeRevisaoItem(
+                    cod_municipio=2603009,
+                    cod_comunidade_rural=3,
+                    nome_localidade="Nunca analisada",
+                    qtde_familias_ben_original=30,
+                ),
+            ],
+        )
+
+        _sobrepor_estado_aplicado(
+            [municipio],
+            {2603009: {"conferido_em": agora, "valido_ate": validade}},
+            [
+                {"cod_municipio": 2603009, "cod_comunidade_rural": 1,
+                 "conferido_em": agora, "valido_ate": validade},
+                {"cod_municipio": 2603009, "cod_comunidade_rural": 2,
+                 "conferido_em": agora, "valido_ate": validade},
+            ],
+        )
+
+        self.assertEqual(municipio.acao_sugerida, "manter")
+        self.assertEqual(municipio.origem_registro, "base_atual")
+        self.assertEqual(
+            [item.acao_sugerida for item in municipio.localidades],
+            ["manter", "manter", None],
+        )
+        self.assertEqual(municipio.localidades[1].qtde_familias_ben_original, 20)
+        self.assertIsNone(municipio.localidades[1].qtde_familias_ben_sugerida)
+
+    def test_observacao_do_rascunho_prevalece_sobre_a_aplicada(self):
+        aplicada = {"observacao_geral": "teste obs geral"}
+        self.assertEqual(_observacao_geral_atual(None, aplicada), "teste obs geral")
+        self.assertEqual(
+            _observacao_geral_atual({"observacao_geral": "nova"}, aplicada),
+            "nova",
+        )
+
+    async def test_estado_aplicado_considera_ultima_avaliacao_valida_por_item(self):
+        agora = datetime(2026, 8, 25, 17, 8)
+        execute = AsyncMock(
+            side_effect=[
+                _Result([{"cod_municipio": 2603009, "conferido_em": agora,
+                          "valido_ate": agora}]),
+                _Result([{"id_revisao_localidade": 4, "cod_municipio": 2603009,
+                          "cod_comunidade_rural": 77, "conferido_em": agora,
+                          "valido_ate": agora}]),
+            ]
+        )
+        instrumento = InstrumentoRevisaoInfo(
+            identificador_busca="992794",
+            tipo_instrumento="termo_compromisso",
+            nr_instrumento="992794",
+            nr_proposta="58/2026",
+        )
+        with patch("app.api.revisao_instrumento._execute_query", execute):
+            municipios, localidades = await _carregar_estado_aplicado(
+                AsyncMock(), instrumento
+            )
+
+        municipio_sql = execute.await_args_list[0].args[1]
+        localidade_sql = execute.await_args_list[1].args[1]
+        self.assertIn("DISTINCT ON (rm.cod_municipio)", municipio_sql)
+        self.assertIn("e.status = 'sucesso'", municipio_sql)
+        self.assertIn("valido_ate >= NOW()", municipio_sql)
+        self.assertIn("LEFT JOIN LATERAL", localidade_sql)
+        self.assertIn("DISTINCT ON (cod_municipio, cod_comunidade_atual)", localidade_sql)
+        self.assertEqual(municipios[2603009]["conferido_em"], agora)
+        self.assertEqual(localidades[0]["cod_comunidade_rural"], 77)
+
     async def test_localidades_disponiveis_usam_relacao_real_do_municipio(self):
         execute = AsyncMock(
             return_value=_Result(
@@ -82,6 +178,7 @@ class VisualizacaoRevisaoEnviadaTest(unittest.IsolatedAsyncioTestCase):
         sql = str(db.execute.await_args.args[0])
         params = db.execute.await_args.args[1]
         self.assertIn("instrumento.vw_obra_saneamento_revisada", sql)
+        self.assertIn("revisada.valido_ate >= NOW()", sql)
         self.assertEqual(params["nr_proposta"], "456")
         self.assertEqual(obras[0].relacao_instrumento, "sem_conflito_aparente")
         self.assertEqual(obras[0].conferido_em, agora)
