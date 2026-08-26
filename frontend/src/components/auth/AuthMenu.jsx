@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { ChevronDown, History, LogIn, LogOut } from 'lucide-react'
+import { ChevronDown, History, LogIn, LogOut, ShieldCheck } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/auth/useAuth'
 import styles from './AuthMenu.module.css'
@@ -59,6 +59,7 @@ export default function AuthMenu({ className = '', compactOnMobile = false }) {
     [displayName, usuario?.email],
   )
   const profile = useMemo(() => formatProfile(usuario?.perfil), [usuario?.perfil])
+  const isAdmin = String(usuario?.perfil || '').trim().toLocaleLowerCase('pt-BR') === 'admin'
 
   useEffect(() => {
     if (!isOpen) return undefined
@@ -94,6 +95,11 @@ export default function AuthMenu({ className = '', compactOnMobile = false }) {
   function handleMinhasRevisoes() {
     setIsOpen(false)
     navigate('/minhas-revisoes')
+  }
+
+  function handleAplicacaoRevisoes() {
+    setIsOpen(false)
+    navigate('/admin/aplicacao-revisoes')
   }
 
   if (!isAuthenticated) {
@@ -137,6 +143,12 @@ export default function AuthMenu({ className = '', compactOnMobile = false }) {
             {profile && <span>{profile}</span>}
           </div>
           <div className={styles.divider} />
+          {isAdmin && (
+            <button type="button" className={styles.menuButton} role="menuitem" onClick={handleAplicacaoRevisoes}>
+              <ShieldCheck aria-hidden="true" />
+              Aplicação de revisões
+            </button>
+          )}
           <button type="button" className={styles.menuButton} role="menuitem" onClick={handleMinhasRevisoes}>
             <History aria-hidden="true" />
             Minhas revisões

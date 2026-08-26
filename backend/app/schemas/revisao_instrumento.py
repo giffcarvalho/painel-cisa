@@ -220,6 +220,11 @@ class MunicipioOficialItem(RevisaoInstrumentoBase):
     nome_uf: str
 
 
+class DadosMunicipioRevisaoResponse(RevisaoInstrumentoBase):
+    localidades: list[LocalidadeRevisaoItem] = Field(default_factory=list)
+    obras_saneamento: list[ObraSaneamentoRevisaoItem] = Field(default_factory=list)
+
+
 class RevisaoInstrumentoBuscaResponse(RevisaoInstrumentoBase):
     id_revisao: int | None = None
     identificador_busca: str

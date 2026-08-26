@@ -59,8 +59,17 @@ const MUNICIPIO_NOVO_INICIAL = {
 }
 
 const LOCALIDADE_NOVA_INICIAL = {
+  cod_comunidade_rural: null,
   nome_localidade_informada: '',
   qtde_familias_ben_sugerida: '',
+}
+
+function normalizarBusca(value) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
 }
 
 function valorOuTraco(value) {
@@ -718,6 +727,10 @@ export default function RevisaoInstrumento() {
   const [erroMunicipioOficial, setErroMunicipioOficial] = useState('')
   const [localidadeNovoMunicipio, setLocalidadeNovoMunicipio] = useState(LOCALIDADE_NOVA_INICIAL)
   const [localidadesNovoMunicipio, setLocalidadesNovoMunicipio] = useState([])
+  const [localidadesDisponiveisNovoMunicipio, setLocalidadesDisponiveisNovoMunicipio] = useState([])
+  const [obrasNovoMunicipio, setObrasNovoMunicipio] = useState([])
+  const [carregandoDadosNovoMunicipio, setCarregandoDadosNovoMunicipio] = useState(false)
+  const [erroDadosNovoMunicipio, setErroDadosNovoMunicipio] = useState('')
   const [mostrarFormularioMunicipio, setMostrarFormularioMunicipio] = useState(false)
   const [novaLocalidadePorMunicipio, setNovaLocalidadePorMunicipio] = useState({})
   const [novaLocalidadeAbertaPorMunicipio, setNovaLocalidadeAbertaPorMunicipio] = useState({})
@@ -818,6 +831,10 @@ export default function RevisaoInstrumento() {
     setErroMunicipioOficial('')
     setLocalidadeNovoMunicipio(LOCALIDADE_NOVA_INICIAL)
     setLocalidadesNovoMunicipio([])
+    setLocalidadesDisponiveisNovoMunicipio([])
+    setObrasNovoMunicipio([])
+    setCarregandoDadosNovoMunicipio(false)
+    setErroDadosNovoMunicipio('')
     setMostrarFormularioMunicipio(false)
     setNovaLocalidadeAbertaPorMunicipio({})
     setJustificativasLocalidadeAbertas({})
@@ -967,9 +984,21 @@ export default function RevisaoInstrumento() {
       return
     }
 
+    const repetida = localidadesNovoMunicipio.some((localidade) =>
+      localidadeNovoMunicipio.cod_comunidade_rural
+        ? Number(localidade.cod_comunidade_rural) === Number(localidadeNovoMunicipio.cod_comunidade_rural)
+        : normalizarBusca(localidade.nome_localidade) === normalizarBusca(nome)
+    )
+    if (repetida) {
+      setMessage('Esta localidade já foi incluída para o novo município.')
+      setMessageType('error')
+      return
+    }
+
     setLocalidadesNovoMunicipio((current) => [
       ...current,
       {
+        cod_comunidade_rural: localidadeNovoMunicipio.cod_comunidade_rural,
         nome_localidade: nome,
         nome_localidade_informada: nome,
         qtde_familias_ben_sugerida:
@@ -1015,7 +1044,7 @@ export default function RevisaoInstrumento() {
     }
   }
 
-  const selecionarMunicipioOficial = (municipio) => {
+  const selecionarMunicipioOficial = async (municipio) => {
     const existente = municipios.find(
       (item) => Number(item.cod_municipio) === Number(municipio.cod_municipio)
     )
@@ -1032,6 +1061,28 @@ export default function RevisaoInstrumento() {
     setBuscaMunicipioOficial(`${municipio.nome_municipio}/${municipio.sigla_uf}`)
     setMunicipiosOficiais([])
     setErroMunicipioOficial('')
+    setLocalidadeNovoMunicipio(LOCALIDADE_NOVA_INICIAL)
+    setLocalidadesNovoMunicipio([])
+    setLocalidadesDisponiveisNovoMunicipio([])
+    setObrasNovoMunicipio([])
+    setErroDadosNovoMunicipio('')
+    setCarregandoDadosNovoMunicipio(true)
+
+    try {
+      const dados = await revisaoInstrumentoApi.buscarDadosMunicipio(
+        instrumento.identificador_busca,
+        municipio.cod_municipio,
+      )
+      setLocalidadesDisponiveisNovoMunicipio(dados.localidades ?? [])
+      setObrasNovoMunicipio((dados.obras_saneamento ?? []).map(normalizarObra))
+    } catch (err) {
+      setErroDadosNovoMunicipio(
+        err?.response?.data?.detail ||
+          'Não foi possível carregar as localidades e obras deste município.',
+      )
+    } finally {
+      setCarregandoDadosNovoMunicipio(false)
+    }
   }
 
   const adicionarMunicipio = () => {
@@ -1067,7 +1118,7 @@ export default function RevisaoInstrumento() {
       localidades: localidadesNovoMunicipio.map((localidade) => ({
         _clientId: novaChaveLocal(),
         cod_municipio: codMunicipio,
-        cod_comunidade_rural: null,
+        cod_comunidade_rural: localidade.cod_comunidade_rural ?? null,
         nome_localidade: localidade.nome_localidade,
         nome_localidade_informada: localidade.nome_localidade_informada,
         origem_registro: 'adicionado_tecnico',
@@ -1076,7 +1127,7 @@ export default function RevisaoInstrumento() {
         qtde_familias_ben_sugerida: localidade.qtde_familias_ben_sugerida,
         justificativa: '',
       })),
-      obras_saneamento: [],
+      obras_saneamento: obrasNovoMunicipio,
     }
 
     setMunicipios((current) => [
@@ -1085,7 +1136,12 @@ export default function RevisaoInstrumento() {
         ...novoItem,
         _municipioOriginal: null,
         _localidadesOriginais: {},
-        _obrasOriginais: {},
+        _obrasOriginais: Object.fromEntries(
+          novoItem.obras_saneamento.map((obra) => [
+            chaveObra(obra),
+            dadosObraPersistencia(obra, codMunicipio),
+          ])
+        ),
         _municipioAlterado: true,
         _localidadesAlteradas: Object.fromEntries(
           novoItem.localidades.map((localidade) => [chaveLocalidade(localidade), true])
@@ -1102,6 +1158,10 @@ export default function RevisaoInstrumento() {
     setErroMunicipioOficial('')
     setLocalidadeNovoMunicipio(LOCALIDADE_NOVA_INICIAL)
     setLocalidadesNovoMunicipio([])
+    setLocalidadesDisponiveisNovoMunicipio([])
+    setObrasNovoMunicipio([])
+    setCarregandoDadosNovoMunicipio(false)
+    setErroDadosNovoMunicipio('')
     setMostrarFormularioMunicipio(false)
     setMessage('')
     setMessageType('')
@@ -1560,16 +1620,6 @@ export default function RevisaoInstrumento() {
     setMessageType('')
 
     try {
-      if (status === 'enviado') {
-        const pendente = publicoAlvo.find(
-          (item) => !item.status_populacao_beneficiada || !item.status_desc_populacao_beneficiada
-        )
-        if (pendente) {
-          throw new Error(
-            `Confira a população beneficiada e sua descrição para ${pendente.nome_obra || `o projeto ${pendente.id_projeto_investimento}`} antes de enviar.`
-          )
-        }
-      }
       const municipioInvalido = municipios
         .filter(municipioTemAlteracoes)
         .find((municipio) => validarMunicipioAntesSalvar(municipio))
@@ -2095,6 +2145,11 @@ export default function RevisaoInstrumento() {
                           setMunicipioOficialSelecionado(null)
                           setMunicipiosOficiais([])
                           setErroMunicipioOficial('')
+                          setLocalidadeNovoMunicipio(LOCALIDADE_NOVA_INICIAL)
+                          setLocalidadesNovoMunicipio([])
+                          setLocalidadesDisponiveisNovoMunicipio([])
+                          setObrasNovoMunicipio([])
+                          setErroDadosNovoMunicipio('')
                         }}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter') {
@@ -2147,14 +2202,34 @@ export default function RevisaoInstrumento() {
                         <label>
                           <span>Nome da localidade</span>
                           <input
+                            list="localidades-novo-municipio"
+                            disabled={!municipioOficialSelecionado || carregandoDadosNovoMunicipio}
+                            placeholder={
+                              municipioOficialSelecionado
+                                ? 'Digite ou selecione uma localidade'
+                                : 'Selecione primeiro o município'
+                            }
                             value={localidadeNovoMunicipio.nome_localidade_informada}
-                            onChange={(event) =>
+                            onChange={(event) => {
+                              const nome = event.target.value
+                              const selecionada = localidadesDisponiveisNovoMunicipio.find(
+                                (item) => normalizarBusca(item.nome_localidade) === normalizarBusca(nome),
+                              )
                               setLocalidadeNovoMunicipio((current) => ({
                                 ...current,
-                                nome_localidade_informada: event.target.value,
+                                cod_comunidade_rural: selecionada?.cod_comunidade_rural ?? null,
+                                nome_localidade_informada: nome,
                               }))
-                            }
+                            }}
                           />
+                          <datalist id="localidades-novo-municipio">
+                            {localidadesDisponiveisNovoMunicipio.map((localidade) => (
+                              <option
+                                key={localidade.cod_comunidade_rural}
+                                value={localidade.nome_localidade}
+                              />
+                            ))}
+                          </datalist>
                         </label>
 
                         <label>
@@ -2177,6 +2252,21 @@ export default function RevisaoInstrumento() {
                         </button>
                       </div>
 
+                      {carregandoDadosNovoMunicipio && (
+                        <small>Carregando localidades e obras do município…</small>
+                      )}
+                      {erroDadosNovoMunicipio && (
+                        <p className={styles.municipioOficialErro} role="alert">
+                          {erroDadosNovoMunicipio}
+                        </p>
+                      )}
+                      {!carregandoDadosNovoMunicipio && municipioOficialSelecionado && !erroDadosNovoMunicipio && (
+                        <small>
+                          {localidadesDisponiveisNovoMunicipio.length} localidade(s) disponível(is) ·{' '}
+                          {obrasNovoMunicipio.length} obra(s) carregada(s)
+                        </small>
+                      )}
+
                       {localidadesNovoMunicipio.length > 0 && (
                         <ul className={styles.localidadesTemporarias}>
                           {localidadesNovoMunicipio.map((localidade, localidadeIndex) => (
@@ -2197,7 +2287,11 @@ export default function RevisaoInstrumento() {
                       )}
                     </div>
 
-                    <button type="button" onClick={adicionarMunicipio}>
+                    <button
+                      type="button"
+                      onClick={adicionarMunicipio}
+                      disabled={carregandoDadosNovoMunicipio}
+                    >
                       <Plus size={16} />
                       Adicionar
                     </button>
@@ -2214,6 +2308,10 @@ export default function RevisaoInstrumento() {
                         setErroMunicipioOficial('')
                         setLocalidadeNovoMunicipio(LOCALIDADE_NOVA_INICIAL)
                         setLocalidadesNovoMunicipio([])
+                        setLocalidadesDisponiveisNovoMunicipio([])
+                        setObrasNovoMunicipio([])
+                        setCarregandoDadosNovoMunicipio(false)
+                        setErroDadosNovoMunicipio('')
                       }}
                     >
                       Cancelar

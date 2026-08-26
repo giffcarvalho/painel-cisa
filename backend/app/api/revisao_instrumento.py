@@ -13,6 +13,7 @@ from app.api.auth import obter_usuario_atual
 from app.core.database import get_db
 from app.schemas.auth import UsuarioAutenticado
 from app.schemas.revisao_instrumento import (
+    DadosMunicipioRevisaoResponse,
     InstrumentoRevisaoInfo,
     HistoricoRevisoesResponse,
     MeuInstrumentoRevisaoItem,
@@ -534,6 +535,7 @@ async def _buscar_localidades(
 async def _buscar_obras_saneamento(
     db: AsyncSession,
     cod_municipios: list[int],
+    instrumento: InstrumentoRevisaoInfo,
 ) -> list[ObraSaneamentoRevisaoItem]:
     if not cod_municipios:
         return []
@@ -546,15 +548,46 @@ async def _buscar_obras_saneamento(
             obras.descricao,
             obras.orgao,
             obras.link_transferegov,
-            obras.link_obrasgov
+            obras.link_obrasgov,
+            COALESCE(revisada.relacao_instrumento, 'nao_analisada') AS relacao_instrumento,
+            COALESCE(revisada.confirmacao_status, 'nao_confirmada') AS confirmacao_status,
+            revisada.justificativa,
+            revisada.conferido_em,
+            revisada.valido_ate
         FROM instrumento.vw_investimento_saneamento obras
+        LEFT JOIN instrumento.vw_obra_saneamento_revisada revisada
+          ON revisada.tipo_instrumento = CAST(:tipo_instrumento AS varchar)
+         AND revisada.cod_municipio = obras.cod_municipio
+         AND revisada.id_obra::text = obras.id::text
+         AND (
+              (
+                  CAST(:tipo_instrumento AS varchar) = 'ted'
+                  AND revisada.nr_ted = CAST(:nr_ted AS integer)
+              )
+              OR (
+                  CAST(:tipo_instrumento AS varchar) <> 'ted'
+                  AND (
+                       (CAST(:nr_instrumento AS varchar) IS NOT NULL AND revisada.nr_instrumento::text = CAST(:nr_instrumento AS varchar))
+                    OR (CAST(:nr_proposta AS varchar) IS NOT NULL AND revisada.nr_proposta::text = CAST(:nr_proposta AS varchar))
+                  )
+              )
+         )
         WHERE obras.cod_municipio IN :cod_municipios
         ORDER BY obras.cod_municipio, obras.orgao NULLS LAST, obras.id
         """
     ).bindparams(bindparam("cod_municipios", expanding=True))
 
     try:
-        result = await db.execute(stmt, {"cod_municipios": cod_municipios})
+        result = await db.execute(
+            stmt,
+            {
+                "cod_municipios": cod_municipios,
+                "tipo_instrumento": instrumento.tipo_instrumento,
+                "nr_instrumento": instrumento.nr_instrumento,
+                "nr_proposta": instrumento.nr_proposta,
+                "nr_ted": instrumento.nr_ted,
+            },
+        )
     except SQLAlchemyError as exc:
         logger.exception("Erro ao consultar obras de saneamento: %s", exc)
         raise HTTPException(
@@ -570,10 +603,47 @@ async def _buscar_obras_saneamento(
             orgao=row["orgao"],
             link_transferegov=row["link_transferegov"],
             link_obrasgov=row["link_obrasgov"],
-            relacao_instrumento="nao_analisada",
-            confirmacao_status="nao_confirmada",
+            relacao_instrumento=row["relacao_instrumento"],
+            confirmacao_status=row["confirmacao_status"],
+            justificativa=row["justificativa"],
+            conferido_em=row["conferido_em"],
+            valido_ate=row["valido_ate"],
         )
         for row in result.mappings().all()
+    ]
+
+
+async def _buscar_localidades_municipio(
+    db: AsyncSession,
+    cod_municipio: int,
+) -> list[LocalidadeRevisaoItem]:
+    result = await _execute_query(
+        db,
+        """
+        SELECT
+            cr.cod_municipio,
+            cr.cod_comunidade_rural,
+            COALESCE(
+                to_jsonb(cr)->>'nome_comunidade_rural',
+                to_jsonb(cr)->>'nome_localidade',
+                to_jsonb(cr)->>'nome',
+                to_jsonb(cr)->>'dsc_comunidade_rural'
+            ) AS nome_localidade
+        FROM territorio.tb_comunidade_rural cr
+        WHERE cr.cod_municipio = :cod_municipio
+        ORDER BY nome_localidade NULLS LAST, cr.cod_comunidade_rural
+        """,
+        {"cod_municipio": cod_municipio},
+    )
+    return [
+        LocalidadeRevisaoItem(
+            cod_municipio=row["cod_municipio"],
+            cod_comunidade_rural=row["cod_comunidade_rural"],
+            nome_localidade=row["nome_localidade"],
+            origem_registro="base_atual",
+        )
+        for row in result.mappings().all()
+        if row["nome_localidade"]
     ]
 
 
@@ -676,21 +746,35 @@ async def _buscar_publico_alvo(
             p.tipo_instrumento,
             p.nr_instrumento,
             p.nome_obra,
-            COALESCE(
-                rpa.populacao_beneficiada_original,
-                p.populacao_beneficiada_original
-            ) AS populacao_beneficiada_original,
-            COALESCE(
-                rpa.desc_populacao_beneficiada_original,
-                p.desc_populacao_beneficiada_original
-            ) AS desc_populacao_beneficiada_original,
-            rpa.status_populacao_beneficiada,
-            rpa.status_desc_populacao_beneficiada,
-            rpa.observacao_publico_alvo,
-            rpa.status_correcao_solicitada,
-            rpa.conferido_em,
-            rpa.valido_ate
+            p.populacao_beneficiada_original,
+            p.desc_populacao_beneficiada_original,
+            CASE WHEN rpa.id_revisao_publico_alvo IS NOT NULL
+                THEN rpa.status_populacao_beneficiada
+                ELSE revisado.status_populacao_beneficiada
+            END AS status_populacao_beneficiada,
+            CASE WHEN rpa.id_revisao_publico_alvo IS NOT NULL
+                THEN rpa.status_desc_populacao_beneficiada
+                ELSE revisado.status_desc_populacao_beneficiada
+            END AS status_desc_populacao_beneficiada,
+            CASE WHEN rpa.id_revisao_publico_alvo IS NOT NULL
+                THEN rpa.observacao_publico_alvo
+                ELSE revisado.observacao_publico_alvo
+            END AS observacao_publico_alvo,
+            CASE WHEN rpa.id_revisao_publico_alvo IS NOT NULL
+                THEN rpa.status_correcao_solicitada
+                ELSE revisado.status_correcao_solicitada
+            END AS status_correcao_solicitada,
+            CASE WHEN rpa.id_revisao_publico_alvo IS NOT NULL
+                THEN rpa.conferido_em
+                ELSE revisado.conferido_em
+            END AS conferido_em,
+            CASE WHEN rpa.id_revisao_publico_alvo IS NOT NULL
+                THEN rpa.valido_ate
+                ELSE revisado.valido_ate
+            END AS valido_ate
         FROM projetos p
+        LEFT JOIN obrasgov.vw_publico_alvo_revisado revisado
+               ON revisado.id_projeto_investimento::text = p.id_projeto_investimento
         LEFT JOIN painel_dsr.tb_revisao_instrumento_publico_alvo rpa
                ON CAST(:id_revisao AS integer) IS NOT NULL
               AND rpa.id_revisao = CAST(:id_revisao AS integer)
@@ -1620,8 +1704,10 @@ async def _buscar_detalhe_revisao_enviada(
                 NULLIF(BTRIM(to_jsonb(pi)->>'nome_projeto'), ''),
                 NULLIF(BTRIM(to_jsonb(pi)->>'objeto'), '')
             ) AS nome_obra,
-            rpa.populacao_beneficiada_original,
-            rpa.desc_populacao_beneficiada_original,
+            NULLIF(BTRIM(pi.populacao_beneficiada), '')
+                AS populacao_beneficiada_original,
+            NULLIF(BTRIM(pi.desc_populacao_beneficiada), '')
+                AS desc_populacao_beneficiada_original,
             rpa.status_populacao_beneficiada,
             rpa.status_desc_populacao_beneficiada,
             rpa.observacao_publico_alvo,
@@ -2384,8 +2470,6 @@ async def _persistir_publico_alvo(
                 INSERT INTO painel_dsr.tb_revisao_instrumento_publico_alvo AS rpa (
                     id_revisao,
                     id_projeto_investimento,
-                    populacao_beneficiada_original,
-                    desc_populacao_beneficiada_original,
                     status_populacao_beneficiada,
                     status_desc_populacao_beneficiada,
                     observacao_publico_alvo,
@@ -2397,8 +2481,6 @@ async def _persistir_publico_alvo(
                 VALUES (
                     :id_revisao,
                     :id_projeto_investimento,
-                    :populacao_beneficiada_original,
-                    :desc_populacao_beneficiada_original,
                     :status_populacao_beneficiada,
                     :status_desc_populacao_beneficiada,
                     :observacao_publico_alvo,
@@ -2412,14 +2494,6 @@ async def _persistir_publico_alvo(
                 )
                 ON CONFLICT (id_revisao, id_projeto_investimento)
                 DO UPDATE SET
-                    populacao_beneficiada_original = COALESCE(
-                        rpa.populacao_beneficiada_original,
-                        EXCLUDED.populacao_beneficiada_original
-                    ),
-                    desc_populacao_beneficiada_original = COALESCE(
-                        rpa.desc_populacao_beneficiada_original,
-                        EXCLUDED.desc_populacao_beneficiada_original
-                    ),
                     status_populacao_beneficiada = EXCLUDED.status_populacao_beneficiada,
                     status_desc_populacao_beneficiada = EXCLUDED.status_desc_populacao_beneficiada,
                     observacao_publico_alvo = EXCLUDED.observacao_publico_alvo,
@@ -2435,10 +2509,6 @@ async def _persistir_publico_alvo(
             {
                 "id_revisao": id_revisao,
                 "id_projeto_investimento": item.id_projeto_investimento,
-                "populacao_beneficiada_original": projeto.populacao_beneficiada_original,
-                "desc_populacao_beneficiada_original": (
-                    projeto.desc_populacao_beneficiada_original
-                ),
                 "status_populacao_beneficiada": item.status_populacao_beneficiada,
                 "status_desc_populacao_beneficiada": item.status_desc_populacao_beneficiada,
                 "observacao_publico_alvo": item.observacao_publico_alvo,
@@ -2601,6 +2671,7 @@ async def _montar_resposta_busca(
     obras = await _buscar_obras_saneamento(
         db,
         [municipio.cod_municipio for municipio in municipios],
+        instrumento,
     )
 
     for obra in obras:
@@ -2733,6 +2804,36 @@ async def listar_municipios_oficiais(
 ):
     del usuario_atual
     return await _buscar_municipios_oficiais(db, q, limite)
+
+
+@router.get(
+    "/instrumentos/{identificador}/municipios/{cod_municipio}/dados",
+    response_model=DadosMunicipioRevisaoResponse,
+    summary="Lista localidades e obras disponíveis para um município",
+)
+async def consultar_dados_municipio(
+    identificador: str,
+    cod_municipio: int,
+    usuario_atual: UsuarioAutenticado = Depends(obter_usuario_atual),
+    db: AsyncSession = Depends(get_db),
+):
+    del usuario_atual
+    identificador_limpo = identificador.strip()
+    instrumento = await _buscar_instrumento_carteira(db, identificador_limpo)
+    if instrumento is None:
+        instrumento = await _buscar_instrumento_ted(db, identificador_limpo)
+    if instrumento is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Instrumento, proposta ou TED não encontrado nas bases oficiais.",
+        )
+
+    localidades = await _buscar_localidades_municipio(db, cod_municipio)
+    obras = await _buscar_obras_saneamento(db, [cod_municipio], instrumento)
+    return DadosMunicipioRevisaoResponse(
+        localidades=localidades,
+        obras_saneamento=obras,
+    )
 
 
 @router.get(
@@ -2892,26 +2993,6 @@ async def salvar_revisao_instrumento(
             instrumento,
             payload.publico_alvo,
         )
-        if payload.status == "enviado":
-            pendente = next(
-                (
-                    item for item in publico_alvo_salvo
-                    if item.status_populacao_beneficiada is None
-                    or item.status_desc_populacao_beneficiada is None
-                ),
-                None,
-            )
-            if pendente is not None:
-                identificacao = pendente.nome_obra or pendente.id_projeto_investimento
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                    detail={
-                        "mensagem": (
-                            "Confira a população beneficiada e sua descrição "
-                            f"para o projeto {identificacao} antes de enviar."
-                        )
-                    },
-                )
         resposta_atualizada = await _montar_resposta_busca(
             db,
             instrumento,

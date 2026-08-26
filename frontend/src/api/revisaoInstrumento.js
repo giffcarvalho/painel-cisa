@@ -43,6 +43,13 @@ export const revisaoInstrumentoApi = {
     return Array.isArray(data) ? data : data.data ?? []
   },
 
+  buscarDadosMunicipio: async (identificador, codMunicipio) => {
+    const { data } = await api.get(
+      `/revisao-instrumento/instrumentos/${encodeURIComponent(identificador)}/municipios/${codMunicipio}/dados`,
+    )
+    return data
+  },
+
   salvarRevisao: async (payload) => {
     const { data } = await api.post('/revisao-instrumento/revisoes', payload)
     return data

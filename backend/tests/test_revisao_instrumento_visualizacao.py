@@ -6,6 +6,8 @@ from fastapi import HTTPException
 
 from app.api.revisao_instrumento import (
     _buscar_detalhe_revisao_enviada,
+    _buscar_localidades_municipio,
+    _buscar_obras_saneamento,
     _revisao_corresponde_ao_identificador,
 )
 from app.schemas.revisao_instrumento import InstrumentoRevisaoInfo
@@ -31,6 +33,59 @@ class _Result:
 
 
 class VisualizacaoRevisaoEnviadaTest(unittest.IsolatedAsyncioTestCase):
+    async def test_localidades_disponiveis_usam_relacao_real_do_municipio(self):
+        execute = AsyncMock(
+            return_value=_Result(
+                [{
+                    "cod_municipio": 2603009,
+                    "cod_comunidade_rural": 77,
+                    "nome_localidade": "Vila Nova",
+                }]
+            )
+        )
+        with patch("app.api.revisao_instrumento._execute_query", execute):
+            localidades = await _buscar_localidades_municipio(AsyncMock(), 2603009)
+
+        sql, params = execute.await_args.args[1:3]
+        self.assertIn("territorio.tb_comunidade_rural", sql)
+        self.assertIn("cr.cod_municipio = :cod_municipio", sql)
+        self.assertEqual(params["cod_municipio"], 2603009)
+        self.assertEqual(localidades[0].cod_comunidade_rural, 77)
+
+    async def test_obras_aplicadas_sobrepoem_estado_padrao(self):
+        agora = datetime(2026, 8, 25, 17, 8)
+        db = AsyncMock()
+        db.execute.return_value = _Result(
+            [{
+                "id_obra": "OBRA-1",
+                "cod_municipio": 2603009,
+                "descricao": "Sistema de saneamento",
+                "orgao": "MCID",
+                "link_transferegov": None,
+                "link_obrasgov": None,
+                "relacao_instrumento": "sem_conflito_aparente",
+                "confirmacao_status": "sem_conflito",
+                "justificativa": "Conferida",
+                "conferido_em": agora,
+                "valido_ate": agora,
+            }]
+        )
+        instrumento = InstrumentoRevisaoInfo(
+            identificador_busca="123",
+            tipo_instrumento="contrato_repasse",
+            nr_instrumento="123",
+            nr_proposta="456",
+        )
+
+        obras = await _buscar_obras_saneamento(db, [2603009], instrumento)
+
+        sql = str(db.execute.await_args.args[0])
+        params = db.execute.await_args.args[1]
+        self.assertIn("instrumento.vw_obra_saneamento_revisada", sql)
+        self.assertEqual(params["nr_proposta"], "456")
+        self.assertEqual(obras[0].relacao_instrumento, "sem_conflito_aparente")
+        self.assertEqual(obras[0].conferido_em, agora)
+
     def test_identificador_aceita_instrumento_proposta_ted_ou_busca_original(self):
         revisao = {
             "identificador_busca": "busca",
@@ -109,6 +164,10 @@ class VisualizacaoRevisaoEnviadaTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn("r.id_revisao = :id_revisao", primeira_sql)
         self.assertEqual(primeira_params["id_revisao"], 12)
         self.assertIn("tb_revisao_instrumento_publico_alvo", publico_sql)
+        self.assertIn("pi.populacao_beneficiada", publico_sql)
+        self.assertIn("pi.desc_populacao_beneficiada", publico_sql)
+        self.assertNotIn("rpa.populacao_beneficiada_original", publico_sql)
+        self.assertNotIn("rpa.desc_populacao_beneficiada_original", publico_sql)
         self.assertIn("rpa.status_correcao_solicitada", publico_sql)
         self.assertNotIn("rpa.correcao_solicitada", publico_sql)
         self.assertEqual(publico_params["id_revisao"], 12)

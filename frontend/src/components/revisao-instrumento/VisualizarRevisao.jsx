@@ -4,36 +4,18 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { revisaoInstrumentoApi } from '@/api/revisaoInstrumento'
 import styles from './VisualizarRevisao.module.css'
 import { baixarFichaPublicoAlvo } from './FichaPublicoAlvoPdf'
+import {
+  CONFIRMACOES_OBRA as CONFIRMACOES,
+  CORRECAO_SOLICITADA_PUBLICO_ALVO,
+  RELACOES_OBRA as RELACOES,
+  STATUS_PUBLICO_ALVO,
+} from '@/utils/revisaoInstrumentoLabels'
 
 const ACOES = {
   manter: 'Manter',
   remover: 'Remover',
   adicionar: 'Adicionar',
   corrigir: 'Corrigir',
-}
-
-const RELACOES = {
-  nao_analisada: 'Não analisada',
-  sem_conflito_aparente: 'Sem conflito aparente',
-  possivel_sobreposicao: 'Possível sobreposição',
-}
-
-const CONFIRMACOES = {
-  nao_confirmada: 'Não confirmada',
-  sem_conflito: 'Sem conflito',
-  sobreposicao_confirmada: 'Sobreposição confirmada',
-}
-
-const STATUS_PUBLICO_ALVO = {
-  ok: 'Informação correta',
-  informacao_incorreta: 'Informação incorreta',
-  sem_informacao: 'Sem informação',
-}
-
-const CORRECAO_SOLICITADA_PUBLICO_ALVO = {
-  sim: 'Sim',
-  nao: 'Não',
-  nao_necessaria: 'Não há necessidade de solicitar correção',
 }
 
 function valor(value) {

@@ -18,6 +18,7 @@ import RevisaoInstrumento from './pages/revisao-instrumento/RevisaoInstrumento'
 import VisualizarRevisao from './pages/revisao-instrumento/VisualizarRevisao'
 import HistoricoRevisoes from './pages/revisao-instrumento/HistoricoRevisoes'
 import Login from './pages/login/Login'
+import AplicacaoRevisoes from './pages/admin/aplicacao-revisoes/AplicacaoRevisoes'
 
 const Mapa = lazy(() => import('@/pages/mapa/Mapa'))
 
@@ -84,6 +85,14 @@ export const router = createBrowserRouter([
             element: (
             <ProtectedRoute>
             <VisualizarRevisao />
+            </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'admin/aplicacao-revisoes',
+            element: (
+            <ProtectedRoute requiredProfile="admin">
+            <AplicacaoRevisoes />
             </ProtectedRoute>
             ),
           },

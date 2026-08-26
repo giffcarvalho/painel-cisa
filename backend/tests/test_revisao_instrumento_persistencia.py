@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 
 from app.api.revisao_instrumento import (
+    _buscar_publico_alvo,
     _buscar_municipios_oficiais,
     _carregar_revisao_salva,
     _persistir_municipio_revisao,
@@ -74,6 +75,40 @@ def _projeto(populacao="100", descricao="Famílias da área rural"):
 
 
 class PublicoAlvoPersistenciaTest(unittest.IsolatedAsyncioTestCase):
+    async def test_busca_le_originais_somente_da_fonte_oficial(self):
+        db = _Db(
+            _Result(
+                [
+                    {
+                        "id_revisao_publico_alvo": None,
+                        "id_projeto_investimento": "PROJ-1",
+                        "tipo_instrumento": "contrato_repasse",
+                        "nr_instrumento": "123",
+                        "nome_obra": "Obra",
+                        "populacao_beneficiada_original": "100",
+                        "desc_populacao_beneficiada_original": "Famílias",
+                        "status_populacao_beneficiada": None,
+                        "status_desc_populacao_beneficiada": None,
+                        "observacao_publico_alvo": None,
+                        "status_correcao_solicitada": None,
+                        "conferido_em": None,
+                        "valido_ate": None,
+                    }
+                ]
+            )
+        )
+
+        resposta = await _buscar_publico_alvo(db, _instrumento(), None)
+
+        sql = str(db.execute.await_args.args[0])
+        self.assertEqual(resposta[0].populacao_beneficiada_original, "100")
+        self.assertIn("p.populacao_beneficiada_original", sql)
+        self.assertIn("p.desc_populacao_beneficiada_original", sql)
+        self.assertIn("obrasgov.vw_publico_alvo_revisado", sql)
+        self.assertIn("CASE WHEN rpa.id_revisao_publico_alvo IS NOT NULL", sql)
+        self.assertNotIn("rpa.populacao_beneficiada_original", sql)
+        self.assertNotIn("rpa.desc_populacao_beneficiada_original", sql)
+
     async def _persistir(self, alteracao):
         db = _Db()
         projeto = _projeto()
@@ -95,6 +130,10 @@ class PublicoAlvoPersistenciaTest(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(params["status_populacao_beneficiada"], "informacao_incorreta")
         self.assertIn("ON CONFLICT (id_revisao, id_projeto_investimento)", sql)
+        self.assertNotIn("populacao_beneficiada_original", sql)
+        self.assertNotIn("desc_populacao_beneficiada_original", sql)
+        self.assertNotIn("populacao_beneficiada_original", params)
+        self.assertNotIn("desc_populacao_beneficiada_original", params)
 
     async def test_persiste_status_descricao(self):
         sql, params = await self._persistir(
@@ -440,7 +479,7 @@ class TransacaoRevisaoTest(unittest.IsolatedAsyncioTestCase):
         db.rollback.assert_awaited_once()
         db.commit.assert_not_awaited()
 
-    async def test_envio_muda_status_somente_depois_de_persistir_todas_as_secoes(self):
+    async def test_envio_incompleto_muda_status_depois_de_persistir_todas_as_secoes(self):
         eventos = []
 
         class _DbOrdenado:
@@ -464,8 +503,6 @@ class TransacaoRevisaoTest(unittest.IsolatedAsyncioTestCase):
             publico_alvo=[
                 {
                     "id_projeto_investimento": "PROJ-1",
-                    "status_populacao_beneficiada": "ok",
-                    "status_desc_populacao_beneficiada": "ok",
                 }
             ],
         )
@@ -481,8 +518,8 @@ class TransacaoRevisaoTest(unittest.IsolatedAsyncioTestCase):
             return [
                 _projeto().model_copy(
                     update={
-                        "status_populacao_beneficiada": "ok",
-                        "status_desc_populacao_beneficiada": "ok",
+                        "status_populacao_beneficiada": None,
+                        "status_desc_populacao_beneficiada": None,
                     }
                 )
             ]

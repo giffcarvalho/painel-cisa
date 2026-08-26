@@ -10,6 +10,7 @@ from app.core.database import lifespan_db
 from app.api import extrator_dados
 from app.api import auth
 from app.api import revisao_instrumento
+from app.api import aplicacao_revisoes
  
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -77,6 +78,12 @@ app.include_router(
     revisao_instrumento.router,
     prefix="/api/v1/revisao-instrumento",
     tags=["Revisão Instrumento"],
+)
+
+app.include_router(
+    aplicacao_revisoes.router,
+    prefix="/api/v1/aplicacao-revisoes",
+    tags=["Aplicação de Revisões"],
 )
 
 @app.get("/health", tags=["Infra"])
