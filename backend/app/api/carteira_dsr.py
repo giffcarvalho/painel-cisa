@@ -525,6 +525,7 @@ async def get_tabela(
             primeira_data_emissao_aio,
             situacao_contrato,
             situacao_obra,
+            percentual_financeiro_pago,
             percentual_fisico_informado,
             percentual_fisico_aferido,
             percentual_financeiro_desbloqueado,
@@ -548,6 +549,7 @@ async def get_tabela(
             valor_empenhado_a_desembolsar,
             valor_a_desembolsar,
             valor_desbloqueado,
+            valor_pago,
             link_transferegov,
             data_dados_transferegov,
             data_dados_caixa

@@ -55,6 +55,7 @@ class TabelaItem(BaseModel):
     primeira_data_emissao_aio: date | datetime | None = None
     situacao_contrato: str | None = None
     situacao_obra: str | None = None
+    percentual_financeiro_pago: Decimal | None = None
     percentual_fisico_informado: Decimal | None = None
     percentual_fisico_aferido: Decimal | None = None
     percentual_financeiro_desbloqueado: Decimal | None = None
@@ -82,6 +83,7 @@ class TabelaItem(BaseModel):
     valor_empenhado_a_desembolsar: Decimal | None = None
     valor_a_desembolsar: Decimal | None = None
     valor_desbloqueado: Decimal | None = None
+    valor_pago: Decimal | None = None
     
     #--metadados e links
     link_transferegov: str | None = None

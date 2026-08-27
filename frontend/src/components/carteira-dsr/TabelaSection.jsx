@@ -41,6 +41,7 @@ const CONFIG_COLUNAS = [
   { key: 'primeira_data_emissao_aio', label: '1ª Emissão AIO', isDate: true },
   { key: 'situacao_contrato', label: 'Situação Contrato' },
   { key: 'situacao_obra', label: 'Situação Obra' },
+  { key: 'percentual_financeiro_pago', label: '% Financeiro Pago' },
   { key: 'percentual_fisico_informado', label: '% Físico Informado' },
   { key: 'percentual_fisico_aferido', label: '% Físico Aferido' },
   { key: 'data_ultimo_bm', label: 'Último BM', isDate: true },
@@ -63,7 +64,8 @@ const CONFIG_COLUNAS = [
   { key: 'valor_desembolsado', label: 'Valor Desembolsado', isCurrency: true },
   { key: 'valor_empenhado_a_desembolsar', label: 'Empenhado a Desembolsar', isCurrency: true },
   { key: 'valor_a_desembolsar', label: 'Valor a Desembolsar', isCurrency: true },
-  { key: 'valor_desbloqueado', label: 'Valor Desbloqueado', isCurrency: true }
+  { key: 'valor_desbloqueado', label: 'Valor Desbloqueado', isCurrency: true },
+  { key: 'valor_pago', label: 'Valor Pago', isCurrency: true }
 ]
 
 export default function TabelaSection() {
