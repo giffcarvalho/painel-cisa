@@ -1,6 +1,6 @@
 import { Check } from 'lucide-react'
 import SecaoEtapa from './SecaoEtapa'
-import styles from './ExtratorDados.module.css'
+import styles from './TipoTabelaCards.module.css'
 
 const DETAILS = {
   municipio: {

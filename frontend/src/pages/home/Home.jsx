@@ -1,9 +1,6 @@
 import { Link } from 'react-router-dom'
-import { Info, Wallet, Sprout, Map, Activity, FileSearch, PackageSearch } from 'lucide-react'
-// REATIVAR APÓS COMMIT
-// import { ClipboardCheck } from 'lucide-react'
-// REATIVAR APÓS COMMIT
-// import AuthMenu from '@/components/auth/AuthMenu'
+import { Info, Wallet, Sprout, Map, Activity, FileSearch, PackageSearch, ClipboardCheck } from 'lucide-react'
+import AuthMenu from '@/components/auth/AuthMenu'
 import styles from './Home.module.css'
 import marcaMcid from '../../assets/marca-mcid-atz.png'
 
@@ -19,10 +16,9 @@ export default function Home() {
         className={styles.fixedMcidLogo}
       />
 
-      {/* REATIVAR APÓS COMMIT */}
-      {/* <div className={styles.authActions}>
+      <div className={styles.authActions}>
         <AuthMenu />
-      </div> */}
+      </div>
 
       <div className="relative z-10 w-full max-w-[1280px] mx-auto flex lg:-translate-x-8 xl:-translate-x-14 2xl:-translate-x-20">
         
@@ -140,8 +136,7 @@ export default function Home() {
 
               <div className="h-px w-5/12 ml-[76px] bg-black/[0.06] my-0.5 rounded-full" />
 
-              {/* REATIVAR APÓS COMMIT */}
-              {/* Item 5: Consulta Personalizada
+              {/* Item 5: Consulta Personalizada*/}
               <Link to="/revisao-instrumento" className={`group ${styles.editorialRow}`}>
                 <div className="flex items-center gap-5">
                   <div className={styles.iconWrapperSecondary}>
@@ -161,7 +156,7 @@ export default function Home() {
                 </div>
               </Link>
 
-              <div className="h-px w-5/12 ml-[76px] bg-black/[0.06] my-0.5 rounded-full" />*/}
+              <div className="h-px w-5/12 ml-[76px] bg-black/[0.06] my-0.5 rounded-full" />
 
               {/* Item 6: Manual do Usuário */}
               <Link to="/manual" className={`group ${styles.editorialRow}`}>

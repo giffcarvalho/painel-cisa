@@ -1,6 +1,7 @@
 """Contratos da revisão de instrumentos DSR."""
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
@@ -21,6 +22,8 @@ ConfirmacaoStatus = Literal[
     "sobreposicao_confirmada",
 ]
 StatusRevisao = Literal["rascunho", "enviado"]
+StatusPublicoAlvo = Literal["ok", "informacao_incorreta", "sem_informacao"]
+CorrecaoSolicitadaPublicoAlvo = Literal["sim", "nao", "nao_necessaria"]
 
 CONFIRMACOES_COMPATIVEIS = {
     "nao_analisada": {"nao_confirmada"},
@@ -93,6 +96,8 @@ class LocalidadeRevisaoItem(RevisaoInstrumentoBase):
     qtde_familias_ben_sugerida: int | None = None
 
     justificativa: str | None = None
+    conferido_em: datetime | None = None
+    valido_ate: datetime | None = None
 
 
 class ObraSaneamentoRevisaoItem(RevisaoInstrumentoBase):
@@ -108,6 +113,8 @@ class ObraSaneamentoRevisaoItem(RevisaoInstrumentoBase):
     relacao_instrumento: RelacaoInstrumento = "nao_analisada"
     confirmacao_status: ConfirmacaoStatus = "nao_confirmada"
     justificativa: str | None = None
+    conferido_em: datetime | None = None
+    valido_ate: datetime | None = None
 
     @model_validator(mode="after")
     def validar_confirmacao_status(self):
@@ -166,10 +173,13 @@ class PublicoAlvoRevisaoItem(RevisaoInstrumentoBase):
 
     populacao_beneficiada_original: str | None = None
     desc_populacao_beneficiada_original: str | None = None
-    populacao_beneficiada_revisada: str | None = None
-    desc_populacao_beneficiada_revisada: str | None = None
+    status_populacao_beneficiada: StatusPublicoAlvo | None = None
+    status_desc_populacao_beneficiada: StatusPublicoAlvo | None = None
+    observacao_publico_alvo: str | None = None
+    status_correcao_solicitada: CorrecaoSolicitadaPublicoAlvo | None = None
 
     conferido_em: datetime | None = None
+    valido_ate: datetime | None = None
 
 
 class PublicoAlvoRevisaoAlteracao(RevisaoInstrumentoBase):
@@ -178,8 +188,10 @@ class PublicoAlvoRevisaoAlteracao(RevisaoInstrumentoBase):
 
     populacao_beneficiada_original: str | None = None
     desc_populacao_beneficiada_original: str | None = None
-    populacao_beneficiada_revisada: str | None = None
-    desc_populacao_beneficiada_revisada: str | None = None
+    status_populacao_beneficiada: StatusPublicoAlvo | None = None
+    status_desc_populacao_beneficiada: StatusPublicoAlvo | None = None
+    observacao_publico_alvo: str | None = None
+    status_correcao_solicitada: CorrecaoSolicitadaPublicoAlvo | None = None
 
 
 class MunicipioRevisaoItem(RevisaoInstrumentoBase):
@@ -193,7 +205,22 @@ class MunicipioRevisaoItem(RevisaoInstrumentoBase):
     revisao_municipio_conferida_em: datetime | None = None
     localidades_conferidas_em: datetime | None = None
     obras_conferidas_em: datetime | None = None
+    conferido_em: datetime | None = None
+    valido_ate: datetime | None = None
 
+    localidades: list[LocalidadeRevisaoItem] = Field(default_factory=list)
+    obras_saneamento: list[ObraSaneamentoRevisaoItem] = Field(default_factory=list)
+
+
+class MunicipioOficialItem(RevisaoInstrumentoBase):
+    cod_municipio: int
+    nome_municipio: str
+    cod_uf: int
+    sigla_uf: str
+    nome_uf: str
+
+
+class DadosMunicipioRevisaoResponse(RevisaoInstrumentoBase):
     localidades: list[LocalidadeRevisaoItem] = Field(default_factory=list)
     obras_saneamento: list[ObraSaneamentoRevisaoItem] = Field(default_factory=list)
 
@@ -202,12 +229,101 @@ class RevisaoInstrumentoBuscaResponse(RevisaoInstrumentoBase):
     id_revisao: int | None = None
     identificador_busca: str
     instrumento: InstrumentoRevisaoInfo
+    pode_editar: bool = False
+    pode_editar_revisao: bool = False
     status: str | None = None
     status_revisao_geral: str = "pendente"
     status_revisao_geral_label: str = "Revisão pendente"
     observacao_geral: str | None = None
     municipios: list[MunicipioRevisaoItem]
     publico_alvo: list[PublicoAlvoRevisaoItem] = Field(default_factory=list)
+    dados_oficiais: dict[str, Any] | None = None
+    rascunho_global: dict[str, Any] | None = None
+    rascunho_usuario: dict[str, Any] | None = None
+    revisao_pendente_aplicacao: dict[str, Any] | None = None
+    quantidade_revisoes_pendentes: int = 0
+    ultima_revisao_usuario: dict[str, Any] | None = None
+    situacao_atualizacao: dict[str, Any] = Field(default_factory=dict)
+    situacao_validade: dict[str, Any] = Field(default_factory=dict)
+    situacao_colaborativa: dict[str, Any] = Field(default_factory=dict)
+    completude: dict[str, Any] = Field(default_factory=dict)
+
+
+class UsuarioRevisaoInfo(RevisaoInstrumentoBase):
+    id_usuario: int
+    nome: str
+
+
+class RevisaoInstrumentoDetalheResponse(RevisaoInstrumentoBase):
+    id_revisao: int
+    id_revisao_anterior: int | None = None
+    status: str
+    observacao_geral: str | None = None
+    criado_em: datetime
+    atualizado_em: datetime
+    enviado_em: datetime | None = None
+    aplicado_em: datetime | None = None
+    base_referencia_em: datetime | None = None
+    identificador_busca: str
+    instrumento: InstrumentoRevisaoInfo
+    usuario: UsuarioRevisaoInfo
+    municipios: list[MunicipioRevisaoItem] = Field(default_factory=list)
+    publico_alvo: list[PublicoAlvoRevisaoItem] = Field(default_factory=list)
+    execucao: dict[str, Any] | None = None
+    solicitacao_cancelamento: dict[str, Any] | None = None
+
+
+class RevisaoHistoricoItem(RevisaoInstrumentoBase):
+    id_revisao: int
+    id_revisao_anterior: int | None = None
+    identificador_busca: str
+    tipo_instrumento: TipoInstrumento
+    nr_instrumento: str | None = None
+    nr_proposta: str | None = None
+    nr_ted: int | None = None
+    objeto: str | None = None
+    status: str
+    status_label: str
+    criado_em: datetime
+    atualizado_em: datetime
+    enviado_em: datetime | None = None
+    aplicado_em: datetime | None = None
+    id_execucao: int | None = None
+    status_execucao: str | None = None
+    cancelado_em: datetime | None = None
+    usuario_cancelamento: str | None = None
+    motivo_cancelamento: str | None = None
+    solicitacao_cancelamento: dict[str, Any] | None = None
+    usuario: UsuarioRevisaoInfo
+
+
+class HistoricoRevisoesResponse(RevisaoInstrumentoBase):
+    data: list[RevisaoHistoricoItem] = Field(default_factory=list)
+    pagina: int
+    limite: int
+    total: int
+    total_paginas: int
+    instrumento: InstrumentoRevisaoInfo | None = None
+
+
+class MeuInstrumentoRevisaoItem(RevisaoInstrumentoBase):
+    nr_instrumento: str | None = None
+    nr_proposta: str | None = None
+    nr_ted: int | None = None
+    tipo_instrumento: TipoInstrumento
+    tipo_instrumento_label: str | None = None
+    uf: str | None = None
+    municipios_beneficiados: str | None = None
+    valor_global: Decimal | None = None
+    objeto: str | None = None
+    percentual_fisico_aferido: Decimal | None = None
+    situacao_atual: str | None = None
+    status_revisao: str | None = None
+    status_revisao_label: str = "Sem revisão"
+
+
+class MeusInstrumentosRevisaoResponse(RevisaoInstrumentoBase):
+    data: list[MeuInstrumentoRevisaoItem] = Field(default_factory=list)
 
 
 class RevisaoInstrumentoCreate(RevisaoInstrumentoBase):
@@ -218,6 +334,13 @@ class RevisaoInstrumentoCreate(RevisaoInstrumentoBase):
     instrumento: InstrumentoRevisaoInfo
     municipios: list[MunicipioRevisaoItem] = Field(default_factory=list)
     publico_alvo: list[PublicoAlvoRevisaoAlteracao] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validar_municipios_sem_duplicidade(self):
+        codigos = [municipio.cod_municipio for municipio in self.municipios]
+        if len(codigos) != len(set(codigos)):
+            raise ValueError("Um município não pode aparecer mais de uma vez no mesmo rascunho.")
+        return self
 
 
 class MunicipioRevisaoAlteracao(RevisaoInstrumentoBase):
@@ -249,6 +372,7 @@ class RevisaoInstrumentoSalvoResponse(RevisaoInstrumentoBase):
     enviado_em: datetime | None = None
     municipios: list[MunicipioRevisaoItem] = Field(default_factory=list)
     publico_alvo: list[PublicoAlvoRevisaoItem] = Field(default_factory=list)
+    completude: dict[str, Any] = Field(default_factory=dict)
 
 
 class RevisaoInstrumentoMunicipioSalvoResponse(RevisaoInstrumentoBase):

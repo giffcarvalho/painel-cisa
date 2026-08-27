@@ -1,11 +1,11 @@
 import { useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { useAuth } from '@/context/auth/useAuth'
 
-export default function ProtectedRoute({ children }) {
+export default function ProtectedRoute({ children, requiredProfile = null }) {
   const location = useLocation()
-  const { isAuthenticated, isLoading, openLoginModal } = useAuth()
+  const { isAuthenticated, isLoading, openLoginModal, usuario } = useAuth()
   const redirect = `${location.pathname}${location.search}${location.hash}`
 
   useEffect(() => {
@@ -25,6 +25,14 @@ export default function ProtectedRoute({ children }) {
 
   if (!isAuthenticated) {
     return null
+  }
+
+  if (
+    requiredProfile
+    && String(usuario?.perfil || '').trim().toLocaleLowerCase('pt-BR')
+      !== String(requiredProfile).trim().toLocaleLowerCase('pt-BR')
+  ) {
+    return <Navigate to="/" replace />
   }
 
   return children

@@ -51,15 +51,54 @@ export const router = createBrowserRouter([
           { path: 'carteira-dsr', element: <CarteiraDsr /> },
           { path: 'pesquisa-instrumento', element: <PesquisaInstrumento /> },
           { path: 'consulta-personalizada', element: <ConsultaPersonalizada /> },
-          // REATIVAR APÓS COMMIT
-          // {
-          //   path: 'revisao-instrumento',
-          //   element: (
-          //     <ProtectedRoute>
-          //       <RevisaoInstrumento />
-          //     </ProtectedRoute>
-          //   ),
-          // },
+          {
+            path: 'revisao-instrumento',
+            element: (
+            <ProtectedRoute>
+            <RevisaoInstrumento />
+            </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'revisao-instrumento/:numeroInstrumento',
+            element: (
+            <ProtectedRoute>
+            <RevisaoInstrumento />
+            </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'minhas-revisoes',
+            element: (
+            <ProtectedRoute>
+            <HistoricoRevisoes escopo="pessoal" />
+            </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'revisao-instrumento/:numeroInstrumento/revisoes',
+            element: (
+            <ProtectedRoute>
+            <HistoricoRevisoes escopo="instrumento" />
+            </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'revisao-instrumento/:numeroInstrumento/revisoes/:idRevisao',
+            element: (
+            <ProtectedRoute>
+            <VisualizarRevisao />
+            </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'admin/aplicacao-revisoes',
+            element: (
+            <ProtectedRoute requiredProfile="admin">
+            <AplicacaoRevisoes />
+            </ProtectedRoute>
+            ),
+          },
           {
             path: 'manual',
             element: <ManualLayout />,
