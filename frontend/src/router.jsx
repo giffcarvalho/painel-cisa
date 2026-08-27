@@ -2,7 +2,9 @@ import { createBrowserRouter } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import { Loader2 } from 'lucide-react'
 import AppLayout from '@/components/layout/AppLayout'
-import ProtectedRoute from '@/components/auth/ProtectedRoute'
+// REATIVAR APÓS COMMIT
+// import ProtectedRoute from '@/components/auth/ProtectedRoute'
+// REATIVAR APÓS COMMIT
 import AuthModalLayout from '@/components/auth/AuthModalLayout'
 import Home from '@/pages/home/Home'
 import CarteiraDsr from '@/pages/carteira-dsr/CarteiraDsr'
@@ -14,11 +16,10 @@ import ManualInformacoesGerais from './pages/manual/ManualInformacoesGerais'
 import MapLayout from './components/layout/MapLayout'
 import PesquisaInstrumento from './pages/pesquisa-instrumento/PesquisaInstrumento'
 import ConsultaPersonalizada from './pages/consulta-personalizada/ConsultaPersonalizada'
-import RevisaoInstrumento from './pages/revisao-instrumento/RevisaoInstrumento'
-import VisualizarRevisao from './pages/revisao-instrumento/VisualizarRevisao'
-import HistoricoRevisoes from './pages/revisao-instrumento/HistoricoRevisoes'
+// REATIVAR APÓS COMMIT
+// import RevisaoInstrumento from './pages/revisao-instrumento/RevisaoInstrumento'
+// REATIVAR APÓS COMMIT
 import Login from './pages/login/Login'
-import AplicacaoRevisoes from './pages/admin/aplicacao-revisoes/AplicacaoRevisoes'
 
 const Mapa = lazy(() => import('@/pages/mapa/Mapa'))
 
@@ -35,6 +36,7 @@ function MapaLoading() {
 
 export const router = createBrowserRouter([
   {
+    // REATIVAR APÓS COMMIT
     element: <AuthModalLayout />,
     children: [
       {
@@ -44,6 +46,7 @@ export const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
+          // REATIVAR APÓS COMMIT
           { path: 'login', element: <Login /> },
           { path: 'carteira-dsr', element: <CarteiraDsr /> },
           { path: 'pesquisa-instrumento', element: <PesquisaInstrumento /> },

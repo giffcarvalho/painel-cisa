@@ -2,12 +2,14 @@
 
 import logging
 from typing import Annotated
-from fastapi import APIRouter, Depends, Query, Response, HTTPException
+from fastapi import APIRouter, Depends, Query, Response, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
+from app.api.auth import obter_usuario_atual
 from app.core.database import get_db
+from app.schemas.auth import UsuarioAutenticado
 import jenkspy
 import time
 from threading import Lock
@@ -23,8 +25,11 @@ from app.schemas.filtrosMapa import (
     CategoriaMetropolitanaItem, OpcoesFiltrosCategoriaMetropolitana,
     InvestimentoSaneamentoItem, ListaInvestimentoSaneamento,
     DadosMunicipiosItem, ListaDadosMunicipios,
+    DadosAnaliseCoordenadasItem, ListaDadosAnaliseCoordenadas,
+    CoordenadaAnaliseCreate, AnaliseCoordenadasCreate, AnaliseCoordenadasSalvaResponse,
 )
-
+from app.schemas.revisao_instrumento import (InstrumentoRevisaoInfo)
+from app.api.revisao_instrumento import (_buscar_instrumento_carteira, _buscar_instrumento_ted)
  
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -125,6 +130,7 @@ def _build_where(filtros: FiltrosMapa, allowed: set[str] | None = None) -> tuple
             clauses.append(
                 f"{sql_col} && CAST(:{param_key} AS {sql_array_type})"
             )
+        
 
     where = (" AND ".join(clauses)) if clauses else ""
     return where, params
@@ -656,7 +662,7 @@ async def get_bbox_municipios(filtros: FiltrosMapa = Depends(), db: AsyncSession
 @router.get("/bbox_carteira_dsr", summary="Bounding box das coordenadas da Carteira DSR")
 async def get_bbox_carteira_dsr(filtros: FiltrosMapa = Depends(), db: AsyncSession = Depends(get_db)):
 
-    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "nr_proposta", "nr_instrumento", "cod_tci", "modalidade"})
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_uf", "cod_municipio", "nr_proposta", "nr_instrumento", "cod_tci"})
 
     sql = f"""
         WITH 
@@ -824,10 +830,10 @@ async def get_ufs(z: int, x: int, y: int, filtros: FiltrosMapa = Depends(), db: 
                         geom,
                         CASE
                             WHEN :z <= 6 THEN 2000
-                            WHEN :z <= 7 THEN 1000
-                            WHEN :z <= 8 THEN 500
-                            WHEN :z <= 9 THEN 300
-                            ELSE 0
+                            WHEN :z <= 7 THEN 1200
+                            WHEN :z <= 8 THEN 700
+                            WHEN :z <= 9 THEN 400
+                            ELSE 100
                         END,
                         false
                     ),
@@ -887,10 +893,10 @@ async def get_municipios_2025(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
                     ST_Simplify(
                         geom_2025,
                         CASE
-                            WHEN :z <= 7 THEN 1000
-                            WHEN :z <= 8 THEN 500
-                            WHEN :z <= 9 THEN 300
-                            ELSE 0
+                            WHEN :z <= 7 THEN 1200
+                            WHEN :z <= 8 THEN 700
+                            WHEN :z <= 9 THEN 400
+                            ELSE 100
                         END,
                         false
                     ),
@@ -947,9 +953,9 @@ async def get_distritos_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Depe
                     ST_Simplify(
                         geom,
                         CASE
-                            WHEN :z <= 8 THEN 500 
-                            WHEN :z <= 9 THEN 300
-                            ELSE 0
+                            WHEN :z <= 8 THEN 700 
+                            WHEN :z <= 9 THEN 400
+                            ELSE 100
                         END,
                         false
                     ),
@@ -1009,6 +1015,8 @@ async def get_setores_censitarios_2022(z: int, x: int, y: int, filtros: FiltrosM
                 cod_municipio,
                 nome_municipio || '/' || sigla_uf as nome_municipio,
                 total_pessoas,
+                total_domicilios,
+                dppo_domicilios_particulares_permanentes_ocupados,
                 jenks_perc_agua_forma_nao_adequada,
                 jenks_perc_esgoto_tipo_nao_adequado,
                 jenks_perc_lixo_destino_nao_adequado,
@@ -1021,8 +1029,8 @@ async def get_setores_censitarios_2022(z: int, x: int, y: int, filtros: FiltrosM
                     ST_Simplify(
                         geom,
                         CASE
-                            WHEN :z <= 8 THEN 500 
-                            WHEN :z <= 9 THEN 300
+                            WHEN :z <= 8 THEN 700 
+                            WHEN :z <= 9 THEN 400
                             ELSE 0
                         END,
                         false
@@ -1272,14 +1280,24 @@ async def get_municipios_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
                 rm_prioritaria,
                 populacao_total_censo_2022,
                 populacao_total_censo_2022_maior_50000,
+                sinisa_adimplencia_gestao_municipal,
+                sinisa_adimplencia_agua,
+                sinisa_adimplencia_esgoto,
+                sinisa_declarou_possuir_pmsb,
+                seca_vigente,
+                hidrologico_vigente,
+                tempestade_vigente,
+                qtde_reconhecimento_seca,
+                qtde_reconhecimento_hidrologico,
+                qtde_reconhecimento_tempestade,
                 ST_AsMVTGeom(
                     ST_Simplify(
                         geom_2022,
                         CASE
-                            WHEN :z <= 7 THEN 1000
-                            WHEN :z <= 8 THEN 500
-                            WHEN :z <= 9 THEN 300
-                            ELSE 0
+                            WHEN :z <= 7 THEN 1200
+                            WHEN :z <= 8 THEN 700
+                            WHEN :z <= 9 THEN 400
+                            ELSE 100
                         END,
                         false
                     ),
@@ -1302,6 +1320,50 @@ async def get_municipios_2022(z: int, x: int, y: int, filtros: FiltrosMapa = Dep
         headers={"Cache-Control": "public, max-age=300"}
     )
 
+
+# geometria dos biomas
+@router.get("/biomas/{z}/{x}/{y}.pbf", summary="Biomas - IBGE")
+async def get_biomas(z: int, x: int, y: int, filtros: FiltrosMapa = Depends(), db: AsyncSession = Depends(get_db)):
+
+    where_filtro, params_filtro = _build_where(filtros, allowed={"cod_bioma"})
+    
+    base_where = """
+        geom && ST_TileEnvelope(:z, :x, :y)
+    """
+
+    if where_filtro:
+        base_where += f" AND {where_filtro}"
+
+    params = {"z": z, "x": x, "y": y}
+    params.update(params_filtro)
+
+    sql = f"""
+        SELECT ST_AsMVT(tile, 'poligonos', 4096, 'geom', 'cod_bioma') AS mvt
+        FROM (
+            SELECT
+                cod_bioma,
+                cod,
+                nome_bioma,
+                ST_AsMVTGeom(
+                    geom,
+                    ST_TileEnvelope(:z, :x, :y),
+                    4096,
+                    256,
+                    true
+                ) AS geom
+            FROM territorio.vw_bioma
+            WHERE {base_where}
+        ) AS tile;
+    """
+
+        
+    result = await _execute_query(db, sql, params) # transformar esse bloco em uma função e depois só chamar ela nas rotas?
+    row = result.fetchone()
+    return Response(
+        content=row.mvt if row and row.mvt else b"",
+        media_type="application/x-protobuf",
+        headers={"Cache-Control": "public, max-age=300"}
+    )
 
 
 
@@ -1332,27 +1394,53 @@ async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMa
     params.update(params_filtro)
 
     sql = f"""
-        SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom', 'cod_tci_num') AS mvt
+        WITH ultima_analise AS (
+            SELECT
+                id_coordenada,
+                situacao_analise,
+                ROW_NUMBER() OVER (PARTITION BY id_coordenada ORDER BY criado_em DESC) AS n_linha
+            FROM painel_dsr.tb_revisao_instrumento_coordenada
+        )
+        SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom', 'id_coordenada') AS mvt
         FROM (
             SELECT
-                cod_tci_num,
-                cod_tci,
-                nr_instrumento,
-                nr_proposta,
-                tipo_instrumento,
-                modalidade,
-                componente,
-                objeto,
-                link_transferegov,
-                link_saci,
+                ct.id_coordenada,
+                ct.cod_tci_num,
+                ct.cod_tci,
+                ct.nr_instrumento::text,
+                ct.nr_proposta,
+                ct.tipo_instrumento,
+                ct.modalidade,
+                ct.componente,
+                ct.objeto,
+                ct.valor_global,
+                ct.valor_repasse,
+                ct.situacao_projeto,
+                ct.situacao_obra,
+                CASE
+                    WHEN 
+                        ct.modalidade ILIKE 'Extinto' OR
+                        ct.situacao_projeto ILIKE 'Extinto' OR
+                        ct.situacao_obra ILIKE 'cancelada'
+                    THEN 'Instrumento extinto'
+                    WHEN ct.ativo IS FALSE THEN 'Coordenada excluída'
+                    WHEN
+                        ua.situacao_analise IS NULL OR
+                        ua.situacao_analise ILIKE 'Sem análise' THEN 'Coordenada nova/não analisada'
+                    ELSE ua.situacao_analise
+                END AS situacao_analise,
+                ct.ativo,
+                ct.link_transferegov,
+                ct.link_saci,
                 ST_AsMVTGeom(
-                    geom,
+                    ct.geom,
                     ST_TileEnvelope(:z, :x, :y),
                     4096,
                     256,
                     true
                 ) AS geom
             FROM instrumento.vw_geometrias_carteira_dsr ct
+            LEFT JOIN ultima_analise ua ON ua.id_coordenada = ct.id_coordenada AND ua.n_linha = 1
             WHERE {base_where}
         ) AS tile;
     """
@@ -1395,12 +1483,13 @@ async def get_geometrias_carteira_drf(z: int, x: int, y: int, filtros: FiltrosMa
     params.update(params_filtro)
 
     sql = f"""
-        SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom', 'cod_tci_num') AS mvt
+        SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom', 'id_coordenada') AS mvt
         FROM (
             SELECT
+                id_coordenada,
                 cod_tci_num,
                 cod_tci,
-                nr_instrumento,
+                nr_instrumento::text,
                 nr_proposta,
                 tipo_instrumento,
                 modalidade,
@@ -1536,3 +1625,366 @@ async def get_dados_municipios(
 
     result = await _execute_query(db, sql, params)
     return ListaDadosMunicipios(data=[DadosMunicipiosItem(**row) for row in result.mappings().all()])
+
+
+
+
+#---------------------------Funcionalidade de análise das coordenadas--------------------------------
+
+# rota que busca na tabela do banco os dados de siuação atual da análise das coordenadas
+# não foi usado o build where nessa rota, pois ela precisaria de alias. Como alternativa, o where foi construído com if
+@router.get("/dados_analise_coordenadas", response_model=ListaDadosAnaliseCoordenadas, summary="Busca os dados da última análise das coordenadas")
+async def get_dados_analise_coordenadas(
+    response: Response,
+    filtros: FiltrosMapa = Depends(),
+    db: AsyncSession = Depends(get_db)):
+
+    response.headers["Cache-Control"] = "public, max-age=600"
+    
+    clauses = []
+    params = {}
+
+    if filtros.nr_instrumento:
+        clauses.append("geo.nr_instrumento::text = ANY(CAST(:nr_instrumento AS text[]))")
+        params["nr_instrumento"] = filtros.nr_instrumento
+
+    if filtros.nr_proposta:
+        clauses.append("geo.nr_proposta = ANY(CAST(:nr_proposta AS text[]))")
+        params["nr_proposta"] = filtros.nr_proposta
+
+    if filtros.cod_tci:
+        clauses.append("geo.cod_tci = ANY(CAST(:cod_tci AS text[]))")
+        params["cod_tci"] = filtros.cod_tci
+
+    sql = """
+        WITH ultimas_revisoes_coord AS (
+            SELECT DISTINCT ON (rc.id_coordenada)
+                rc.id_coordenada,
+                rc.id_revisao,
+                rc.situacao_analise,
+                rc.situacao_correcao
+            FROM painel_dsr.tb_revisao_instrumento_coordenada rc
+            ORDER BY rc.id_coordenada, rc.criado_em DESC NULLS LAST
+        )
+        SELECT
+            geo.id_coordenada,
+            geo.cod_tci,
+            geo.nr_instrumento,
+            geo.nr_proposta,
+            geo.latitude,
+            geo.longitude,
+            rc.situacao_analise,
+            rc.situacao_correcao,
+            ri.observacao_geral
+        FROM instrumento.vw_geometrias_carteira_dsr geo
+        LEFT JOIN ultimas_revisoes_coord rc ON rc.id_coordenada = geo.id_coordenada
+        LEFT JOIN painel_dsr.tb_revisao_instrumento ri ON ri.id_revisao = rc.id_revisao
+    """
+    
+    if clauses:
+        sql += " WHERE " + " AND ".join(clauses)
+
+
+    result = await _execute_query(db, sql, params)
+    return ListaDadosAnaliseCoordenadas(data=[DadosAnaliseCoordenadasItem(**row) for row in result.mappings().all()])
+
+
+
+
+#chama _buscar_instrumento_carteira que busca o instrumento no banco e monta um objeto instrumento com os dados do instrumento
+async def _buscar_instrumento_para_analise(
+    db: AsyncSession,
+    *,
+    nr_instrumento: str | None = None,
+    nr_proposta: str | None = None,
+    cod_tci: str | None = None,
+) -> InstrumentoRevisaoInfo:
+    identificador = nr_instrumento or nr_proposta or cod_tci
+    if identificador is None:
+        raise HTTPException(
+            status_code=400,
+            detail="É necessário informar um identificador do instrumento."
+        )
+
+    instrumento = await _buscar_instrumento_carteira(db, identificador)
+
+    if instrumento is None:
+        instrumento = await _buscar_instrumento_ted(db, identificador)
+
+    if instrumento is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Instrumento, proposta ou TED não encontrado nas bases oficiais.",
+        )
+
+    return instrumento
+
+
+
+
+# função que cria uma revisão do instrumento, e faz insert de um registro em tb_revisao_instrumento
+async def _criar_revisao_instrumento(
+    db: AsyncSession,
+    instrumento: InstrumentoRevisaoInfo,
+    id_usuario: int,
+    observacao_geral: str | None = None,
+) -> dict:
+    result = await db.execute(
+        text(
+            """
+            INSERT INTO painel_dsr.tb_revisao_instrumento (
+                identificador_busca,
+                tipo_instrumento,
+                nr_instrumento,
+                nr_proposta,
+                nr_ted,
+                id_usuario,
+                status,
+                enviado_em,
+                observacao_geral,
+                id_revisao_anterior
+            )
+            VALUES (
+                :identificador_busca,
+                :tipo_instrumento,
+                :nr_instrumento,
+                :nr_proposta,
+                :nr_ted,
+                :id_usuario,
+                'enviado',
+                NOW(),
+                NULLIF(BTRIM(:observacao_geral), ''),
+                (
+                    SELECT id_revisao
+                    FROM painel_dsr.tb_revisao_instrumento anterior
+                    WHERE anterior.tipo_instrumento = CAST(:tipo_instrumento AS varchar)
+                      AND anterior.status = 'enviado'
+                      AND ((CAST(:tipo_instrumento AS varchar) = 'ted' AND anterior.nr_ted = CAST(:nr_ted AS integer))
+                        OR (CAST(:tipo_instrumento AS varchar) <> 'ted' AND NULLIF(BTRIM(anterior.nr_instrumento), '') = NULLIF(BTRIM(CAST(:nr_instrumento AS varchar)), '')))
+                    ORDER BY anterior.enviado_em DESC NULLS LAST, anterior.id_revisao DESC
+                    LIMIT 1
+                )
+            )
+            RETURNING
+                id_revisao,
+                status,
+                criado_em,
+                atualizado_em,
+                enviado_em
+            """
+        ),
+        {
+            "identificador_busca": instrumento.identificador_busca,
+            "tipo_instrumento": instrumento.tipo_instrumento,
+            "nr_instrumento": instrumento.nr_instrumento,
+            "nr_proposta": instrumento.nr_proposta,
+            "nr_ted": instrumento.nr_ted,
+            "id_usuario": id_usuario,
+            "observacao_geral": observacao_geral,
+        },
+    )
+
+    return dict(result.mappings().one())
+
+
+
+# função que busca no banco a ultima análise de cada coordenada para testar se realmente o que veio do frontend está alterando a situação de alguma coordenada
+#além da situacao_analise de cada coordenadas, deve ser testado também:
+    #se houve alteração em situacao_correcao (que também está em tb_revisao_instrumento_coordenada)
+    #se houve alteração em observacao_geral (que está em tb_revisao_instrumento)
+#então, se houve alteracao somente em situacao_analise, a função continua só retornando as coordenadas que sofreram essa alteração
+#mas se houve alteração em observacao_geral ou situacao_correcao todas as coordenadas devem ser consideradas alteradas, pois esses campos são comuns a todas as coordenadas 
+async def _buscar_coordenadas_alteradas(
+    db: AsyncSession,
+    coordenadas: list[CoordenadaAnaliseCreate],
+    nova_observacao: str | None,
+    nova_situacao_correcao: str | None,
+) -> list[CoordenadaAnaliseCreate]:
+
+    if not coordenadas:
+        return []
+
+    ids_coordenadas = [c.id_coordenada for c in coordenadas]
+
+    sql = """
+        SELECT DISTINCT ON (rc.id_coordenada)
+            rc.id_coordenada,
+            rc.situacao_analise,
+            rc.situacao_correcao,
+            ri.observacao_geral
+        FROM painel_dsr.tb_revisao_instrumento_coordenada rc
+        INNER JOIN painel_dsr.tb_revisao_instrumento ri ON ri.id_revisao = rc.id_revisao
+        WHERE rc.id_coordenada = ANY(:ids_coordenadas)
+        ORDER BY rc.id_coordenada, rc.criado_em DESC
+    """
+
+    result = await db.execute(text(sql), {"ids_coordenadas": ids_coordenadas})
+    linhas_banco = result.mappings().all()
+    
+    dados_atuais_banco = {row["id_coordenada"]: row for row in linhas_banco}
+
+    if not dados_atuais_banco:
+        return coordenadas
+
+    primeira_linha = linhas_banco[0]
+    obs_atual_banco = primeira_linha["observacao_geral"]
+    correcao_atual_banco = primeira_linha["situacao_correcao"]
+    
+    obs_mudou = (obs_atual_banco or None) != (nova_observacao or None)
+    correcao_mudou = (correcao_atual_banco or None) != (nova_situacao_correcao or None)
+    
+    if obs_mudou or correcao_mudou:
+        return coordenadas
+    
+    coordenadas_alteradas = []
+    for c in coordenadas:
+        dado_banco = dados_atuais_banco.get(c.id_coordenada)
+        
+        
+        if not dado_banco or dado_banco["situacao_analise"] != c.situacao_analise:
+            coordenadas_alteradas.append(c)
+
+    return coordenadas_alteradas
+
+
+
+# função que insere a analise das coordenadas no banco, fazendo insert em tb_revisao_instrumento_coordenada
+# devolve informações adicionais como o id_revisao_coordenada gerada pelo banco e a data de criação do registro
+async def _persistir_coordenada_revisao(
+    db: AsyncSession,
+    id_revisao: int,
+    situacao_correcao: str | None,
+    coordenada: CoordenadaAnaliseCreate,
+) -> dict:
+    result = await db.execute(
+        text(
+            """
+            INSERT INTO painel_dsr.tb_revisao_instrumento_coordenada (
+                id_revisao,
+                id_coordenada,
+                cod_tci,
+                situacao_analise,
+                situacao_correcao
+            )
+            VALUES (
+                :id_revisao,
+                :id_coordenada,
+                :cod_tci,
+                :situacao_analise,
+                :situacao_correcao
+            )
+            RETURNING
+                id_revisao_coordenada,
+                id_revisao,
+                id_coordenada,
+                cod_tci,
+                situacao_analise,
+                situacao_correcao,
+                criado_em
+            """
+        ),
+        {
+            "id_revisao": id_revisao,
+            "id_coordenada": coordenada.id_coordenada,
+            "cod_tci": coordenada.cod_tci,
+            "situacao_analise": coordenada.situacao_analise,
+            "situacao_correcao": situacao_correcao,
+        },
+    )
+
+    return dict(result.mappings().one())
+
+
+# orquestra o salvamento da analise das coordenadas
+# chama _buscar_instrumento_para_analise
+# chama _criar_revisao_instrumento e aguarda retornar o id_revisao
+# chama _persistir_coordenada_revisao a qual vai inserir a analise das coordenadas no banco
+# retorna mensagens de erro
+@router.post(
+    "/analise_coordenadas",
+    response_model=AnaliseCoordenadasSalvaResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Coordena o salvamento da análise das coordenadas",
+)
+async def salvar_analise_coordenadas(
+    payload: AnaliseCoordenadasCreate,
+    usuario_atual: UsuarioAutenticado = Depends(obter_usuario_atual),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        db.info["grupo_salvamento_revisao"] = "analise_coordenadas"
+
+        instrumento = await _buscar_instrumento_para_analise(
+            db,
+            nr_instrumento=payload.nr_instrumento,
+            nr_proposta=payload.nr_proposta,
+            cod_tci=payload.cod_tci,
+        )
+
+        # Passamos também os campos globais para testar alterações
+        coordenadas_alteradas = await _buscar_coordenadas_alteradas(
+            db, 
+            payload.coordenadas,
+            nova_observacao=payload.observacao_geral,
+            nova_situacao_correcao=payload.situacao_correcao
+        )
+        
+        if not coordenadas_alteradas:
+            return AnaliseCoordenadasSalvaResponse(
+                id_revisao=None,
+                mensagem="Nenhuma alteração foi identificada.",
+            )
+        
+        revisao = await _criar_revisao_instrumento(
+            db,
+            instrumento,
+            usuario_atual.id_usuario,
+            observacao_geral=payload.observacao_geral,
+        )
+
+        id_revisao = revisao["id_revisao"]
+
+        for coordenada in coordenadas_alteradas:
+            await _persistir_coordenada_revisao(
+                db,
+                id_revisao,
+                situacao_correcao=payload.situacao_correcao, # <--- vírgula corrigida
+                coordenada=coordenada,
+            )
+
+        await db.commit()
+
+        return AnaliseCoordenadasSalvaResponse(
+            id_revisao=id_revisao,
+            mensagem="Análises das coordenadas salvas com sucesso.",
+        )
+
+    except HTTPException:
+        await db.rollback()
+        raise
+
+    except SQLAlchemyError as exc:
+        await db.rollback()
+        logger.exception(
+            "Erro ao salvar análise das coordenadas: "
+            "tipo_excecao=%s grupo=%s",
+            type(exc).__name__,
+            db.info.get("grupo_salvamento_revisao", "analise_coordenadas"),
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao salvar a análise das coordenadas.",
+        )
+
+    except Exception as exc:
+        await db.rollback()
+        logger.exception(
+            "Erro inesperado ao salvar análise das coordenadas: "
+            "tipo_excecao=%s grupo=%s",
+            type(exc).__name__,
+            db.info.get("grupo_salvamento_revisao", "analise_coordenadas"),
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao salvar a análise das coordenadas.",
+        )

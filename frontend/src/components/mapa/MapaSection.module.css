@@ -14,14 +14,15 @@
   position: absolute;
   top: 15px;
   right: 15px;
-  width: 65px;
-  height: 35px;
+  width: 50px;
+  height: 50px;
   border: none;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   border-radius: 5px;
-  color: blue;
+  color: #0019a7;
   font-weight: 500;
   background: white;
   cursor: pointer;
@@ -36,6 +37,23 @@
   width: 50px;
   height: 50px;
   display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border-radius: 5px;
+  background: rgb(255, 255, 255);
+  cursor: pointer;
+  z-index: 1;
+}
+
+.botaoLegenda {
+  position: absolute;
+  bottom: 20px;
+  left: 80px;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   border-radius: 5px;
@@ -45,12 +63,67 @@
 }
 
 
-.LayersIcon {
-  color: #0326ea;
-  width: 32px;
-  height: 32px;
+.authMenuContainer {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  top: 10px;
+  right: 100px; 
+  width: 250px;
+  z-index: 10;
+  transition: right 0.2s ease;
+}
+
+
+.authMenuContainer.comPainelFiltros {
+  right: 300px;
+}
+
+
+.botaoAnalisarCoordenadas {
+  position: absolute;
+  top: 60px;
+  right: 100px;
+  width: 250px;
+  height: 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border-radius: 5px;
+  background: aliceblue;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 1;
+  transition: right 0.2s ease, top 0.2s ease;
+}
+
+
+.botaoAnalisarCoordenadas.comPainelFiltros {
+  right: 300px;
+}
+
+
+
+.ativo {
+    background: #00943e;
+    color: white;
+}
+
+.Icon {
+  color: #0019a7;
+  width: 25px;
+  height: 25px;
   transition: color .2s;
 }
+
+.IconTexto {
+  color: #0019a7;
+  font-size: 11px;
+  font-weight: 600;
+}
+
 
 .coordenadasMouse {
   position: absolute;
@@ -65,4 +138,42 @@
   font-size: 12px;
   font-family: monospace;
   pointer-events: none;
+}
+
+
+
+.caixa_carregando {
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(0, 0, 0, 0.75);
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  transition: opacity 0.2s ease-in-out;
+}
+
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: girar 0.8s linear infinite;
+}
+
+@keyframes girar {
+  to {
+      transform: rotate(360deg);
+  }
 }

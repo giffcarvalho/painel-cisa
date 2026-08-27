@@ -1,0 +1,378 @@
+.caixa_externa {
+    position: absolute;
+    top: 95px;
+    right: 100px;
+    width: 250px;
+    z-index: 1;
+    transition: right 0.2s ease, top 0.2s ease;
+}
+
+.caixa_externa.comPainelFiltros {
+  right: 300px;
+}
+
+
+.painel_opcoes {
+    background: aliceblue;
+    border: 1px solid #999;
+    border-radius: 4px;
+    padding: 8px 8px 10px 8px;
+}
+
+.painel_opcoes h4 {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.conteudo {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 13px;
+    margin-top: 6px;
+}
+
+
+.conteudo input {
+    margin-right: 5px;
+    margin-left: 5px;
+    margin-top: 5px;
+}
+
+.correta {
+    background-color: #abfde2;
+    border-radius: 4px;
+}
+
+.errada {
+    background-color: #ffa892;
+    border-radius: 4px;
+}
+
+.caixa_navegacao {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 15px;
+    margin-top: 8px;
+    border-bottom: solid 1px rgb(146, 146, 146);
+}
+
+.texto_navegacao {
+    font-size: 13px;
+    color: blue;
+    cursor: pointer;
+}
+
+.texto_navegacao:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.contador {
+    font-weight: bold;
+    font-size: 12px;
+    padding: 0 8px;
+}
+
+.botao_salvar {
+  width: 250px;
+  height: 33px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-top: 8px;
+  border-radius: 5px;
+  background: aliceblue;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+
+.botao_salvar_ativo {
+    background: #00529e;
+    color: white;
+    cursor: pointer;
+}
+
+.botao_cancelar_analise {
+  width: 250px;
+  height: 33px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-top: 8px;
+  border-radius: 5px;
+  background: rgb(255, 34, 34);
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+
+.overlay_modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.4); 
+    backdrop-filter: blur(4px);            
+    -webkit-backdrop-filter: blur(4px);    
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;                         
+}
+
+
+.janela_confirmacao {
+    width: 480px;                          
+    max-width: 90vw;                       
+    max-height: 95vh;
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    border-radius: 8px;
+    background: #ffffff;                  
+    font-size: 13px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.2);
+    animation: surgimentoSuave 0.2s ease-out;
+}
+
+@keyframes surgimentoSuave {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+
+.titulo {
+    display: flex;
+    justify-content: space-between;
+}
+
+
+.titulo_confirmacao {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #00529e;
+}
+
+
+.botao_exportar {
+    margin: 0 5px 10px 0;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 0 8px 0 8px;
+    border-radius: 4px;
+    background-color: rgb(0, 81, 148);
+    color: aliceblue;
+}
+
+.botao_exportar:hover {
+    cursor: pointer;
+}
+
+.botao_exportar:disabled {
+    background: rgb(219, 219, 219);
+    color: #333;
+    cursor: not-allowed;
+}
+
+.container_tabela {
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    background-color: #fafafa;
+}
+
+.tabela_resumo {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    text-align: left;
+}
+
+.tabela_resumo th {
+    background-color: #f0f4f8;
+    color: #333;
+    padding: 8px 10px;
+    border-bottom: 1px solid #ccc;
+    position: sticky;
+    top: 0;
+}
+
+.tabela_resumo td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #e5e5e5;
+    vertical-align: middle;
+}
+
+.coluna_n {
+    text-align: center;
+    font-weight: bold;
+    width: 35px;
+}
+
+.coluna_l {
+    font-size: 11px;
+}
+
+.item_alterado {
+    font-weight: 600;
+    color: #00529e;
+}
+
+.janela_confirmacao form {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.texto_observacao {
+    width: 100%;
+    height: 90px;
+    box-sizing: border-box;
+    padding: 8px;
+    border: 1px solid #d0d0d0;
+    border-radius: 5px;
+    background-color: white;
+    color: #333;
+    margin-top: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+}
+
+.texto_observacao:focus {
+    border: 1px solid #b0b0b0;
+    outline: none;
+}
+
+.container_pergunta_correcao {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
+.texto_pergunta {
+    font-size: 12px;
+    font-weight: 600;
+    color: #00529e;
+    margin: 0;
+}
+
+.opcoes_radio_correcao {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+}
+
+.label_radio {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    color: #333;
+    cursor: pointer;
+    user-select: none;
+}
+
+.label_radio input[type="radio"] {
+    cursor: pointer;
+    accent-color: #00529e;
+    margin: 0;
+}
+
+.mensagem_alteracao {
+    font-size: 12px;
+    font-weight: 400;
+    align-self: flex-end;
+    margin: 3px 0 0 0;
+    color: #00529e;
+}
+
+.area_botoes_confirmacao {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.botao_cancelar {
+    width: 100px;
+    height: 33px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 5px;
+    background: rgb(255, 34, 34);
+    font-size: 13px;
+    font-weight: 500;
+    color: aliceblue;
+    cursor: pointer;
+}
+
+
+.botao_confirmar {
+    width: 130px;
+    height: 33px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 5px;
+    background: rgb(0, 81, 148);
+    font-size: 13px;
+    font-weight: 500;
+    color: aliceblue;
+    cursor: pointer;
+}
+
+
+.botao_confirmar:disabled {
+    background: rgb(219, 219, 219);
+    color: #333;
+    cursor: not-allowed;
+}
+
+
+.mensagem_erro {
+    color: #d32f2f;
+    background-color: #fde8e8;
+    border: 1px solid #f8b4b4;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+
+.mensagem_sucesso {
+    color: #155724;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-top: 10px;
+    text-align: center;
+}

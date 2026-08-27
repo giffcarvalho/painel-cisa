@@ -2,9 +2,7 @@
 
 ## Sobre o projeto
 
-O Portal DSR é uma plataforma interna desenvolvida para apoiar a consulta, a visualização e a análise de informações relacionadas às ações de saneamento rural e pequenos municípios.
-
-O sistema reúne indicadores, informações financeiras, instrumentos de repasse e dados territoriais em um ambiente integrado, apoiando atividades institucionais de acompanhamento, análise e produção de informações.
+O Painel DSR é uma ferramenta interna do Departamento de Saneamento Rural e de Pequenos Municípios, pensada para atender exclusivamente às demandas dos técnicos lotados no Departamento, especialmente no tocante às particularidades e especificadades das atividades do DSR. O painel reúne dados informações estratégicas para o DSR em um ambiente único de consulta.
 
 ## Funcionalidades
 
@@ -14,7 +12,7 @@ O sistema reúne indicadores, informações financeiras, instrumentos de repasse
 * **Carteira DSR**:
 
   * filtros combináveis;
-  * indicadores quantitativos e financeiros;
+  * informações quantitativas e financeiras dos instrumentos de repasse;
   * gráficos por UF, ação, tipo de instrumento, fase e situação da contratação;
   * visualização geográfica;
   * tabela detalhada com paginação;
@@ -42,6 +40,7 @@ Os seguintes módulos estão apresentados como “Em breve” em `frontend/src/p
 
 * Pesquisa Instrumento.
 * Saneamento Rural.
+* Conferência de informações dos Instrumentos de Repasse
 
 ## Tecnologias utilizadas
 

@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { router } from './router'
 import { FiltrosProvider } from './context/carteira-Dsr/filtrosContext'
-import { AuthProvider } from './context/auth/AuthProvider'
+// REATIVAR APÓS COMMIT
+ import { AuthProvider } from './context/auth/AuthProvider'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -27,10 +28,12 @@ const queryClient = new QueryClient({
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
+      {/* REATIVAR APÓS COMMIT */}
+      <AuthProvider> 
       <FiltrosProvider>
         <RouterProvider router={router} />
       </FiltrosProvider>
+      {/* REATIVAR APÓS COMMIT */}
       </AuthProvider>
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
       </QueryClientProvider>
