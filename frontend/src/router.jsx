@@ -96,6 +96,7 @@ export const router = createBrowserRouter([
               </ProtectedRoute>
             ),
           },
+          { path: 'pontos-controle', element: <PontosControle /> },
           {
             path: 'manual',
             element: <ManualLayout />,
