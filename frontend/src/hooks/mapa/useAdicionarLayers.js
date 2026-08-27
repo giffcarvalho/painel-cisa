@@ -88,7 +88,7 @@ export function useAdicionarLayers(mapRef, layers, filtros) {
                 minzoom: informacoes_setores_censitarios?.minzoom,
                 paint: {
                 "fill-color": "#e7e1e1",
-                "fill-opacity": 0.8
+                "fill-opacity": 0.9
                 }
             });
 
@@ -156,7 +156,9 @@ export function useAdicionarLayers(mapRef, layers, filtros) {
                 minzoom:enderecos?.minzoom,
                 paint: {
                     "circle-radius": ["interpolate", ["linear"], ["zoom"], 13.0, 2.0, 13.5, 3.5, 14.0, 4.0, 15.0, 5.0],
-                    "circle-color": gerarMatch(enderecos.simbologia.atributo, enderecos.simbologia.classes, "cor", "#000000")
+                    "circle-color": gerarMatch(enderecos.simbologia.atributo, enderecos.simbologia.classes, "cor", "#000000"),
+                    "circle-stroke-color": gerarMatch(enderecos.simbologia.atributo, enderecos.simbologia.classes, "strokeColor", "#000000"),
+                    "circle-stroke-width": gerarMatch(enderecos.simbologia.atributo, enderecos.simbologia.classes, "strokeWidth", 0),
                 }
             });
 
