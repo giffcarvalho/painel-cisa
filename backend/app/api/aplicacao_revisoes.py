@@ -15,6 +15,9 @@ from app.schemas.aplicacao_revisoes import (
     RevisoesPendentesResponse,
     ValidacaoAplicacao,
     ValidacaoCancelamento,
+    RespostaSolicitacaoCancelamentoRequest,
+    SolicitacaoCancelamentoResponse,
+    SolicitacoesCancelamentoResponse,
 )
 from app.schemas.auth import UsuarioAutenticado
 from app.services.aplicacao_revisoes import (
@@ -27,10 +30,61 @@ from app.services.aplicacao_revisoes import (
     obter_detalhe,
     validar_aplicacao,
     validar_cancelamento,
+    aprovar_solicitacao_cancelamento,
+    listar_solicitacoes_cancelamento,
+    rejeitar_solicitacao_cancelamento,
 )
 
 
 router = APIRouter()
+
+
+@router.get("/solicitacoes-cancelamento", response_model=SolicitacoesCancelamentoResponse)
+async def consultar_solicitacoes_cancelamento(
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=50)] = 20,
+    status_solicitacao: Annotated[
+        Literal["pendente", "aprovada", "rejeitada"] | None, Query(alias="status")
+    ] = None,
+    usuario: UsuarioAutenticado = Depends(obter_usuario_atual),
+    db: AsyncSession = Depends(get_db),
+):
+    exigir_admin(usuario)
+    return await listar_solicitacoes_cancelamento(
+        db, page=page, page_size=page_size, status_solicitacao=status_solicitacao
+    )
+
+
+@router.post(
+    "/solicitacoes-cancelamento/{id_solicitacao}/aprovar",
+    response_model=SolicitacaoCancelamentoResponse,
+)
+async def aprovar_solicitacao(
+    id_solicitacao: int,
+    payload: RespostaSolicitacaoCancelamentoRequest,
+    usuario: UsuarioAutenticado = Depends(obter_usuario_atual),
+    db: AsyncSession = Depends(get_db),
+):
+    exigir_admin(usuario)
+    return await aprovar_solicitacao_cancelamento(
+        db, id_solicitacao, usuario, payload.observacao_resposta
+    )
+
+
+@router.post(
+    "/solicitacoes-cancelamento/{id_solicitacao}/rejeitar",
+    response_model=SolicitacaoCancelamentoResponse,
+)
+async def rejeitar_solicitacao(
+    id_solicitacao: int,
+    payload: RespostaSolicitacaoCancelamentoRequest,
+    usuario: UsuarioAutenticado = Depends(obter_usuario_atual),
+    db: AsyncSession = Depends(get_db),
+):
+    exigir_admin(usuario)
+    return await rejeitar_solicitacao_cancelamento(
+        db, id_solicitacao, usuario, payload.observacao_resposta
+    )
 
 
 @router.get("/pendentes", response_model=RevisoesPendentesResponse)

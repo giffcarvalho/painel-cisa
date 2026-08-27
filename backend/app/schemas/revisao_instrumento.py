@@ -269,6 +269,8 @@ class RevisaoInstrumentoDetalheResponse(RevisaoInstrumentoBase):
     usuario: UsuarioRevisaoInfo
     municipios: list[MunicipioRevisaoItem] = Field(default_factory=list)
     publico_alvo: list[PublicoAlvoRevisaoItem] = Field(default_factory=list)
+    execucao: dict[str, Any] | None = None
+    solicitacao_cancelamento: dict[str, Any] | None = None
 
 
 class RevisaoHistoricoItem(RevisaoInstrumentoBase):
@@ -286,6 +288,12 @@ class RevisaoHistoricoItem(RevisaoInstrumentoBase):
     atualizado_em: datetime
     enviado_em: datetime | None = None
     aplicado_em: datetime | None = None
+    id_execucao: int | None = None
+    status_execucao: str | None = None
+    cancelado_em: datetime | None = None
+    usuario_cancelamento: str | None = None
+    motivo_cancelamento: str | None = None
+    solicitacao_cancelamento: dict[str, Any] | None = None
     usuario: UsuarioRevisaoInfo
 
 

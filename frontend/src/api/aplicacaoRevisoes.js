@@ -13,6 +13,29 @@ export const aplicacaoRevisoesApi = {
     return data
   },
 
+  listarSolicitacoesCancelamento: async ({ page = 1, pageSize = 20, status = '' } = {}) => {
+    const { data } = await api.get('/aplicacao-revisoes/solicitacoes-cancelamento', {
+      params: { page, page_size: pageSize, status: status || undefined },
+    })
+    return data
+  },
+
+  aprovarSolicitacaoCancelamento: async (idSolicitacao, observacaoResposta = '') => {
+    const { data } = await api.post(
+      `/aplicacao-revisoes/solicitacoes-cancelamento/${idSolicitacao}/aprovar`,
+      { observacao_resposta: observacaoResposta || null },
+    )
+    return data
+  },
+
+  rejeitarSolicitacaoCancelamento: async (idSolicitacao, observacaoResposta) => {
+    const { data } = await api.post(
+      `/aplicacao-revisoes/solicitacoes-cancelamento/${idSolicitacao}/rejeitar`,
+      { observacao_resposta: observacaoResposta },
+    )
+    return data
+  },
+
   obterExecucao: async (idExecucao) => {
     const { data } = await api.get(`/aplicacao-revisoes/execucoes/${idExecucao}`)
     return data

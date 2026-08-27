@@ -132,8 +132,7 @@ export default function ResultadoAplicacao({ resultado, contexto = 'pendentes', 
       <details className={styles.resultDetails} open={contexto === 'historico'}>
         <summary>Visualizar detalhes da execução</summary>
         {[
-          ['Aplicação original', resultado.detalhes.filter((item) => !item.acao.startsWith('desfazer_'))],
-          ...(cancelado ? [['Reversão do cancelamento', resultado.detalhes.filter((item) => item.acao.startsWith('desfazer_'))]] : []),
+          ['Revisão', resultado.detalhes.filter((item) => !item.acao.startsWith('desfazer_'))],
         ].map(([grupo, detalhes]) => <div className={styles.auditGroup} key={grupo}>
           <h3>{grupo}</h3>
           <div className={styles.executionSections}>

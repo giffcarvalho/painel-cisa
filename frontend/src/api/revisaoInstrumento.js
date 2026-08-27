@@ -36,6 +36,14 @@ export const revisaoInstrumentoApi = {
     return data
   },
 
+  solicitarCancelamento: async (idRevisao, motivoSolicitacao) => {
+    const { data } = await api.post(
+      `/revisao-instrumento/revisoes/${idRevisao}/solicitacao-cancelamento`,
+      { motivo_solicitacao: motivoSolicitacao },
+    )
+    return data
+  },
+
   buscarMunicipiosOficiais: async (q) => {
     const { data } = await api.get('/revisao-instrumento/municipios-oficiais', {
       params: { q },

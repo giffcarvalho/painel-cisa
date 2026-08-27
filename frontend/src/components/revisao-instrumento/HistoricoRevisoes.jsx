@@ -140,9 +140,14 @@ export default function HistoricoRevisoes({ escopo }) {
                   <p className={styles.date}>Enviada em {formatarData(item.enviado_em)}</p>
                 </div>
                 <div className={styles.cardActions}>
-                  <span className={`${styles.status} ${item.aplicado_em ? styles.applied : ''}`}>
+                  <span className={`${styles.status} ${item.status_execucao === 'cancelado' ? styles.cancelled : item.solicitacao_cancelamento?.status === 'pendente' ? styles.requested : item.aplicado_em ? styles.applied : ''}`}>
                     {item.status_label}
                   </span>
+                  {item.status_execucao === 'cancelado' && <small className={styles.statusDetail}>
+                    {item.cancelado_em && <>Cancelada em {formatarData(item.cancelado_em)}</>}
+                    {item.usuario_cancelamento && <> · por {item.usuario_cancelamento}</>}
+                    {item.motivo_cancelamento && <> · Motivo: {item.motivo_cancelamento}</>}
+                  </small>}
                   <button type="button" onClick={() => visualizar(item)}>
                     Visualizar revisão
                   </button>

@@ -178,3 +178,57 @@ class ValidacaoCancelamento(AplicacaoBase):
     status: Literal["disponivel", "bloqueado", "ja_cancelado"]
     motivo_bloqueio: str | None = None
     resumo: ResumoResultados = Field(default_factory=ResumoResultados)
+
+
+class SolicitacaoCancelamentoRequest(AplicacaoBase):
+    motivo_solicitacao: str = Field(..., min_length=1, max_length=2000)
+
+    @field_validator("motivo_solicitacao")
+    @classmethod
+    def validar_motivo(cls, value: str) -> str:
+        motivo = value.strip()
+        if not motivo:
+            raise ValueError("O motivo da solicitação é obrigatório.")
+        return motivo
+
+
+class RespostaSolicitacaoCancelamentoRequest(AplicacaoBase):
+    observacao_resposta: str | None = Field(default=None, max_length=2000)
+
+    @field_validator("observacao_resposta")
+    @classmethod
+    def normalizar_observacao(cls, value: str | None) -> str | None:
+        observacao = (value or "").strip()
+        return observacao or None
+
+
+class SolicitacaoCancelamentoResponse(AplicacaoBase):
+    id_solicitacao: int
+    id_execucao: int
+    id_revisao: int | None = None
+    id_usuario_solicitante: int
+    motivo_solicitacao: str
+    status: Literal["pendente", "aprovada", "rejeitada"]
+    solicitado_em: datetime
+    id_usuario_resposta: int | None = None
+    respondido_em: datetime | None = None
+    observacao_resposta: str | None = None
+    usuario_solicitante: str | None = None
+    usuario_resposta: str | None = None
+    status_execucao: str | None = None
+    cancelado_em: datetime | None = None
+    administrador_cancelamento: str | None = None
+    motivo_cancelamento: str | None = None
+    cancelamento_permitido: bool = False
+    motivo_bloqueio_cancelamento: str | None = None
+    tipo_instrumento: str | None = None
+    tipo_instrumento_label: str | None = None
+    identificador_instrumento: str | None = None
+
+
+class SolicitacoesCancelamentoResponse(AplicacaoBase):
+    data: list[SolicitacaoCancelamentoResponse] = Field(default_factory=list)
+    page: int
+    page_size: int
+    total: int
+    total_pages: int

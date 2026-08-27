@@ -29,6 +29,9 @@
 .personalPage .cardActions { gap: 18px; }
 .status { display: inline-flex; border-radius: 999px; padding: 6px 10px; background: #fff7df; color: #7a5211; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .status.applied { background: #e8f5ee; color: #17643a; }
+.status.cancelled { background: #e0e7ff; color: #3730a3; }
+.status.requested { background: #fef3c7; color: #92400e; }
+.statusDetail { max-width: 300px; color: #64748b; font-size: 11px; line-height: 1.45; text-align: right; }
 .cardActions button { min-height: 38px; border-radius: 8px; align-self: auto; }
 .state { display: flex; min-height: 180px; align-items: center; justify-content: center; gap: 10px; padding: 28px; color: #64748b; text-align: center; }
 .spinner { animation: spin 1s linear infinite; }

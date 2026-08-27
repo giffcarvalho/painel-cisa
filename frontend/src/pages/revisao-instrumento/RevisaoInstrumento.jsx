@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Check, ChevronDown, Plus, Save, Search, Send, X } from 'lucide-react'
+import { Check, ChevronDown, Download, Plus, Save, Search, Send, X } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { revisaoInstrumentoApi } from '@/api/revisaoInstrumento'
 import Tooltip from '@/components/revisao-instrumento/Tooltip'
 import { useAuth } from '@/context/auth/useAuth'
 import styles from './RevisaoInstrumento.module.css'
 import { formatPercentualPontos } from '../../utils/formatters'
+import { baixarFichaPublicoAlvo } from '@/components/revisao-instrumento/FichaPublicoAlvoPdf'
 
 const ACOES_MUNICIPIO = [
   { value: 'manter', label: 'Manter', icon: Check },
@@ -388,7 +389,7 @@ function contextoRevisao(data, usuarioAtualNome) {
       status: `Revisão nº ${revisaoPendente.id_revisao} enviada por ${responsavel} — aguardando aplicação`,
       tone: 'sent',
       responsavel: null,
-      detalhe: `${enviadaEm ? `Enviada em ${enviadaEm}. ` : ''}Os dados exibidos ainda correspondem à base oficial anterior.${
+      detalhe: `${enviadaEm ? `Enviada em ${enviadaEm}. ` : ''}Os dados exibidos ainda correspondem à base anterior.${
         quantidade > 1 ? ` Há ${quantidade} revisões aguardando aplicação; esta é a mais recente.` : ''
       }`,
     }
@@ -438,6 +439,12 @@ function formatarValidade(value) {
   const dataParte = String(value).split(/[T ]/)[0]
   const [ano, mes, dia] = dataParte.split('-')
   return ano && mes && dia ? `Válida até ${dia}/${mes}/${ano}` : null
+}
+
+function formatarDataHora(value) {
+  if (!value) return '—'
+  const data = new Date(value)
+  return Number.isNaN(data.getTime()) ? '—' : new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(data)
 }
 
 function conferenciaVigente(item) {
@@ -818,6 +825,8 @@ export default function RevisaoInstrumento() {
   const [carregandoMeusInstrumentos, setCarregandoMeusInstrumentos] = useState(true)
   const [erroMeusInstrumentos, setErroMeusInstrumentos] = useState('')
   const [detalhesInstrumentoAbertos, setDetalhesInstrumentoAbertos] = useState(false)
+  const [resumoEnvio, setResumoEnvio] = useState(null)
+  const [gerandoPdfEnvio, setGerandoPdfEnvio] = useState(false)
 
   const instrumento = numeroInstrumento ? dadosBusca?.instrumento ?? null : null
   const temRascunhoAberto = Boolean(dadosBusca?.rascunho_global)
@@ -1737,6 +1746,31 @@ export default function RevisaoInstrumento() {
       }
       const payloadRevisao = montarPayloadRevisao(status, idRevisao)
       const data = await revisaoInstrumentoApi.salvarRevisao(payloadRevisao)
+      if (status === 'enviado') {
+        const totalMunicipios = municipios.length
+        const municipiosAnalisados = municipios.filter((item) => item.acao_sugerida != null).length
+        const todasLocalidades = municipios.flatMap((item) => item.localidades)
+        const localidadesAnalisadas = todasLocalidades.filter((item) => item.origem_registro === 'adicionado_tecnico' || item.acao_sugerida).length
+        const todasObras = municipios.flatMap((item) => item.obras_saneamento)
+        const obrasAnalisadas = todasObras.filter((item) => item.relacao_instrumento !== 'nao_analisada').length
+        const publicoTotal = publicoAlvo.length * 2
+        const publicoAnalisado = publicoAlvo.reduce((total, item) => total + Number(Boolean(item.status_populacao_beneficiada)) + Number(Boolean(item.status_desc_populacao_beneficiada)), 0)
+        const alteracoes = [
+          ...payloadRevisao.municipios.filter((item) => item.acao_sugerida && item.acao_sugerida !== 'manter').map((item) => `1 município ${item.acao_sugerida === 'adicionar' ? 'adicionado' : 'removido'}`),
+          ...payloadRevisao.municipios.flatMap((item) => item.localidades || []).filter((item) => item.acao_sugerida && item.acao_sugerida !== 'manter').map((item) => `1 localidade ${item.acao_sugerida === 'corrigir' ? 'corrigida' : item.acao_sugerida === 'adicionar' ? 'adicionada' : 'removida'}`),
+        ]
+        setResumoEnvio({
+          revisao: { ...data, instrumento, usuario: { id_usuario: usuario?.id_usuario, nome: usuarioAtualNome }, publico_alvo: data.publico_alvo ?? publicoAlvo, municipios: data.municipios ?? municipios },
+          enviadoEm: data.enviado_em,
+          contagens: [
+            ['Municípios', municipiosAnalisados, totalMunicipios],
+            ['Localidades', localidadesAnalisadas, todasLocalidades.length],
+            ['Público-alvo', publicoAnalisado, publicoTotal],
+            ['Obras', obrasAnalisadas, todasObras.length],
+          ],
+          alteracoes,
+        })
+      }
       setIdRevisao(data.id_revisao)
       setDadosBusca((current) =>
         current
@@ -1904,13 +1938,26 @@ export default function RevisaoInstrumento() {
 
         {instrumento && podeEditarInstrumento && (
           <div className={styles.headerActions}>
+            <div className={styles.headerActionGroup}>
+              <button type="button" className={styles.secondaryButton} onClick={() => navigate(
+                `/revisao-instrumento/${encodeURIComponent(instrumento.identificador_busca)}/revisoes`
+              )}>
+                Histórico de revisões
+              </button>
+            </div>
+            {dadosBusca?.revisao_pendente_aplicacao?.id_revisao && <div className={styles.headerActionGroup}>
+              <button type="button" className={styles.secondaryButton} onClick={() => navigate(
+                `/revisao-instrumento/${encodeURIComponent(instrumento.identificador_busca)}/revisoes/${dadosBusca.revisao_pendente_aplicacao.id_revisao}`
+              )}>
+                Visualizar revisão nº {dadosBusca.revisao_pendente_aplicacao.id_revisao}
+              </button>
+            </div>}
             {bloqueadoPorRascunhoAlheio ? (
               <div className={styles.headerActionGroup}>
                 <span className={styles.statusChip}>Rascunho em andamento</span>
               </div>
             ) : modoSomenteLeitura ? (
               <div className={styles.headerActionGroup}>
-                <span className={styles.statusChip}>Revisão enviada</span>
                 <button
                   type="button"
                   className={styles.secondaryButton}
@@ -1920,7 +1967,7 @@ export default function RevisaoInstrumento() {
                 </button>
               </div>
             ) : <div className={styles.headerActionGroup}>
-              <Tooltip text="Salva o estado atual de toda a revisão.">
+              <Tooltip text="Salva o estado atual como rascunho">
                 <button
                   type="button"
                   className={styles.secondaryButton}
@@ -1934,7 +1981,7 @@ export default function RevisaoInstrumento() {
             </div>}
 
             {canEditRevision && <div className={styles.headerActionGroup}>
-              <Tooltip text="Finaliza e envia a revisão.">
+              <Tooltip text="Finaliza e envia a revisão">
                 <button
                   type="button"
                   className={styles.primaryButton}
@@ -1997,20 +2044,6 @@ export default function RevisaoInstrumento() {
                     <span className={`${styles.reviewStatusBadge} ${styles[`reviewStatus_${contextoAtual.tone}`]}`}>
                       {contextoAtual.status}
                     </span>
-                    <div className={styles.reviewContextActions}>
-                      <button type="button" className={styles.viewRevisionButton} onClick={() => navigate(
-                        `/revisao-instrumento/${encodeURIComponent(instrumento.identificador_busca)}/revisoes`
-                      )}>
-                        Histórico de revisões
-                      </button>
-                      {dadosBusca?.revisao_pendente_aplicacao?.id_revisao && (
-                        <button type="button" className={styles.viewRevisionButton} onClick={() => navigate(
-                          `/revisao-instrumento/${encodeURIComponent(instrumento.identificador_busca)}/revisoes/${dadosBusca.revisao_pendente_aplicacao.id_revisao}`
-                        )}>
-                          Visualizar revisão nº {dadosBusca.revisao_pendente_aplicacao.id_revisao}
-                        </button>
-                      )}
-                    </div>
                   </div>
                 </div>
                 <p className={styles.reviewContextObject}>{valorOuTraco(instrumento.objeto)}</p>
@@ -2158,6 +2191,27 @@ export default function RevisaoInstrumento() {
                   Enviar mesmo assim
                 </button>
               </div>
+            </div>
+          )}
+
+          {resumoEnvio && (
+            <div className={styles.successModalBackdrop} role="presentation">
+              <section className={styles.successModal} role="dialog" aria-modal="true" aria-labelledby="sucesso-envio-title">
+                <h2 id="sucesso-envio-title">Revisão enviada com sucesso</h2>
+                <p>Revisão nº {resumoEnvio.revisao.id_revisao} · Instrumento {instrumento.nr_instrumento || instrumento.nr_ted || instrumento.nr_proposta}</p>
+                <p>Enviada em {formatarDataHora(resumoEnvio.enviadoEm)}</p>
+                <div className={styles.successSummary}>
+                  {resumoEnvio.contagens.map(([titulo, analisados]) => <div key={titulo}><strong>{titulo}</strong><span>{analisados} {analisados === 1 ? 'analisado' : 'analisados'}</span></div>)}
+                </div>
+                {resumoEnvio.alteracoes.length > 0 && <div className={styles.successChanges}><strong>Alterações efetivas</strong><p>{resumoEnvio.alteracoes.slice(0, 5).join(' · ')}</p></div>}
+                {resumoEnvio.revisao.publico_alvo?.length > 0 && <div className={styles.successPublico}><div className={styles.successPublicoHeader}><h3>Público-alvo</h3><button type="button" className={styles.secondaryButton} disabled={gerandoPdfEnvio} onClick={async () => { setGerandoPdfEnvio(true); try { await baixarFichaPublicoAlvo(resumoEnvio.revisao) } finally { setGerandoPdfEnvio(false) } }}><Download size={17} />Baixar PDF</button></div>{resumoEnvio.revisao.publico_alvo.map((item) => <div key={item.id_projeto_investimento}><p>População beneficiada — {item.status_populacao_beneficiada || 'não analisada'}</p><p>Descrição da população beneficiada — {item.status_desc_populacao_beneficiada || 'não analisada'}</p><p>Correção solicitada ao recebedor — {item.status_correcao_solicitada || 'não informada'}</p>{item.observacao_publico_alvo && <p>Observação: {item.observacao_publico_alvo}</p>}</div>)}</div>}
+                <h3>O que ainda falta revisar neste instrumento</h3>
+                <div className={styles.successPending}>{resumoEnvio.contagens.map(([titulo, analisados, total]) => <div key={titulo}><strong>{titulo}</strong><span>{analisados} de {total} analisados</span><span>{total - analisados > 0 ? `${total - analisados} pendentes` : 'Completo'}</span></div>)}</div>
+                <div className={styles.successActions}>
+                  <button type="button" className={styles.secondaryButton} onClick={() => setResumoEnvio(null)}>Fechar</button>
+                  <button type="button" className={styles.primaryButton} onClick={() => navigate(`/revisao-instrumento/${encodeURIComponent(instrumento.identificador_busca)}/revisoes/${resumoEnvio.revisao.id_revisao}`)}>Visualizar revisão detalhada</button>
+                </div>
+              </section>
             </div>
           )}
 

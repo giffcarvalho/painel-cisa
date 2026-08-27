@@ -12,6 +12,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.auth import obter_usuario_atual
 from app.core.database import get_db
 from app.schemas.auth import UsuarioAutenticado
+from app.schemas.aplicacao_revisoes import (
+    SolicitacaoCancelamentoRequest,
+    SolicitacaoCancelamentoResponse,
+)
 from app.schemas.revisao_instrumento import (
     DadosMunicipioRevisaoResponse,
     InstrumentoRevisaoInfo,
@@ -37,9 +41,29 @@ from app.schemas.revisao_instrumento import (
     UsuarioRevisaoInfo,
 )
 from app.services.permissoes_revisao import exigir_permissao_edicao, pode_editar_instrumento
+from app.services.aplicacao_revisoes import (
+    obter_solicitacao_relevante,
+    solicitar_cancelamento,
+    validar_cancelamento,
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+@router.post(
+    "/revisoes/{id_revisao}/solicitacao-cancelamento",
+    response_model=SolicitacaoCancelamentoResponse,
+)
+async def criar_solicitacao_cancelamento(
+    id_revisao: int,
+    payload: SolicitacaoCancelamentoRequest,
+    usuario: UsuarioAutenticado = Depends(obter_usuario_atual),
+    db: AsyncSession = Depends(get_db),
+):
+    return await solicitar_cancelamento(
+        db, id_revisao, usuario, payload.motivo_solicitacao
+    )
 
 
 def _remover_acentos(valor: str) -> str:
@@ -145,7 +169,13 @@ def _label_status_revisao(status_revisao: str) -> str:
     return STATUS_REVISAO_LABELS.get(status_revisao, STATUS_REVISAO_LABELS["pendente"])
 
 
-def _label_status_historico(aplicado_em) -> str:
+def _label_status_historico(
+    aplicado_em, status_execucao: str | None = None, status_solicitacao: str | None = None
+) -> str:
+    if status_execucao == "cancelado":
+        return "Aplicação cancelada"
+    if status_solicitacao == "pendente":
+        return "Cancelamento solicitado"
     return "Aplicada" if aplicado_em is not None else "Enviada — aguardando aplicação"
 
 
@@ -1761,11 +1791,20 @@ async def _buscar_detalhe_revisao_enviada(
             r.enviado_em,
             r.aplicado_em,
             r.base_referencia_em,
+            r.id_execucao_atualizacao,
+            e.status AS status_execucao,
+            e.cancelado_em,
+            e.motivo_cancelamento,
+            uc.nome AS usuario_cancelamento,
             u.id_usuario,
             u.nome AS usuario_nome
         FROM painel_dsr.tb_revisao_instrumento AS r
         JOIN painel_dsr.tb_usuario AS u
           ON u.id_usuario = r.id_usuario
+        LEFT JOIN painel_dsr.tb_execucao_aplicacao_revisao AS e
+          ON e.id_execucao = r.id_execucao_atualizacao
+        LEFT JOIN painel_dsr.tb_usuario AS uc
+          ON uc.id_usuario = e.id_usuario_cancelamento
         WHERE r.id_revisao = :id_revisao
         """,
         {"id_revisao": id_revisao},
@@ -1917,6 +1956,30 @@ async def _buscar_detalhe_revisao_enviada(
         for row in publico_result.mappings().all()
     ]
 
+    solicitacao = None
+    execucao = None
+    if revisao.get("id_execucao_atualizacao") is not None:
+        solicitacao_model = await obter_solicitacao_relevante(
+            db, revisao["id_execucao_atualizacao"]
+        )
+        if solicitacao_model is not None:
+            solicitacao = solicitacao_model.model_dump()
+        pode_cancelar = False
+        motivo_bloqueio = None
+        if revisao.get("status_execucao") == "sucesso":
+            validacao = await validar_cancelamento(db, revisao["id_execucao_atualizacao"])
+            pode_cancelar = validacao.pode_cancelar
+            motivo_bloqueio = validacao.motivo_bloqueio
+        execucao = {
+            "id_execucao": revisao["id_execucao_atualizacao"],
+            "status": revisao.get("status_execucao"),
+            "cancelado_em": revisao.get("cancelado_em"),
+            "usuario_cancelamento": revisao.get("usuario_cancelamento"),
+            "motivo_cancelamento": revisao.get("motivo_cancelamento"),
+            "pode_cancelar": pode_cancelar,
+            "motivo_bloqueio_cancelamento": motivo_bloqueio,
+        }
+
     return RevisaoInstrumentoDetalheResponse(
         **{
             campo: revisao[campo]
@@ -1940,6 +2003,8 @@ async def _buscar_detalhe_revisao_enviada(
         ),
         municipios=municipios,
         publico_alvo=publico_alvo,
+        execucao=execucao,
+        solicitacao_cancelamento=solicitacao,
     )
 
 
@@ -2026,10 +2091,36 @@ async def _listar_historico_revisoes(
             r.atualizado_em,
             r.enviado_em,
             r.aplicado_em,
+            r.id_execucao_atualizacao AS id_execucao,
+            e.status AS status_execucao,
+            e.cancelado_em,
+            e.motivo_cancelamento,
+            uc.nome AS usuario_cancelamento,
+            s.id_solicitacao,
+            s.id_usuario_solicitante,
+            s.motivo_solicitacao,
+            s.status AS status_solicitacao,
+            s.solicitado_em,
+            s.id_usuario_resposta,
+            s.respondido_em,
+            s.observacao_resposta,
             u.id_usuario,
             u.nome AS usuario_nome
         FROM painel_dsr.tb_revisao_instrumento AS r
         JOIN painel_dsr.tb_usuario AS u ON u.id_usuario = r.id_usuario
+        LEFT JOIN painel_dsr.tb_execucao_aplicacao_revisao AS e
+          ON e.id_execucao = r.id_execucao_atualizacao
+        LEFT JOIN painel_dsr.tb_usuario AS uc
+          ON uc.id_usuario = e.id_usuario_cancelamento
+        LEFT JOIN LATERAL (
+            SELECT solicitacao.*
+            FROM painel_dsr.tb_solicitacao_cancelamento_aplicacao AS solicitacao
+            WHERE solicitacao.id_execucao = r.id_execucao_atualizacao
+            ORDER BY (solicitacao.status = 'pendente') DESC,
+                     solicitacao.solicitado_em DESC,
+                     solicitacao.id_solicitacao DESC
+            LIMIT 1
+        ) AS s ON TRUE
         LEFT JOIN LATERAL (
             SELECT v.objeto
             FROM instrumento.vw_carteira_dsr AS v
@@ -2077,7 +2168,28 @@ async def _listar_historico_revisoes(
                     )
                 },
                 objeto=dados.get("objeto") or (instrumento.objeto if instrumento else None),
-                status_label=_label_status_historico(aplicado_em),
+                status_label=_label_status_historico(
+                    aplicado_em, dados.get("status_execucao"), dados.get("status_solicitacao")
+                ),
+                id_execucao=dados.get("id_execucao"),
+                status_execucao=dados.get("status_execucao"),
+                cancelado_em=dados.get("cancelado_em"),
+                usuario_cancelamento=dados.get("usuario_cancelamento"),
+                motivo_cancelamento=dados.get("motivo_cancelamento"),
+                solicitacao_cancelamento=(
+                    {
+                        "id_solicitacao": dados["id_solicitacao"],
+                        "id_execucao": dados["id_execucao"],
+                        "id_usuario_solicitante": dados["id_usuario_solicitante"],
+                        "motivo_solicitacao": dados["motivo_solicitacao"],
+                        "status": dados["status_solicitacao"],
+                        "solicitado_em": dados["solicitado_em"],
+                        "id_usuario_resposta": dados["id_usuario_resposta"],
+                        "respondido_em": dados["respondido_em"],
+                        "observacao_resposta": dados["observacao_resposta"],
+                    }
+                    if dados.get("id_solicitacao") is not None else None
+                ),
                 usuario=UsuarioRevisaoInfo(
                     id_usuario=dados["id_usuario"],
                     nome=dados["usuario_nome"],

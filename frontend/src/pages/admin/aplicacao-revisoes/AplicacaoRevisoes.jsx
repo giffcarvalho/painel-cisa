@@ -7,6 +7,7 @@ import ListaRevisoesPendentes from '@/components/aplicacao-revisoes/ListaRevisoe
 import ModalConfirmacaoAplicacao from '@/components/aplicacao-revisoes/ModalConfirmacaoAplicacao'
 import ModalCancelamentoAplicacao from '@/components/aplicacao-revisoes/ModalCancelamentoAplicacao'
 import ResultadoAplicacao from '@/components/aplicacao-revisoes/ResultadoAplicacao'
+import SolicitacoesCancelamento from '@/components/aplicacao-revisoes/SolicitacoesCancelamento'
 import styles from './AplicacaoRevisoes.module.css'
 
 function mensagemErro(error) {
@@ -34,6 +35,8 @@ export default function AplicacaoRevisoes() {
   const [validacaoCancelamento, setValidacaoCancelamento] = useState(null)
   const [confirmandoCancelamento, setConfirmandoCancelamento] = useState(false)
   const [processandoCancelamento, setProcessandoCancelamento] = useState(false)
+  const [solicitacoes, setSolicitacoes] = useState({ data: [], page: 1, page_size: 20, total: 0, total_pages: 0 })
+  const [carregandoSolicitacoes, setCarregandoSolicitacoes] = useState(false)
 
   const carregarPendentes = useCallback(async () => {
     setCarregando(true)
@@ -60,6 +63,18 @@ export default function AplicacaoRevisoes() {
     }
   }, [filtrosHistorico])
 
+  const carregarSolicitacoes = useCallback(async (page = 1, status = 'pendente') => {
+    setCarregandoSolicitacoes(true)
+    setErro('')
+    try {
+      setSolicitacoes(await aplicacaoRevisoesApi.listarSolicitacoesCancelamento({ page, pageSize: 20, status }))
+    } catch (error) {
+      setErro(mensagemErro(error))
+    } finally {
+      setCarregandoSolicitacoes(false)
+    }
+  }, [])
+
   useEffect(() => {
     const timeoutId = window.setTimeout(carregarPendentes, 0)
     return () => window.clearTimeout(timeoutId)
@@ -70,6 +85,24 @@ export default function AplicacaoRevisoes() {
     const timeoutId = window.setTimeout(() => carregarHistorico(1), 0)
     return () => window.clearTimeout(timeoutId)
   }, [aba, carregarHistorico, resultado])
+
+  useEffect(() => {
+    if (aba !== 'solicitacoes') return undefined
+    const timeoutId = window.setTimeout(() => carregarSolicitacoes(1, 'pendente'), 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [aba, carregarSolicitacoes])
+
+  async function responderSolicitacao(item, acao, observacao) {
+    setErro('')
+    try {
+      if (acao === 'aprovar') await aplicacaoRevisoesApi.aprovarSolicitacaoCancelamento(item.id_solicitacao, observacao)
+      else await aplicacaoRevisoesApi.rejeitarSolicitacaoCancelamento(item.id_solicitacao, observacao)
+      await carregarSolicitacoes(1, 'pendente')
+    } catch (error) {
+      setErro(mensagemErro(error))
+      throw error
+    }
+  }
 
   async function selecionar(idRevisao) {
     setSelecionada(idRevisao)
@@ -171,17 +204,17 @@ export default function AplicacaoRevisoes() {
     <main className={styles.page}>
       <header className={styles.pageHeader}>
         <div>
-          <span className={styles.eyebrow}>Administração</span>
           <h1>Aplicação de Revisões</h1>
           <p>Confira e aplique, individualmente, as revisões enviadas e suas avaliações consolidadas.</p>
         </div>
-        <button type="button" className={styles.secondaryButton} disabled={carregando || carregandoHistorico} onClick={() => aba === 'historico' ? carregarHistorico(historico.page) : carregarPendentes()}>
+        <button type="button" className={styles.secondaryButton} disabled={carregando || carregandoHistorico || carregandoSolicitacoes} onClick={() => aba === 'historico' ? carregarHistorico(historico.page) : aba === 'solicitacoes' ? carregarSolicitacoes(1, 'pendente') : carregarPendentes()}>
           <RefreshCw aria-hidden="true" /> Atualizar
         </button>
       </header>
 
       <nav className={styles.tabs} aria-label="Visualizações da aplicação de revisões">
         <button type="button" className={aba === 'pendentes' ? styles.tabActive : ''} aria-current={aba === 'pendentes' ? 'page' : undefined} onClick={() => trocarAba('pendentes')}>Pendentes</button>
+        <button type="button" className={aba === 'solicitacoes' ? styles.tabActive : ''} aria-current={aba === 'solicitacoes' ? 'page' : undefined} onClick={() => trocarAba('solicitacoes')}>Solicitações de cancelamento</button>
         <button type="button" className={aba === 'historico' ? styles.tabActive : ''} aria-current={aba === 'historico' ? 'page' : undefined} onClick={() => trocarAba('historico')}>Histórico</button>
       </nav>
 
@@ -193,7 +226,14 @@ export default function AplicacaoRevisoes() {
         validacaoCancelamento={validacaoCancelamento}
         onCancelarAplicacao={() => setConfirmandoCancelamento(true)}
         onFechar={() => { setResultado(null); setValidacaoCancelamento(null) }}
-      /> : aba === 'historico' ? (
+      /> : aba === 'solicitacoes' ? (
+        <SolicitacoesCancelamento
+          resultado={solicitacoes}
+          carregando={carregandoSolicitacoes}
+          onAtualizar={carregarSolicitacoes}
+          onResponder={responderSolicitacao}
+        />
+      ) : aba === 'historico' ? (
         <HistoricoAplicacoes
           historico={historico}
           filtros={filtrosHistorico}

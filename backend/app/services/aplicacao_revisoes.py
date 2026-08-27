@@ -11,7 +11,7 @@ from typing import Any
 
 from fastapi import HTTPException, status
 from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.aplicacao_revisoes import (
@@ -29,6 +29,8 @@ from app.schemas.aplicacao_revisoes import (
     RevisoesPendentesResponse,
     ValidacaoAplicacao,
     ValidacaoCancelamento,
+    SolicitacaoCancelamentoResponse,
+    SolicitacoesCancelamentoResponse,
 )
 from app.schemas.auth import UsuarioAutenticado
 
@@ -1372,6 +1374,9 @@ async def cancelar_aplicacao(
     id_execucao: int,
     usuario: UsuarioAutenticado,
     motivo: str,
+    *,
+    id_solicitacao: int | None = None,
+    observacao_resposta: str | None = None,
 ) -> ExecucaoAplicacaoResponse:
     motivo = motivo.strip()
     if not motivo:
@@ -1380,10 +1385,36 @@ async def cancelar_aplicacao(
     ja_cancelada = False
     try:
         async with db.begin():
+            solicitacao = None
+            if id_solicitacao is not None:
+                solicitacao_result = await db.execute(
+                    text(
+                        """
+                        SELECT id_solicitacao, id_execucao, status, motivo_solicitacao
+                        FROM painel_dsr.tb_solicitacao_cancelamento_aplicacao
+                        WHERE id_solicitacao = :id_solicitacao
+                        FOR UPDATE
+                        """
+                    ),
+                    {"id_solicitacao": id_solicitacao},
+                )
+                solicitacao_row = solicitacao_result.mappings().one_or_none()
+                if solicitacao_row is None:
+                    raise HTTPException(status_code=404, detail="Solicitação não encontrada.")
+                solicitacao = dict(solicitacao_row)
+                if solicitacao["id_execucao"] != id_execucao:
+                    raise HTTPException(status_code=409, detail="A solicitação não pertence a esta execução.")
+                if solicitacao["status"] != "pendente":
+                    raise HTTPException(status_code=409, detail="Esta solicitação já foi respondida.")
             execucao, detalhes = await _carregar_execucao_cancelamento(
                 db, id_execucao, bloquear=True
             )
             if execucao["status"] == "cancelado":
+                if solicitacao is not None:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail="A aplicação já foi cancelada; a solicitação permanece pendente para tratamento administrativo.",
+                    )
                 ja_cancelada = True
             else:
                 chave_instrumento = (
@@ -1435,6 +1466,24 @@ async def cancelar_aplicacao(
                     possui_publico_alvo=any(d["entidade"] == "publico_alvo" for d in detalhes),
                     possui_obras=any(d["entidade"] == "obra" for d in detalhes),
                 )
+                if solicitacao is not None:
+                    await db.execute(
+                        text(
+                            """
+                            UPDATE painel_dsr.tb_solicitacao_cancelamento_aplicacao
+                            SET status = 'aprovada',
+                                id_usuario_resposta = :id_usuario,
+                                respondido_em = NOW(),
+                                observacao_resposta = :observacao
+                            WHERE id_solicitacao = :id_solicitacao AND status = 'pendente'
+                            """
+                        ),
+                        {
+                            "id_solicitacao": id_solicitacao,
+                            "id_usuario": usuario.id_usuario,
+                            "observacao": (observacao_resposta or "").strip() or None,
+                        },
+                    )
     except HTTPException:
         await db.rollback()
         raise
@@ -1450,6 +1499,198 @@ async def cancelar_aplicacao(
     if ja_cancelada:
         resposta.mensagem = "Esta aplicação já foi cancelada."
     return resposta
+
+
+def _solicitacao_response(row: dict[str, Any]) -> SolicitacaoCancelamentoResponse:
+    tipo = row.get("tipo_instrumento")
+    identificador = _identificador(row) if tipo else None
+    return SolicitacaoCancelamentoResponse(
+        **row,
+        tipo_instrumento_label=TIPOS.get(tipo, {}).get("label", tipo) if tipo else None,
+        identificador_instrumento=identificador,
+    )
+
+
+async def obter_solicitacao_relevante(
+    db: AsyncSession, id_execucao: int
+) -> SolicitacaoCancelamentoResponse | None:
+    result = await db.execute(
+        text(
+            """
+            SELECT s.*, e.id_revisao, e.status AS status_execucao, e.cancelado_em,
+                   e.motivo_cancelamento, r.tipo_instrumento, r.nr_instrumento,
+                   r.nr_proposta, r.nr_ted, r.identificador_busca,
+                   us.nome AS usuario_solicitante, ur.nome AS usuario_resposta,
+                   uc.nome AS administrador_cancelamento
+            FROM painel_dsr.tb_solicitacao_cancelamento_aplicacao s
+            JOIN painel_dsr.tb_execucao_aplicacao_revisao e ON e.id_execucao = s.id_execucao
+            JOIN painel_dsr.tb_revisao_instrumento r ON r.id_revisao = e.id_revisao
+            JOIN painel_dsr.tb_usuario us ON us.id_usuario = s.id_usuario_solicitante
+            LEFT JOIN painel_dsr.tb_usuario ur ON ur.id_usuario = s.id_usuario_resposta
+            LEFT JOIN painel_dsr.tb_usuario uc ON uc.id_usuario = e.id_usuario_cancelamento
+            WHERE s.id_execucao = :id_execucao
+            ORDER BY (s.status = 'pendente') DESC, s.solicitado_em DESC, s.id_solicitacao DESC
+            LIMIT 1
+            """
+        ),
+        {"id_execucao": id_execucao},
+    )
+    row = result.mappings().one_or_none()
+    return _solicitacao_response(dict(row)) if row else None
+
+
+async def solicitar_cancelamento(
+    db: AsyncSession,
+    id_revisao: int,
+    usuario: UsuarioAutenticado,
+    motivo: str,
+) -> SolicitacaoCancelamentoResponse:
+    motivo = motivo.strip()
+    if not motivo:
+        raise HTTPException(status_code=422, detail="O motivo da solicitação é obrigatório.")
+    revisao_result = await db.execute(
+        text(
+            """
+            SELECT r.id_revisao, r.id_usuario, r.id_execucao_atualizacao,
+                   e.status AS status_execucao
+            FROM painel_dsr.tb_revisao_instrumento r
+            LEFT JOIN painel_dsr.tb_execucao_aplicacao_revisao e
+              ON e.id_execucao = r.id_execucao_atualizacao
+            WHERE r.id_revisao = :id_revisao
+            """
+        ),
+        {"id_revisao": id_revisao},
+    )
+    revisao = revisao_result.mappings().one_or_none()
+    if revisao is None:
+        raise HTTPException(status_code=404, detail="Revisão não encontrada.")
+    if revisao["id_usuario"] != usuario.id_usuario:
+        raise HTTPException(status_code=403, detail="Você só pode solicitar o cancelamento de uma revisão enviada por você.")
+    id_execucao = revisao["id_execucao_atualizacao"]
+    if id_execucao is None:
+        raise HTTPException(status_code=409, detail="Esta revisão ainda não possui uma aplicação concluída.")
+    if revisao["status_execucao"] != "sucesso":
+        raise HTTPException(status_code=409, detail="Somente uma aplicação concluída com sucesso pode ter o cancelamento solicitado.")
+    validacao = await validar_cancelamento(db, id_execucao)
+    if not validacao.pode_cancelar:
+        raise HTTPException(status_code=409, detail=validacao.motivo_bloqueio)
+    pendente = await db.execute(
+        text(
+            """
+            SELECT id_solicitacao
+            FROM painel_dsr.tb_solicitacao_cancelamento_aplicacao
+            WHERE id_execucao = :id_execucao AND status = 'pendente'
+            LIMIT 1
+            """
+        ),
+        {"id_execucao": id_execucao},
+    )
+    if pendente.scalar_one_or_none() is not None:
+        raise HTTPException(status_code=409, detail="Já existe uma solicitação de cancelamento pendente para esta aplicação.")
+    try:
+        result = await db.execute(
+            text(
+                """
+                INSERT INTO painel_dsr.tb_solicitacao_cancelamento_aplicacao (
+                    id_execucao, id_usuario_solicitante, motivo_solicitacao,
+                    status, solicitado_em
+                ) VALUES (:id_execucao, :id_usuario, :motivo, 'pendente', NOW())
+                RETURNING id_solicitacao
+                """
+            ),
+            {"id_execucao": id_execucao, "id_usuario": usuario.id_usuario, "motivo": motivo},
+        )
+        id_solicitacao = result.scalar_one()
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Já existe uma solicitação de cancelamento pendente para esta aplicação.") from exc
+    solicitacao = await obter_solicitacao_relevante(db, id_execucao)
+    assert solicitacao is not None and solicitacao.id_solicitacao == id_solicitacao
+    solicitacao.cancelamento_permitido = True
+    return solicitacao
+
+
+async def listar_solicitacoes_cancelamento(
+    db: AsyncSession, *, page: int = 1, page_size: int = 20, status_solicitacao: str | None = None
+) -> SolicitacoesCancelamentoResponse:
+    params: dict[str, Any] = {"limit": page_size, "offset": (page - 1) * page_size}
+    where = ""
+    if status_solicitacao:
+        where = "WHERE s.status = :status"
+        params["status"] = status_solicitacao
+    total_result = await db.execute(text(f"SELECT COUNT(*) FROM painel_dsr.tb_solicitacao_cancelamento_aplicacao s {where}"), params)
+    total = int(total_result.scalar_one() or 0)
+    result = await db.execute(
+        text(
+            f"""
+            SELECT s.*, e.id_revisao, e.status AS status_execucao, e.cancelado_em,
+                   e.motivo_cancelamento, r.tipo_instrumento, r.nr_instrumento,
+                   r.nr_proposta, r.nr_ted, r.identificador_busca,
+                   us.nome AS usuario_solicitante, ur.nome AS usuario_resposta,
+                   uc.nome AS administrador_cancelamento
+            FROM painel_dsr.tb_solicitacao_cancelamento_aplicacao s
+            JOIN painel_dsr.tb_execucao_aplicacao_revisao e ON e.id_execucao = s.id_execucao
+            JOIN painel_dsr.tb_revisao_instrumento r ON r.id_revisao = e.id_revisao
+            JOIN painel_dsr.tb_usuario us ON us.id_usuario = s.id_usuario_solicitante
+            LEFT JOIN painel_dsr.tb_usuario ur ON ur.id_usuario = s.id_usuario_resposta
+            LEFT JOIN painel_dsr.tb_usuario uc ON uc.id_usuario = e.id_usuario_cancelamento
+            {where}
+            ORDER BY (s.status = 'pendente') DESC, s.solicitado_em DESC
+            LIMIT :limit OFFSET :offset
+            """
+        ), params,
+    )
+    data = []
+    for item in result.mappings().all():
+        row = dict(item)
+        if row["status"] == "pendente" and row["status_execucao"] == "sucesso":
+            validacao = await validar_cancelamento(db, row["id_execucao"])
+            row["cancelamento_permitido"] = validacao.pode_cancelar
+            row["motivo_bloqueio_cancelamento"] = validacao.motivo_bloqueio
+        data.append(_solicitacao_response(row))
+    return SolicitacoesCancelamentoResponse(data=data, page=page, page_size=page_size, total=total, total_pages=(total + page_size - 1) // page_size)
+
+
+async def aprovar_solicitacao_cancelamento(
+    db: AsyncSession, id_solicitacao: int, usuario: UsuarioAutenticado, observacao: str | None
+) -> SolicitacaoCancelamentoResponse:
+    result = await db.execute(text("SELECT id_execucao, motivo_solicitacao FROM painel_dsr.tb_solicitacao_cancelamento_aplicacao WHERE id_solicitacao = :id"), {"id": id_solicitacao})
+    row = result.mappings().one_or_none()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Solicitação não encontrada.")
+    await cancelar_aplicacao(db, row["id_execucao"], usuario, row["motivo_solicitacao"], id_solicitacao=id_solicitacao, observacao_resposta=observacao)
+    solicitacao = await obter_solicitacao_relevante(db, row["id_execucao"])
+    assert solicitacao is not None
+    return solicitacao
+
+
+async def rejeitar_solicitacao_cancelamento(
+    db: AsyncSession, id_solicitacao: int, usuario: UsuarioAutenticado, observacao: str | None
+) -> SolicitacaoCancelamentoResponse:
+    observacao = (observacao or "").strip()
+    if not observacao:
+        raise HTTPException(status_code=422, detail="A observação da resposta é obrigatória para rejeitar a solicitação.")
+    result = await db.execute(
+        text(
+            """
+            UPDATE painel_dsr.tb_solicitacao_cancelamento_aplicacao
+            SET status = 'rejeitada', id_usuario_resposta = :id_usuario,
+                respondido_em = NOW(), observacao_resposta = :observacao
+            WHERE id_solicitacao = :id_solicitacao AND status = 'pendente'
+            RETURNING id_execucao
+            """
+        ),
+        {"id_solicitacao": id_solicitacao, "id_usuario": usuario.id_usuario, "observacao": observacao},
+    )
+    id_execucao = result.scalar_one_or_none()
+    if id_execucao is None:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="A solicitação não existe ou já foi respondida.")
+    await db.commit()
+    solicitacao = await obter_solicitacao_relevante(db, id_execucao)
+    assert solicitacao is not None
+    return solicitacao
 
 
 async def _registrar_falha(

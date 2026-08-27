@@ -4,6 +4,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { revisaoInstrumentoApi } from '@/api/revisaoInstrumento'
 import styles from './VisualizarRevisao.module.css'
 import { baixarFichaPublicoAlvo } from './FichaPublicoAlvoPdf'
+import { useAuth } from '@/context/auth/useAuth'
+import ModalSolicitacaoCancelamento from './ModalSolicitacaoCancelamento'
 import {
   CONFIRMACOES_OBRA as CONFIRMACOES,
   CORRECAO_SOLICITADA_PUBLICO_ALVO,
@@ -68,6 +70,7 @@ function Comparacao({ label, original, revisado }) {
 }
 
 export default function VisualizarRevisao() {
+  const { usuario } = useAuth()
   const navigate = useNavigate()
   const { numeroInstrumento, idRevisao } = useParams()
   const [revisao, setRevisao] = useState(null)
@@ -75,6 +78,9 @@ export default function VisualizarRevisao() {
   const [erro, setErro] = useState('')
   const [erroPdf, setErroPdf] = useState('')
   const [gerandoPdf, setGerandoPdf] = useState(false)
+  const [solicitando, setSolicitando] = useState(false)
+  const [modalSolicitacao, setModalSolicitacao] = useState(false)
+  const [motivoSolicitacao, setMotivoSolicitacao] = useState('')
 
   useEffect(() => {
     let ativo = true
@@ -114,9 +120,35 @@ export default function VisualizarRevisao() {
 
   const instrumento = revisao.instrumento
   const numero = instrumento.nr_instrumento || instrumento.nr_ted || instrumento.nr_proposta
-  const status = revisao.aplicado_em
+  const status = revisao.execucao?.status === 'cancelado'
+    ? 'Aplicação cancelada'
+    : revisao.solicitacao_cancelamento?.status === 'pendente'
+      ? 'Cancelamento solicitado'
+      : revisao.aplicado_em
     ? `Enviada — aplicada em ${formatarData(revisao.aplicado_em)}`
     : 'Enviada — aguardando aplicação'
+  const solicitacao = revisao.solicitacao_cancelamento
+  const podeSolicitar = revisao.usuario.id_usuario === usuario?.id_usuario
+    && revisao.execucao?.status === 'sucesso'
+    && revisao.execucao?.pode_cancelar
+    && solicitacao?.status !== 'pendente'
+
+  async function enviarSolicitacao() {
+    const motivo = motivoSolicitacao.trim()
+    if (!motivo || solicitando) return
+    setSolicitando(true)
+    setErro('')
+    try {
+      const criada = await revisaoInstrumentoApi.solicitarCancelamento(revisao.id_revisao, motivo)
+      setRevisao((atual) => ({ ...atual, solicitacao_cancelamento: criada }))
+      setModalSolicitacao(false)
+      setMotivoSolicitacao('')
+    } catch (error) {
+      setErro(error?.response?.data?.detail || 'Não foi possível enviar a solicitação de cancelamento.')
+    } finally {
+      setSolicitando(false)
+    }
+  }
 
   const baixarPdf = async () => {
     setGerandoPdf(true)
@@ -149,6 +181,27 @@ export default function VisualizarRevisao() {
         </p>
         {instrumento.objeto && <p className={styles.object}>{instrumento.objeto}</p>}
       </header>
+
+      {revisao.execucao?.status === 'cancelado' && <section className={`${styles.section} ${styles.cancellationState}`}>
+        <h2>Aplicação cancelada</h2>
+        {revisao.execucao.cancelado_em && <p>Cancelada em {formatarData(revisao.execucao.cancelado_em)}</p>}
+        {revisao.execucao.usuario_cancelamento && <p>Responsável: {revisao.execucao.usuario_cancelamento}</p>}
+        {revisao.execucao.motivo_cancelamento && <p>Motivo: {revisao.execucao.motivo_cancelamento}</p>}
+        {solicitacao?.status === 'aprovada' && <><p>Solicitação aprovada em {formatarData(solicitacao.respondido_em)}</p>{solicitacao.observacao_resposta && <p>Observação administrativa: {solicitacao.observacao_resposta}</p>}</>}
+      </section>}
+
+      {revisao.execucao?.status !== 'cancelado' && solicitacao?.status === 'pendente' && <section className={`${styles.section} ${styles.cancellationState}`}>
+        <h2>Cancelamento solicitado</h2><strong>Aguardando análise</strong>
+        <p>Solicitado em {formatarData(solicitacao.solicitado_em)}</p><p>Motivo: {solicitacao.motivo_solicitacao}</p>
+      </section>}
+
+      {solicitacao?.status === 'rejeitada' && <section className={`${styles.section} ${styles.rejectedState}`}>
+        <h2>Solicitação de cancelamento rejeitada</h2>
+        {solicitacao.respondido_em && <p>Respondida em {formatarData(solicitacao.respondido_em)}</p>}
+        {solicitacao.observacao_resposta && <p>Observação administrativa: {solicitacao.observacao_resposta}</p>}
+      </section>}
+
+      {podeSolicitar && <div className={styles.cancellationAction}><button type="button" className={styles.requestCancelButton} onClick={() => setModalSolicitacao(true)}>Solicitar cancelamento da aplicação</button></div>}
 
       {revisao.observacao_geral && (
         <section className={styles.section}>
@@ -254,6 +307,7 @@ export default function VisualizarRevisao() {
       {!revisao.observacao_geral && revisao.publico_alvo.length === 0 && revisao.municipios.length === 0 && (
         <section className={styles.empty}>Nenhuma alteração foi registrada nesta revisão.</section>
       )}
+      {modalSolicitacao && <ModalSolicitacaoCancelamento motivo={motivoSolicitacao} processando={solicitando} onMotivo={setMotivoSolicitacao} onFechar={() => setModalSolicitacao(false)} onEnviar={enviarSolicitacao} />}
     </main>
   )
 }

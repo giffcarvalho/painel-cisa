@@ -136,6 +136,19 @@
 .auditGroup { margin-top: 18px; }
 .auditGroup > h3 { margin: 0 0 12px; color: #1f2937; font-size: 15px; text-transform: uppercase; letter-spacing: .035em; }
 .auditGroup + .auditGroup { border-top: 1px solid #cbd5e1; padding-top: 18px; }
+.requestHeader { display: flex; align-items: end; justify-content: space-between; gap: 20px; padding: 18px 20px; border-bottom: 1px solid #e5e7eb; background: #f8fafc; }
+.requestHeader h2 { margin: 0; color: #334155; font-size: 17px; }
+.requestHeader p { margin: 5px 0 0; color: #64748b; font-size: 12px; }
+.requestHeader label { display: grid; gap: 5px; color: #475569; font-size: 11px; font-weight: 750; }
+.requestHeader select { min-width: 160px; height: 38px; border: 1px solid #cbd5e1; border-radius: 7px; background: #fff; padding: 0 10px; }
+.requestList { display: grid; }
+.requestItem { display: grid; gap: 7px; border-bottom: 1px solid #eef2f7; padding: 17px 20px; }
+.requestItem:last-child { border-bottom: 0; }
+.requestItem p { margin: 0; color: #475569; font-size: 12px; line-height: 1.5; }
+.requestActions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+.request_pendente { background: #fef3c7; color: #92400e; }
+.request_aprovada { background: #dcfce7; color: #166534; }
+.request_rejeitada { background: #fee2e2; color: #991b1b; }
 .cancelBlocked { margin: 18px 0; border: 1px solid #fed7aa; border-radius: 7px; background: #fff7ed; padding: 12px 14px; color: #9a3412; font-size: 12px; line-height: 1.5; }
 .resultActions { display: flex; justify-content: space-between; gap: 12px; }
 @keyframes spin { to { transform: rotate(360deg); } }
