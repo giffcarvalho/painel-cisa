@@ -7,6 +7,7 @@ import {
     urlMunicipios2022,
     urlSetoresCensitarios2022,
     urlUfs,
+    urlBiomas,
     urlGeometriasCarteiraDsr,
     urlGeometriasCarteiraDrf,
 } from "@/api/mapa";
@@ -33,6 +34,7 @@ export function useAdicionarLayers(mapRef, layers, filtros) {
             map.addSource("ufs", {type: "vector", tiles: [urlUfs(filtros)], minzoom: 3, maxzoom: 20});
             map.addSource("enderecos_2022", {type: "vector", tiles: [urlEnderecos2022(filtros)], minzoom: 13, maxzoom: 20});
             map.addSource("localidades_2022", {type: "vector", tiles: [urlLocalidades2022(filtros)], minzoom: 9, maxzoom: 20});
+            map.addSource("biomas", {type: "vector", tiles: [urlBiomas(filtros)], minzoom: 3, maxzoom: 20});
             map.addSource("geometrias_carteira_dsr", {type: "vector", tiles: [urlGeometriasCarteiraDsr(filtros)], minzoom: 3, maxzoom: 20});
             map.addSource("geometrias_carteira_drf", {type: "vector", tiles: [urlGeometriasCarteiraDrf(filtros)], minzoom: 3, maxzoom: 20});
 
@@ -49,6 +51,19 @@ export function useAdicionarLayers(mapRef, layers, filtros) {
             });
 
 
+            const biomas = layers.find(l => l.id === "biomas");
+            map.addLayer({
+                id: "biomas",
+                type: "fill",
+                source: "biomas", "source-layer": "poligonos",
+                layout:{visibility: biomas?.visivel? "visible": "none"},
+                minzoom: biomas?.minzoom,
+                paint: {
+                    "fill-color": gerarMatch(biomas.simbologia.atributo, biomas.simbologia.classes, "cor", "#ffffff"),
+                    "fill-opacity": 1.0
+                }
+            });
+
                         
             const informacoes_municipais = layers.find(l => l.id === "informacoes_municipais");
             map.addLayer({
@@ -59,7 +74,7 @@ export function useAdicionarLayers(mapRef, layers, filtros) {
                 minzoom: informacoes_municipais?.minzoom,
                 paint: {
                 "fill-color": "#e7e1e1",
-                "fill-opacity": 0.8
+                "fill-opacity": 0.95
                 }
             });
             

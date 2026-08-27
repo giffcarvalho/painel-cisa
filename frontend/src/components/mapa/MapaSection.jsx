@@ -9,6 +9,7 @@ import FiltroPainel from "./FiltroPainel";
 import LegendaSection from "./LegendaSection";
 import DetalheSection from "./DetalheSection";
 import InputSection from "./InputSection";
+import AuthMenu from "../auth/AuthMenu";
 import AnaliseCoordenadaSection from "./AnaliseCoordenadaSection";
 import { useCriarMapa } from "@/hooks/mapa/useCriarMapa";
 import { useAdicionarLayers } from "@/hooks/mapa/useAdicionarLayers";
@@ -16,6 +17,8 @@ import { useAplicarZoom } from "@/hooks/mapa/useAplicarZoom";
 import { useAtualizarSources } from "@/hooks/mapa/useAtualizarSources";
 import { useTrocarSimbologia } from "@/hooks/mapa/useTrocarSimbologia";
 import { useClicar } from "@/hooks/mapa/useClicar";
+import { useAuth } from "@/context/auth/useAuth";
+import { listarDadosAnaliseCoordenadas, enviarAnaliseCoordenadas, urlGeometriasCarteiraDsr } from "../../api/mapa";
  
 
 export default function MapaSection() { 
@@ -138,6 +141,7 @@ export default function MapaSection() {
                     {valor: "Povoado", label: "Povoado", cor: "#fdff74", strokeColor: "#000000", strokeWidth: 1},
                     {valor: "Lugarejo", label: "Lugarejo", cor: "#365809", strokeColor: "#000000", strokeWidth: 1},
                     {valor: "Núcleo Rural", label: "Núcleo Rural", cor: "#b8905c", strokeColor: "#000000", strokeWidth: 1},
+                    {valor: "Núcleo Urbano", label: "Núcleo Urbano", cor: "#000000", strokeColor: "#000000", strokeWidth: 1},
                     {valor: "Localidade Indígena", label: "Localidade Indígena", cor: "#880925", strokeColor: "#000000", strokeWidth: 1},
                     {valor: "Localidade Quilombola", label: "Localidade Quilombola", cor: "#442d2f", strokeColor: "#000000", strokeWidth: 1},
                     {valor: "Outras Localidades", label: "Outras Localidades", cor: "#ffffff", strokeColor: "#000000", strokeWidth: 1},
@@ -151,6 +155,27 @@ export default function MapaSection() {
             visivel: true,
             dependencias: ["localidades_2022"],
             mostrarPainel: false
+        },
+
+        {
+            id: "biomas",
+            nome: "Biomas",
+            visivel: false,
+            minzoom: 3,
+            simbologia: {
+                tipo: "categorica",
+                simbolo: "poligono",
+                atributo: "cod",
+                classes: [
+                    {valor: 1, label: "Amazônia", cor: "#a8fe00"},
+                    {valor: 2, label: "Caatinga", cor: "#b5b86b"},
+                    {valor: 3, label: "Cerrado", cor: "#fdb381"},
+                    {valor: 4, label: "Mata Atlântica", cor: "#b8f869"},
+                    {valor: 5, label: "Pampa", cor: "#ffdd9e"},
+                    {valor: 6, label: "Pantanal", cor: "#ff9dfc"},
+                    {valor: 7, label: "Ilhas Oceânicas", cor: "#0ca9b4"},
+                ]
+            }
         },
 
         {
@@ -226,6 +251,22 @@ export default function MapaSection() {
                         {valor: "paralisada", label: "Paralisada", cor: "#e2001e", strokeColor: "#000000", strokeWidth: 1.0},
                         {valor: "não se aplica", label: "Não se aplica", cor: "#ffffff", strokeColor: "#000000", strokeWidth: 1.0},
                         {valor: "cancelada", label: "Cancelada", cor: "#000000", strokeColor: "#000000", strokeWidth: 1.0},
+                    ]
+                },
+                {
+                    atributo: "situacao_analise",
+                    label: "Situacao da análise",
+                    tipo: "categorica",
+                    simbolo: "ponto",
+                    legenda: [
+                        {valor: "Correta", label: "Correta", cor: "#7fffd4", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Município errado", label: "Município errado", cor: "#ff7350", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Local genérico - sede", label: "Local genérico - sede", cor: "#ff7350", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Local incoerente", label: "Local incoerente", cor: "#ff7350", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Incoerência urbano/rural", label: "Incoerência urbano/rural", cor: "#ff7350", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Instrumento extinto", label: "Instrumento extinto", cor: "#000000", strokeColor: "#000000", strokeWidth: 0.0},
+                        {valor: "Coordenada excluída", label: "Coordenada excluída", cor: "#acacac", strokeColor: "#acacac", strokeWidth: 0.0},
+                        {valor: "Coordenada nova/não analisada", label: "Coordenada nova/não analisada", cor: "#ffffff", strokeColor: "#969696", strokeWidth: 2.0},
                     ]
                 },
             ]
@@ -420,6 +461,92 @@ export default function MapaSection() {
                         {valor: "sem resposta", label: "Sem resposta", cor: "#d62828"},
                     ]
                 },
+                {
+                    atributo: "seca_vigente",
+                    label: "Desastres - sit. vigente - Seca",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "SE_Estiagem", label: "Emergência - Estiagem", cor: "#f85104"},
+                        {valor: "SE_Seca", label: "Emergência - Seca", cor: "#e20000"},
+                        {valor: "SCP_Estiagem", label: "Calamidade - Estiagem", cor: "#fc008a"},
+                        {valor: "SCP_Seca", label: "Calamidade - Seca", cor: "#990054"},
+                        {valor: "Múltiplos", label: "Múltiplas situações", cor: "#000000"},
+                    ]
+                },
+                {
+                    atributo: "hidrologico_vigente",
+                    label: "Desastres - sit. vigente - Hidrológicos",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "SE_Inundações", label: "Emergência - Inundações", cor: "#f85104"},
+                        {valor: "SE_Alagamentos", label: "Emergência - Alagamentos", cor: "#e20000"},
+                        {valor: "SE_Enxurradas", label: "Emergência - Enxurradas", cor: "#fdad87"},
+                        {valor: "SCP_Inundações", label: "Calamidade - Inundações", cor: "#fc008a"},
+                        {valor: "SCP_Alagamentos", label: "Calamidade - Alagamentos", cor: "#990054"},
+                        {valor: "SCP_Enxurradas", label: "Calamidade - Enxurradas", cor: "#faa9d5"},
+                        {valor: "Múltiplos", label: "Múltiplas situações", cor: "#000000"},
+                    ]
+                },
+                {
+                    atributo: "tempestade_vigente",
+                    label: "Desastres - sit. vigente - Tempestades",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "SE_Tornados", label: "Emergência - Tornados", cor: "#f85104"},
+                        {valor: "SE_Tempestade de Raios", label: "Emergência - Raios", cor: "#fffb0e"},
+                        {valor: "SE_Granizo", label: "Emergência - Granizo", cor: "#01bdd6"},
+                        {valor: "SE_Chuvas intensas", label: "Emergência - Chuvas intensas", cor: "#4662ff"},
+                        {valor: "SE_Vendaval", label: "Emergência - Vendaval", cor: "#43ff52"},
+                        {valor: "SCP_Tornados", label: "Calamidade - Tornados", cor: "#e20000"},
+                        {valor: "SCP_Tempestade de Raios", label: "Calamidade - Raios", cor: "#aca900"},
+                        {valor: "SCP_Granizo", label: "Calamidade - Granizo", cor: "#006370"},
+                        {valor: "SCP_Chuvas intensas", label: "Calamidade - Chuvas intensas", cor: "#001799"},
+                        {valor: "SCP_Vendaval", label: "Calamidade - Vendaval", cor: "#00880b"},
+                        {valor: "Múltiplos", label: "Múltiplas situações", cor: "#000000"},
+                    ]
+                },
+                {
+                    atributo: "qtde_reconhecimento_seca",
+                    label: "Histórico de desastres - Seca",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "0", label: "0", cor: "#ffffff"},
+                        {valor: "1 a 2", label: "1 a 2", cor: "#f89393"},
+                        {valor: "3 a 5", label: "3 a 5", cor: "#ff3939"},
+                        {valor: "5 a 10", label: "5 a 10", cor: "#dd0000"},
+                        {valor: "> 10", label: "> 10", cor: "#860000"},
+                    ]
+                },
+                {
+                    atributo: "qtde_reconhecimento_hidrologico",
+                    label: "Histórico de desastres - Hidrológicos",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "0", label: "0", cor: "#ffffff"},
+                        {valor: "1 a 2", label: "1 a 2", cor: "#f89393"},
+                        {valor: "3 a 5", label: "3 a 5", cor: "#ff3939"},
+                        {valor: "5 a 10", label: "5 a 10", cor: "#dd0000"},
+                        {valor: "> 10", label: "> 10", cor: "#860000"},
+                    ]
+                },
+                {
+                    atributo: "qtde_reconhecimento_tempestade",
+                    label: "Histórico de desastres - Tempestades",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "0", label: "0", cor: "#ffffff"},
+                        {valor: "1 a 2", label: "1 a 2", cor: "#f89393"},
+                        {valor: "3 a 5", label: "3 a 5", cor: "#ff3939"},
+                        {valor: "5 a 10", label: "5 a 10", cor: "#dd0000"},
+                        {valor: "> 10", label: "> 10", cor: "#860000"},
+                    ]
+                },
             ]
         },
 
@@ -496,19 +623,47 @@ export default function MapaSection() {
     const [coord, setCoord] = useState({ lat: "", long: "" });
     const [featureSelecionada, setFeatureSelecionada] = useState(null);
     const [modoAnalise, setModoAnalise] = useState(false);
-    const [analises, setAnalises] = useState({});
+    const [coordenadas, setCoordenadas] = useState([]);
+    const [situacaoCorrecao, setSituacaoCorrecao] = useState("Não");
+    const [observacaoGeral, setObservacaoGeral] = useState("");
+    const { isAuthenticated, openLoginModal } = useAuth();
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState('')
+    const [messageType, setMessageType] = useState('')
     const mapContainer = useRef(null);
     const mapRef = useCriarMapa(mapContainer);
+    const [carregandoMapa, setCarregandoMapa] = useState(false);
     const coordRef = useRef(null);
+    const situacaoCorrecaoOriginalRef = useRef("Não");
+    const observacaoGeralOriginalRef = useRef("");
 
     //chamada das hooks com as funcionalidades principais
     useAdicionarLayers(mapRef, layers, filtros);
     useAplicarZoom(mapRef, filtros);
     useAtualizarSources(mapRef, filtros);
-    useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada);
+    const { selecionarCoordenada } = useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada);
     useTrocarSimbologia(mapRef, layers, modoAnalise);  
 
     
+
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map) return;
+
+        const IniciarCarregamento = () => setCarregandoMapa(true);
+        const FinalizarCarregamento = () => setCarregandoMapa(false);
+        map.on("movestart", IniciarCarregamento);
+        map.on("dataloading", IniciarCarregamento);
+        map.on("idle", FinalizarCarregamento);
+
+        return () => {
+            map.off("movestart", IniciarCarregamento);
+            map.off("dataloading", IniciarCarregamento);
+            map.off("idle", FinalizarCarregamento);
+        };
+    }, []);
+
+
     useEffect(() => {
         const map = mapRef.current;
         if (!map) return;
@@ -636,6 +791,10 @@ export default function MapaSection() {
             alert("Ative a camada Carteira DSR e filtre um único instrumento para poder ativar a análise.");
             return;
         }
+        if (!isAuthenticated) {
+            openLoginModal();
+            return;
+        }
         setModoAnalise(v => !v);
     }
 
@@ -648,6 +807,366 @@ export default function MapaSection() {
         }
     }, [modoAnalise, instrumentoSelecionado, layers]);
 
+        
+    
+    //função para percorrer as coordenadas do instrumento selecionado
+    function navegarCoordenada(direcao) {
+        const map = mapRef.current;
+
+        if (!coordenadas.length) return;
+
+        const idAtual = featureSelecionada?.id_coordenada ?? featureSelecionada?.id;
+        
+        const indiceAtual = featureSelecionada 
+            ? coordenadas.findIndex(c => String(c.id_coordenada ?? c.id) === String(idAtual))
+            : -1;
+            
+        const indiceDestino = indiceAtual + direcao;
+
+        if (indiceDestino < 0 || indiceDestino >= coordenadas.length) return;
+
+        const coordenadaDestino = coordenadas[indiceDestino];
+
+        selecionarCoordenada(coordenadaDestino);
+
+        if (map) {
+            const lng = Number(coordenadaDestino.longitude ?? coordenadaDestino.lng);
+            const lat = Number(coordenadaDestino.latitude ?? coordenadaDestino.lat);
+
+            if (!isNaN(lng) && !isNaN(lat)) {
+                map.flyTo({
+                    center: [lng, lat],
+                    zoom: 15,
+                    essential: true
+                });
+            }
+        }
+    }
+    
+    
+    //chama a api pegando os dados das coordenadas do instrumento que estiver filtrado
+    //copia os dados vindos da api para dentro de _coordenadaOriginal (_coordenadaOriginal vira um objeto dentro do objeto Coordenadas)
+    //cria a flag _coordenadaAlterada
+    //salva isso dentro do estado Coordenadas
+    useEffect(() => {
+        async function buscarAnaliseCoordenadas() {
+            
+            setMessage("");
+            setMessageType("");
+            
+            if (!instrumentoSelecionado) {
+                setCoordenadas([]);
+                setSituacaoCorrecao("Não");
+                setObservacaoGeral("");
+                situacaoCorrecaoOriginalRef.current = "Não";
+                observacaoGeralOriginalRef.current = "";
+                return;
+            }
+
+            try {
+                setLoading(true);
+                const dadosAnaliseCoordenadas = 
+                    await listarDadosAnaliseCoordenadas({nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento, cod_tci: filtros.cod_tci});
+                
+                const listaApi = dadosAnaliseCoordenadas || [];
+                const situacaoCorrecaoInicial = listaApi[0]?.situacao_correcao || "Não";
+                const observacaoGeralInicial = listaApi[0]?.observacao_geral || "";
+                
+                setSituacaoCorrecao(situacaoCorrecaoInicial);
+                setObservacaoGeral(observacaoGeralInicial);
+                situacaoCorrecaoOriginalRef.current = situacaoCorrecaoInicial;
+                observacaoGeralOriginalRef.current = observacaoGeralInicial;    
+
+                const coordenadasMapeadas = listaApi.map(coordenada => ({
+                    ...coordenada,
+                    _coordenadaOriginal: {
+                        id_coordenada: coordenada.id_coordenada,
+                        situacao_analise: coordenada.situacao_analise ?? null,
+                        cod_tci: coordenada.cod_tci,
+                    },
+                    _coordenadaAlterada: false,
+                }));
+
+                setCoordenadas(coordenadasMapeadas);
+
+            } catch (erro) {
+                console.error("Erro ao buscar dados da análise:", erro);
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        buscarAnaliseCoordenadas();
+
+    }, [filtros.nr_proposta, filtros.nr_instrumento, filtros.cod_tci, instrumentoSelecionado]);
+   
+      
+
+    //pega um objeto coordenada e limpa as colunas, deixando apenas as colunas que devem persisitir para envio ao backend
+    const dadosCoordenadaPersistencia = (coordenada) => {
+    
+        const situacaoAtual = coordenada.situacao_analise 
+            ?? coordenada._coordenadaOriginal?.situacao_analise;
+
+        return {
+            id_coordenada: coordenada.id_coordenada,
+            cod_tci: coordenada.cod_tci || filtros.cod_tci || "",
+            situacao_analise: situacaoAtual || "Sem análise"
+        };
+    };
+
+
+
+    //apenas testa se dois objetos são iguais
+    function objetosIguais(a, b) {
+        return JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
+    }
+
+
+
+    //verifica se Houve Alteração Global (Rádio ou Observação)
+    const houveAlteracaoGlobal = () => {
+        const correcaoMudou = (situacaoCorrecao || "Não") !== (situacaoCorrecaoOriginalRef.current || "Não");
+        const obsMudou = (observacaoGeral || "").trim() !== (observacaoGeralOriginalRef.current || "").trim();
+        return correcaoMudou || obsMudou;
+    };
+
+
+    // Reavalia a flag _coordenadaAlterada para todo o array de coordenadas
+    // Se algo global mudou -> TODAS viram true
+    // Se nada global mudou -> Apenas as que mudaram situacao_analise viram true
+    const recalcularAlteracoesCoordenadas = (
+        coordenadasAtuais, 
+        ehGlobalAlterado = houveAlteracaoGlobal()
+    ) => {
+        return coordenadasAtuais.map(c => {
+            // Substitua a comparação complexa por verificação de dados reais
+            const analiseAtual = c.situacao_analise ?? "";
+            const analiseOriginal = c._coordenadaOriginal?.situacao_analise ?? "";
+            
+            const itemAlteradoPontual = analiseAtual !== analiseOriginal;
+
+            return {
+                ...c,
+                _coordenadaAlterada: ehGlobalAlterado || itemAlteradoPontual,
+            };
+        });
+    };
+
+
+    //Handlers para atualização no React (Rádio e Observação)
+    const handleAlterarSituacaoCorrecao = (novaSituacao) => {
+        
+        setMessage("");
+        setMessageType("");
+        setSituacaoCorrecao(novaSituacao);
+        
+        const correcaoMudou = (novaSituacao || "Não") !== (situacaoCorrecaoOriginalRef.current || "Não");
+        const obsMudou = (observacaoGeral || "").trim() !== (observacaoGeralOriginalRef.current || "").trim();
+        const globalAlterado = correcaoMudou || obsMudou;
+
+        setCoordenadas(current => recalcularAlteracoesCoordenadas(current, globalAlterado));
+    };
+
+
+    const handleAlterarObservacaoGeral = (novaObservacao) => {
+        setMessage("");
+        setMessageType("");
+        setObservacaoGeral(novaObservacao);
+
+        const correcaoMudou = (situacaoCorrecao || "Não") !== (situacaoCorrecaoOriginalRef.current || "Não");
+        const obsMudou = (novaObservacao || "").trim() !== (observacaoGeralOriginalRef.current || "").trim();
+        const globalAlterado = correcaoMudou || obsMudou;
+
+        setCoordenadas(current => recalcularAlteracoesCoordenadas(current, globalAlterado));
+    };
+
+
+
+    //recebe uma coordenada específica e sua analise. Percorre o array de coordenadas do instrumento filtrado.
+    //procrura no array até encontrar a coordenada específica recebida. Pega a analise recebida e atualiza jogando o novo valor no array. 
+    //o estado Coordenadas vai ser atualizado, pois isso está dentro de um set
+    //gera um objeto coordenada atualizada com a nova análise
+    //compara se os dados a serem persistidos de coordendas atualizada são iguais a original, gerando a flag _coordenadaAlterada
+    //ou seja essa função atualiza o estado e gera uma flag pra indicar se a atualização efetivou uma alteração ou não
+    const atualizarAnaliseCoordenada = (idCoordenada, novaAnalise) => {
+
+        setMessage("");
+        setMessageType("");
+
+        const map = mapRef.current;
+        if (map) {
+            map.setFeatureState(
+                {
+                    source: "geometrias_carteira_dsr",
+                    sourceLayer: "pontos",
+                    id: idCoordenada
+                },
+                {
+                    situacaoAnalise: novaAnalise
+                }
+            );
+        }
+
+        setCoordenadas((current) => {
+            const atualizadas = current.map((coordenada) => {
+                if (coordenada.id_coordenada !== idCoordenada) return coordenada;
+                return {
+                    ...coordenada,
+                    situacao_analise: novaAnalise
+                };
+            });
+
+            return recalcularAlteracoesCoordenadas(atualizadas);
+        });
+    };
+
+    
+    //apenas testa se no estado coordenadas, tem alguma coordenada com alteração
+    const possuiCoordenadasAlteradas = () => {
+        return houveAlteracaoGlobal() || coordenadas.some(c => c._coordenadaAlterada);
+    };
+
+
+
+    //restaura o estado das coordenadas usando a propriedade _coordenadaOriginal
+    //chamada quando o usuário inicia a análise mas resolve cancelar
+    const restaurarEstadoOriginal = () => {
+        
+        setCoordenadas(current => 
+            current.map(coordenada => {
+                const situacaoOriginal = coordenada._coordenadaOriginal?.situacao_analise ?? "";
+                
+                
+                const map = mapRef.current;
+                if (map && coordenada.id_coordenada) {
+                    map.setFeatureState(
+                        {
+                            source: "geometrias_carteira_dsr",
+                            sourceLayer: "pontos",
+                            id: coordenada.id_coordenada
+                        },
+                        { situacaoAnalise: situacaoOriginal }
+                    );
+                }
+
+                return {
+                    ...coordenada,
+                    situacao_analise: situacaoOriginal,
+                    _coordenadaAlterada: false
+                };
+            })
+        );
+
+        
+        if (situacaoCorrecaoOriginalRef.current !== undefined) {
+            setSituacaoCorrecao(situacaoCorrecaoOriginalRef.current);
+        }
+        if (observacaoGeralOriginalRef.current !== undefined) {
+            setObservacaoGeral(observacaoGeralOriginalRef.current);
+        }
+
+    };
+
+
+
+    //prepara os dados para envio ao backend
+    const montarPayloadAnaliseCoordenadas = () => {
+        const ehGlobal = houveAlteracaoGlobal();
+
+        const codTciValido = filtros.cod_tci 
+            || coordenadas[0]?.cod_tci 
+            || coordenadas[0]?._coordenadaOriginal?.cod_tci 
+            || "";
+
+        const coordenadasParaEnvio = ehGlobal
+            ? coordenadas.map(dadosCoordenadaPersistencia)
+            : coordenadas
+                .filter(c => c._coordenadaAlterada)
+                .map(dadosCoordenadaPersistencia);
+
+        return {
+            nr_instrumento: filtros.nr_instrumento || "",
+            nr_proposta: filtros.nr_proposta || "",
+            cod_tci: codTciValido,
+            situacao_correcao: situacaoCorrecao || "Não",
+            observacao_geral: (observacaoGeral || "").trim(),
+            coordenadas: coordenadasParaEnvio
+        };
+    };
+
+    
+    //essa função é chamada quando o usuário clicar no botão de salvar
+    //chama montar payload e chama a função que envia os dados ao backend
+    const salvarAnaliseCoordenadas = async () => {
+        if (!possuiCoordenadasAlteradas()) return;
+
+        setLoading(true);
+        setMessage("");
+        setMessageType("");
+
+        try {
+            const payload = montarPayloadAnaliseCoordenadas();
+            
+            const data = await enviarAnaliseCoordenadas(payload);
+            
+            const map = mapRef.current;
+            if (map) {
+                const source = map.getSource("geometrias_carteira_dsr");
+                if (source) {
+                    const url = `${urlGeometriasCarteiraDsr(filtros)}&t=${Date.now()}`;
+                    source.setTiles([url]);
+                }
+
+                payload.coordenadas.forEach((coordenada) => {
+                    if (coordenada?.id_coordenada !== undefined && coordenada?.id_coordenada !== null) {
+                        const target = {
+                            source: "geometrias_carteira_dsr",
+                            sourceLayer: "pontos",
+                            id: coordenada.id_coordenada
+                        };
+
+                        try {
+                            const estadoAtual = map.getFeatureState(target);
+                            if (estadoAtual && Object.keys(estadoAtual).length > 0) {
+                                map.removeFeatureState(target, "situacaoAnalise");
+                            }
+                        } catch (erroMapbox) {
+                            console.warn(`Aviso ao limpar estado da coordenada ${coordenada.id_coordenada}:`, erroMapbox);
+                        }
+                    }
+                });
+            }
+
+            // Atualiza as referências originais com o novo estado salvo
+            situacaoCorrecaoOriginalRef.current = situacaoCorrecao;
+            observacaoGeralOriginalRef.current = observacaoGeral;
+
+            setCoordenadas(current =>
+                current.map(coordenada => ({
+                    ...coordenada,
+                    _coordenadaOriginal: dadosCoordenadaPersistencia(coordenada),
+                    _coordenadaAlterada: false,
+                }))
+            );
+            
+            setMessage(data.mensagem);
+            setMessageType("success");
+
+        } catch (err) {
+            const msgErro = err?.response?.data?.detail ?? "Não foi possível salvar as alterações.";
+            setMessage(msgErro);
+            setMessageType("error");
+            throw new Error(msgErro); 
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    //console.log(coordenadas)
+    //console.log(payload);
+
+    const identificador = filtros?.cod_tci || filtros?.nr_instrumento || filtros?.nr_proposta || "";
 
     return ( 
         <div className={estilos.mapa_box}>
@@ -662,13 +1181,48 @@ export default function MapaSection() {
             }
             <button className={estilos.botaoCamadas} onClick={() => setPainelCamadas(!painelCamadas)}> <Layers className={estilos.Icon}/> <p className={estilos.IconTexto}> Camadas</p> </button>
             <button className={estilos.botaoLegenda} onClick={() => setPainelLegenda(!painelLegenda)}> <List className={estilos.Icon}/> <p className={estilos.IconTexto}> Legenda</p> </button>
-            <button className={`${estilos.botaoAnalisarCoordenadas} ${modoAnalise ? estilos.ativo : ""}`} onClick={toggleModoAnalise}> {modoAnalise ? "Análise Ativa" : "Analisar Coordenadas"}</button>
+            {isAuthenticated && (
+                <button 
+                    className={`${estilos.botaoAnalisarCoordenadas} ${modoAnalise ? estilos.ativo : ""} ${painelFiltros ? estilos.comPainelFiltros : ""}`} 
+                    onClick={toggleModoAnalise}
+                > 
+                    {modoAnalise ? `Análise ativa${identificador ? ` - ${identificador}` : ""}`: "Analisar Coordenadas"}
+                </button>
+                )}
             {painelCamadas && (<CamadasSection layers={layers} toggleLayer={toggleLayer} alterarVariavel={alterarVariavel} setPainelCamadas={setPainelCamadas}/>)}
             {painelLegenda && (<LegendaSection layers={layers} zoomAtual={zoomAtual} setPainelLegenda={setPainelLegenda} painelCamadas={painelCamadas}/>)}
-            <AnaliseCoordenadaSection featureSelecionada={featureSelecionada} analises={analises} setAnalises={setAnalises}/>
+            {modoAnalise && (
+                <AnaliseCoordenadaSection 
+                    featureSelecionada={featureSelecionada}
+                    coordenadas={coordenadas}
+                    atualizarAnaliseCoordenada={atualizarAnaliseCoordenada}
+                    possuiCoordenadasAlteradas={possuiCoordenadasAlteradas()}
+                    salvarAnaliseCoordenadas={salvarAnaliseCoordenadas}
+                    navegarCoordenada={navegarCoordenada}
+                    loading={loading}
+                    sucessoEnviado={messageType === "success"}
+                    identificador={identificador}
+                    situacaoCorrecao={situacaoCorrecao}
+                    setSituacaoCorrecao={handleAlterarSituacaoCorrecao}
+                    observacaoGeral={observacaoGeral}
+                    setObservacaoGeral={handleAlterarObservacaoGeral}
+                    painelFiltros={painelFiltros}
+                    setModoAnalise={setModoAnalise}
+                    restaurarEstadoOriginal={restaurarEstadoOriginal}
+                />
+            )}
             <InputSection coord={coord} setCoord={setCoord} irParaCoordenada={irParaCoordenada} limparCoordenada={limparCoordenada}/>
             <div ref={coordRef} className={estilos.coordenadasMouse}> Lat: -- | Lon: -- </div>
             {(painelDetalhe && painelFiltros && filtros.cod_municipio) && (<DetalheSection setPainelDetalhe={setPainelDetalhe}/>)}
+            <div className={`${estilos.authMenuContainer} ${painelFiltros ? estilos.comPainelFiltros : ""}`}><AuthMenu /></div>
+
+            {carregandoMapa && (
+                <div className={estilos.caixa_carregando}>
+                    <span className={estilos.spinner}></span>
+                    Carregando camadas...
+                </div>
+            )}
+
             <div ref={mapContainer} className={estilos.mapContainer}/>
         </div>
     );

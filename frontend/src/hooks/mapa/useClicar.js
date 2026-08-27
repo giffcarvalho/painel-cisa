@@ -1,14 +1,124 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import estilos from "../../components/mapa/Popup.module.css"
 
 
-//esse hook é responsável pelas ações decorrentes de clique nas feições
+//esse hook é responsável pelas ações decorrentes de clique nas feições ou navegação pelas feições 
 
 export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
         
     const featureSelecionadaRef = useRef(null);
     const popupRef = useRef(null);
+    const markerAnaliseRef = useRef(null);
+
+    // Função para atualizar/posicionar o marcador temporário na tela de forma instantânea
+    const posicionarMarcadorAnalise = useCallback((lng, lat) => {
+        const map = mapRef.current;
+        if (!map) return;
+
+        const longitude = Number(lng);
+        const latitude = Number(lat);
+
+        if (isNaN(longitude) || isNaN(latitude)) return;
+
+        // Se o marcador ainda não foi instanciado
+        if (!markerAnaliseRef.current) {
+            
+            markerAnaliseRef.current = new maplibregl.Marker({
+                color: "#FF0000",
+                scale: 0.9
+            });
+        }
+
+        // Posiciona o pino no mapa
+        markerAnaliseRef.current.setLngLat([longitude, latitude]).addTo(map);
+    }, [mapRef]);
+
+    // Função para remover o marcador quando não for mais necessário
+    const removerMarcadorAnalise = useCallback(() => {
+        if (markerAnaliseRef.current) {
+            markerAnaliseRef.current.remove();
+            markerAnaliseRef.current = null;
+        }
+    }, []);
+
+
+    const selecionarFeature = useCallback((feature) => {
+        const map = mapRef.current;
+        if (!map || !feature) return;
+
+        if (featureSelecionadaRef.current) {
+            map.setFeatureState(
+                featureSelecionadaRef.current,
+                { selected: false }
+            );
+        }
+
+        const estado = {
+            source: feature.source,
+            sourceLayer: feature.sourceLayer,
+            id: feature.id
+        };
+
+        map.setFeatureState(
+            estado,
+            { selected: true }
+        );
+
+        featureSelecionadaRef.current = estado;
+        setFeatureSelecionada(feature);
+
+    }, [mapRef, setFeatureSelecionada]);
+
+    
+    const selecionarCoordenada = useCallback((coordenada) => {
+        const map = mapRef.current;
+        if (!map || !coordenada) return;
+
+        const idCoordenada = coordenada.id_coordenada;
+
+        // A. Posiciona o pino instantaneamente na tela via dados da memória
+        if (coordenada.longitude && coordenada.latitude) {
+            posicionarMarcadorAnalise(coordenada.longitude, coordenada.latitude);
+        }
+
+        // B. Tenta aplicar o setFeatureState do MapLibre caso a camada já exista no mapa
+        const estado = {
+            source: "geometrias_carteira_dsr",
+            sourceLayer: "pontos",
+            id: idCoordenada
+        };
+
+        if (featureSelecionadaRef.current) {
+            map.setFeatureState(featureSelecionadaRef.current, { selected: false });
+        }
+
+        map.setFeatureState(estado, { selected: true });
+        featureSelecionadaRef.current = estado;
+
+        // C. Atualiza o estado React com as informações básicas imediatamente
+        setFeatureSelecionada({ 
+            id: idCoordenada,
+            ...coordenada 
+        });
+
+    }, [mapRef, posicionarMarcadorAnalise, setFeatureSelecionada]);
+
+
+    // Limpa o marcador se desativar o modo de análise
+    useEffect(() => {
+        if (!modoAnalise) {
+            removerMarcadorAnalise();
+            if (featureSelecionadaRef.current && mapRef.current) {
+                mapRef.current.setFeatureState(featureSelecionadaRef.current, { selected: false });
+                featureSelecionadaRef.current = null;
+                setFeatureSelecionada(null);
+            }
+        }
+    }, [modoAnalise, removerMarcadorAnalise, setFeatureSelecionada, mapRef]);
+
+
+
 
     useEffect(() => {
         const map = mapRef.current;
@@ -22,6 +132,7 @@ export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
             const features = map.queryRenderedFeatures(e.point, { layers: camadas });
 
             if (!features.length) {
+                if (modoAnalise) return;
                 if (featureSelecionadaRef.current) {
                     map.setFeatureState(featureSelecionadaRef.current,{ selected: false });
                     featureSelecionadaRef.current = null;
@@ -34,23 +145,28 @@ export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
             const props = f.properties;
             const layerConfig = layers.find(l => l.id === f.layer.id);
             
-
+            //esse bloco faz com que a seleção da coordenada seja desfeita caso o usuário clique fora
+            //foi comentado pois perdeu o sentido após a implementação da navegação e seleção por meio dos botões de proximo e anterior
+            /*
             if (modoAnalise && f.layer.id !== "geometrias_carteira_dsr" && featureSelecionadaRef.current) {
                 map.setFeatureState(featureSelecionadaRef.current, {selected: false});
                 featureSelecionadaRef.current = null;
                 setFeatureSelecionada(null);
             }
-            
+            */
+            //seleciona a feição com o clique
             if (modoAnalise && f.layer.id === "geometrias_carteira_dsr") {
-                if (featureSelecionadaRef.current) {
-                    map.setFeatureState(featureSelecionadaRef.current, { selected: false });
-                }
-                const estado = {source: f.source, sourceLayer: f.sourceLayer, id: f.id};
-                map.setFeatureState(estado, {selected: true});
-                featureSelecionadaRef.current = estado;
-                setFeatureSelecionada(f);
+                selecionarFeature(f);
             }
-
+            
+            // Não abre popup da Carteira DSR durante a análise
+            /*
+            if (modoAnalise && f.layer.id === "geometrias_carteira_dsr") {
+                popupRef.current?.remove();
+                popupRef.current = null;
+                return;
+            }
+            */
             
             let html = "";
             
@@ -71,7 +187,8 @@ export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
                 `;
             }
 
-            if (f.layer.id === "geometrias_carteira_dsr") {
+            //popup da carteira dsr. Havia uma proteção para não abrir o popup no modo análise, mas foi comentada por enquanto
+            if (/*!modoAnalise && */f.layer.id === "geometrias_carteira_dsr") {
                 html += `
                 <strong> Modalidade </strong> <br>
                 ${props.modalidade}<br/>
@@ -167,7 +284,7 @@ export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
                     }
                     else if (variavelConfig.atributo.startsWith("jenks_")) {
                         const campo = variavelConfig.atributo.replace(/^jenks_/, "");
-                        valor = props[campo] != null? `${(props[campo] * 100).toFixed(2)}%`: null;
+                        valor = props[campo] != null? `${(props[campo] * 1).toFixed(2)}%`: null;
                     } else {
                         valor = props[variavelConfig.atributo];
                     }
@@ -180,6 +297,7 @@ export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
             }
 
             
+
             popupRef.current?.remove();
             popupRef.current = new maplibregl.Popup({
                 className: estilos.popup,
@@ -194,9 +312,9 @@ export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
 
         return () => {map.off("click", handleClick);};
 
-    }, [layers, modoAnalise]);
+    }, [layers, modoAnalise, selecionarFeature]);
 
-    //useEffect para limpar a feição selecionar quando o modo analise é desativado
+    //useEffect para limpar a feição selecionada quando o modo analise é desativado
     useEffect(() => {
         const map = mapRef.current;
         if (!map) return;
@@ -206,4 +324,9 @@ export function useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada) {
             setFeatureSelecionada(null);
         }
     }, [modoAnalise]);
+
+    return {
+        selecionarCoordenada,
+        removerMarcadorAnalise
+    };
 }

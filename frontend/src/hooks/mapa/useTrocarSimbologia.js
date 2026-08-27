@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { gerarMatch } from "../../utils/mapaUtils";
+import { gerarMatch, gerarMatchSituacaoAnalise } from "../../utils/mapaUtils";
 
 // esse hook faz a troca da simbologia do mapa de acordo com a variável escolhida
 
@@ -17,8 +17,8 @@ export function useTrocarSimbologia(mapRef, layers, modoAnalise) {
 
             const variavelConfig = layer.variaveis.find(v => v.atributo === layer.variavelSel);
             const simbolo = layer.variaveis[0]?.simbolo;
-            const strokeColorAnalise = ["case", ["boolean", ["feature-state", "selected"], false], "#ffff00", "#b1b1b1"];
-            const strokeWidthAnalise = ["case", ["boolean", ["feature-state", "selected"], false], 3, 2];
+            const strokeColorAnalise = ["case", ["boolean", ["feature-state", "selected"], false], "#ce33f5", "#b1b1b1"];
+            const strokeWidthAnalise = ["case", ["boolean", ["feature-state", "selected"], false], 4, 2];
 
             // sem variável selecionada
             if (!variavelConfig) {
@@ -40,15 +40,71 @@ export function useTrocarSimbologia(mapRef, layers, modoAnalise) {
             
             // CAMADAS DE PONTO
             if (variavelConfig.simbolo === "ponto") {
-                if (modoAnalise && layer.id === "geometrias_carteira_dsr") {
-                    map.setPaintProperty(layer.id, "circle-color", "#ffffff");
-                    map.setPaintProperty(layer.id, "circle-stroke-color", strokeColorAnalise);
-                    map.setPaintProperty(layer.id, "circle-stroke-width", strokeWidthAnalise);
+
+                let expressaoCor;
+
+                if (
+                    modoAnalise &&
+                    layer.id === "geometrias_carteira_dsr" &&
+                    variavelConfig.atributo === "situacao_analise"
+                ) {
+                    expressaoCor = gerarMatchSituacaoAnalise(
+                        variavelConfig.atributo,
+                        variavelConfig.legenda,
+                        "cor",
+                        "#ffffff"
+                    );
                 } else {
-                    map.setPaintProperty(layer.id, "circle-color", gerarMatch(variavelConfig.atributo, variavelConfig.legenda, "cor", "#ffffff"));
-                    map.setPaintProperty(layer.id, "circle-stroke-color", gerarMatch(variavelConfig.atributo, variavelConfig.legenda, "strokeColor", "#b1b1b1"));
-                    map.setPaintProperty(layer.id, "circle-stroke-width", gerarMatch(variavelConfig.atributo, variavelConfig.legenda, "strokeWidth", 0));
+                    expressaoCor = gerarMatch(
+                        variavelConfig.atributo,
+                        variavelConfig.legenda,
+                        "cor",
+                        "#ffffff"
+                    );
                 }
+
+                map.setPaintProperty(
+                    layer.id,
+                    "circle-color",
+                    expressaoCor
+                );
+
+                if (modoAnalise && layer.id === "geometrias_carteira_dsr") {
+                    map.setPaintProperty(
+                        layer.id,
+                        "circle-stroke-color",
+                        strokeColorAnalise
+                    );
+
+                    map.setPaintProperty(
+                        layer.id,
+                        "circle-stroke-width",
+                        strokeWidthAnalise
+                    );
+                } else {
+                    map.setPaintProperty(
+                        layer.id,
+                        "circle-stroke-color",
+                        gerarMatch(
+                            variavelConfig.atributo,
+                            variavelConfig.legenda,
+                            "strokeColor",
+                            "#b1b1b1"
+                        )
+                    );
+
+                    map.setPaintProperty(
+                        layer.id,
+                        "circle-stroke-width",
+                        gerarMatch(
+                            variavelConfig.atributo,
+                            variavelConfig.legenda,
+                            "strokeWidth",
+                            0
+                        )
+                    );
+                }
+
                 continue;
             }
 

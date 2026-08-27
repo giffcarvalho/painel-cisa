@@ -1,6 +1,7 @@
 """Schema dos filtros/segmentações do mapa."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+from typing import Literal
 
 
 class UfItem(BaseModel):
@@ -93,3 +94,58 @@ class DadosMunicipiosItem(BaseModel):
 
 class ListaDadosMunicipios(BaseModel):
     data: list[DadosMunicipiosItem]
+
+
+
+#modelo dos dados da última análise das coordenadas
+class DadosAnaliseCoordenadasItem(BaseModel):
+    id_coordenada: int
+    cod_tci: str
+    nr_instrumento: str | None = None
+    nr_proposta: str | None = None
+    latitude: float
+    longitude: float
+    situacao_analise: str | None = None
+    situacao_correcao: str | None = None
+    observacao_geral: str | None = None
+    
+
+class ListaDadosAnaliseCoordenadas(BaseModel):
+    data: list[DadosAnaliseCoordenadasItem]
+
+
+#modelo dos dados que vão ser inseridos em tb_revisao_instrumento_coordenada
+#também é o modelo dos dados que são buscados pela função que faz um select na ultima situacao da analise e filtra somente as alteradas
+class CoordenadaAnaliseCreate(BaseModel):
+    id_coordenada: int
+    cod_tci: str
+    situacao_analise: Literal[
+        "Correta",
+        "Município errado",
+        "Local genérico - sede",
+        "Local incoerente",
+        "Incoerência urbano/rural",
+        "Sem análise"
+    ]
+
+
+class AnaliseCoordenadasCreate(BaseModel):
+    nr_instrumento: str | None = None
+    nr_proposta: str | None = None
+    cod_tci: str | None = None
+    observacao_geral: str | None = None
+    situacao_correcao: str | None = "Não"
+    coordenadas: list[CoordenadaAnaliseCreate]
+
+    @field_validator("observacao_geral", mode="before")
+    @classmethod
+    def sanitizar_observacao(cls, v: str | None) -> str | None:
+        if isinstance(v, str):
+            v = v.strip()
+            return v if v else None
+        return v
+
+
+class AnaliseCoordenadasSalvaResponse(BaseModel):
+    id_revisao: int | None = None
+    mensagem: str

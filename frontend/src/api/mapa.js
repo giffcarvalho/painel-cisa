@@ -203,6 +203,20 @@ export async function listarDadosMunicipios(filtros = {}) {
 }
 
 
+export async function listarDadosAnaliseCoordenadas(filtros = {}) {
+  
+  const res = await api.get("/mapa/dados_analise_coordenadas", { params: toParams(filtros) });
+
+  return res.data.data;
+}
+
+
+export async function enviarAnaliseCoordenadas(payload) {
+  
+  const res = await api.post("/mapa/analise_coordenadas", payload);
+
+  return res.data;
+}
 
 
 const API_URL = new URL(import.meta.env.VITE_API_URL ?? "/api/v1", window.location.origin).toString().replace(/\/$/, "");
@@ -288,6 +302,12 @@ export function urlCidades(filtros={}) {
 export function urlMunicipios2022(filtros={}) {
   const params = toParams(filtros);
   return `${API_URL}/mapa/municipios_2022/{z}/{x}/{y}.pbf?${params}`
+}
+
+
+export function urlBiomas(filtros={}) {
+  const params = toParams(filtros);
+  return `${API_URL}/mapa/biomas/{z}/{x}/{y}.pbf?${params}`
 }
 
 

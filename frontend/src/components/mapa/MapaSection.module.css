@@ -63,10 +63,27 @@
 }
 
 
+.authMenuContainer {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  top: 10px;
+  right: 100px; 
+  width: 250px;
+  z-index: 10;
+  transition: right 0.2s ease;
+}
+
+
+.authMenuContainer.comPainelFiltros {
+  right: 300px;
+}
+
+
 .botaoAnalisarCoordenadas {
   position: absolute;
-  top: 10px;
-  right: 300px;
+  top: 60px;
+  right: 100px;
   width: 250px;
   height: 30px;
   display: flex;
@@ -77,11 +94,20 @@
   background: aliceblue;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 500;
   z-index: 1;
+  transition: right 0.2s ease, top 0.2s ease;
 }
 
+
+.botaoAnalisarCoordenadas.comPainelFiltros {
+  right: 300px;
+}
+
+
+
 .ativo {
-    background: #1976d2;
+    background: #00943e;
     color: white;
 }
 
@@ -112,4 +138,42 @@
   font-size: 12px;
   font-family: monospace;
   pointer-events: none;
+}
+
+
+
+.caixa_carregando {
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(0, 0, 0, 0.75);
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  transition: opacity 0.2s ease-in-out;
+}
+
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: girar 0.8s linear infinite;
+}
+
+@keyframes girar {
+  to {
+      transform: rotate(360deg);
+  }
 }
