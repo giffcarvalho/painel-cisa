@@ -12,6 +12,8 @@ O painel depende de bases e estruturas de banco disponibilizadas no ambiente ins
 
 Centraliza o acesso aos módulos analíticos, ao fluxo de revisão e ao manual do usuário. Também disponibiliza as ações de autenticação conforme o estado da sessão.
 
+![Página inicial do Painel DSR](docs/images/home.png)
+
 ### Carteira DSR
 
 Apresenta uma visão consolidada da carteira de instrumentos sob responsabilidade do DSR:
@@ -23,6 +25,8 @@ Apresenta uma visão consolidada da carteira de instrumentos sob responsabilidad
 - tabela detalhada e paginada;
 - exportação de gráficos em PNG e de dados em Excel.
 
+![Carteira DSR](docs/images/carteiradsr.png)
+
 ### Mapa Interativo
 
 Oferece análise geoespacial em MapLibre, com:
@@ -33,6 +37,8 @@ Oferece análise geoespacial em MapLibre, com:
 - navegação por coordenadas e reenquadramento conforme o recorte selecionado;
 - análise das coordenadas associadas a instrumentos, com registro de situação e observações;
 - exportação da análise de coordenadas em PDF.
+
+![Mapa Interativo](docs/images/mapa.png)
 
 ### Pesquisa Instrumento
 
@@ -68,6 +74,14 @@ O fluxo implementado contempla:
 - solicitação de cancelamento de uma aplicação elegível.
 
 O backend mantém um único rascunho ativo por instrumento e registra as revisões em tabelas próprias do schema `painel_dsr`. O envio não altera imediatamente as fontes consolidadas: a aplicação da revisão ocorre em um fluxo administrativo separado.
+
+#### Seleção dos instrumentos
+
+![Seleção dos instrumentos da Revisão de Instrumento](docs/images/meusinstrumentos.png)
+
+#### Ficha de revisão
+
+![Ficha de Revisão de Instrumento](docs/images/ficharevisao.png)
 
 ### Administração de revisões
 
