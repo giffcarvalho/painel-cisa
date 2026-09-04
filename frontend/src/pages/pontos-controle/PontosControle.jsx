@@ -61,14 +61,14 @@ function PontosControleContent() {
         <div>
           <h1>Pontos de Controle</h1>
           <p>
-            Consulte um instrumento, proposta, operação, proponente ou município beneficiado.
+            Consulte um instrumento, monitor, UF, ação ou município beneficiado.
           </p>
         </div>
       </header>
 
       <FiltrosPontosControle />
-
-      <section className={styles.contentGrid}>
+      
+      {/* <section className={styles.contentGrid}>
         <TabelaPontosControle
           data={instrumentosQuery.data}
           isLoading={instrumentosQuery.isLoading}
@@ -84,14 +84,13 @@ function PontosControleContent() {
           nrInstrumentoSelecionado={nrInstrumentoSelecionado}
           onSelectInstrumento={setNrInstrumentoSelecionado}
         />
+      </section> */}
 
-        
-      </section>
     </main>
   );
 }
 
-export default function PesquisaInstrumento() {
+export default function PontosControle() {
   return (
     <FiltrosPontosControleProvider>
       <PontosControleContent />
