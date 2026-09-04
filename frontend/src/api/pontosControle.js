@@ -1,11 +1,11 @@
 import api from './axios';
 
 const CAMPOS_FILTRO = [
-  'nome_proponente',
+  'monitor',
   'municipios_beneficiados',
   'nr_instrumento',
-  'nr_proposta',
-  'operacao',
+  'uf',
+  'acao',
 ];
 
 const appendFiltroParam = (params, key, value) => {
@@ -68,10 +68,10 @@ export const getInstrumentos = async (filtros = {}, pagina = 1, tamanhoPagina = 
 
 
 
-const pesquisaInstrumentoApi = {
+const pontosControleApi = {
   getFiltros,
   buscarFiltro,
   getInstrumentos,
 };
 
-export default pesquisaInstrumentoApi;
+export default pontosControleApi;
