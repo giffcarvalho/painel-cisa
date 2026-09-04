@@ -19,6 +19,7 @@ import HistoricoRevisoes from './pages/revisao-instrumento/HistoricoRevisoes'
 import VisualizarRevisao from './pages/revisao-instrumento/VisualizarRevisao'
 import AplicacaoRevisoes from './pages/admin/aplicacao-revisoes/AplicacaoRevisoes'
 import Login from './pages/login/Login'
+import PontosControle from './pages/pontos-controle/PontosControle'
 
 const Mapa = lazy(() => import('@/pages/mapa/Mapa'))
 
