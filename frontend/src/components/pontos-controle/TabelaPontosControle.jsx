@@ -128,12 +128,12 @@ export default function TabelaPontosControle({
                         <tr className={styles.previewRow}>
                           <td colSpan={3}>
                             <dl className={styles.previewGrid}>
-                              <PreviewField label="Operação" value={instrumento.operacao} />
                               <PreviewField label="UF" value={instrumento.uf} />
-                              <PreviewField label="Proponente" value={instrumento.nome_proponente} />
+                              <PreviewField label="Ação" value={instrumento.acao} />
+                              <PreviewField label="Monitor" value={instrumento.monitor} />
                               <PreviewField label="Município(s)" value={instrumento.municipios_beneficiados} />
-                              <PreviewField label="Situação" value={instrumento.situacao_obra} />
-                              <PreviewField label="Valor global" value={formatCurrency(instrumento.valor_global)} />
+                              <PreviewField label="Carteira ativa" value={instrumento.carteira_ativa} />
+                              <PreviewField label="Projeto aprovado" value={formatCurrency(instrumento.projeto_aprovado)} />
                             </dl>
                           </td>
                         </tr>
