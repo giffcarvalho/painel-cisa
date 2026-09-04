@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronDown, RotateCcw, X } from 'lucide-react';
-import { useOpcoesPesquisaInstrumentoQuery } from '../../hooks/usePesquisaInstrumento';
-import { useFiltrosPesquisaInstrumento } from '../../context/pesquisa-instrumento/useFiltrosPesquisaInstrumento';
-import styles from '../../pages/pesquisa-instrumento/PesquisaInstrumento.module.css';
+import { useOpcoesPontosControleQuery } from '../../hooks/usePontosControle';
+import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltrosPontosControle';
+import styles from '../../pages/pontos-controle/PontosControle.module.css';
 
 const FILTROS = [
   {
-    campo: 'nome_proponente',
-    label: 'Proponente',
+    campo: 'monitor',
+    label: 'Monitor',
   },
   {
     campo: 'municipios_beneficiados',
@@ -18,12 +18,12 @@ const FILTROS = [
     label: 'Nº instrumento',
   },
   {
-    campo: 'nr_proposta',
-    label: 'Nº proposta',
+    campo: 'uf',
+    label: 'UF',
   },
   {
-    campo: 'operacao',
-    label: 'Operação',
+    campo: 'acao',
+    label: 'Ação',
   },
 ];
 
@@ -209,7 +209,7 @@ function SelectPesquisavel({
   );
 }
 
-export default function FiltrosPesquisaInstrumento() {
+export default function FiltrosPontosControle() {
   const {
     filtros,
     filtroPrincipal,
@@ -217,12 +217,12 @@ export default function FiltrosPesquisaInstrumento() {
     limparFiltro,
     limparTodosFiltros,
     totalFiltrosAtivos,
-  } = useFiltrosPesquisaInstrumento();
+  } = useFiltrosPontosControle();
 
-  const { data, isLoading, isError } = useOpcoesPesquisaInstrumentoQuery(filtros);
+  const { data, isLoading, isError } = useOpcoesPontosControleQuery(filtros);
 
   return (
-    <section className={styles.filtersPanel} aria-label="Filtros da pesquisa instrumento">
+    <section className={styles.filtersPanel} aria-label="Filtros dos pontos de Controle">
       <header className={styles.filtersHeader}>
         <div>
           <h2>Pesquisar instrumento</h2>
