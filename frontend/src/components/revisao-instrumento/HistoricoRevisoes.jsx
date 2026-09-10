@@ -22,7 +22,7 @@ function numeroInstrumento(item) {
   return item.nr_instrumento || item.nr_ted || item.nr_proposta || item.identificador_busca
 }
 
-export default function HistoricoRevisoes({ escopo }) {
+export default function HistoricoRevisoes({ escopo, embedded = false }) {
   const navigate = useNavigate()
   const { numeroInstrumento: identificadorRota } = useParams()
   const pessoal = escopo === 'pessoal'
@@ -81,8 +81,10 @@ export default function HistoricoRevisoes({ escopo }) {
       ? 'Você ainda não possui revisões enviadas.'
       : 'Este instrumento ainda não possui revisões enviadas.'
 
+  const Root = embedded ? 'section' : 'main'
+
   return (
-    <main className={`${styles.page} ${pessoal ? styles.personalPage : ''}`}>
+    <Root className={`${styles.page} ${pessoal ? styles.personalPage : ''} ${embedded ? styles.embedded : ''}`}>
       <header className={styles.header}>
         {!pessoal && (
           <button
@@ -93,7 +95,7 @@ export default function HistoricoRevisoes({ escopo }) {
             <ArrowLeft size={18} /> Retornar
           </button>
         )}
-        <h1>{pessoal ? 'Minhas revisões' : 'Histórico de revisões'}</h1>
+        <h1>{pessoal ? (embedded ? 'Revisões enviadas' : 'Meu Painel') : 'Histórico de revisões'}</h1>
         <p>
           {pessoal
             ? 'Consulte as revisões de instrumento enviadas por você.'
@@ -173,6 +175,6 @@ export default function HistoricoRevisoes({ escopo }) {
           </button>
         </nav>
       )}
-    </main>
+    </Root>
   )
 }

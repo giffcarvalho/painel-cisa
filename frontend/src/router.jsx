@@ -19,6 +19,7 @@ import HistoricoRevisoes from './pages/revisao-instrumento/HistoricoRevisoes'
 import VisualizarRevisao from './pages/revisao-instrumento/VisualizarRevisao'
 import AplicacaoRevisoes from './pages/admin/aplicacao-revisoes/AplicacaoRevisoes'
 import Login from './pages/login/Login'
+import MeuPainel from './pages/meu-painel/MeuPainel'
 
 const Mapa = lazy(() => import('@/pages/mapa/Mapa'))
 
@@ -68,7 +69,15 @@ export const router = createBrowserRouter([
             path: 'minhas-revisoes',
             element: (
               <ProtectedRoute>
-                <HistoricoRevisoes escopo="pessoal" />
+                <MeuPainel />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'meu-painel',
+            element: (
+              <ProtectedRoute>
+                <MeuPainel />
               </ProtectedRoute>
             ),
           },

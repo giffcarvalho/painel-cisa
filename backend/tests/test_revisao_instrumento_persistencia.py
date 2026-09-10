@@ -487,8 +487,12 @@ class TransacaoRevisaoTest(unittest.IsolatedAsyncioTestCase):
                 self.info = {}
                 self.rollback = AsyncMock()
 
-            async def execute(self, *_args, **_kwargs):
-                eventos.append("status-enviado")
+            async def execute(self, statement, *_args, **_kwargs):
+                eventos.append(
+                    "notificacao"
+                    if "tb_notificacao_usuario" in str(statement)
+                    else "status-enviado"
+                )
                 agora = datetime.now(timezone.utc)
                 return _Result({"enviado_em": agora, "atualizado_em": agora})
 
@@ -559,7 +563,7 @@ class TransacaoRevisaoTest(unittest.IsolatedAsyncioTestCase):
             resposta = await salvar_revisao_instrumento(payload, usuario, db)
 
         self.assertEqual(resposta.status, "enviado")
-        self.assertEqual(eventos, ["publico-alvo", "status-enviado", "commit"])
+        self.assertEqual(eventos, ["publico-alvo", "status-enviado", "notificacao", "commit"])
 
 
 if __name__ == "__main__":

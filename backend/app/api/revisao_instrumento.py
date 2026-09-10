@@ -46,6 +46,7 @@ from app.services.aplicacao_revisoes import (
     solicitar_cancelamento,
     validar_cancelamento,
 )
+from app.services.notificacoes import criar_notificacao
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -3365,6 +3366,13 @@ async def salvar_revisao_instrumento(
                 )
             revisao = {**revisao, "status": "enviado", **dict(enviado)}
             status_retorno = "enviado"
+            await criar_notificacao(
+                db,
+                id_usuario=usuario_atual.id_usuario,
+                tipo="revisao_enviada",
+                chave_evento=f"revisao_enviada:{id_revisao}",
+                id_revisao=id_revisao,
+            )
 
         await db.commit()
 

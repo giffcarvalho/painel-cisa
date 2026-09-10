@@ -1,4 +1,5 @@
 import AuthMenu from '@/components/auth/AuthMenu';
+import NotificationBell from '@/components/notificacoes/NotificationBell';
 import logoMcid from '../../assets/teste.png';
 
 export function Header() {
@@ -25,7 +26,8 @@ export function Header() {
           </span>
         </div>
       </div>
-      <div className="ml-4 flex min-w-0 shrink-0 items-center">
+      <div className="ml-4 flex min-w-0 shrink-0 items-center gap-2">
+        <NotificationBell />
         <AuthMenu compactOnMobile />
       </div>
     </header>
