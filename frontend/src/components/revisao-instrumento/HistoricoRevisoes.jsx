@@ -22,7 +22,7 @@ function numeroInstrumento(item) {
   return item.nr_instrumento || item.nr_ted || item.nr_proposta || item.identificador_busca
 }
 
-export default function HistoricoRevisoes({ escopo, embedded = false }) {
+export default function HistoricoRevisoes({ escopo, embedded = false, compact = false }) {
   const navigate = useNavigate()
   const { numeroInstrumento: identificadorRota } = useParams()
   const pessoal = escopo === 'pessoal'
@@ -84,7 +84,7 @@ export default function HistoricoRevisoes({ escopo, embedded = false }) {
   const Root = embedded ? 'section' : 'main'
 
   return (
-    <Root className={`${styles.page} ${pessoal ? styles.personalPage : ''} ${embedded ? styles.embedded : ''}`}>
+    <Root className={`${styles.page} ${pessoal ? styles.personalPage : ''} ${embedded ? styles.embedded : ''} ${compact ? styles.compact : ''}`}>
       <header className={styles.header}>
         {!pessoal && (
           <button
@@ -95,7 +95,10 @@ export default function HistoricoRevisoes({ escopo, embedded = false }) {
             <ArrowLeft size={18} /> Retornar
           </button>
         )}
-        <h1>{pessoal ? (embedded ? 'Revisões enviadas' : 'Meu Painel') : 'Histórico de revisões'}</h1>
+        <div className={styles.titleRow}>
+          <h1>{pessoal ? (embedded ? 'Revisões enviadas' : 'Meu Painel') : 'Histórico de revisões'}</h1>
+          {compact && <span className={styles.count}>{resultado?.total ?? resultado?.data?.length ?? 0}</span>}
+        </div>
         <p>
           {pessoal
             ? 'Consulte as revisões de instrumento enviadas por você.'

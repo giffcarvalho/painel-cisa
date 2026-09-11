@@ -15,7 +15,7 @@ function formatarData(value) {
   }).format(data)
 }
 
-export default function NotificationCenter() {
+export default function NotificationCenter({ compact = false }) {
   const navigate = useNavigate()
   const [pagina, setPagina] = useState(1)
   const [dados, setDados] = useState(null)
@@ -85,10 +85,13 @@ export default function NotificationCenter() {
   }
 
   return (
-    <section id="notificacoes" className={styles.section} aria-labelledby="notificacoes-title">
+    <section id="notificacoes" className={`${styles.section} ${compact ? styles.compact : ''}`} aria-labelledby="notificacoes-title">
       <header className={styles.header}>
         <div>
-          <h2 id="notificacoes-title">Notificações</h2>
+          <div className={styles.titleRow}>
+            <h2 id="notificacoes-title">Notificações</h2>
+            {compact && <span className={styles.count}>{dados?.nao_lidas ?? 0}</span>}
+          </div>
           <p>Acompanhe os acontecimentos relacionados ao seu trabalho.</p>
         </div>
         {dados?.nao_lidas > 0 && (

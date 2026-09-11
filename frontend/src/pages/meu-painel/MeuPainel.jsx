@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import { ClipboardCheck, FilePenLine, Loader2, RefreshCw, Send } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { ChevronLeft, ChevronRight, Loader2, RefreshCw } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { meuPainelApi } from '@/api/meuPainel'
 import NotificationCenter from '@/components/notificacoes/NotificationCenter'
@@ -27,6 +27,111 @@ function resumoAlteracoes(alteracoes) {
   return partes.length ? partes.join(' · ') : 'Nenhuma modificação efetiva registrada.'
 }
 
+function PendenciaCard({ item, onReview }) {
+  return (
+    <article className={styles.card}>
+      <div className={styles.cardTop}>
+        <div><small>{item.tipo_instrumento_label}</small><h3>Instrumento {item.identificador_instrumento}</h3></div>
+        <strong>{item.total_pendencias} {item.total_pendencias === 1 ? 'item pendente' : 'itens pendentes'}</strong>
+      </div>
+      <dl className={styles.groups}>
+        {Object.entries(GRUPOS).map(([chave, label]) => <div key={chave}><dt>{label}</dt><dd>{item.grupos[chave]}</dd></div>)}
+      </dl>
+      <button type="button" className={styles.primary} onClick={() => onReview(item.identificador_instrumento)}>Revisar instrumento</button>
+    </article>
+  )
+}
+
+function PendenciasSection({ items, onReview }) {
+  const carouselRef = useRef(null)
+  const [expandido, setExpandido] = useState(false)
+  const [podeVoltar, setPodeVoltar] = useState(false)
+  const [podeAvancar, setPodeAvancar] = useState(false)
+
+  const atualizarControles = useCallback(() => {
+    const carousel = carouselRef.current
+    if (!carousel || expandido) return
+    setPodeVoltar(carousel.scrollLeft > 2)
+    setPodeAvancar(carousel.scrollLeft + carousel.clientWidth < carousel.scrollWidth - 2)
+  }, [expandido])
+
+  useEffect(() => {
+    atualizarControles()
+    window.addEventListener('resize', atualizarControles)
+    return () => window.removeEventListener('resize', atualizarControles)
+  }, [atualizarControles, items.length])
+
+  function navegar(direcao) {
+    const carousel = carouselRef.current
+    if (!carousel) return
+    carousel.scrollBy({ left: direcao * Math.max(carousel.clientWidth * 0.82, 260), behavior: 'smooth' })
+  }
+
+  function alternarExpansao() {
+    setExpandido((valor) => !valor)
+    carouselRef.current?.scrollTo({ left: 0, behavior: 'smooth' })
+  }
+
+  return (
+    <section className={`${styles.panel} ${styles.pendingPanel}`} aria-labelledby="pendencias-title">
+      <div className={styles.sectionHeading}>
+        <div><h2 id="pendencias-title">Pendências</h2><p>O que ainda precisa ser revisado nos instrumentos sob sua responsabilidade.</p></div>
+        <span>{items.length}</span>
+      </div>
+      {items.length === 0 ? <div className={styles.empty}>Você não possui instrumentos com pendências de revisão.</div> : (
+        <>
+          <div
+            ref={carouselRef}
+            className={`${styles.pendingCards} ${expandido ? styles.expanded : ''}`}
+            onScroll={atualizarControles}
+            aria-label={expandido ? 'Todas as pendências' : 'Carrossel de pendências'}
+          >
+            {items.map((item) => (
+              <PendenciaCard
+                key={`${item.tipo_instrumento}-${item.identificador_instrumento}`}
+                item={item}
+                onReview={onReview}
+              />
+            ))}
+          </div>
+          <div className={styles.pendingFooter}>
+            {!expandido && (podeVoltar || podeAvancar) && (
+              <div className={styles.carouselControls} aria-label="Navegação das pendências">
+                <button type="button" aria-label="Pendências anteriores" disabled={!podeVoltar} onClick={() => navegar(-1)}><ChevronLeft /></button>
+                <button type="button" aria-label="Próximas pendências" disabled={!podeAvancar} onClick={() => navegar(1)}><ChevronRight /></button>
+              </div>
+            )}
+            <button type="button" className={styles.expandButton} onClick={alternarExpansao}>
+              {expandido ? 'Recolher pendências' : 'Ver todas as pendências'}
+            </button>
+          </div>
+        </>
+      )}
+    </section>
+  )
+}
+
+function RascunhosSection({ items, onContinue }) {
+  return (
+    <section className={styles.panel} aria-labelledby="rascunhos-title">
+      <div className={styles.sectionHeading}>
+        <div><h2 id="rascunhos-title">Rascunhos em aberto</h2><p>Continue de onde parou sem criar uma nova revisão.</p></div>
+        <span>{items.length}</span>
+      </div>
+      {items.length === 0 ? <div className={styles.empty}>Você não possui rascunhos em aberto.</div> : (
+        <div className={styles.drafts}>
+          {items.map((item) => (
+            <article className={styles.draft} key={item.id_revisao}>
+              <div><small>{item.tipo_instrumento_label}</small><h3>Instrumento {item.identificador_instrumento}</h3><p><strong>Alterações salvas:</strong> {resumoAlteracoes(item.alteracoes)}</p><time>Criado em {formatarData(item.criado_em)} · Atualizado em {formatarData(item.atualizado_em)}</time></div>
+              <button type="button" className={styles.primary} onClick={() => onContinue(item.identificador_instrumento)}>Continuar revisão</button>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
 export default function MeuPainel() {
   const navigate = useNavigate()
   const [dados, setDados] = useState(null)
@@ -51,6 +156,10 @@ export default function MeuPainel() {
     return () => { ativo = false }
   }, [carregar])
 
+  const abrirRevisao = useCallback((identificador) => {
+    navigate(`/revisao-instrumento/${encodeURIComponent(identificador)}`)
+  }, [navigate])
+
   return (
     <main className={styles.page}>
       <header className={styles.hero}>
@@ -63,58 +172,18 @@ export default function MeuPainel() {
         </button>
       </header>
 
-      {carregando && !dados && <section className={styles.state}><Loader2 className={styles.spinner} /> Carregando seu painel...</section>}
-      {!carregando && erro && <section className={styles.state} role="alert">{erro}</section>}
-
-      {dados && (
-        <>
-          <section className={styles.summary} aria-label="Resumo do Meu Painel">
-            <div><ClipboardCheck /><span><strong>{dados.resumo.instrumentos_com_pendencias}</strong> instrumentos com pendências</span></div>
-            <div><FilePenLine /><span><strong>{dados.resumo.rascunhos}</strong> rascunhos</span></div>
-            <div><Send /><span><strong>{dados.resumo.revisoes_enviadas}</strong> revisões enviadas</span></div>
-          </section>
-
-          <section className={styles.panel} aria-labelledby="pendencias-title">
-            <div className={styles.sectionHeading}>
-              <div><h2 id="pendencias-title">Pendências</h2><p>O que ainda precisa ser revisado nos instrumentos sob sua responsabilidade.</p></div>
-              <span>{dados.pendencias.length}</span>
-            </div>
-            {dados.pendencias.length === 0 ? <div className={styles.empty}>Você não possui instrumentos com pendências de revisão.</div> : (
-              <div className={styles.cardGrid}>
-                {dados.pendencias.map((item) => (
-                  <article className={styles.card} key={`${item.tipo_instrumento}-${item.identificador_instrumento}`}>
-                    <div className={styles.cardTop}><div><small>{item.tipo_instrumento_label}</small><h3>Instrumento {item.identificador_instrumento}</h3></div><strong>{item.total_pendencias} {item.total_pendencias === 1 ? 'item pendente' : 'itens pendentes'}</strong></div>
-                    <dl className={styles.groups}>
-                      {Object.entries(GRUPOS).map(([chave, label]) => <div key={chave}><dt>{label}</dt><dd>{item.grupos[chave]}</dd></div>)}
-                    </dl>
-                    <button type="button" className={styles.primary} onClick={() => navigate(`/revisao-instrumento/${encodeURIComponent(item.identificador_instrumento)}`)}>Revisar instrumento</button>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section className={styles.panel} aria-labelledby="rascunhos-title">
-            <div className={styles.sectionHeading}>
-              <div><h2 id="rascunhos-title">Rascunhos em aberto</h2><p>Continue de onde parou sem criar uma nova revisão.</p></div>
-              <span>{dados.rascunhos.length}</span>
-            </div>
-            {dados.rascunhos.length === 0 ? <div className={styles.empty}>Você não possui rascunhos em aberto.</div> : (
-              <div className={styles.drafts}>
-                {dados.rascunhos.map((item) => (
-                  <article className={styles.draft} key={item.id_revisao}>
-                    <div><small>{item.tipo_instrumento_label}</small><h3>Instrumento {item.identificador_instrumento}</h3><p><strong>Alterações salvas:</strong> {resumoAlteracoes(item.alteracoes)}</p><time>Criado em {formatarData(item.criado_em)} · Atualizado em {formatarData(item.atualizado_em)}</time></div>
-                    <button type="button" className={styles.primary} onClick={() => navigate(`/revisao-instrumento/${encodeURIComponent(item.identificador_instrumento)}`)}>Continuar revisão</button>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
-
-        </>
-      )}
-      <HistoricoRevisoes escopo="pessoal" embedded />
-      <NotificationCenter />
+      <div className={styles.dashboard}>
+        <div className={styles.mainColumn}>
+          {carregando && !dados && <section className={styles.state}><Loader2 className={styles.spinner} /> Carregando seu painel...</section>}
+          {!carregando && erro && <section className={styles.state} role="alert">{erro}</section>}
+          {dados && <PendenciasSection items={dados.pendencias} onReview={abrirRevisao} />}
+        </div>
+        <aside className={styles.sidebar} aria-label="Acompanhamento do Meu Painel">
+          <HistoricoRevisoes escopo="pessoal" embedded compact />
+          {dados && <RascunhosSection items={dados.rascunhos} onContinue={abrirRevisao} />}
+          <NotificationCenter compact />
+        </aside>
+      </div>
     </main>
   )
 }
