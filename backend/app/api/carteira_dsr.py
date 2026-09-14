@@ -319,7 +319,7 @@ async def get_instrumentos_por_acao(
     return InstrumentosPorAcaoResponse(data=[dict(r) for r in result.mappings().all()])
 
 # Valor global e quantidade por tipo de instrumento
-@router.get("/graficos/tipo-instrumento", response_model=ValorPorTipoResponse, summary="Valor global por tipo de instrumento (rosca)")
+@router.get("/graficos/tipo-instrumento", response_model=ValorPorTipoResponse, summary="Valor global e quantidade por tipo de instrumento (rosca)")
 async def get_valor_por_tipo(
     response: Response,
     filtros: FiltrosCarteiraDSR = Depends(),
