@@ -318,7 +318,7 @@ async def get_instrumentos_por_acao(
     result = await _execute_query(db, sql, params)
     return InstrumentosPorAcaoResponse(data=[dict(r) for r in result.mappings().all()])
 
-#valor global por tipo de instrumento
+# Valor global e quantidade por tipo de instrumento
 @router.get("/graficos/tipo-instrumento", response_model=ValorPorTipoResponse, summary="Valor global por tipo de instrumento (rosca)")
 async def get_valor_por_tipo(
     response: Response,
@@ -337,7 +337,8 @@ async def get_valor_por_tipo(
         )
         SELECT
             tipo_instrumento,
-            SUM(valor_global) AS valor_global
+            SUM(valor_global) AS valor_global,
+            COUNT(DISTINCT nr_instrumento) AS quantidade_instrumentos
         FROM instrumentos
         GROUP BY tipo_instrumento
         ORDER BY tipo_instrumento

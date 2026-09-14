@@ -313,7 +313,8 @@ function AsyncTipoInstrumento() {
       data: data || [],
       columns: [
         { header: 'Tipo de Instrumento', key: 'tipo_instrumento', width: 35 },
-        { header: 'Valor Global (R$)', key: 'valor_global', width: 25 }
+        { header: 'Valor Global (R$)', key: 'valor_global', width: 25 },
+        { header: 'Quantidade de Instrumentos', key: 'quantidade_instrumentos', width: 28 }
       ],
       fileName: 'tipo_instrumento'
     })
@@ -322,7 +323,7 @@ function AsyncTipoInstrumento() {
   return (
     <div className={styles.chartWrapper}>
       <div className="flex items-start justify-between gap-4 mb-2">
-        <h3 className={styles.chartTitle}>Valor Global por Tipo de Instrumento</h3>
+        <h3 className={styles.chartTitle}>VALOR GLOBAL E QUANTIDADE POR TIPO DE INSTRUMENTO</h3>
         {data && !isLoading && !isError && (
           <ExportMenu onExportPng={() => handlePngExport(chartRef, 'tipo_instrumento')} onExportExcel={handleExportExcel} />
         )}
