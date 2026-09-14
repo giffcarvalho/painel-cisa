@@ -33,6 +33,7 @@ from app.schemas.aplicacao_revisoes import (
     SolicitacoesCancelamentoResponse,
 )
 from app.schemas.auth import UsuarioAutenticado
+from app.core.authorization import exigir_admin
 from app.services.notificacoes import (
     criar_notificacao,
     dados_revisao_para_notificacao,
@@ -67,14 +68,6 @@ TIPOS = {
         "localidade": None,
     },
 }
-
-
-def exigir_admin(usuario: UsuarioAutenticado) -> None:
-    if str(usuario.perfil or "").strip().lower() != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acesso restrito a administradores.",
-        )
 
 
 def _identificador(revisao: dict[str, Any]) -> str:

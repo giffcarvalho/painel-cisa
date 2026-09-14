@@ -18,6 +18,7 @@ import RevisaoInstrumento from './pages/revisao-instrumento/RevisaoInstrumento'
 import HistoricoRevisoes from './pages/revisao-instrumento/HistoricoRevisoes'
 import VisualizarRevisao from './pages/revisao-instrumento/VisualizarRevisao'
 import AplicacaoRevisoes from './pages/admin/aplicacao-revisoes/AplicacaoRevisoes'
+import AdminUsuarios from './pages/admin/usuarios/AdminUsuarios'
 import Login from './pages/login/Login'
 import MeuPainel from './pages/meu-painel/MeuPainel'
 
@@ -94,6 +95,14 @@ export const router = createBrowserRouter([
             element: (
               <ProtectedRoute>
                 <VisualizarRevisao />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'admin',
+            element: (
+              <ProtectedRoute requiredProfile="admin">
+                <AdminUsuarios />
               </ProtectedRoute>
             ),
           },

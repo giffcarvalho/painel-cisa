@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { ChevronDown, LayoutDashboard, LogIn, LogOut, ShieldCheck } from 'lucide-react'
+import { ChevronDown, LayoutDashboard, LogIn, LogOut, ShieldCheck, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/auth/useAuth'
 import styles from './AuthMenu.module.css'
@@ -102,6 +102,11 @@ export default function AuthMenu({ className = '', compactOnMobile = false }) {
     navigate('/admin/aplicacao-revisoes')
   }
 
+  function handleGestaoUsuarios() {
+    setIsOpen(false)
+    navigate('/admin')
+  }
+
   if (!isAuthenticated) {
     return (
       <div className={`${styles.container} ${className}`}>
@@ -144,10 +149,16 @@ export default function AuthMenu({ className = '', compactOnMobile = false }) {
           </div>
           <div className={styles.divider} />
           {isAdmin && (
-            <button type="button" className={styles.menuButton} role="menuitem" onClick={handleAplicacaoRevisoes}>
-              <ShieldCheck aria-hidden="true" />
-              Aplicação de revisões
-            </button>
+            <>
+              <button type="button" className={styles.menuButton} role="menuitem" onClick={handleGestaoUsuarios}>
+                <Users aria-hidden="true" />
+                Gestão de usuários
+              </button>
+              <button type="button" className={styles.menuButton} role="menuitem" onClick={handleAplicacaoRevisoes}>
+                <ShieldCheck aria-hidden="true" />
+                Aplicação de revisões
+              </button>
+            </>
           )}
           <button type="button" className={styles.menuButton} role="menuitem" onClick={handleMeuPainel}>
             <LayoutDashboard aria-hidden="true" />
