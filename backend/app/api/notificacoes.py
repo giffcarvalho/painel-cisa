@@ -56,10 +56,13 @@ async def listar_notificacoes(
             SELECT n.id_notificacao, n.tipo, n.id_revisao,
                    n.criado_em, n.lido_em,
                    r.tipo_instrumento, r.nr_instrumento, r.nr_proposta,
-                   r.nr_ted, r.identificador_busca
+                   r.nr_ted, r.identificador_busca,
+                   autor.nome AS tecnico_responsavel
             FROM painel_dsr.tb_notificacao_usuario n
             JOIN painel_dsr.tb_revisao_instrumento r
               ON r.id_revisao = n.id_revisao
+            JOIN painel_dsr.tb_usuario autor
+              ON autor.id_usuario = r.id_usuario
             WHERE n.id_usuario = :id_usuario
             ORDER BY n.criado_em DESC, n.id_notificacao DESC
             LIMIT :limite OFFSET :offset

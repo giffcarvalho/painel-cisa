@@ -36,6 +36,7 @@ from app.schemas.auth import UsuarioAutenticado
 from app.core.authorization import exigir_admin
 from app.services.notificacoes import (
     criar_notificacao,
+    criar_notificacoes_administradores,
     dados_revisao_para_notificacao,
     dados_revisao_para_notificacao_por_execucao,
 )
@@ -1499,6 +1500,13 @@ async def cancelar_aplicacao(
                     ),
                     id_revisao=execucao["id_revisao"],
                 )
+                await criar_notificacoes_administradores(
+                    db,
+                    tipo="admin_revisao_cancelada",
+                    chave_evento=f"revisao_cancelada:{execucao['id_revisao']}",
+                    id_revisao=execucao["id_revisao"],
+                    excluir_ids={execucao["id_usuario_revisao"]},
+                )
     except HTTPException:
         await db.rollback()
         raise
@@ -1616,6 +1624,12 @@ async def solicitar_cancelamento(
             {"id_execucao": id_execucao, "id_usuario": usuario.id_usuario, "motivo": motivo},
         )
         id_solicitacao = result.scalar_one()
+        await criar_notificacoes_administradores(
+            db,
+            tipo="admin_cancelamento_solicitado",
+            chave_evento=f"cancelamento_solicitado:{id_revisao}",
+            id_revisao=id_revisao,
+        )
         await db.commit()
     except IntegrityError as exc:
         await db.rollback()
