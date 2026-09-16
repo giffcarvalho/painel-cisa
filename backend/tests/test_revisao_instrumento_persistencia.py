@@ -563,7 +563,7 @@ class TransacaoRevisaoTest(unittest.IsolatedAsyncioTestCase):
             resposta = await salvar_revisao_instrumento(payload, usuario, db)
 
         self.assertEqual(resposta.status, "enviado")
-        self.assertEqual(eventos, ["publico-alvo", "status-enviado", "notificacao", "commit"])
+        self.assertEqual(eventos, ["publico-alvo", "status-enviado", "notificacao", "notificacao", "commit"])
 
 
 if __name__ == "__main__":

@@ -44,6 +44,11 @@ export const revisaoInstrumentoApi = {
     return data
   },
 
+  cancelarRascunho: async (idRevisao) => {
+    const { data } = await api.delete(`/revisao-instrumento/revisoes/${idRevisao}/rascunho`)
+    return data
+  },
+
   buscarMunicipiosOficiais: async (q) => {
     const { data } = await api.get('/revisao-instrumento/municipios-oficiais', {
       params: { q },
