@@ -16,7 +16,7 @@ class Usuario(Base):
     codigo_tecnico: Mapped[int | None] = mapped_column(Integer, nullable=True)
     nome: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str] = mapped_column(String, nullable=False)
-    setor: Mapped[str | None] = mapped_column(String, nullable=True)
+    id_setor: Mapped[int | None] = mapped_column(Integer, nullable=True)
     senha_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
     conta_ativada: Mapped[bool] = mapped_column(Boolean, nullable=False)
     perfil: Mapped[str] = mapped_column(String, nullable=False)
