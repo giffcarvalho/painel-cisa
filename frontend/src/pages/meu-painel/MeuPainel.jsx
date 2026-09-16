@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, Loader2, RefreshCw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, RefreshCw, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { meuPainelApi } from '@/api/meuPainel'
+import { revisaoInstrumentoApi } from '@/api/revisaoInstrumento'
 import NotificationCenter from '@/components/notificacoes/NotificationCenter'
 import HistoricoRevisoes from '@/components/revisao-instrumento/HistoricoRevisoes'
 import styles from './MeuPainel.module.css'
@@ -9,6 +10,7 @@ import styles from './MeuPainel.module.css'
 const GRUPOS = {
   municipios: 'Municípios',
   localidades: 'Localidades',
+  coordenadas: 'Coordenadas',
   publico_alvo: 'Público-alvo',
   obras: 'Obras',
 }
@@ -111,23 +113,27 @@ function PendenciasSection({ items, onReview }) {
   )
 }
 
-function RascunhosSection({ items, onContinue }) {
+function RascunhosSection({ items, total, expandido, ocupado, onContinue, onToggle, onCancel }) {
   return (
     <section className={styles.panel} aria-labelledby="rascunhos-title">
       <div className={styles.sectionHeading}>
         <div><h2 id="rascunhos-title">Rascunhos em aberto</h2><p>Continue de onde parou sem criar uma nova revisão.</p></div>
-        <span>{items.length}</span>
+        <span>{total}</span>
       </div>
       {items.length === 0 ? <div className={styles.empty}>Você não possui rascunhos em aberto.</div> : (
         <div className={styles.drafts}>
           {items.map((item) => (
             <article className={styles.draft} key={item.id_revisao}>
               <div><small>{item.tipo_instrumento_label}</small><h3>Instrumento {item.identificador_instrumento}</h3><p><strong>Alterações salvas:</strong> {resumoAlteracoes(item.alteracoes)}</p><time>Criado em {formatarData(item.criado_em)} · Atualizado em {formatarData(item.atualizado_em)}</time></div>
-              <button type="button" className={styles.primary} onClick={() => onContinue(item.identificador_instrumento)}>Continuar revisão</button>
+              <div className={styles.draftActions}>
+                <button type="button" className={styles.primary} onClick={() => onContinue(item.identificador_instrumento)}>Continuar revisão</button>
+                <button type="button" className={styles.dangerSecondary} disabled={ocupado === item.id_revisao} onClick={() => onCancel(item)}><Trash2 /> Cancelar rascunho</button>
+              </div>
             </article>
           ))}
         </div>
       )}
+      {total > 5 && <div className={styles.listFooter}><button type="button" className={styles.expandButton} onClick={onToggle}>{expandido ? 'Mostrar menos' : 'Ver todos os rascunhos'}</button></div>}
     </section>
   )
 }
@@ -137,18 +143,20 @@ export default function MeuPainel() {
   const [dados, setDados] = useState(null)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
+  const [rascunhosExpandidos, setRascunhosExpandidos] = useState(false)
+  const [cancelando, setCancelando] = useState(null)
 
-  const carregar = useCallback(async () => {
+  const carregar = useCallback(async (limiteRascunhos = rascunhosExpandidos ? 1000 : 5) => {
     setCarregando(true)
     setErro('')
     try {
-      setDados(await meuPainelApi.buscar())
+      setDados(await meuPainelApi.buscar({ rascunhosLimit: limiteRascunhos }))
     } catch (error) {
       setErro(error?.response?.data?.detail || 'Não foi possível carregar seu painel.')
     } finally {
       setCarregando(false)
     }
-  }, [])
+  }, [rascunhosExpandidos])
 
   useEffect(() => {
     let ativo = true
@@ -159,6 +167,24 @@ export default function MeuPainel() {
   const abrirRevisao = useCallback((identificador) => {
     navigate(`/revisao-instrumento/${encodeURIComponent(identificador)}`)
   }, [navigate])
+
+  function alternarRascunhos() {
+    setRascunhosExpandidos((valor) => !valor)
+  }
+
+  async function cancelarRascunho(item) {
+    if (!window.confirm('Cancelar este rascunho? As alterações ainda não enviadas serão descartadas e o instrumento voltará ao estado anterior.')) return
+    setCancelando(item.id_revisao)
+    setErro('')
+    try {
+      await revisaoInstrumentoApi.cancelarRascunho(item.id_revisao)
+      await carregar(rascunhosExpandidos ? 1000 : 5)
+    } catch (error) {
+      setErro(error?.response?.data?.detail || 'Não foi possível cancelar o rascunho.')
+    } finally {
+      setCancelando(null)
+    }
+  }
 
   return (
     <main className={styles.page}>
@@ -180,7 +206,7 @@ export default function MeuPainel() {
         </div>
         <aside className={styles.sidebar} aria-label="Acompanhamento do Meu Painel">
           <HistoricoRevisoes escopo="pessoal" embedded compact />
-          {dados && <RascunhosSection items={dados.rascunhos} onContinue={abrirRevisao} />}
+          {dados && <RascunhosSection items={dados.rascunhos} total={dados.rascunhos_total ?? dados.resumo.rascunhos} expandido={rascunhosExpandidos} ocupado={cancelando} onContinue={abrirRevisao} onToggle={alternarRascunhos} onCancel={cancelarRascunho} />}
           <NotificationCenter compact />
         </aside>
       </div>

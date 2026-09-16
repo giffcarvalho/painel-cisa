@@ -40,6 +40,11 @@
 .draft:first-child { border-top: 0; }
 .draft p { margin: 10px 0 6px; color: #475569; }
 .draft time { color: #64748b; font-size: 10.5px; }
+.draftActions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.dangerSecondary { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid #fecaca; border-radius: 8px; background: #fff; color: #b91c1c; padding: 9px 12px; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+.dangerSecondary svg { width: 15px; height: 15px; }
+.dangerSecondary:disabled { cursor: wait; opacity: .55; }
+.listFooter { display: flex; justify-content: flex-end; padding: 10px 16px 12px; border-top: 1px solid #eef2f6; }
 .empty, .state { display: flex; align-items: center; justify-content: center; padding: 20px; color: #64748b; text-align: center; }
 .state { min-height: 180px; gap: 9px; }
 .spinner { animation: spin 1s linear infinite; }

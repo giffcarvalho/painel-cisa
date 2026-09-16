@@ -10,6 +10,7 @@ class MeuPainelBase(BaseModel):
 class PendenciasPorGrupo(MeuPainelBase):
     municipios: int = 0
     localidades: int = 0
+    coordenadas: int = 0
     publico_alvo: int = 0
     obras: int = 0
 
@@ -25,6 +26,7 @@ class InstrumentoPendenteItem(MeuPainelBase):
 class ResumoAlteracoesRascunho(MeuPainelBase):
     municipios: int = 0
     localidades: int = 0
+    coordenadas: int = 0
     publico_alvo: int = 0
     obras: int = 0
     observacao_geral: bool = False
@@ -50,4 +52,6 @@ class MeuPainelResponse(MeuPainelBase):
     resumo: ResumoMeuPainel
     pendencias: list[InstrumentoPendenteItem] = Field(default_factory=list)
     rascunhos: list[RascunhoMeuPainelItem] = Field(default_factory=list)
-
+    rascunhos_total: int = 0
+    rascunhos_limit: int = 5
+    rascunhos_offset: int = 0

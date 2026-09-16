@@ -30,6 +30,7 @@ from app.schemas.filtrosMapa import (
 )
 from app.schemas.revisao_instrumento import (InstrumentoRevisaoInfo)
 from app.api.revisao_instrumento import (_buscar_instrumento_carteira, _buscar_instrumento_ted)
+from app.services.notificacoes import criar_notificacoes_administradores
  
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -1951,6 +1952,13 @@ async def salvar_analise_coordenadas(
                 situacao_correcao=payload.situacao_correcao, # <--- vírgula corrigida
                 coordenada=coordenada,
             )
+
+        await criar_notificacoes_administradores(
+            db,
+            tipo="admin_revisao_enviada",
+            chave_evento=f"revisao_enviada:{id_revisao}",
+            id_revisao=id_revisao,
+        )
 
         await db.commit()
 

@@ -1,6 +1,8 @@
 """Dados operacionais pessoais do técnico."""
 
-from fastapi import APIRouter, Depends
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,6 +23,7 @@ from app.schemas.meu_painel import (
     ResumoAlteracoesRascunho,
     ResumoMeuPainel,
 )
+from app.services.pendencias_coordenadas import resumir_coordenadas_instrumentos
 
 
 router = APIRouter()
@@ -39,7 +42,7 @@ def _identificador(item) -> str:
 
 
 async def _listar_rascunhos(
-    db: AsyncSession, id_usuario: int
+    db: AsyncSession, id_usuario: int, *, limite: int, offset: int
 ) -> list[RascunhoMeuPainelItem]:
     result = await db.execute(
         text(
@@ -49,10 +52,16 @@ async def _listar_rascunhos(
                    r.criado_em, r.atualizado_em,
                    COALESCE(m.total, 0) AS municipios,
                    COALESCE(l.total, 0) AS localidades,
+                   COALESCE(c.total, 0) AS coordenadas,
                    COALESCE(p.total, 0) AS publico_alvo,
                    COALESCE(o.total, 0) AS obras,
                    (NULLIF(BTRIM(r.observacao_geral), '') IS NOT NULL) AS observacao_geral
             FROM painel_dsr.tb_revisao_instrumento r
+            LEFT JOIN LATERAL (
+                SELECT COUNT(*) AS total
+                FROM painel_dsr.tb_revisao_instrumento_coordenada x
+                WHERE x.id_revisao = r.id_revisao
+            ) c ON TRUE
             LEFT JOIN LATERAL (
                 SELECT COUNT(*) AS total
                 FROM painel_dsr.tb_revisao_instrumento_municipio x
@@ -83,9 +92,10 @@ async def _listar_rascunhos(
             ) o ON TRUE
             WHERE r.id_usuario = :id_usuario AND r.status = 'rascunho'
             ORDER BY r.atualizado_em DESC, r.id_revisao DESC
+            LIMIT :limite OFFSET :offset
             """
         ),
-        {"id_usuario": id_usuario},
+        {"id_usuario": id_usuario, "limite": limite, "offset": offset},
     )
     itens = []
     for row in result.mappings().all():
@@ -111,11 +121,36 @@ async def _listar_rascunhos(
     return itens
 
 
+async def _contar_rascunhos(db: AsyncSession, id_usuario: int) -> int:
+    result = await db.execute(
+        text(
+            """SELECT COUNT(*) FROM painel_dsr.tb_revisao_instrumento
+               WHERE id_usuario = :id_usuario AND status = 'rascunho'"""
+        ),
+        {"id_usuario": id_usuario},
+    )
+    return int(result.scalar_one() or 0)
+
+
+async def _pendencias_coordenadas(db: AsyncSession, identificadores: list[str]) -> dict[str, int]:
+    """Agrega as coordenadas atribuídas em uma única consulta."""
+    resumo = await resumir_coordenadas_instrumentos(db, identificadores)
+    return {chave: valores["pendentes"] for chave, valores in resumo.items()}
+
+
 async def _listar_pendencias(
-    db: AsyncSession, usuario: UsuarioAutenticado
+    db: AsyncSession,
+    usuario: UsuarioAutenticado,
+    identificador: str | None = None,
 ) -> list[InstrumentoPendenteItem]:
     """Reusa a mesma montagem e `calcular_completude` do fluxo de envio."""
     atribuicoes = await _buscar_meus_instrumentos(db, usuario)
+    if identificador is not None:
+        alvo = identificador.strip()
+        atribuicoes = [item for item in atribuicoes if _identificador(item) == alvo]
+    coordenadas_por_instrumento = await _pendencias_coordenadas(
+        db, [_identificador(item) for item in atribuicoes]
+    )
     itens: list[InstrumentoPendenteItem] = []
     for atribuicao in atribuicoes:
         identificador = _identificador(atribuicao)
@@ -128,7 +163,8 @@ async def _listar_pendencias(
             continue
         resposta = await _montar_resposta_busca(db, instrumento, usuario)
         completude = resposta.completude
-        total = int(completude.get("total_pendencias") or 0)
+        coordenadas = coordenadas_por_instrumento.get(identificador, 0)
+        total = int(completude.get("total_pendencias") or 0) + coordenadas
         if total == 0:
             continue
         itens.append(
@@ -142,6 +178,7 @@ async def _listar_pendencias(
                 grupos=PendenciasPorGrupo(
                     municipios=int(completude.get("municipios_pendentes") or 0),
                     localidades=int(completude.get("localidades_pendentes") or 0),
+                    coordenadas=coordenadas,
                     publico_alvo=int(bool(completude.get("publico_alvo_pendente"))),
                     obras=int(completude.get("obras_pendentes") or 0),
                 ),
@@ -152,10 +189,15 @@ async def _listar_pendencias(
 
 @router.get("", response_model=MeuPainelResponse)
 async def consultar_meu_painel(
+    rascunhos_limit: Annotated[int, Query(ge=1, le=1000)] = 5,
+    rascunhos_offset: Annotated[int, Query(ge=0)] = 0,
     usuario: UsuarioAutenticado = Depends(obter_usuario_atual),
     db: AsyncSession = Depends(get_db),
 ):
-    rascunhos = await _listar_rascunhos(db, usuario.id_usuario)
+    rascunhos = await _listar_rascunhos(
+        db, usuario.id_usuario, limite=rascunhos_limit, offset=rascunhos_offset
+    )
+    rascunhos_total = await _contar_rascunhos(db, usuario.id_usuario)
     pendencias = await _listar_pendencias(db, usuario)
     enviadas_result = await db.execute(
         text(
@@ -170,9 +212,12 @@ async def consultar_meu_painel(
     return MeuPainelResponse(
         resumo=ResumoMeuPainel(
             instrumentos_com_pendencias=len(pendencias),
-            rascunhos=len(rascunhos),
+            rascunhos=rascunhos_total,
             revisoes_enviadas=enviadas,
         ),
         pendencias=pendencias,
         rascunhos=rascunhos,
+        rascunhos_total=rascunhos_total,
+        rascunhos_limit=rascunhos_limit,
+        rascunhos_offset=rascunhos_offset,
     )
