@@ -5,6 +5,7 @@ import { notificacoesApi } from '@/api/notificacoes'
 import styles from './NotificationCenter.module.css'
 
 const LIMITE = 20
+const LIMITE_COMPACTO = 5
 
 function formatarData(value) {
   const data = new Date(value)
@@ -21,16 +22,18 @@ export default function NotificationCenter({ compact = false }) {
   const [dados, setDados] = useState(null)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
+  const [expandido, setExpandido] = useState(false)
+  const limiteAtual = compact && !expandido ? LIMITE_COMPACTO : LIMITE
 
   useEffect(() => {
     let ativo = true
     Promise.resolve().then(() => { if (ativo) { setCarregando(true); setErro('') } })
-    notificacoesApi.listar({ page: pagina, limit: LIMITE })
+    notificacoesApi.listar({ page: pagina, limit: limiteAtual })
       .then((resultado) => { if (ativo) setDados(resultado) })
       .catch(() => { if (ativo) setErro('Não foi possível carregar as notificações.') })
       .finally(() => { if (ativo) setCarregando(false) })
     return () => { ativo = false }
-  }, [pagina])
+  }, [limiteAtual, pagina])
 
   useEffect(() => {
     function sincronizar(event) {
@@ -90,7 +93,7 @@ export default function NotificationCenter({ compact = false }) {
         <div>
           <div className={styles.titleRow}>
             <h2 id="notificacoes-title">Notificações</h2>
-            {compact && <span className={styles.count}>{dados?.nao_lidas ?? 0}</span>}
+            {compact && <span className={styles.count}>{dados?.total ?? 0}</span>}
           </div>
           <p>Acompanhe os acontecimentos relacionados ao seu trabalho.</p>
         </div>
@@ -127,11 +130,18 @@ export default function NotificationCenter({ compact = false }) {
           ))}
         </div>
       )}
-      {!carregando && !erro && dados?.total_paginas > 1 && (
+      {!carregando && !erro && (!compact || expandido) && dados?.total_paginas > 1 && (
         <nav className={styles.pagination} aria-label="Paginação das notificações">
           <button type="button" disabled={pagina === 1} onClick={() => setPagina((valor) => valor - 1)}><ChevronLeft /> Anterior</button>
           <span>Página {pagina} de {dados.total_paginas}</span>
           <button type="button" disabled={pagina >= dados.total_paginas} onClick={() => setPagina((valor) => valor + 1)}>Próxima <ChevronRight /></button>
+        </nav>
+      )}
+      {compact && !carregando && !erro && (dados?.total ?? 0) > LIMITE_COMPACTO && (
+        <nav className={styles.pagination} aria-label="Controle da lista de notificações">
+          <button type="button" onClick={() => { setExpandido((valor) => !valor); setPagina(1) }}>
+            {expandido ? 'Mostrar menos' : 'Ver todas as notificações'}
+          </button>
         </nav>
       )}
     </section>

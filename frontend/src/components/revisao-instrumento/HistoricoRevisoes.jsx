@@ -5,6 +5,7 @@ import { revisaoInstrumentoApi } from '@/api/revisaoInstrumento'
 import styles from './HistoricoRevisoes.module.css'
 
 const LIMITE = 20
+const LIMITE_COMPACTO = 5
 
 function formatarData(value) {
   if (!value) return 'Data de envio não informada'
@@ -32,6 +33,8 @@ export default function HistoricoRevisoes({ escopo, embedded = false, compact = 
   const [pagina, setPagina] = useState(1)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
+  const [expandido, setExpandido] = useState(false)
+  const limiteAtual = compact && !expandido ? LIMITE_COMPACTO : LIMITE
 
   useEffect(() => {
     let ativo = true
@@ -42,10 +45,10 @@ export default function HistoricoRevisoes({ escopo, embedded = false, compact = 
     })
 
     const requisicao = pessoal
-      ? revisaoInstrumentoApi.buscarMinhasRevisoes({ busca: buscaAplicada, page: pagina, limit: LIMITE })
+      ? revisaoInstrumentoApi.buscarMinhasRevisoes({ busca: buscaAplicada, page: pagina, limit: limiteAtual })
       : revisaoInstrumentoApi.buscarHistoricoInstrumento(
         identificadorRota,
-        { page: pagina, limit: LIMITE },
+        { page: pagina, limit: limiteAtual },
       )
 
     requisicao
@@ -56,7 +59,7 @@ export default function HistoricoRevisoes({ escopo, embedded = false, compact = 
       .finally(() => { if (ativo) setCarregando(false) })
 
     return () => { ativo = false }
-  }, [buscaAplicada, identificadorRota, pagina, pessoal])
+  }, [buscaAplicada, identificadorRota, limiteAtual, pagina, pessoal])
 
   function pesquisar(event) {
     event.preventDefault()
@@ -163,7 +166,7 @@ export default function HistoricoRevisoes({ escopo, embedded = false, compact = 
         </>
       )}
 
-      {!carregando && !erro && resultado?.total_paginas > 1 && (
+      {!carregando && !erro && (!compact || expandido) && resultado?.total_paginas > 1 && (
         <nav className={styles.pagination} aria-label="Paginação do histórico">
           <button type="button" disabled={pagina === 1} onClick={() => setPagina((atual) => atual - 1)}>
             <ChevronLeft size={17} /> Anterior
@@ -177,6 +180,13 @@ export default function HistoricoRevisoes({ escopo, embedded = false, compact = 
             Próxima <ChevronRight size={17} />
           </button>
         </nav>
+      )}
+      {compact && !carregando && !erro && (resultado?.total ?? 0) > LIMITE_COMPACTO && (
+        <div className={styles.pagination}>
+          <button type="button" onClick={() => { setExpandido((valor) => !valor); setPagina(1) }}>
+            {expandido ? 'Mostrar menos' : 'Ver todas as revisões'}
+          </button>
+        </div>
       )}
     </Root>
   )
