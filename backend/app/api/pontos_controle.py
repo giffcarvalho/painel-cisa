@@ -11,17 +11,19 @@ from app.schemas.pontos_controle import (
     PontosControleBuscaFiltroResponse,
     PontosControleFiltrosResponse,
     PontosControleListaResponse,
+    PontosControleDataDados
 )
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 MV = "instrumento.vw_monitoramento_instrumento"
+MV_MUNICIPIOS = "instrumento.vw_instrumento_municipio"  # Nova Materialized View de Relacionamento
 
 CAMPOS_BUSCA_FILTROS = {
     "nr_instrumento": "nr_instrumento::text",
     "proponente": "proponente",
-    "municipios_beneficiados": "municipios_beneficiados",
+    "municipios_beneficiados": "nome",  # Agora aponta para a coluna 'nome' da view de municípios
     "uf": "uf",
     "carteira_ativa": "carteira_ativa",
     "projeto_aprovado": "projeto_aprovado",
@@ -86,7 +88,6 @@ class FiltrosPontosControle:
             registro_conclusao: list[str] | None = Query(None),
             vigencia: list[str] | None = Query(None),
             status_de_execucao_da_obra: list[str] | None = Query(None),
-            
     ):
         self.nr_instrumento = nr_instrumento
         self.proponente = proponente
@@ -134,6 +135,7 @@ def _build_where(filtros: FiltrosPontosControle) -> tuple[str, dict]:
     clauses: list[str] = []
     params: dict = {}
 
+    # Otimização do Filtro de Municípios Beneficiados usando a nova MV normalizada
     if filtros.municipios_beneficiados:
         municipio_clauses = []
         for i, value in enumerate(filtros.municipios_beneficiados):
@@ -141,35 +143,36 @@ def _build_where(filtros: FiltrosPontosControle) -> tuple[str, dict]:
             if not value:
                 continue
 
-            if "|" in value:
-                municipio, uf = value.split("|", 1)
-
-                municipio_key = f"municipio_beneficiado_{i}"
-                uf_key = f"uf_municipio_beneficiado_{i}"
-
-                municipio_clauses.append(f"""
-                    (
-                        EXISTS (
-                            SELECT 1
-                            FROM regexp_split_to_table(
-                                COALESCE(municipios_beneficiados, ''),
-                                '\\s*[,;/]\\s*'
-                            ) AS municipio
-                            WHERE NULLIF(trim(municipio), '') = :{municipio_key}
-                        )
-                        AND NULLIF(trim(uf), '') = :{uf_key}
-                    )
-                """)
-
-                params[municipio_key] = municipio.strip()
-                params[uf_key] = uf.strip()
-            else:
-                key = f"municipios_beneficiados_{i}"
-                municipio_clauses.append(f"municipios_beneficiados ILIKE :{key}")
-                params[key] = f"%{value}%"
+            key = f"cod_municipio_{i}"
+            municipio_clauses.append(f"""
+                EXISTS (
+                    SELECT 1 
+                    FROM {MV_MUNICIPIOS} m_filtro
+                    WHERE m_filtro.nr_instrumento::text = {MV}.nr_instrumento::text
+                      AND m_filtro.cod_municipio::text = :{key}
+                )
+            """)
+            params[key] = value
 
         if municipio_clauses:
             clauses.append("(" + " OR ".join(municipio_clauses) + ")")
+
+    if filtros.monitor:
+        monitor_clauses = []
+        for i, value in enumerate(filtros.monitor):
+            key = f"monitor_{i}"
+            monitor_clauses.append(f"""
+                EXISTS (
+                    SELECT 1 
+                    FROM painel_dsr.tb_usuario_instrumento_monitoramento ui_f
+                    JOIN painel_dsr.tb_usuario u_f ON u_f.id_usuario = ui_f.id_usuario
+                    WHERE ui_f.nr_instrumento::text = {MV}.nr_instrumento::text
+                    AND u_f.nome ILIKE :{key}
+                )
+            """)
+            params[key] = f"%{value}%"
+        if monitor_clauses:
+            clauses.append("(" + " OR ".join(monitor_clauses) + ")")
 
     list_filters = [
         ("nr_instrumento", filtros.nr_instrumento, "nr_instrumento", "text"),
@@ -180,7 +183,6 @@ def _build_where(filtros: FiltrosPontosControle) -> tuple[str, dict]:
         ("possui_aio", filtros.possui_aio, "possui_aio", None),
         ("coordenacao", filtros.coordenacao, "coordenacao", None),
         ("acao", filtros.acao, "acao", None),
-        ("monitor", filtros.monitor, "monitor", None),
         ("prazo_clausulas_suspensivas", filtros.prazo_clausulas_suspensivas, "prazo_clausulas_suspensivas", None),
         ("prazo_emissao_lae", filtros.prazo_emissao_lae, "prazo_emissao_lae", None),
         ("prazo_inicio_licitacao", filtros.prazo_inicio_licitacao, "prazo_inicio_licitacao", None),
@@ -243,26 +245,30 @@ async def get_filtros(
         municipios AS (
             SELECT json_agg(
                 json_build_object(
-                    'municipio', municipio,
-                    'uf', uf
+                    'cod_municipio', m.cod_municipio,
+                    'municipio', m.nome
                 )
-                ORDER BY municipio, uf
+                ORDER BY m.nome
             ) AS lista
             FROM (
-                SELECT DISTINCT
-                    NULLIF(trim(municipio), '') AS municipio,
-                    NULLIF(trim(uf), '') AS uf
-                FROM base
-                CROSS JOIN LATERAL regexp_split_to_table(
-                    COALESCE(municipios_beneficiados, ''),
-                    '\s*[,;/]\s*'
-                ) AS municipio
-                WHERE NULLIF(trim(municipio), '') IS NOT NULL
-                AND NULLIF(trim(uf), '') IS NOT NULL
+                SELECT DISTINCT m_view.cod_municipio, m_view.nome
+                FROM base b
+                JOIN {MV_MUNICIPIOS} m_view ON m_view.nr_instrumento::text = b.nr_instrumento::text
+                WHERE m_view.nome IS NOT NULL
             ) m
+        ),
+        monitores AS (
+            SELECT 
+                COALESCE(
+                    array_agg(DISTINCT u.nome ORDER BY u.nome) 
+                    FILTER (WHERE u.nome IS NOT NULL), 
+                    ARRAY[]::text[]
+                ) AS lista
+            FROM base b
+            JOIN painel_dsr.tb_usuario_instrumento_monitoramento ui ON ui.nr_instrumento::text = b.nr_instrumento::text
+            JOIN painel_dsr.tb_usuario u ON u.id_usuario = ui.id_usuario
         )
         SELECT
-            
             COALESCE(
                 array_agg(DISTINCT nr_instrumento::text ORDER BY nr_instrumento::text) 
                 FILTER (WHERE nr_instrumento::text IS NOT NULL), 
@@ -317,8 +323,7 @@ async def get_filtros(
             ) AS acao,
             
             COALESCE(
-                array_agg(DISTINCT monitor ORDER BY monitor) 
-                FILTER (WHERE monitor IS NOT NULL), 
+                (SELECT lista FROM monitores), 
                 ARRAY[]::text[]
             ) AS monitor,
 
@@ -471,14 +476,26 @@ async def buscar_opcoes_filtro(
 
     termo = q.strip()
 
-    sql = f"""
-        SELECT DISTINCT {coluna} AS valor
-        FROM {MV}
-        WHERE {coluna} IS NOT NULL
-          AND {coluna} ILIKE :termo
-        ORDER BY valor
-        LIMIT :limit
-    """
+    # Tratamento diferenciado caso o campo buscado seja o município (vindo da nova MV)
+    if campo == "municipios_beneficiados":
+        sql = f"""
+            SELECT DISTINCT cod_municipio AS id, nome AS valor
+            FROM {MV_MUNICIPIOS}
+            WHERE nome IS NOT NULL
+              AND nome ILIKE :termo
+            ORDER BY valor
+            LIMIT :limit
+        """
+        # Nota: Se o seu schema de resposta espera objetos com ID/Valor para municípios no autocomplete, ajuste conforme necessário.
+    else:
+        sql = f"""
+            SELECT DISTINCT {coluna} AS valor
+            FROM {MV}
+            WHERE {coluna} IS NOT NULL
+              AND {coluna} ILIKE :termo
+            ORDER BY valor
+            LIMIT :limit
+        """
 
     result = await _execute_query(
         db,
@@ -565,3 +582,22 @@ async def get_instrumentos(
         tamanho_pagina=tamanho_pagina,
         data=[dict(r) for r in data_result.mappings().all()],
     )
+
+@router.get("/data_dados", response_model=PontosControleDataDados, summary="Informa a data dos dados que alimenta os pontos de controle")
+async def get_data_dados(
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    response.headers["Cache-Control"] = "private, max-age=300"
+    
+    sql = f"""
+        SELECT
+            fonte,
+            data_dados
+        FROM public.tb_data_dados
+        WHERE fonte IN ('transferegov', 'caixa')
+    """
+
+    result = await _execute_query(db, sql)
+
+    return PontosControleDataDados(data=[dict(r) for r in result.mappings().all()])

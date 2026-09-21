@@ -19,14 +19,13 @@ class PontosControleBase(BaseModel):
         return data
 
 class MunicipioBeneficiadoFiltroItem(BaseModel):
-    municipio: str
-    uf: str
-
+    cod_municipio: str  # <--- Ajustado para incluir o ID/Código do município
+    municipio: str      # Nome do município
 
 class PontosControleFiltrosResponse(BaseModel):
     nr_instrumento: list[str]
     proponente: list[str]
-    municipios_beneficiados: list[MunicipioBeneficiadoFiltroItem]
+    municipios_beneficiados: list[MunicipioBeneficiadoFiltroItem]  # <--- Utiliza o novo item estruturado
     uf: list[str]
     carteira_ativa: list[str]
     projeto_aprovado: list[str]
@@ -58,12 +57,10 @@ class PontosControleFiltrosResponse(BaseModel):
     
     model_config = {"from_attributes": True}
 
-
 class PontosControleBuscaFiltroResponse(BaseModel):
     campo: str
     termo: str
     data: list[str]
-
 
 class PontosControleListaItem(PontosControleBase):
     nr_instrumento: str | None = None
@@ -98,10 +95,16 @@ class PontosControleListaItem(PontosControleBase):
     registro_conclusao: str | None = None
     vigencia: str | None = None
     status_de_execucao_da_obra: str | None = None
-    
 
 class PontosControleListaResponse(BaseModel):
     total: int = Field(..., description="Total de registros sem paginação.")
     pagina: int
     tamanho_pagina: int
     data: list[PontosControleListaItem]
+
+class PontosControleDataDadosItem(BaseModel):
+    fonte: str | None = None
+    data_dados: date | None = None
+
+class PontosControleDataDados(BaseModel):
+    data: list[PontosControleDataDadosItem]
