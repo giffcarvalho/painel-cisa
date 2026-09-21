@@ -15,8 +15,8 @@ export default function AnaliseCoordenadaSection({
     identificador,
     situacaoCorrecao,
     setSituacaoCorrecao,
-    observacaoGeral,
-    setObservacaoGeral,
+    observacaoCoordenada,
+    setObservacaoCoordenada,
     painelFiltros,
     setModoAnalise,
     restaurarEstadoOriginal,
@@ -66,7 +66,7 @@ export default function AnaliseCoordenadaSection({
     };
 
     const handleObservacaoChange = (e) => {
-        setObservacaoGeral(e.target.value);
+        setObservacaoCoordenada(e.target.value);
         if (sucessoEnvio) setSucessoEnvio(null);
         if (erroEnvio) setErroEnvio(null);
     };
@@ -98,7 +98,7 @@ export default function AnaliseCoordenadaSection({
             <AnaliseCoordenadaPdf
             identificador={identificador}
             coordenadas={coordenadas}
-            observacaoGeral={observacaoGeral}
+            observacaoCoordenada={observacaoCoordenada}
             situacaoCorrecao={situacaoCorrecao}
             />
         ).toBlob();
@@ -295,7 +295,7 @@ export default function AnaliseCoordenadaSection({
                                 rows="3"
                                 maxLength={180}
                                 placeholder="Observação (opcional)"
-                                value={observacaoGeral}
+                                value={observacaoCoordenada}
                                 onChange={handleObservacaoChange}
                             />
 

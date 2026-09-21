@@ -1663,7 +1663,8 @@ async def get_dados_analise_coordenadas(
                 rc.id_coordenada,
                 rc.id_revisao,
                 rc.situacao_analise,
-                rc.situacao_correcao
+                rc.situacao_correcao,
+                rc.observacao_coordenada
             FROM painel_dsr.tb_revisao_instrumento_coordenada rc
             ORDER BY rc.id_coordenada, rc.criado_em DESC NULLS LAST
         )
@@ -1676,7 +1677,7 @@ async def get_dados_analise_coordenadas(
             geo.longitude,
             rc.situacao_analise,
             rc.situacao_correcao,
-            ri.observacao_geral
+            COALESCE(rc.observacao_coordenada, ri.observacao_geral) AS observacao_coordenada
         FROM instrumento.vw_geometrias_carteira_dsr geo
         LEFT JOIN ultimas_revisoes_coord rc ON rc.id_coordenada = geo.id_coordenada
         LEFT JOIN painel_dsr.tb_revisao_instrumento ri ON ri.id_revisao = rc.id_revisao
@@ -1728,7 +1729,6 @@ async def _criar_revisao_instrumento(
     db: AsyncSession,
     instrumento: InstrumentoRevisaoInfo,
     id_usuario: int,
-    observacao_geral: str | None = None,
 ) -> dict:
     result = await db.execute(
         text(
@@ -1742,7 +1742,6 @@ async def _criar_revisao_instrumento(
                 id_usuario,
                 status,
                 enviado_em,
-                observacao_geral,
                 id_revisao_anterior
             )
             VALUES (
@@ -1754,7 +1753,6 @@ async def _criar_revisao_instrumento(
                 :id_usuario,
                 'enviado',
                 NOW(),
-                NULLIF(BTRIM(:observacao_geral), ''),
                 (
                     SELECT id_revisao
                     FROM painel_dsr.tb_revisao_instrumento anterior
@@ -1781,7 +1779,6 @@ async def _criar_revisao_instrumento(
             "nr_proposta": instrumento.nr_proposta,
             "nr_ted": instrumento.nr_ted,
             "id_usuario": id_usuario,
-            "observacao_geral": observacao_geral,
         },
     )
 
@@ -1792,9 +1789,9 @@ async def _criar_revisao_instrumento(
 # função que busca no banco a ultima análise de cada coordenada para testar se realmente o que veio do frontend está alterando a situação de alguma coordenada
 #além da situacao_analise de cada coordenadas, deve ser testado também:
     #se houve alteração em situacao_correcao (que também está em tb_revisao_instrumento_coordenada)
-    #se houve alteração em observacao_geral (que está em tb_revisao_instrumento)
+#se houve alteração em observacao_coordenada (que está em tb_revisao_instrumento_coordenada)
 #então, se houve alteracao somente em situacao_analise, a função continua só retornando as coordenadas que sofreram essa alteração
-#mas se houve alteração em observacao_geral ou situacao_correcao todas as coordenadas devem ser consideradas alteradas, pois esses campos são comuns a todas as coordenadas 
+#mas se houve alteração em observacao_coordenada ou situacao_correcao todas as coordenadas devem ser consideradas alteradas, pois esses campos são comuns a todas as coordenadas
 async def _buscar_coordenadas_alteradas(
     db: AsyncSession,
     coordenadas: list[CoordenadaAnaliseCreate],
@@ -1812,7 +1809,7 @@ async def _buscar_coordenadas_alteradas(
             rc.id_coordenada,
             rc.situacao_analise,
             rc.situacao_correcao,
-            ri.observacao_geral
+            COALESCE(rc.observacao_coordenada, ri.observacao_geral) AS observacao_coordenada
         FROM painel_dsr.tb_revisao_instrumento_coordenada rc
         INNER JOIN painel_dsr.tb_revisao_instrumento ri ON ri.id_revisao = rc.id_revisao
         WHERE rc.id_coordenada = ANY(:ids_coordenadas)
@@ -1828,7 +1825,7 @@ async def _buscar_coordenadas_alteradas(
         return coordenadas
 
     primeira_linha = linhas_banco[0]
-    obs_atual_banco = primeira_linha["observacao_geral"]
+    obs_atual_banco = primeira_linha["observacao_coordenada"]
     correcao_atual_banco = primeira_linha["situacao_correcao"]
     
     obs_mudou = (obs_atual_banco or None) != (nova_observacao or None)
@@ -1855,6 +1852,7 @@ async def _persistir_coordenada_revisao(
     db: AsyncSession,
     id_revisao: int,
     situacao_correcao: str | None,
+    observacao_coordenada: str | None,
     coordenada: CoordenadaAnaliseCreate,
 ) -> dict:
     result = await db.execute(
@@ -1865,14 +1863,16 @@ async def _persistir_coordenada_revisao(
                 id_coordenada,
                 cod_tci,
                 situacao_analise,
-                situacao_correcao
+                situacao_correcao,
+                observacao_coordenada
             )
             VALUES (
                 :id_revisao,
                 :id_coordenada,
                 :cod_tci,
                 :situacao_analise,
-                :situacao_correcao
+                :situacao_correcao,
+                :observacao_coordenada
             )
             RETURNING
                 id_revisao_coordenada,
@@ -1881,6 +1881,7 @@ async def _persistir_coordenada_revisao(
                 cod_tci,
                 situacao_analise,
                 situacao_correcao,
+                observacao_coordenada,
                 criado_em
             """
         ),
@@ -1890,6 +1891,7 @@ async def _persistir_coordenada_revisao(
             "cod_tci": coordenada.cod_tci,
             "situacao_analise": coordenada.situacao_analise,
             "situacao_correcao": situacao_correcao,
+            "observacao_coordenada": observacao_coordenada,
         },
     )
 
@@ -1926,7 +1928,7 @@ async def salvar_analise_coordenadas(
         coordenadas_alteradas = await _buscar_coordenadas_alteradas(
             db, 
             payload.coordenadas,
-            nova_observacao=payload.observacao_geral,
+            nova_observacao=payload.observacao_coordenada,
             nova_situacao_correcao=payload.situacao_correcao
         )
         
@@ -1940,7 +1942,6 @@ async def salvar_analise_coordenadas(
             db,
             instrumento,
             usuario_atual.id_usuario,
-            observacao_geral=payload.observacao_geral,
         )
 
         id_revisao = revisao["id_revisao"]
@@ -1949,7 +1950,8 @@ async def salvar_analise_coordenadas(
             await _persistir_coordenada_revisao(
                 db,
                 id_revisao,
-                situacao_correcao=payload.situacao_correcao, # <--- vírgula corrigida
+                situacao_correcao=payload.situacao_correcao,
+                observacao_coordenada=payload.observacao_coordenada,
                 coordenada=coordenada,
             )
 

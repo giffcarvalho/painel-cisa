@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
 export const AnaliseCoordenadaPdf = ({
   identificador,
   coordenadas = [],
-  observacaoGeral,
+  observacaoCoordenada,
   situacaoCorrecao,
 }) => (
   <Document>
@@ -195,11 +195,11 @@ export const AnaliseCoordenadaPdf = ({
         })}
       </View>
 
-      {/* Observação Geral */}
-      {observacaoGeral && observacaoGeral.trim() !== '' && (
+      {/* Observação */}
+      {observacaoCoordenada && observacaoCoordenada.trim() !== '' && (
         <View style={styles.sectionObs} wrap={false}>
           <Text style={styles.labelObs}>Observação:</Text>
-          <Text style={styles.textObs}>{observacaoGeral}</Text>
+          <Text style={styles.textObs}>{observacaoCoordenada}</Text>
         </View>
       )}
 
