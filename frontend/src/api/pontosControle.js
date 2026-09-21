@@ -93,11 +93,18 @@ export const getInstrumentos = async (filtros = {}, pagina = 1, tamanhoPagina = 
 };
 
 
+export const getDataDados = async () => {
+  const { data } = await api.get('/pontos-controle/data_dados');
+
+  return data;
+};
+
 
 const pontosControleApi = {
   getFiltros,
   buscarFiltro,
   getInstrumentos,
+  getDataDados
 };
 
 export default pontosControleApi;
