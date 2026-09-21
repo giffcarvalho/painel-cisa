@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { FiltrosPontosControleProvider } from '../../context/pontos-controle/filtrosContext';
 import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltrosPontosControle';
 import { useInstrumentosPontosControleQuery } from '../../hooks/usePontosControle';
-import FiltrosPontosControle from '../../components/pontos-controle/FiltrosPontosControle';
+import TabelaPontosControle from '../../components/pontos-controle/TabelaPontosControle';
 import styles from './PontosControle.module.css';
 
 const getItens = (data) => {
@@ -60,15 +60,12 @@ function PontosControleContent() {
       <header className={styles.header}>
         <div>
           <h1>Pontos de Controle</h1>
-          <p>
-            Consulte um instrumento, monitor, UF, ação ou município beneficiado.
-          </p>
         </div>
       </header>
 
-      <FiltrosPontosControle />
       
-      {/* <section className={styles.contentGrid}>
+      
+      {<section className={styles.contentGrid}>
         <TabelaPontosControle
           data={instrumentosQuery.data}
           isLoading={instrumentosQuery.isLoading}
@@ -84,7 +81,7 @@ function PontosControleContent() {
           nrInstrumentoSelecionado={nrInstrumentoSelecionado}
           onSelectInstrumento={setNrInstrumentoSelecionado}
         />
-      </section> */}
+      </section>}
 
     </main>
   );
