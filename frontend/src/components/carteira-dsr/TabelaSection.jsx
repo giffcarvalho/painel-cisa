@@ -106,7 +106,7 @@ export default function TabelaSection() {
               : formatDate(value)
           }
         })
-        return now
+        return row
       })
 
       await exportToExcel({
