@@ -19,27 +19,106 @@ logger = logging.getLogger(__name__)
 MV = "instrumento.vw_monitoramento_instrumento"
 
 CAMPOS_BUSCA_FILTROS = {
-    "monitor": "monitor",
-    "municipios_beneficiados": "municipios_beneficiados",
     "nr_instrumento": "nr_instrumento::text",
-    "uf": "uf::text",
-    "acao": "acao::text",
+    "proponente": "proponente",
+    "municipios_beneficiados": "municipios_beneficiados",
+    "uf": "uf",
+    "carteira_ativa": "carteira_ativa",
+    "projeto_aprovado": "projeto_aprovado",
+    "possui_aio": "possui_aio",
+    "coordenacao": "coordenacao",
+    "acao": "acao",
+    "monitor": "monitor",
+    "prazo_clausulas_suspensivas": "prazo_clausulas_suspensivas",
+    "prazo_emissao_lae": "prazo_emissao_lae",
+    "prazo_inicio_licitacao": "prazo_inicio_licitacao",
+    "prazo_conclusao_licitacao": "prazo_conclusao_licitacao",
+    "prazo_vrpl": "prazo_vrpl",
+    "prazo_contratacao": "prazo_contratacao",
+    "prazo_solicitacao_aio": "prazo_solicitacao_aio",
+    "prazo_analise_tecnica_aio": "prazo_analise_tecnica_aio",
+    "prazo_analise_executiva_aio": "prazo_analise_executiva_aio",
+    "prazo_registro_aio": "prazo_registro_aio",
+    "prazo_emissao_os": "prazo_emissao_os",
+    "prazo_inicio_execucao_fisica": "prazo_inicio_execucao_fisica",
+    "prazo_progresso_fisico": "prazo_progresso_fisico",
+    "prazo_indicio_paralisacao": "prazo_indicio_paralisacao",
+    "status_paralisacao_obra": "status_paralisacao_obra",
+    "vistoria_in_loco_parciais": "vistoria_in_loco_parciais",
+    "prazo_vistoria_final": "prazo_vistoria_final",
+    "obras_proximas_conclusao": "obras_proximas_conclusao",
+    "registro_conclusao": "registro_conclusao",
+    "vigencia": "vigencia",
+    "status_de_execucao_da_obra": "status_de_execucao_da_obra",
 }
 
 class FiltrosPontosControle:
     def __init__(
             self,
-            monitor: list[str] | None = Query(None),
-            municipios_beneficiados: list[str] | None = Query(None),
             nr_instrumento: list[str] | None = Query(None),
+            proponente: list[str] | None = Query(None),
+            municipios_beneficiados: list[str] | None = Query(None),
             uf: list[str] | None = Query(None),
+            carteira_ativa: list[str] | None = Query(None),
+            projeto_aprovado: list[str] | None = Query(None),
+            possui_aio: list[str] | None = Query(None),
+            coordenacao: list[str] | None = Query(None),
             acao: list[str] | None = Query(None),
+            monitor: list[str] | None = Query(None),
+            prazo_clausulas_suspensivas: list[str] | None = Query(None),
+            prazo_emissao_lae: list[str] | None = Query(None),
+            prazo_inicio_licitacao: list[str] | None = Query(None),
+            prazo_conclusao_licitacao: list[str] | None = Query(None),
+            prazo_vrpl: list[str] | None = Query(None),
+            prazo_contratacao: list[str] | None = Query(None),
+            prazo_solicitacao_aio: list[str] | None = Query(None),
+            prazo_analise_tecnica_aio: list[str] | None = Query(None),
+            prazo_analise_executiva_aio: list[str] | None = Query(None),
+            prazo_registro_aio: list[str] | None = Query(None),
+            prazo_emissao_os: list[str] | None = Query(None),
+            prazo_inicio_execucao_fisica: list[str] | None = Query(None),
+            prazo_progresso_fisico: list[str] | None = Query(None),
+            prazo_indicio_paralisacao: list[str] | None = Query(None),
+            status_paralisacao_obra: list[str] | None = Query(None),
+            vistoria_in_loco_parciais: list[str] | None = Query(None),
+            prazo_vistoria_final: list[str] | None = Query(None),
+            obras_proximas_conclusao: list[str] | None = Query(None),
+            registro_conclusao: list[str] | None = Query(None),
+            vigencia: list[str] | None = Query(None),
+            status_de_execucao_da_obra: list[str] | None = Query(None),
+            
     ):
-        self.monitor = monitor
-        self.municipios_beneficiados = municipios_beneficiados
         self.nr_instrumento = nr_instrumento
+        self.proponente = proponente
+        self.municipios_beneficiados = municipios_beneficiados
         self.uf = uf
+        self.carteira_ativa = carteira_ativa
+        self.projeto_aprovado = projeto_aprovado
+        self.possui_aio = possui_aio
+        self.coordenacao = coordenacao
         self.acao = acao
+        self.monitor = monitor
+        self.prazo_clausulas_suspensivas = prazo_clausulas_suspensivas
+        self.prazo_emissao_lae = prazo_emissao_lae
+        self.prazo_inicio_licitacao = prazo_inicio_licitacao
+        self.prazo_conclusao_licitacao = prazo_conclusao_licitacao
+        self.prazo_vrpl = prazo_vrpl
+        self.prazo_contratacao = prazo_contratacao
+        self.prazo_solicitacao_aio = prazo_solicitacao_aio
+        self.prazo_analise_tecnica_aio = prazo_analise_tecnica_aio
+        self.prazo_analise_executiva_aio = prazo_analise_executiva_aio
+        self.prazo_registro_aio = prazo_registro_aio
+        self.prazo_emissao_os = prazo_emissao_os
+        self.prazo_inicio_execucao_fisica = prazo_inicio_execucao_fisica
+        self.prazo_progresso_fisico = prazo_progresso_fisico
+        self.prazo_indicio_paralisacao = prazo_indicio_paralisacao
+        self.status_paralisacao_obra = status_paralisacao_obra
+        self.vistoria_in_loco_parciais = vistoria_in_loco_parciais
+        self.prazo_vistoria_final = prazo_vistoria_final
+        self.obras_proximas_conclusao = obras_proximas_conclusao
+        self.registro_conclusao = registro_conclusao
+        self.vigencia = vigencia
+        self.status_de_execucao_da_obra = status_de_execucao_da_obra
 
 async def _execute_query(db: AsyncSession, sql: str, params: dict | None = None) -> CursorResult:
     try:
@@ -93,11 +172,36 @@ def _build_where(filtros: FiltrosPontosControle) -> tuple[str, dict]:
             clauses.append("(" + " OR ".join(municipio_clauses) + ")")
 
     list_filters = [
-        ("monitor", filtros.monitor, "monitor", None),
         ("nr_instrumento", filtros.nr_instrumento, "nr_instrumento", "text"),
-        ("uf", filtros.uf, "uf", "text"),
-        ("acao", filtros.acao, "acao", "text"),
-        
+        ("proponente", filtros.proponente, "proponente", None),
+        ("uf", filtros.uf, "uf", None),
+        ("carteira_ativa", filtros.carteira_ativa, "carteira_ativa", None),
+        ("projeto_aprovado", filtros.projeto_aprovado, "projeto_aprovado", None),
+        ("possui_aio", filtros.possui_aio, "possui_aio", None),
+        ("coordenacao", filtros.coordenacao, "coordenacao", None),
+        ("acao", filtros.acao, "acao", None),
+        ("monitor", filtros.monitor, "monitor", None),
+        ("prazo_clausulas_suspensivas", filtros.prazo_clausulas_suspensivas, "prazo_clausulas_suspensivas", None),
+        ("prazo_emissao_lae", filtros.prazo_emissao_lae, "prazo_emissao_lae", None),
+        ("prazo_inicio_licitacao", filtros.prazo_inicio_licitacao, "prazo_inicio_licitacao", None),
+        ("prazo_conclusao_licitacao", filtros.prazo_conclusao_licitacao, "prazo_conclusao_licitacao", None),
+        ("prazo_vrpl", filtros.prazo_vrpl, "prazo_vrpl", None),
+        ("prazo_contratacao", filtros.prazo_contratacao, "prazo_contratacao", None),
+        ("prazo_solicitacao_aio", filtros.prazo_solicitacao_aio, "prazo_solicitacao_aio", None),
+        ("prazo_analise_tecnica_aio", filtros.prazo_analise_tecnica_aio, "prazo_analise_tecnica_aio", None),
+        ("prazo_analise_executiva_aio", filtros.prazo_analise_executiva_aio, "prazo_analise_executiva_aio", None),
+        ("prazo_registro_aio", filtros.prazo_registro_aio, "prazo_registro_aio", None),
+        ("prazo_emissao_os", filtros.prazo_emissao_os, "prazo_emissao_os", None),
+        ("prazo_inicio_execucao_fisica", filtros.prazo_inicio_execucao_fisica, "prazo_inicio_execucao_fisica", None),
+        ("prazo_progresso_fisico", filtros.prazo_progresso_fisico, "prazo_progresso_fisico", None),
+        ("prazo_indicio_paralisacao", filtros.prazo_indicio_paralisacao, "prazo_indicio_paralisacao", None),
+        ("status_paralisacao_obra", filtros.status_paralisacao_obra, "status_paralisacao_obra", None),
+        ("vistoria_in_loco_parciais", filtros.vistoria_in_loco_parciais, "vistoria_in_loco_parciais", None),
+        ("prazo_vistoria_final", filtros.prazo_vistoria_final, "prazo_vistoria_final", None),
+        ("obras_proximas_conclusao", filtros.obras_proximas_conclusao, "obras_proximas_conclusao", None),
+        ("registro_conclusao", filtros.registro_conclusao, "registro_conclusao", None),
+        ("vigencia", filtros.vigencia, "vigencia", None),
+        ("status_de_execucao_da_obra", filtros.status_de_execucao_da_obra, "status_de_execucao_da_obra", None),
     ]
 
     for col, values, param_key, cast_type in list_filters:
@@ -137,56 +241,213 @@ async def get_filtros(
             {where}
         ),
         municipios AS (
-            SELECT DISTINCT
-                NULLIF(trim(municipio), '') AS municipio,
-                NULLIF(trim(uf), '') AS uf
-            FROM base
-            CROSS JOIN LATERAL regexp_split_to_table(
-                COALESCE(municipios_beneficiados, ''),
-                '\s*[,;/]\s*'
-            ) AS municipio
-            WHERE NULLIF(trim(municipio), '') IS NOT NULL
-              AND NULLIF(trim(uf), '') IS NOT NULL 
+            SELECT json_agg(
+                json_build_object(
+                    'municipio', municipio,
+                    'uf', uf
+                )
+                ORDER BY municipio, uf
+            ) AS lista
+            FROM (
+                SELECT DISTINCT
+                    NULLIF(trim(municipio), '') AS municipio,
+                    NULLIF(trim(uf), '') AS uf
+                FROM base
+                CROSS JOIN LATERAL regexp_split_to_table(
+                    COALESCE(municipios_beneficiados, ''),
+                    '\s*[,;/]\s*'
+                ) AS municipio
+                WHERE NULLIF(trim(municipio), '') IS NOT NULL
+                AND NULLIF(trim(uf), '') IS NOT NULL
+            ) m
         )
         SELECT
-            COALESCE((
-                SELECT array_remove(
-                    array_agg(DISTINCT monitor ORDER BY monitor),
-                    NULL
-                )
-                FROM base
-            ), ARRAY[]::text[]) AS monitor,
-            COALESCE((
-                    SELECT json_agg(
-                        json_build_object(
-                            'municipio', municipio,
-                            'uf', uf
-                        )
-                        ORDER BY municipio, uf
-                    )
-                    FROM municipios
-                ), '[]'::json) AS municipios_beneficiados,
-            COALESCE((
-                SELECT array_remove(
-                    array_agg(DISTINCT nr_instrumento::text ORDER BY nr_instrumento::text),
-                    NULL
-                )
-                FROM base
-            ), ARRAY[]::text[]) AS nr_instrumento,
-            COALESCE((
-                SELECT array_remove(
-                    array_agg(DISTINCT uf::text ORDER BY uf::text),
-                    NULL
-                )
-                FROM base
-            ), ARRAY[]::text[]) AS uf,
-            COALESCE((
-                SELECT array_remove(
-                    array_agg(DISTINCT acao::text ORDER BY acao::text),
-                    NULL
-                )
-                FROM base
-            ), ARRAY[]::text[]) AS acao
+            
+            COALESCE(
+                array_agg(DISTINCT nr_instrumento::text ORDER BY nr_instrumento::text) 
+                FILTER (WHERE nr_instrumento::text IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS nr_instrumento,
+
+            COALESCE(
+                array_agg(DISTINCT proponente ORDER BY proponente) 
+                FILTER (WHERE proponente IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS proponente,
+
+            COALESCE(
+                (SELECT lista FROM municipios), 
+                '[]'::json
+            ) AS municipios_beneficiados,
+            
+            COALESCE(
+                array_agg(DISTINCT uf ORDER BY uf) 
+                FILTER (WHERE uf IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS uf,
+            
+            COALESCE(
+                array_agg(DISTINCT carteira_ativa ORDER BY carteira_ativa) 
+                FILTER (WHERE carteira_ativa IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS carteira_ativa,
+            
+            COALESCE(
+                array_agg(DISTINCT projeto_aprovado ORDER BY projeto_aprovado) 
+                FILTER (WHERE projeto_aprovado IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS projeto_aprovado,
+
+            COALESCE(
+                array_agg(DISTINCT possui_aio ORDER BY possui_aio) 
+                FILTER (WHERE possui_aio IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS possui_aio,
+            
+            COALESCE(
+                array_agg(DISTINCT coordenacao ORDER BY coordenacao) 
+                FILTER (WHERE coordenacao IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS coordenacao,
+            
+            COALESCE(
+                array_agg(DISTINCT acao ORDER BY acao) 
+                FILTER (WHERE acao IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS acao,
+            
+            COALESCE(
+                array_agg(DISTINCT monitor ORDER BY monitor) 
+                FILTER (WHERE monitor IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS monitor,
+
+            COALESCE(
+                array_agg(DISTINCT prazo_clausulas_suspensivas ORDER BY prazo_clausulas_suspensivas) 
+                FILTER (WHERE prazo_clausulas_suspensivas IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS prazo_clausulas_suspensivas,
+
+            COALESCE(
+                array_agg(DISTINCT prazo_emissao_lae ORDER BY prazo_emissao_lae) 
+                FILTER (WHERE prazo_emissao_lae IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS prazo_emissao_lae,
+
+            COALESCE(
+                array_agg(DISTINCT prazo_inicio_licitacao ORDER BY prazo_inicio_licitacao) 
+                FILTER (WHERE prazo_inicio_licitacao IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS prazo_inicio_licitacao,
+
+            COALESCE(
+                array_agg(DISTINCT prazo_conclusao_licitacao ORDER BY prazo_conclusao_licitacao) 
+                FILTER (WHERE prazo_conclusao_licitacao IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS prazo_conclusao_licitacao,
+
+            COALESCE(
+                array_agg(DISTINCT prazo_vrpl ORDER BY prazo_vrpl) 
+                FILTER (WHERE prazo_vrpl IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS prazo_vrpl,
+
+            COALESCE(
+                array_agg(DISTINCT prazo_contratacao ORDER BY prazo_contratacao) 
+                FILTER (WHERE prazo_contratacao IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS prazo_contratacao,
+
+            COALESCE(
+                array_agg(DISTINCT prazo_solicitacao_aio ORDER BY prazo_solicitacao_aio) 
+                FILTER (WHERE prazo_solicitacao_aio IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS prazo_solicitacao_aio,
+
+            COALESCE(
+                array_agg(DISTINCT prazo_analise_tecnica_aio ORDER BY prazo_analise_tecnica_aio) 
+                FILTER (WHERE prazo_analise_tecnica_aio IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS prazo_analise_tecnica_aio,
+
+            COALESCE(
+                array_agg(DISTINCT prazo_analise_executiva_aio ORDER BY prazo_analise_executiva_aio) 
+                FILTER (WHERE prazo_analise_executiva_aio IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS prazo_analise_executiva_aio,
+
+            COALESCE(
+                array_agg(DISTINCT prazo_registro_aio ORDER BY prazo_registro_aio) 
+                FILTER (WHERE prazo_registro_aio IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS prazo_registro_aio,
+
+            COALESCE(
+                array_agg(DISTINCT prazo_emissao_os ORDER BY prazo_emissao_os) 
+                FILTER (WHERE prazo_emissao_os IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS prazo_emissao_os,
+
+            COALESCE(
+                array_agg(DISTINCT prazo_inicio_execucao_fisica ORDER BY prazo_inicio_execucao_fisica) 
+                FILTER (WHERE prazo_inicio_execucao_fisica IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS prazo_inicio_execucao_fisica,
+
+            COALESCE(
+                array_agg(DISTINCT prazo_progresso_fisico ORDER BY prazo_progresso_fisico) 
+                FILTER (WHERE prazo_progresso_fisico IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS prazo_progresso_fisico,
+
+            COALESCE(
+                array_agg(DISTINCT prazo_indicio_paralisacao ORDER BY prazo_indicio_paralisacao) 
+                FILTER (WHERE prazo_indicio_paralisacao IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS prazo_indicio_paralisacao,
+
+            COALESCE(
+                array_agg(DISTINCT status_paralisacao_obra ORDER BY status_paralisacao_obra) 
+                FILTER (WHERE status_paralisacao_obra IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS status_paralisacao_obra,
+
+            COALESCE(
+                array_agg(DISTINCT vistoria_in_loco_parciais ORDER BY vistoria_in_loco_parciais) 
+                FILTER (WHERE vistoria_in_loco_parciais IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS vistoria_in_loco_parciais,
+
+            COALESCE(
+                array_agg(DISTINCT prazo_vistoria_final ORDER BY prazo_vistoria_final) 
+                FILTER (WHERE prazo_vistoria_final IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS prazo_vistoria_final,
+
+            COALESCE(
+                array_agg(DISTINCT obras_proximas_conclusao ORDER BY obras_proximas_conclusao) 
+                FILTER (WHERE obras_proximas_conclusao IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS obras_proximas_conclusao,
+
+            COALESCE(
+                array_agg(DISTINCT registro_conclusao ORDER BY registro_conclusao) 
+                FILTER (WHERE registro_conclusao IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS registro_conclusao,
+
+            COALESCE(
+                array_agg(DISTINCT vigencia ORDER BY vigencia) 
+                FILTER (WHERE vigencia IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS vigencia,
+
+            COALESCE(
+                array_agg(DISTINCT status_de_execucao_da_obra ORDER BY status_de_execucao_da_obra) 
+                FILTER (WHERE status_de_execucao_da_obra IS NOT NULL), 
+                ARRAY[]::text[]
+            ) AS status_de_execucao_da_obra
+        FROM base;
     """
 
     result = await _execute_query(db, sql, params)
@@ -258,14 +519,37 @@ async def get_instrumentos(
     data_sql = f"""
         SELECT
             nr_instrumento::text AS nr_instrumento,
-            municipios_beneficiados::text AS municipios_beneficiados,
+            proponente,
+            municipios_beneficiados,
             uf,
+            link_transferegov,
             carteira_ativa,
-            possui_aio,
             projeto_aprovado,
-            acao,
+            possui_aio,
             coordenacao,
-            monitor
+            acao,
+            monitor,
+            prazo_clausulas_suspensivas,
+            prazo_emissao_lae,
+            prazo_inicio_licitacao,
+            prazo_conclusao_licitacao,
+            prazo_vrpl,
+            prazo_contratacao,
+            prazo_solicitacao_aio,
+            prazo_analise_tecnica_aio,
+            prazo_analise_executiva_aio,
+            prazo_registro_aio,
+            prazo_emissao_os,
+            prazo_inicio_execucao_fisica,
+            prazo_progresso_fisico,
+            prazo_indicio_paralisacao,
+            status_paralisacao_obra,
+            vistoria_in_loco_parciais,
+            prazo_vistoria_final,
+            obras_proximas_conclusao,
+            registro_conclusao,
+            vigencia,
+            status_de_execucao_da_obra
         FROM {MV}
         {where}
         ORDER BY nr_instrumento::text
