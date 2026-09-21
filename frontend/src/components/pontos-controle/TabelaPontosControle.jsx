@@ -1,7 +1,8 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useState, useRef } from 'react';
 import { formatCurrency } from '../../utils/formatters';
 import styles from '../../pages/pontos-controle/PontosControle.module.css';
 import FiltroColuna from './FiltrosPontosControle';
+import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltrosPontosControle';
 
 
 const emptyValue = (value) => {
@@ -45,8 +46,28 @@ const CelulaStatusPontoControle = ({ valor }) => (
 );
 
 
+const formatarFonte = (fonte) => {
+  switch (fonte?.toLowerCase()) {
+    case 'transferegov':
+      return 'Transferegov';
+    case 'caixa':
+      return 'BDGestores Caixa';
+    default:
+      return fonte || '—';
+  }
+};
+
+const formatarData = (dataStr) => {
+  if (!dataStr) return '—';
+  
+  const [ano, mes, dia] = String(dataStr).split('T')[0].split('-');
+  if (!ano || !mes || !dia) return dataStr;
+  return `${dia}/${mes}/${ano}`;
+};
+
 export default function TabelaPontosControle({
   data,
+  dataDados,
   isLoading,
   isError,
   pagina,
@@ -56,8 +77,10 @@ export default function TabelaPontosControle({
   nrInstrumentoSelecionado,
   onSelectInstrumento,
 }) {
+  
   const [resumoAberto, setResumoAberto] = useState(null);
-
+  const { limparTodosFiltros, totalFiltrosAtivos } = useFiltrosPontosControle();
+  const tableWrapperRef = useRef(null);
   const instrumentos = getItens(data);
   const total = data?.total ?? instrumentos.length;
   const paginaAtual = data?.pagina ?? pagina;
@@ -78,12 +101,65 @@ export default function TabelaPontosControle({
     if (!nrInstrumento) return;
     onSelectInstrumento(nrInstrumento);
   };
+
+  const handleScrollLeft = () => {
+    if (tableWrapperRef.current) {
+      tableWrapperRef.current.scrollBy({ left: -500, behavior: 'smooth' });
+    }
+  };
+
+  const handleScrollRight = () => {
+    if (tableWrapperRef.current) {
+      tableWrapperRef.current.scrollBy({ left: 500, behavior: 'smooth' });
+    }
+  };
   
   return (
     <section className={styles.card}>
+      
       <header className={styles.cardHeader}>
-        <h2>Instrumentos</h2>
-        <p>{total ? `${total} registro(s) encontrado(s)` : 'Resultado da pesquisa'}</p>
+        <div className={styles.cardHeaderInfo}>
+          <h2>Pontos de Controle</h2>
+          <div className={styles.cardHeaderSubInfo}>
+            <p>{total ? `${total} registro(s) encontrado(s)` : 'Resultado da pesquisa'}</p>
+            
+            {totalFiltrosAtivos > 0 && (
+              <button 
+                type="button" 
+                className={styles.btnClearFilters} 
+                onClick={limparTodosFiltros}
+                title="Limpar todos os filtros aplicados"
+              >
+                Limpar filtros ({totalFiltrosAtivos})
+              </button>
+            )}
+          </div>
+        </div>
+        <div className={styles.scrollButtonsGroup}>
+          <button 
+            type="button" 
+            className={styles.scrollArrowButton} 
+            onClick={handleScrollLeft}
+            title="Rolar para esquerda"
+          >
+            &#9664;
+          </button>
+          <button 
+            type="button" 
+            className={styles.scrollArrowButton} 
+            onClick={handleScrollRight}
+            title="Rolar para direita"
+          >
+            &#9654;
+          </button>
+        </div>
+        <div className={styles.cardHeaderDataDados}>
+          {dataDados && getItens(dataDados).map((item, idx) => (
+            <span key={idx} style={{ fontSize: '0.85rem', marginLeft: '10px' }}>
+              <strong>{formatarFonte(item.fonte)}:</strong> {formatarData(item.data_dados)}
+            </span>
+          ))}
+        </div>
       </header>
 
       {isLoading && <div className={styles.state}>Carregando instrumentos...</div>}
@@ -100,7 +176,7 @@ export default function TabelaPontosControle({
 
       {!isLoading && !isError && instrumentos.length > 0 && (
         <>
-          <div className={styles.tableWrapper}>
+          <div className={styles.tableWrapper} ref={tableWrapperRef}>
             <table className={styles.table}>
               <thead>
 
@@ -291,9 +367,9 @@ export default function TabelaPontosControle({
                   value={tamanhoPagina}
                   onChange={(event) => onPageSizeChange(Number(event.target.value))}
                 >
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
+                  <option value={40}>40</option>
+                  <option value={80}>80</option>
+                  <option value={200}>200</option>
                 </select>
               )}
 

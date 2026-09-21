@@ -1,8 +1,10 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 24px;
+  height: 100%;
+  min-height: 0;
+  padding: 8px;
+  box-sizing: border-box;
 }
 
 .header {
@@ -28,13 +30,17 @@
 }
 
 .contentGrid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 20px;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .card {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   background: #ffffff;
@@ -42,28 +48,93 @@
 }
 
 .cardHeader {
-  padding: 16px 18px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.cardHeader h2 {
-  margin: 0;
-  color: #111827;
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.cardHeader p {
-  margin: 4px 0 0;
-  color: #6b7280;
-  font-size: 13px;
-}
-
-.cardHeaderContent {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
+  padding: 8px 18px;
+  border-bottom: 1px solid #e5e7eb;
+  gap: 16px;
+}
+
+.cardHeaderInfo {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.cardHeaderInfo h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.cardHeaderSubInfo {
+  display: flex;
+  align-items: center;
   gap: 12px;
+  margin-top: 2px;
+}
+
+.cardHeaderInfo p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.btnClearFilters {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.8rem;
+  color: #2563eb;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.btnClearFilters:hover {
+  color: #1d4ed8;
+}
+
+.scrollButtonsGroup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.cardHeaderDataDados {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center; 
+  flex: 1;
+}
+
+.scrollArrowButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.scrollArrowButton:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.scrollArrowButton:active {
+  background: #e5e7eb;
 }
 
 .pdfDownloadButton {
@@ -245,7 +316,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 38px;
+  min-height: 28px;
   width: 100%;
   padding: 4px 4px 4px 8px;
   border: 1px solid #d1d5db;
@@ -415,7 +486,8 @@
 
 .tableWrapper {
   width: 100%;
-  max-height: 70vh;
+  flex: 1;
+  min-height: 0;
   overflow: auto;
 }
 

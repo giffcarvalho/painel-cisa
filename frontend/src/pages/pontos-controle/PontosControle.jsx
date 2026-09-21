@@ -4,6 +4,7 @@ import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltr
 import { useInstrumentosPontosControleQuery } from '../../hooks/usePontosControle';
 import TabelaPontosControle from '../../components/pontos-controle/TabelaPontosControle';
 import styles from './PontosControle.module.css';
+import pontosControleApi from '../../api/pontosControle';
 
 const getItens = (data) => {
   if (Array.isArray(data)) return data;
@@ -12,8 +13,9 @@ const getItens = (data) => {
 
 function PontosControleContent() {
   const [pagina, setPagina] = useState(1);
-  const [tamanhoPagina, setTamanhoPagina] = useState(50);
+  const [tamanhoPagina, setTamanhoPagina] = useState(80);
   const [nrInstrumentoSelecionado, setNrInstrumentoSelecionado] = useState(null);
+  const [dataDados, setDataDados] = useState(null);
 
   const { filtros } = useFiltrosPontosControle();
   const instrumentosQuery = useInstrumentosPontosControleQuery(
@@ -21,6 +23,12 @@ function PontosControleContent() {
     pagina,
     tamanhoPagina
   );
+
+  useEffect(() => {
+    pontosControleApi.getDataDados()
+      .then((res) => setDataDados(res))
+      .catch((err) => console.error("Erro ao buscar data dos dados:", err));
+  }, []);
 
   const instrumentos = useMemo(
     () => getItens(instrumentosQuery.data),
@@ -57,17 +65,12 @@ function PontosControleContent() {
 
   return (
     <main className={styles.page}>
-      <header className={styles.header}>
-        <div>
-          <h1>Pontos de Controle</h1>
-        </div>
-      </header>
-
       
-      
+            
       {<section className={styles.contentGrid}>
         <TabelaPontosControle
           data={instrumentosQuery.data}
+          dataDados={dataDados}
           isLoading={instrumentosQuery.isLoading}
           isError={instrumentosQuery.isError}
           pagina={pagina}
