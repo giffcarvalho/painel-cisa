@@ -29,7 +29,7 @@
 
 .contentGrid {
   display: grid;
-  grid-template-columns: minmax(300px, 32%) minmax(0, 1fr);
+  grid-template-columns: 1fr;
   gap: 20px;
   align-items: start;
 }
@@ -242,20 +242,22 @@
 }
 
 .searchableSelectTrigger {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  width: 100%;
   min-height: 38px;
-  padding: 0 10px;
+  width: 100%;
+  padding: 4px 4px 4px 8px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   background: #ffffff;
   color: #111827;
-  font-size: 13px;
+  font-size: 12px;
   text-align: left;
   cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .searchableSelectTrigger:hover:not(:disabled) {
@@ -300,7 +302,8 @@
   top: calc(100% + 4px);
   right: 0;
   left: 0;
-  z-index: 70;
+  z-index: 1000;
+  min-width: 150px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   background: #ffffff;
@@ -374,55 +377,162 @@
   text-align: center;
 }
 
+/* Container pai no cabecalho da tabela, na linha onde vai o filtro */
+.tableFilterHeaderCell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  width: 100%;
+}
+
+.tableFilterHeaderCell .searchableSelect {
+  width: 100%;
+}
+
+/* Botão de limpar filtro no cabeçalho da tabela */
+.clearHeaderFilterButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  padding: 0;
+  background-color: transparent;
+  color: #64748b;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.clearHeaderFilterButton:hover {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
+
 .tableWrapper {
   width: 100%;
+  max-height: 70vh;
   overflow: auto;
 }
 
 .table {
-  width: 100%;
+  width: max-content;
+  min-width: 4200px;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 12.5px;
+  table-layout: fixed;
 }
 
-.table th,
 .table td {
-  padding: 11px 12px;
+  padding: 3px 12px;
   border-bottom: 1px solid #e5e7eb;
   text-align: left;
-  vertical-align: top;
+  vertical-align: center;
 }
 
 .table th {
+  padding: 6px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  vertical-align: middle;
   background: #f9fafb;
   color: #374151;
   font-weight: 700;
-  white-space: nowrap;
+}
+
+.headerRow th {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #f9fafb;
+}
+
+.filterRow th {
+  position: sticky;
+  top: 49px;
+  z-index: 19;
+  background: #f9fafb;
 }
 
 .card {
   min-width: 0;
 }
 
-.table {
-  table-layout: fixed;
-}
-
 .colInstrumento {
-  width: 40%;
+  width: 120px;
 }
 
-.colProposta {
-  width: 34%;
+.colProponente {
+  width: 200px;
+}
+
+.colMunicipios {
+  width: 180px;
+}
+
+.colUf {
+  width: 60px;
+}
+
+.colCarteiraAtiva {
+  width: 110px;
+}
+
+.colProjetoAprovado {
+  width: 110px;
+}
+
+.colPossuiAio {
+  width: 110px;
+}
+
+.colCoordenacao {
+  width: 140px;
+}
+
+.colAcao {
+  width: 220px;
+}
+
+.colMonitores {
+  width: 140px;
+}
+
+.colPontosControle {
+  width: 140px;
 }
 
 .colAcoes {
-  width: 26%;
+  width: 160px;
 }
 
 .compactCell {
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.statusAtencao {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.statusAlerta {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.statusCritico {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.statusVencido {
+  background-color: #fecaca;
+  color: #7f1d1d;
 }
 
 .actionCell {
