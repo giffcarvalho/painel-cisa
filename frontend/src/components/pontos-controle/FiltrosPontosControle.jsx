@@ -1,89 +1,47 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, ChevronDown, RotateCcw, X } from 'lucide-react';
+import { Check, ChevronDown, X } from 'lucide-react';
 import { useOpcoesPontosControleQuery } from '../../hooks/usePontosControle';
 import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltrosPontosControle';
 import styles from '../../pages/pontos-controle/PontosControle.module.css';
 
-const FILTROS = [
-  {
-    campo: 'monitor',
-    label: 'Monitor',
-  },
-  {
-    campo: 'municipios_beneficiados',
-    label: 'Município beneficiado',
-  },
-  {
-    campo: 'nr_instrumento',
-    label: 'Nº instrumento',
-  },
-  {
-    campo: 'uf',
-    label: 'UF',
-  },
-  {
-    campo: 'acao',
-    label: 'Ação',
-  },
-];
-
+// --- Funções Auxiliares de Normalização ---
 const normalizarOpcoes = (opcoes) => {
   if (!Array.isArray(opcoes)) return [];
-
   return opcoes
     .filter((opcao) => opcao !== null && opcao !== undefined && String(opcao).trim() !== '')
-    .map((opcao) => ({
-      value: String(opcao),
-      label: String(opcao),
-    }));
+    .map((opcao) => ({ value: String(opcao), label: String(opcao) }));
 };
 
 const incluirValorSelecionado = (opcoes, valor) => {
   if (!valor) return opcoes;
-
-  if (opcoes.some((opcao) => String(opcao.value) === String(valor))) {
-    return opcoes;
-  }
-
-  return [
-    {
-      value: String(valor),
-      label: String(valor),
-    },
-    ...opcoes,
-  ];
+  if (opcoes.some((opcao) => String(opcao.value) === String(valor))) return opcoes;
+  return [{ value: String(valor), label: String(valor) }, ...opcoes];
 };
 
 const normalizarMunicipiosBeneficiados = (opcoes) => {
   if (!Array.isArray(opcoes)) return [];
-
   return opcoes
     .filter((opcao) => opcao?.municipio && opcao?.uf)
     .map((opcao) => {
       const municipio = String(opcao.municipio).trim();
       const uf = String(opcao.uf).trim();
-
-      return {
-        value: `${municipio}|${uf}`,
-        label: `${municipio} - ${uf}`,
-      };
+      return { value: `${municipio}|${uf}`, label: `${municipio} - ${uf}` };
     });
 };
 
 const normalizarBusca = (valor) =>
-  String(valor ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim()
-    .toLowerCase();
+  String(valor ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
 
 const filtrarOpcoesPorPrefixo = (opcoes, termoBusca) => {
   const termoNormalizado = normalizarBusca(termoBusca);
-  if (!termoNormalizado) {return opcoes};
-  return opcoes.filter((opcao) => normalizarBusca(opcao.label ?? opcao.value).startsWith(termoNormalizado));
+  if (!termoNormalizado) return opcoes;
+  return opcoes.filter((opcao) =>
+    normalizarBusca(opcao.label ?? opcao.value).startsWith(termoNormalizado)
+  );
 };
 
-function SelectPesquisavel({
+// --- Componente Base do Select Pesquisável ---
+export function SelectPesquisavel({
   label,
   value,
   options,
@@ -95,29 +53,19 @@ function SelectPesquisavel({
   const [termoBusca, setTermoBusca] = useState('');
   const containerRef = useRef(null);
 
-  const opcaoSelecionada = options.find(
-    (opcao) => String(opcao.value) === String(value)
-  );
-
+  const opcaoSelecionada = options.find((opcao) => String(opcao.value) === String(value));
   const opcoesFiltradas = useMemo(
     () => filtrarOpcoesPorPrefixo(options, termoBusca),
     [options, termoBusca]
   );
 
   useEffect(() => {
-    if(!aberto) return;
-
+    if (!aberto) return;
     const fecharAoClicarFora = (event) => {
-      if (!containerRef.current?.contains(event.target)) {
-        setAberto(false);
-      }
+      if (!containerRef.current?.contains(event.target)) setAberto(false);
     };
-
     document.addEventListener('mousedown', fecharAoClicarFora);
-
-    return () => {
-      document.removeEventListener('mousedown', fecharAoClicarFora)
-    };
+    return () => document.removeEventListener('mousedown', fecharAoClicarFora);
   }, [aberto]);
 
   const selecionarOpcao = (novoValor) => {
@@ -128,30 +76,24 @@ function SelectPesquisavel({
 
   return (
     <div className={styles.searchableSelect} ref={containerRef}>
-      <button type="button"
-        className={`${styles.searchableSelectTrigger} ${
-          aberto ? styles.searchableSelectTriggerOpen : ''
-        }`}
+      <button
+        type="button"
+        className={`${styles.searchableSelectTrigger} ${aberto ? styles.searchableSelectTriggerOpen : ''}`}
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={aberto}
         onClick={() => {
           setAberto((atual) => !atual);
           setTermoBusca('');
-        }}>
-          <span className={`${styles.searchableSelectValue} ${
-            !opcaoSelecionada ? styles.searchableSelectPlaceholder : ''
-            }`}>
-              {opcaoSelecionada?.label || placeholder}
-          </span>
-          <ChevronDown
-            size={16}
-            className={`${styles.searchableSelectChevron} ${
-              aberto ? styles.searchableSelectChevronOpen : ''
-            }`}
-          />
-        </button>
-        {aberto && !disabled && (
+        }}
+      >
+        <span className={`${styles.searchableSelectValue} ${!opcaoSelecionada ? styles.searchableSelectPlaceholder : ''}`}>
+          {opcaoSelecionada?.label || placeholder}
+        </span>
+        <ChevronDown size={14} className={`${styles.searchableSelectChevron} ${aberto ? styles.searchableSelectChevronOpen : ''}`} />
+      </button>
+
+      {aberto && !disabled && (
         <div className={styles.searchableSelectMenu}>
           <div className={styles.searchableSelectSearchWrap}>
             <input
@@ -159,10 +101,10 @@ function SelectPesquisavel({
               value={termoBusca}
               autoFocus
               autoComplete="off"
-              placeholder={`Buscar ${label.toLowerCase()}...`}
-              onChange={(event) => setTermoBusca(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Escape') {
+              placeholder={`Buscar...`}
+              onChange={(e) => setTermoBusca(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
                   setAberto(false);
                   setTermoBusca('');
                 }
@@ -174,33 +116,23 @@ function SelectPesquisavel({
             {opcoesFiltradas.length > 0 ? (
               opcoesFiltradas.map((opcao) => {
                 const selecionada = String(opcao.value) === String(value);
-
                 return (
                   <button
                     type="button"
                     key={opcao.value}
                     role="option"
                     aria-selected={selecionada}
-                    className={`${styles.searchableSelectOption} ${
-                      selecionada ? styles.searchableSelectOptionSelected : ''
-                    }`}
-                    onMouseDown={(event) => event.preventDefault()}
+                    className={`${styles.searchableSelectOption} ${selecionada ? styles.searchableSelectOptionSelected : ''}`}
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => selecionarOpcao(opcao.value)}
                   >
-                    {selecionada ? (
-                      <Check size={14} className={styles.searchableSelectCheck} />
-                    ) : (
-                      <span className={styles.searchableSelectCheckPlaceholder} />
-                    )}
-
+                    {selecionada ? <Check size={14} className={styles.searchableSelectCheck} /> : <span className={styles.searchableSelectCheckPlaceholder} />}
                     <span>{opcao.label}</span>
                   </button>
                 );
               })
             ) : (
-              <div className={styles.searchableSelectEmpty}>
-                Nenhuma opção encontrada.
-              </div>
+              <div className={styles.searchableSelectEmpty}>Nenhuma opção encontrada.</div>
             )}
           </div>
         </div>
@@ -209,90 +141,43 @@ function SelectPesquisavel({
   );
 }
 
-export default function FiltrosPontosControle() {
-  const {
-    filtros,
-    filtroPrincipal,
-    setFiltro,
-    limparFiltro,
-    limparTodosFiltros,
-    totalFiltrosAtivos,
-  } = useFiltrosPontosControle();
+// --- Componente Inteligente para uso em Linhas da Tabela ---
+export default function FiltroColuna({ campo, label }) {
+  const { filtros, setFiltro, limparFiltro } = useFiltrosPontosControle();
+  const { data, isLoading } = useOpcoesPontosControleQuery(filtros);
 
-  const { data, isLoading, isError } = useOpcoesPontosControleQuery(filtros);
+  const valorAtual = filtros[campo];
+
+  const opcoesBase = useMemo(() => {
+    return campo === 'municipios_beneficiados'
+      ? normalizarMunicipiosBeneficiados(data?.[campo])
+      : normalizarOpcoes(data?.[campo]);
+  }, [campo, data]);
+
+  const opcoes = useMemo(() => {
+    return incluirValorSelecionado(opcoesBase, valorAtual);
+  }, [opcoesBase, valorAtual]);
 
   return (
-    <section className={styles.filtersPanel} aria-label="Filtros dos pontos de Controle">
-      <header className={styles.filtersHeader}>
-        <div>
-          <h2>Pesquisar instrumento</h2>
-          <p>Selecione um campo para iniciar a pesquisa.</p>
-        </div>
-
+    <div className={styles.tableFilterHeaderCell}>
+      <SelectPesquisavel
+        label={label}
+        value={valorAtual}
+        options={opcoes}
+        disabled={isLoading}
+        placeholder={isLoading ? '...' : 'Todos'}
+        onChange={(valor) => setFiltro(campo, valor)}
+      />
+      {valorAtual && (
         <button
           type="button"
-          className={styles.secondaryButton}
-          onClick={limparTodosFiltros}
-          disabled={totalFiltrosAtivos === 0}
+          className={styles.clearHeaderFilterButton}
+          onClick={() => limparFiltro(campo)}
+          title={`Limpar filtro ${label}`}
         >
-          <RotateCcw size={16} />
-          Limpar tudo
+          <X size={12} />
         </button>
-      </header>
-
-      {isError && (
-        <div className={`${styles.state} ${styles.error}`}>
-          Não foi possível carregar as opções dos filtros.
-        </div>
       )}
-
-      <div className={styles.filtersGrid}>
-        {FILTROS.map((filtro) => {
-          const opcoesBase = 
-            filtro.campo === 'municipios_beneficiados'
-              ? normalizarMunicipiosBeneficiados(data?.[filtro.campo])
-              : normalizarOpcoes(data?.[filtro.campo]);
-
-          const opcoes = incluirValorSelecionado (
-            opcoesBase,
-            filtros[filtro.campo]
-          );
-
-          const isPrincipal = filtroPrincipal === filtro.campo;
-
-          return (
-            <div key={filtro.campo} className={styles.filterField}>
-              <div className={styles.filterLabelRow}>
-                <label>{filtro.label}</label>
-
-                {isPrincipal && (
-                  <span className={styles.primaryFilterBadge}>Principal</span>
-                )}
-
-                {filtros[filtro.campo] && (
-                  <button
-                    type="button"
-                    className={styles.clearFieldButton}
-                    onClick={() => limparFiltro(filtro.campo)}
-                    aria-label={`Limpar ${filtro.label}`}
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-
-              <SelectPesquisavel
-                label={filtro.label}
-                value={filtros[filtro.campo]}
-                options={opcoes}
-                disabled={isLoading}
-                placeholder={isLoading ? 'Carregando...' : 'Selecione...'}
-                onChange={(valor) => setFiltro(filtro.campo, valor)}
-              />
-            </div>
-          );
-        })}
-      </div>
-    </section>
+    </div>
   );
 }
