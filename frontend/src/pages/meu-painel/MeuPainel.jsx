@@ -22,6 +22,8 @@ function formatarData(value) {
 }
 
 function resumoAlteracoes(alteracoes) {
+  // Resume apenas grupos com mudanças efetivas para que rascunhos não exibam
+  // contadores zerados vindos do backend.
   const partes = Object.entries(GRUPOS)
     .filter(([chave]) => alteracoes?.[chave] > 0)
     .map(([chave]) => `${alteracoes[chave]} ${GRUPOS[chave].toLocaleLowerCase('pt-BR')}`)
@@ -51,6 +53,8 @@ function PendenciasSection({ items, onReview }) {
   const [podeAvancar, setPodeAvancar] = useState(false)
 
   const atualizarControles = useCallback(() => {
+    // Os limites dependem das medidas reais do carrossel e precisam ser
+    // recalculados após redimensionamento ou troca da coleção.
     const carousel = carouselRef.current
     if (!carousel || expandido) return
     setPodeVoltar(carousel.scrollLeft > 2)
@@ -159,6 +163,8 @@ export default function MeuPainel() {
   }, [rascunhosExpandidos])
 
   useEffect(() => {
+    // Agenda a carga fora do corpo síncrono do efeito e ignora a continuação se
+    // o painel for desmontado antes dela começar.
     let ativo = true
     Promise.resolve().then(() => { if (ativo) carregar() })
     return () => { ativo = false }
@@ -173,6 +179,8 @@ export default function MeuPainel() {
   }
 
   async function cancelarRascunho(item) {
+    // O cancelamento descarta alterações ainda não enviadas; a confirmação é
+    // deliberadamente anterior a qualquer mudança de estado ou chamada à API.
     if (!window.confirm('Cancelar este rascunho? As alterações ainda não enviadas serão descartadas e o instrumento voltará ao estado anterior.')) return
     setCancelando(item.id_revisao)
     setErro('')

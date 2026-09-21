@@ -1,3 +1,6 @@
+/* ==========================================================================
+   Tópicos e tutoriais da Carteira DSR
+   ========================================================================== */
 .topicStack {
   display: flex;
   flex-direction: column;
@@ -27,6 +30,7 @@
   margin-top: 20px;
 }
 
+/* Vídeos e imagens de apoio às instruções. */
 .videoBlock {
   display: flex;
   flex-direction: column;
@@ -95,6 +99,9 @@
   object-fit: contain;
 }
 
+/* ==========================================================================
+   Responsividade
+   ========================================================================== */
 @media (max-width: 900px) {
   .graphVideoGrid {
     grid-template-columns: 1fr;

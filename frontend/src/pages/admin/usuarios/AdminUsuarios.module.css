@@ -1,3 +1,7 @@
+/* ==========================================================================
+   Estrutura da página e cabeçalho
+   ========================================================================== */
+
 .page {
   min-height: 100%;
   padding: 32px clamp(24px, 3vw, 40px) 44px;
@@ -142,6 +146,10 @@
   font-size: 0.78rem;
   line-height: 1.3;
 }
+
+/* ==========================================================================
+   Filtros e tabela de usuários
+   ========================================================================== */
 
 .management {
   max-width: 1500px;
@@ -335,8 +343,14 @@
   animation: spin 1s linear infinite;
 }
 
+/* ==========================================================================
+   Painel de detalhes e ações administrativas
+   ========================================================================== */
+
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .drawerBackdrop {
@@ -464,7 +478,12 @@
   padding: 10px 12px;
 }
 
-.instrumentSearch svg { width: 16px; height: 16px; flex: 0 0 auto; color: var(--cisa-text-muted); }
+.instrumentSearch svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  color: var(--cisa-text-muted);
+}
 
 .listToggle {
   display: block;
@@ -581,8 +600,13 @@
   cursor: pointer;
 }
 
-.pendingBlock { border-bottom: 1px solid #eef2f7; }
-.pendingBlock .pending { border-bottom: 0; }
+.pendingBlock {
+  border-bottom: 1px solid #eef2f7;
+}
+
+.pendingBlock .pending {
+  border-bottom: 0;
+}
 
 .pendingDetails {
   border-radius: 8px;
@@ -591,10 +615,24 @@
   margin-bottom: 10px;
 }
 
-.pendingDetails dl { margin: 0; }
-.pendingDetails dl > div { display: flex; justify-content: space-between; padding: 5px 0; }
-.pendingDetails dt { color: var(--cisa-text-secondary); }
-.pendingDetails dd { margin: 0; font-weight: 800; }
+.pendingDetails dl {
+  margin: 0;
+}
+
+.pendingDetails dl > div {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+}
+
+.pendingDetails dt {
+  color: var(--cisa-text-secondary);
+}
+
+.pendingDetails dd {
+  margin: 0;
+  font-weight: 800;
+}
 
 .review div {
   flex: 1;
@@ -611,10 +649,23 @@
   font-size: 0.75rem;
 }
 
-.review time { display: block; margin-top: 4px; }
+.review time {
+  display: block;
+  margin-top: 4px;
+}
 
-.dangerLink { color: #b91c1c !important; border-color: #fecaca !important; display: inline-flex; align-items: center; gap: 6px; }
-.dangerLink svg { width: 15px; height: 15px; }
+.dangerLink {
+  color: #b91c1c !important;
+  border-color: #fecaca !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dangerLink svg {
+  width: 15px;
+  height: 15px;
+}
 
 .sectionFooter,
 .modalActions,
@@ -626,9 +677,20 @@
   margin-top: 14px;
 }
 
-.sectionFooter .listToggle { margin: 0; }
-.inlinePagination { justify-content: center; color: var(--cisa-text-secondary); font-size: .8rem; }
-.inlinePagination button:disabled { cursor: not-allowed; opacity: .45; }
+.sectionFooter .listToggle {
+  margin: 0;
+}
+
+.inlinePagination {
+  justify-content: center;
+  color: var(--cisa-text-secondary);
+  font-size: .8rem;
+}
+
+.inlinePagination button:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
 
 .error {
   max-width: 1500px;
@@ -639,6 +701,10 @@
   color: #991b1b;
   padding: 12px;
 }
+
+/* ==========================================================================
+   Feedback e modais de acesso e cadastro
+   ========================================================================== */
 
 .successMessage {
   border: 1px solid #bbf7d0;
@@ -700,10 +766,28 @@
   margin-top: 20px;
 }
 
-.formModal { text-align: left; }
-.formModal > h2 { margin: 0 32px 6px 0; }
-.formModal form { display: grid; gap: 14px; margin-top: 18px; }
-.formModal form > label { display: grid; gap: 6px; color: var(--cisa-text-secondary); font-size: .82rem; font-weight: 700; }
+.formModal {
+  text-align: left;
+}
+
+.formModal > h2 {
+  margin: 0 32px 6px 0;
+}
+
+.formModal form {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.formModal form > label {
+  display: grid;
+  gap: 6px;
+  color: var(--cisa-text-secondary);
+  font-size: .82rem;
+  font-weight: 700;
+}
+
 .formModal input,
 .formModal select {
   min-height: 42px;
@@ -715,8 +799,15 @@
   padding: 0 11px;
   font: inherit;
 }
-.formModal .error { margin: 12px 0; }
-.formModal .options { max-height: 280px; overflow: auto; }
+
+.formModal .error {
+  margin: 12px 0;
+}
+
+.formModal .options {
+  max-height: 280px;
+  overflow: auto;
+}
 
 .dangerButton {
   display: inline-flex;
@@ -733,31 +824,92 @@
   font-weight: 700;
   cursor: pointer;
 }
-.dangerButton:disabled { opacity: .55; cursor: not-allowed; }
+
+.dangerButton:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Responsividade
+   ========================================================================== */
 
 @media (max-width: 1050px) {
-  .summary { grid-template-columns: repeat(3, 1fr); }
-  .filters { grid-template-columns: 1fr 1fr; }
-  .search { grid-column: 1 / -1; }
+  .summary {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .filters {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .search {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 700px) {
-  .page { padding: 20px 14px 32px; }
-  .hero { display: block; }
-  .heroActions { flex-direction: column; margin-top: 16px; }
-  .heroActions button { width: 100%; }
-  .summary { grid-template-columns: 1fr 1fr; }
-  .filters { grid-template-columns: 1fr; }
-  .search { grid-column: auto; }
-  .drawer { padding: 18px; }
-  .detailGrid { grid-template-columns: 1fr; }
-  .summaryCard { padding: 14px; }
-  .summaryCard strong { font-size: 1.3rem; }
+  .page {
+    padding: 20px 14px 32px;
+  }
+
+  .hero {
+    display: block;
+  }
+
+  .heroActions {
+    flex-direction: column;
+    margin-top: 16px;
+  }
+
+  .heroActions button {
+    width: 100%;
+  }
+
+  .summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .search {
+    grid-column: auto;
+  }
+
+  .drawer {
+    padding: 18px;
+  }
+
+  .detailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryCard {
+    padding: 14px;
+  }
+
+  .summaryCard strong {
+    font-size: 1.3rem;
+  }
 }
 
 @media (max-width: 430px) {
-  .summary { grid-template-columns: 1fr; }
-  .actions { flex-direction: column; }
-  .actions button { width: 100%; }
-  .review { align-items: flex-start; flex-wrap: wrap; }
+  .summary {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+
+  .actions button {
+    width: 100%;
+  }
+
+  .review {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
 }

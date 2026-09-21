@@ -17,6 +17,8 @@ function ModalBase({ titulo, onClose, children }) {
 
 function AddInstrumentModal({ idUsuario, onClose, onAdded }) {
   const [busca, setBusca] = useState(''); const [opcoes, setOpcoes] = useState([]); const [ocupado, setOcupado] = useState(false); const [erro, setErro] = useState('')
+  // Aguarda dois caracteres e 300 ms para não consultar o catálogo completo a
+  // cada tecla durante a vinculação de instrumentos.
   useEffect(() => { if (busca.trim().length < 2) return undefined; const timer = setTimeout(() => adminUsuariosApi.buscarInstrumentos(busca.trim()).then(setOpcoes).catch(() => setOpcoes([])), 300); return () => clearTimeout(timer) }, [busca])
   async function adicionar(item) { setOcupado(true); setErro(''); try { await adminUsuariosApi.vincularInstrumento(idUsuario, item.nr_instrumento); onAdded('Instrumento vinculado com sucesso.') } catch (error) { setErro(error?.response?.data?.detail || 'Não foi possível vincular o instrumento.') } finally { setOcupado(false) } }
   return <ModalBase titulo="Adicionar instrumento" onClose={onClose}><p>Digite parte do instrumento ou proposta.</p>{erro && <div className={styles.error} role="alert">{erro}</div>}<label className={styles.instrumentSearch}><Search /><input autoFocus value={busca} onChange={(e) => { setBusca(e.target.value); if (e.target.value.trim().length < 2) setOpcoes([]) }} placeholder="Digite parte do instrumento ou proposta" /></label>{opcoes.length > 0 && <div className={styles.options}>{opcoes.map((item) => <button type="button" disabled={ocupado} key={item.nr_instrumento} onClick={() => adicionar(item)}><Link /><span><strong>{item.nr_instrumento}</strong><small>{item.nr_proposta || item.tipo_instrumento}</small></span></button>)}</div>}</ModalBase>
@@ -54,11 +56,15 @@ export default function UserDetailsPanel({ idUsuario, onClose, onChanged }) {
   const limitePendencias = expandidos.pendencias ? LIMITE_EXPANDIDO : LIMITE_INICIAL
   const limiteRascunhos = expandidos.rascunhos ? LIMITE_EXPANDIDO : LIMITE_INICIAL
   const limiteRevisoes = expandidos.revisoes ? LIMITE_EXPANDIDO : LIMITE_INICIAL
+  // As subseções são carregadas separadamente para que busca, paginação e
+  // expansão de uma delas não bloqueiem nem substituam os demais dados do drawer.
   useEffect(() => { if (!usuarioCarregado) return undefined; const timer = setTimeout(() => adminUsuariosApi.instrumentosUsuario(idUsuario, { busca: buscaVinculos || undefined, limit: limiteInstrumentos, offset: offsets.instrumentos }).then((r) => setUsuario((u) => ({ ...u, instrumentos: r.items, instrumentos_total: r.total }))).catch(() => {}), buscaVinculos ? 300 : 0); return () => clearTimeout(timer) }, [buscaVinculos, idUsuario, limiteInstrumentos, offsets.instrumentos, usuarioCarregado, versao])
   useEffect(() => { if (!tecnicoCarregado) return undefined; const timer = setTimeout(() => adminUsuariosApi.pendenciasUsuario(idUsuario, { busca: buscaPendencias || undefined, limit: limitePendencias, offset: offsets.pendencias }).then((r) => setUsuario((u) => ({ ...u, pendencias: r }))).catch(() => {}), buscaPendencias ? 300 : 0); return () => clearTimeout(timer) }, [buscaPendencias, idUsuario, limitePendencias, offsets.pendencias, tecnicoCarregado, versao])
   useEffect(() => { if (!tecnicoCarregado) return; adminUsuariosApi.rascunhosUsuario(idUsuario, { limit: limiteRascunhos, offset: offsets.rascunhos }).then(setRascunhos).catch(() => {}) }, [idUsuario, limiteRascunhos, offsets.rascunhos, tecnicoCarregado, versao])
   useEffect(() => { if (!usuarioCarregado) return; adminUsuariosApi.revisoesUsuario(idUsuario, { limit: limiteRevisoes, offset: offsets.revisoes }).then((r) => setUsuario((u) => ({ ...u, revisoes: r.items, revisoes_total: r.total }))).catch(() => {}) }, [idUsuario, limiteRevisoes, offsets.revisoes, usuarioCarregado, versao])
   function alternar(secao) { setExpandidos((v) => ({ ...v, [secao]: !v[secao] })); setOffsets((v) => ({ ...v, [secao]: 0 })) }
+  // Incrementar a versão invalida todas as subseções depois de uma ação
+  // administrativa, mantendo o resumo externo sincronizado pelo callback.
   function atualizar(sucesso = '') { setModal(null); setMensagem(sucesso); setVersao((v) => v + 1); onChanged() }
   async function executar(fn, sucesso = '') { setOcupado(true); setErro(''); setMensagem(''); try { await fn(); atualizar(sucesso) } catch (e) { setErro(e?.response?.data?.detail || 'Não foi possível concluir a ação.') } finally { setOcupado(false) } }
   async function abrirPendencias(item) { const id = item.identificador_instrumento; if (pendenciaAberta === id) { setPendenciaAberta(null); return } setPendenciaAberta(id); if (detalhes[id]) return; try { const detalhe = await adminUsuariosApi.detalharPendencias(idUsuario, id); setDetalhes((v) => ({ ...v, [id]: detalhe })) } catch (e) { setErro(e?.response?.data?.detail || 'Não foi possível detalhar as pendências.') } }

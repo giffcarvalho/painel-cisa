@@ -26,6 +26,8 @@ export default function NotificationBell() {
   const [erro, setErro] = useState('')
 
   useEffect(() => {
+    // Atualiza o contador ao trocar de rota porque ações executadas em outras
+    // telas podem ter produzido ou consumido notificações.
     if (!isAuthenticated) return undefined
     let ativo = true
     notificacoesApi.contarNaoLidas()
@@ -35,6 +37,7 @@ export default function NotificationBell() {
   }, [isAuthenticated, location.pathname])
 
   useEffect(() => {
+    // Sincroniza este resumo com o centro completo sem acoplar os componentes.
     function sincronizar(event) {
       setDados((atual) => ({ ...atual, nao_lidas: event.detail?.nao_lidas ?? atual.nao_lidas }))
     }
@@ -74,6 +77,8 @@ export default function NotificationBell() {
   }
 
   async function abrirNotificacao(item) {
+    // Persiste a leitura antes de navegar e replica o novo contador para todas as
+    // instâncias do centro de notificações abertas na aplicação.
     if (!item.lido_em) {
       const resultado = await notificacoesApi.marcarLida(item.id_notificacao)
       setDados((atual) => ({

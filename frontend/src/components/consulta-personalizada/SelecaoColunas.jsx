@@ -24,6 +24,8 @@ const getCampoLabel = (campo) => campo.label || campo.column || campo.id
 const getTipoDadoLabel = (tipoDado) => TIPO_DADO_LABEL[tipoDado] || 'Texto'
 
 const getPapelCampo = (campo) => {
+  // Códigos, números identificadores e anos funcionam como dimensões mesmo
+  // quando seu armazenamento é numérico.
   const column = normalizar(campo.column)
 
   if (column.startsWith('cod_') || column.startsWith('nr_') || column.startsWith('ano_')) {
@@ -68,6 +70,8 @@ export default function SelecaoColunas({
   )
 
   const grupos = useMemo(() => {
+    // A pesquisa considera metadados técnicos e descrição, mas preserva a
+    // organização temática definida pelo catálogo da API.
     const q = normalizar(termo)
 
     const agrupados = camposVisiveis.reduce((acc, campo) => {
@@ -103,6 +107,8 @@ export default function SelecaoColunas({
   }
 
   const toggleGrupo = (camposGrupo) => {
+    // Colunas obrigatórias permanecem selecionadas ao alternar o grupo e não
+    // participam da decisão de marcar ou desmarcar as opcionais.
     const ids = camposGrupo.map((campo) => campo.id).filter((id) => !requiredSet.has(id))
     if (!ids.length) return
 

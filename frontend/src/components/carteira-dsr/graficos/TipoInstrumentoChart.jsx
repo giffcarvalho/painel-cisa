@@ -2,6 +2,8 @@ import { forwardRef } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { formatCurrency } from '@/utils/formatters'
 
+// Tooltips do ECharts aceitam HTML; escapa rótulos vindos da API antes de
+// interpolá-los para impedir que conteúdo de dados vire marcação executável.
 const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (character) => ({
   '&': '&amp;',
   '<': '&lt;',

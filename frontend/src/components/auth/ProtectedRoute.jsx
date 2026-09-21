@@ -9,6 +9,8 @@ export default function ProtectedRoute({ children, requiredProfile = null }) {
   const redirect = `${location.pathname}${location.search}${location.hash}`
 
   useEffect(() => {
+    // Abre o modal somente depois da restauração inicial da sessão e preserva a
+    // rota completa para retomada após autenticação.
     if (!isLoading && !isAuthenticated) {
       openLoginModal({ redirectTo: redirect })
     }

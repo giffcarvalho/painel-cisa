@@ -628,7 +628,7 @@ export default function MapaSection() {
     const [observacaoCoordenada, setObservacaoCoordenada] = useState("");
     const { isAuthenticated, openLoginModal } = useAuth();
     const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState('')
+    const [, setMessage] = useState('')
     const [messageType, setMessageType] = useState('')
     const mapContainer = useRef(null);
     const mapRef = useCriarMapa(mapContainer);
@@ -914,15 +914,6 @@ export default function MapaSection() {
             situacao_analise: situacaoAtual || "Sem análise"
         };
     };
-
-
-
-    //apenas testa se dois objetos são iguais
-    function objetosIguais(a, b) {
-        return JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
-    }
-
-
 
     //verifica se Houve Alteração Global (Rádio ou Observação)
     const houveAlteracaoGlobal = () => {

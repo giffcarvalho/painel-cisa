@@ -39,6 +39,8 @@ export default function PasswordResetForm({ onBack, onSuccess, onSubmittingChang
   }
 
   async function handleValidate(event) {
+    // Valida o código separadamente para só solicitar a nova senha depois de
+    // identificar a conta e confirmar que o código ainda está vigente.
     event.preventDefault()
     setError('')
     setSubmitting(true)
@@ -52,6 +54,8 @@ export default function PasswordResetForm({ onBack, onSuccess, onSubmittingChang
   }
 
   async function handleReset(event) {
+    // A igualdade é verificada antes da chamada; regras de força e expiração
+    // permanecem centralizadas no backend.
     event.preventDefault()
     setError('')
     if (senha !== confirmacao) {

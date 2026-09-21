@@ -26,6 +26,8 @@ export default function NotificationCenter({ compact = false }) {
   const limiteAtual = compact && !expandido ? LIMITE_COMPACTO : LIMITE
 
   useEffect(() => {
+    // Alterar entre compacto e expandido muda o limite da consulta e reinicia o
+    // conjunto exibido sem manter respostas de um limite anterior.
     let ativo = true
     Promise.resolve().then(() => { if (ativo) { setCarregando(true); setErro('') } })
     notificacoesApi.listar({ page: pagina, limit: limiteAtual })
@@ -36,6 +38,8 @@ export default function NotificationCenter({ compact = false }) {
   }, [limiteAtual, pagina])
 
   useEffect(() => {
+    // Eventos emitidos pelo sino ou por outra instância atualizam leitura e
+    // contador local sem uma segunda chamada à API.
     function sincronizar(event) {
       setDados((atual) => {
         if (!atual) return atual

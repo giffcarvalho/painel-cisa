@@ -64,6 +64,8 @@ function MultiFilter({ tipoTabela, filtro, selected = [], onChange }) {
   const ref = useRef(null)
 
   const atualizarPosicaoMenu = useCallback(() => {
+    // Abre acima apenas quando o espaço abaixo é insuficiente, evitando que o
+    // menu seja cortado pelo viewport em filtros próximos ao fim da página.
     const rect = ref.current?.getBoundingClientRect()
     if (!rect) return
 
@@ -81,6 +83,8 @@ function MultiFilter({ tipoTabela, filtro, selected = [], onChange }) {
   const buscaQuery = useBuscaFiltroExtrator(tipoTabela, filtro.campo, termo, filtro.busca)
 
   useEffect(() => {
+    // Recalcula o posicionamento enquanto aberto e fecha por interação externa;
+    // os listeners não permanecem ativos quando o menu está recolhido.
     if (!open) return
 
     atualizarPosicaoMenu()
@@ -101,6 +105,8 @@ function MultiFilter({ tipoTabela, filtro, selected = [], onChange }) {
   }, [atualizarPosicaoMenu, open])
 
   const opcoes = useMemo(() => {
+    // Filtros marcados para busca usam o resultado remoto; os demais reaproveitam
+    // o domínio pequeno entregue no catálogo inicial.
     const origem = filtro.busca ? buscaQuery.data?.data || [] : filtro.opcoes || []
 
     return origem
@@ -243,6 +249,8 @@ export default function FiltrosExtrator({
   const filtrosAtivos = Object.entries(value).filter(([, values]) => Array.isArray(values) && values.length > 0)
 
   const updateFiltro = (campo, nextValue) => {
+    // Remove chaves sem seleção para que o payload represente ausência de filtro,
+    // em vez de enviar coleções vazias ao backend.
     const next = { ...value }
 
     if (!nextValue?.length) delete next[campo]

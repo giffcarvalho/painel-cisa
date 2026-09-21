@@ -8,6 +8,8 @@ import {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
+// Impede que uma configuração local insegura provoque conteúdo misto quando o
+// frontend estiver sendo servido por HTTPS.
 if (window.location.protocol === 'https:' && API_BASE_URL.startsWith('http://')) {
   throw new Error('VITE_API_URL insegura em produção HTTPS. Use /api/v1 ou uma URL https://.')
 }
@@ -28,7 +30,8 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Interceptor de resposta: trata erros globalmente
+// Centraliza a expiração da sessão: qualquer 401 fora do login limpa as
+// credenciais e solicita o modal preservando a rota que deverá ser retomada.
 api.interceptors.response.use(
   (response) => response,
   (error) => {

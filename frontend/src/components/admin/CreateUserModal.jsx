@@ -12,6 +12,8 @@ export default function CreateUserModal({ onClose, onCreated }) {
   const [salvando, setSalvando] = useState(false)
 
   useEffect(() => {
+    // Setores são carregados ao abrir porque o identificador selecionado integra
+    // o payload de criação de técnicos.
     adminUsuariosApi.listarSetores().then(setSetores).catch(() => setErro('Não foi possível carregar os setores.'))
   }, [])
 

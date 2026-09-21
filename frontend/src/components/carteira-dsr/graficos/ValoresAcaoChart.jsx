@@ -34,6 +34,8 @@ const ValoresAcaoChart = forwardRef(({ dados }, ref) => {
 
   const categorias = dados.map((item) => item.acao_padronizada || 'Não informada')
 
+  // O eixo trabalha em milhões para manter escala legível, mas tooltip e totais
+  // preservam os valores originais em reais para não perder precisão.
   const seriesDesembolsadoOriginal = dados.map((item) => Number(item.desembolsado) || 0)
   const seriesEmpenhadoOriginal = dados.map((item) => Number(item.empenhado_a_desembolsar) || 0)
   const seriesAEmpenharOriginal = dados.map((item) => Number(item.a_empenhar) || 0)

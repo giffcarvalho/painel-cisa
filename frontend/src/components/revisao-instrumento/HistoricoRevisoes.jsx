@@ -37,6 +37,8 @@ export default function HistoricoRevisoes({ escopo, embedded = false, compact = 
   const limiteAtual = compact && !expandido ? LIMITE_COMPACTO : LIMITE
 
   useEffect(() => {
+    // O mesmo componente atende o histórico pessoal e o de um instrumento; a
+    // origem da requisição varia com o escopo, mantendo paginação compartilhada.
     let ativo = true
     Promise.resolve().then(() => {
       if (!ativo) return
@@ -62,6 +64,7 @@ export default function HistoricoRevisoes({ escopo, embedded = false, compact = 
   }, [buscaAplicada, identificadorRota, limiteAtual, pagina, pessoal])
 
   function pesquisar(event) {
+    // Separa o texto digitado do filtro aplicado para não consultar a cada tecla.
     event.preventDefault()
     setPagina(1)
     setBuscaAplicada(busca.trim())

@@ -59,9 +59,13 @@ export default function AuthMenu({ className = '', compactOnMobile = false }) {
     [displayName, usuario?.email],
   )
   const profile = useMemo(() => formatProfile(usuario?.perfil), [usuario?.perfil])
+  // A permissão administrativa controla somente a exposição das rotas restritas;
+  // a proteção efetiva continua sendo feita pela rota e pelo backend.
   const isAdmin = String(usuario?.perfil || '').trim().toLocaleLowerCase('pt-BR') === 'admin'
 
   useEffect(() => {
+    // Enquanto aberto, o menu fecha por clique externo ou Escape; no teclado, o
+    // foco retorna ao acionador para preservar a navegação acessível.
     if (!isOpen) return undefined
 
     function handlePointerDown(event) {

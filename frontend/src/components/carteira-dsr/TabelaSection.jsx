@@ -83,6 +83,8 @@ export default function TabelaSection() {
       const totalExportacao = response.data.total || 0
       const dadosBrutos = response.data.data || []
 
+      // Nunca gera um arquivo silenciosamente parcial: a quantidade retornada
+      // precisa coincidir com o total informado pelo endpoint de exportação.
       if (dadosBrutos.length !== totalExportacao) {
         alert(`Exportação bloqueada: foram recebidos ${dadosBrutos.length} de ${totalExportacao} registros. Nenhum arquivo parcial foi baixado.`)
         return
@@ -96,6 +98,8 @@ export default function TabelaSection() {
         numFmt: col.numFmt
       }))
 
+      // Datas são preparadas para a planilha; valores numéricos permanecem como
+      // números para preservar filtros, somas e formatação do Excel.
       const formattedData = dadosBrutos.map((item) => {
         const row = { ...item }
         CONFIG_COLUNAS.forEach(col => {

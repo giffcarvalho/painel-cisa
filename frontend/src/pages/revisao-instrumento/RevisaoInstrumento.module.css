@@ -1,3 +1,6 @@
+/* ==========================================================================
+   Estrutura da página e cabeçalho da revisão
+   ========================================================================== */
 .page {
   display: flex;
   width: 100%;
@@ -183,6 +186,9 @@
   gap: var(--main-block-gap);
 }
 
+/* ==========================================================================
+   Busca e carteira de instrumentos atribuídos
+   ========================================================================== */
 .searchPanel,
 .panel,
 .municipioCard {
@@ -419,7 +425,6 @@
 
 .meuInstrumentoStatus {
   --status-padding-inline: 8px;
-
   width: fit-content;
   max-width: 100%;
   border: 1px solid #d7dde5;
@@ -635,6 +640,9 @@ button:disabled {
   opacity: 0.55;
 }
 
+/* ==========================================================================
+   Painéis de dados e formulário de novo município
+   ========================================================================== */
 .panel {
   padding: 16px;
 }
@@ -835,6 +843,9 @@ button:disabled {
   cursor: pointer;
 }
 
+/* ==========================================================================
+   Cartões de municípios e controles de revisão
+   ========================================================================== */
 .municipiosList {
   display: flex;
   flex-direction: column;
@@ -1187,6 +1198,9 @@ button:disabled {
   margin-top: 4px;
 }
 
+/* ==========================================================================
+   Tabelas de localidades e obras
+   ========================================================================== */
 .localidadesSection,
 .obrasSection {
   min-width: 0;
@@ -1307,21 +1321,109 @@ button:disabled {
   line-height: 1.4;
   overflow-wrap: break-word;
 }
-.successModalBackdrop { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; overflow-y: auto; background: rgb(15 23 42 / 52%); padding: 24px; }
-.successModal { width: min(100%, 780px); max-height: calc(100vh - 48px); overflow-y: auto; border-radius: 12px; background: #fff; padding: 26px; box-shadow: 0 24px 70px rgb(15 23 42 / 28%); }
-.successModal h2 { margin: 0 0 8px; color: #166534; }
-.successModal > p { margin: 5px 0; color: #64748b; }
-.successModal h3 { margin: 22px 0 10px; color: #334155; font-size: 15px; }
-.successSummary, .successPending { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 18px; }
-.successSummary > div, .successPending > div { display: grid; gap: 4px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; color: #64748b; font-size: 12px; }
-.successSummary strong, .successPending strong { color: #334155; }
-.successChanges, .successPublico { margin-top: 16px; border-left: 3px solid #1351b4; background: #f8fafc; padding: 12px 14px; }
-.successChanges p, .successPublico p { margin: 5px 0; color: #475569; font-size: 12px; }
-.successPublico h3 { margin-top: 0; }
-.successPublicoHeader { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 10px; }
-.successPublicoHeader h3 { margin: 0; }
-.successPublicoHeader .secondaryButton { width: auto; flex: 0 0 auto; }
-.successActions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+
+/* ==========================================================================
+   Confirmação e resumo do envio
+   ========================================================================== */
+.successModalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  background: rgb(15 23 42 / 52%);
+  padding: 24px;
+}
+
+.successModal {
+  width: min(100%, 780px);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  border-radius: 12px;
+  background: #fff;
+  padding: 26px;
+  box-shadow: 0 24px 70px rgb(15 23 42 / 28%);
+}
+
+.successModal h2 {
+  margin: 0 0 8px;
+  color: #166534;
+}
+
+.successModal > p {
+  margin: 5px 0;
+  color: #64748b;
+}
+
+.successModal h3 {
+  margin: 22px 0 10px;
+  color: #334155;
+  font-size: 15px;
+}
+
+.successSummary, .successPending {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.successSummary > div, .successPending > div {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.successSummary strong, .successPending strong {
+  color: #334155;
+}
+
+.successChanges, .successPublico {
+  margin-top: 16px;
+  border-left: 3px solid #1351b4;
+  background: #f8fafc;
+  padding: 12px 14px;
+}
+
+.successChanges p, .successPublico p {
+  margin: 5px 0;
+  color: #475569;
+  font-size: 12px;
+}
+
+.successPublico h3 {
+  margin-top: 0;
+}
+
+.successPublicoHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.successPublicoHeader h3 {
+  margin: 0;
+}
+
+.successPublicoHeader .secondaryButton {
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.successActions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
 
 .acoesRevisaoInline button {
   width: fit-content;
@@ -1386,6 +1488,9 @@ button:disabled {
   resize: vertical;
 }
 
+/* ==========================================================================
+   Conferência de público-alvo
+   ========================================================================== */
 .publicoAlvoSection {
   display: flex;
   flex-direction: column;
@@ -1471,7 +1576,6 @@ button:disabled {
   min-height: 72px;
   resize: vertical;
 }
-
 
 .localidadesTable th,
 .localidadesTable td {
@@ -1807,7 +1911,7 @@ button:disabled {
   }
 
   .revisaoDuasColunas {
-   grid-template-columns: 1fr;
+    grid-template-columns: 1fr;
   }
 
   .mainGrid {
@@ -1897,6 +2001,7 @@ button:disabled {
 }
 
 /* Contexto compacto e separação entre revisão geral e municipal. */
+
 .pageDetail .reviewContext {
   order: 1;
   padding: 17px 24px;
@@ -1956,8 +2061,13 @@ button:disabled {
   flex-direction: column;
 }
 
-.reviewContextStatusArea { gap: 7px; }
-.reviewContextActions { gap: 3px; }
+.reviewContextStatusArea {
+  gap: 7px;
+}
+
+.reviewContextActions {
+  gap: 3px;
+}
 
 .publicoAlvoStatus {
   display: flex;
@@ -2190,6 +2300,7 @@ button:disabled {
 }
 
 /* Revisão: módulos amplos e ficha contínua, sem limitar a revisão pela busca. */
+
 .consultSection,
 .reviewModule {
   min-width: 0;
@@ -2528,6 +2639,7 @@ button:disabled {
 }
 
 /* Refinamento de fluxo e hierarquia da página detalhada. */
+
 .pageDetail .mainGridDetail {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -2997,6 +3109,7 @@ button:disabled {
 }
 
 /* Mantém estes ajustes como a camada final da ficha detalhada. */
+
 .pageDetail .rightColumn > .panel:first-child {
   padding: 0;
 }
@@ -3102,6 +3215,7 @@ button:disabled {
 }
 
 /* Subtítulos equivalentes da revisão compartilham uma única hierarquia. */
+
 .pageDetail .generalFieldHeading h3,
 .pageDetail .publicoAlvoSection .sectionHeader h2,
 .pageDetail .municipalReview .reviewModuleHeader h2,
@@ -3217,6 +3331,7 @@ button:disabled {
     display: flex;
   }
 
-  .publicoAlvoCorrecao { align-items: flex-start; }
-
+  .publicoAlvoCorrecao {
+    align-items: flex-start;
+  }
 }

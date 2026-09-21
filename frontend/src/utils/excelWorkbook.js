@@ -3,6 +3,8 @@ import ExcelJS from 'exceljs'
 function normalizeCellValue(value, column) {
     if (value === null || value === undefined || value === '') return null
 
+    // Tipos explícitos evitam que o Excel armazene medidas numéricas como texto
+    // e permitem que a formatação numFmt funcione corretamente.
     if (column.excelType === 'number') {
         const numericValue = Number(value)
 
@@ -37,6 +39,8 @@ export function createExcelWorkbook({ data, columns, sheetName = 'Dados' }) {
         fgColor: { argb: 'FF1E3A8A' }
     }
 
+    // A projeção por `columns` mantém a ordem da planilha e ignora propriedades
+    // auxiliares presentes nos objetos de origem.
     data.forEach(row => {
         const excelRow = Object.fromEntries(
             columns.map(column => [column.key, normalizeCellValue(row[column.key], column)])

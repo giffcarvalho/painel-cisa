@@ -76,11 +76,14 @@ export default function AplicacaoRevisoes() {
   }, [])
 
   useEffect(() => {
+    // Agenda a primeira carga após a montagem para manter o efeito cancelável.
     const timeoutId = window.setTimeout(carregarPendentes, 0)
     return () => window.clearTimeout(timeoutId)
   }, [carregarPendentes])
 
   useEffect(() => {
+    // O histórico não é recarregado enquanto um resultado está aberto, evitando
+    // substituir a execução que o administrador está inspecionando.
     if (aba !== 'historico' || resultado) return undefined
     const timeoutId = window.setTimeout(() => carregarHistorico(1), 0)
     return () => window.clearTimeout(timeoutId)
@@ -124,6 +127,8 @@ export default function AplicacaoRevisoes() {
     setProcessando(true)
     setErro('')
     try {
+      // Valida novamente imediatamente antes de aplicar, pois o detalhe carregado
+      // pode ter ficado obsoleto enquanto aguardava a confirmação do usuário.
       const validacao = await aplicacaoRevisoesApi.validar(detalhe.revisao.id_revisao)
       if (!validacao.aplicavel) {
         setDetalhe((atual) => ({ ...atual, validacao }))
@@ -154,6 +159,8 @@ export default function AplicacaoRevisoes() {
     try {
       const execucao = await aplicacaoRevisoesApi.obterExecucao(idExecucao)
       setResultado(execucao)
+      // Apenas execuções concluídas admitem validação de reversão; demais estados
+      // são exibidos sem oferecer o fluxo de cancelamento.
       setValidacaoCancelamento(
         execucao.status === 'sucesso'
           ? await aplicacaoRevisoesApi.validarCancelamento(idExecucao)
@@ -180,6 +187,8 @@ export default function AplicacaoRevisoes() {
     } catch (error) {
       setConfirmandoCancelamento(false)
       setErro(mensagemErro(error))
+      // Uma falha pode refletir mudança concorrente; revalida para atualizar a
+      // justificativa e a disponibilidade do cancelamento exibidas ao usuário.
       try {
         setValidacaoCancelamento(await aplicacaoRevisoesApi.validarCancelamento(resultado.id_execucao))
       } catch {

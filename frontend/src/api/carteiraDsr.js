@@ -1,5 +1,7 @@
 import api from './axios'
 
+// Serializa filtros multivalorados repetindo a chave na query string, formato
+// esperado pelo backend, e descarta valores vazios para não restringir a busca.
 function toParams(filtros) {
   const params = new URLSearchParams()
 
@@ -29,6 +31,8 @@ export const carteiraDsrApi = {
   getSituacaoCont:  (filtros) => api.get('/carteira-dsr/graficos/situacao-contratacao', { params: toParams(filtros) }),
   getMapaCoropl:    (filtros) => api.get('/carteira-dsr/graficos/mapa-coropletico', { params: toParams(filtros) }),
   getMapaPontos:    (filtros) => api.get('/carteira-dsr/mapa-pontos', { params: toParams(filtros) }),
+  // A listagem e a exportação compartilham o endpoint; paginação e a flag de
+  // exportação distinguem os dois contratos sem duplicar a montagem dos filtros.
    getTabela: (filtros, pagina = 1, tamanho = 100) => {
     const params = toParams(filtros)
     params.append('pagina', pagina)

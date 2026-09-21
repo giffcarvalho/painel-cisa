@@ -7,12 +7,15 @@ export function useResponsiveCategoryAxis() {
   const [isCompact, setIsCompact] = useState(false)
   const containerRef = useCallback((node) => setContainer(node), [])
 
+  // ResizeObserver acompanha o espaço real do card, não apenas a viewport, pois
+  // mudanças no grid também exigem alternar os rótulos para o modo compacto.
   useLayoutEffect(() => {
     if (!container) return undefined
 
     const update = (width) => {
       if (width <= 0) return
       const nextIsCompact = width < COMPACT_AXIS_WIDTH
+      // Evita renderizações quando várias notificações mantêm o mesmo estado.
       setIsCompact((current) => current === nextIsCompact ? current : nextIsCompact)
     }
 
