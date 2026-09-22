@@ -64,6 +64,28 @@ const normalizarMunicipiosBeneficiados = (opcoes) => {
     }));
 };
 
+
+const normalizarUf = (opcoes) => {
+  if (!Array.isArray(opcoes)) return [];
+
+  return opcoes
+    .filter(
+      (opcao) =>
+        opcao &&
+        opcao.cod_uf !== null &&
+        opcao.cod_uf !== undefined &&
+        String(opcao.cod_uf).trim() !== '' &&
+        opcao.uf !== null &&
+        opcao.uf !== undefined &&
+        String(opcao.uf).trim() !== ''
+    )
+    .map((opcao) => ({
+      value: String(opcao.cod_uf).trim(),
+      label: String(opcao.uf).trim(),
+    }));
+};
+
+
 const normalizarBusca = (valor) =>
   String(valor ?? '')
     .normalize('NFD')
@@ -274,9 +296,11 @@ export default function FiltroColuna({ campo, label }) {
 
   const opcoesBase = useMemo(() => {
     if (campo === 'municipios_beneficiados') {
-      return normalizarMunicipiosBeneficiados(
-        data?.[campo]
-      );
+      return normalizarMunicipiosBeneficiados(data?.[campo]);
+    }
+
+    if (campo === 'uf') {
+      return normalizarUf(data?.[campo]);
     }
 
     return normalizarOpcoes(data?.[campo]);

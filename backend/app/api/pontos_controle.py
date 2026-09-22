@@ -23,10 +23,10 @@ MV_MUNICIPIOS = "instrumento.vw_instrumento_municipio"
 
 
 CAMPOS_BUSCA_FILTROS = {
-    "nr_instrumento": "nr_instrumento::text",
+    "nr_instrumento": "nr_instrumento",
     "proponente": "proponente",
     "municipios_beneficiados": "nome",
-    "uf": "uf",
+    "uf": "sigla_uf",
     "carteira_ativa": "carteira_ativa",
     "projeto_aprovado": "projeto_aprovado",
     "possui_aio": "possui_aio",
@@ -136,9 +136,12 @@ async def _execute_query(
             params or {},
         )
     except SQLAlchemyError as e:
-        logger.error(
-            f"Erro no banco de dados: {str(e)}"
+        logger.exception(
+            "Erro no banco de dados ao executar SQL:\n%s\nParâmetros: %s",
+            sql,
+            params,
         )
+
         raise HTTPException(
             status_code=500,
             detail=(
@@ -156,21 +159,8 @@ def _build_where(
     params: dict = {}
 
     # ---------------------------------------------------------
-    # MUNICÍPIOS BENEFICIADOS
-    #
-    # O frontend envia cod_municipio.
-    #
-    # O filtro procura o instrumento na view de relacionamento:
-    #
-    # vw_instrumento_municipio
-    #      nr_instrumento
-    #      cod_municipio
-    #
-    # e retorna o registro correspondente de:
-    #
-    # vw_monitoramento_instrumento
+    # MUNICIPIO BENEFICIADO
     # ---------------------------------------------------------
-
     if filtros.municipios_beneficiados:
 
         municipio_clauses = []
@@ -183,6 +173,14 @@ def _build_where(
             if not value:
                 continue
 
+            try:
+                cod_municipio = int(value)
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Código de município inválido: {value}",
+                )
+
             key = f"cod_municipio_{i}"
 
             municipio_clauses.append(
@@ -191,19 +189,66 @@ def _build_where(
                     SELECT 1
                     FROM {MV_MUNICIPIOS} m_filtro
                     WHERE
-                        m_filtro.nr_instrumento::text = {MV}.nr_instrumento::text
+                        m_filtro.nr_instrumento = mv.nr_instrumento
                         AND
-                        m_filtro.cod_municipio::text = :{key}
+                        m_filtro.cod_municipio = :{key}
                 )
                 """
             )
 
-            params[key] = value
+            params[key] = cod_municipio
 
         if municipio_clauses:
             clauses.append(
                 "("
                 + " OR ".join(municipio_clauses)
+                + ")"
+            )
+
+    # ---------------------------------------------------------
+    # UF
+    # ---------------------------------------------------------
+    if filtros.uf:
+
+        uf_clauses = []
+
+        for i, value in enumerate(
+            filtros.uf
+        ):
+            value = str(value).strip()
+
+            if not value:
+                continue
+
+            try:
+                cod_uf = int(value)
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Código de UF inválido: {value}",
+                )
+
+            key = f"cod_uf_{i}"
+
+            uf_clauses.append(
+                f"""
+                EXISTS (
+                    SELECT 1
+                    FROM {MV_MUNICIPIOS} m_filtro
+                    WHERE
+                        m_filtro.nr_instrumento = mv.nr_instrumento
+                        AND
+                        m_filtro.cod_uf = :{key}
+                )
+                """
+            )
+
+            params[key] = cod_uf
+
+        if uf_clauses:
+            clauses.append(
+                "("
+                + " OR ".join(uf_clauses)
                 + ")"
             )
 
@@ -218,6 +263,11 @@ def _build_where(
         for i, value in enumerate(
             filtros.monitor
         ):
+            value = str(value).strip()
+
+            if not value:
+                continue
+
             key = f"monitor_{i}"
 
             monitor_clauses.append(
@@ -227,9 +277,10 @@ def _build_where(
                     FROM
                         painel_dsr.tb_usuario_instrumento_monitoramento ui_f
                     JOIN
-                        painel_dsr.tb_usuario u_f ON u_f.id_usuario = ui_f.id_usuario
+                        painel_dsr.tb_usuario u_f
+                        ON u_f.id_usuario = ui_f.id_usuario
                     WHERE
-                        ui_f.nr_instrumento::text = {MV}.nr_instrumento::text
+                        ui_f.nr_instrumento = mv.nr_instrumento
                         AND
                         u_f.nome ILIKE :{key}
                 )
@@ -260,12 +311,6 @@ def _build_where(
             "proponente",
             filtros.proponente,
             "proponente",
-            None,
-        ),
-        (
-            "uf",
-            filtros.uf,
-            "uf",
             None,
         ),
         (
@@ -497,7 +542,7 @@ async def get_filtros(
     sql = f"""
         WITH base AS (
             SELECT *
-            FROM {MV}
+            FROM {MV} mv
             {where}
         ),
 
@@ -517,10 +562,30 @@ async def get_filtros(
                 FROM base b
                 JOIN {MV_MUNICIPIOS} m_view
                     ON
-                        m_view.nr_instrumento::text =
-                        b.nr_instrumento::text
+                        m_view.nr_instrumento = b.nr_instrumento
                 WHERE
                     m_view.nome IS NOT NULL
+            ) m
+        ),
+
+        uf AS (
+            SELECT json_agg(
+                json_build_object(
+                    'cod_uf', m.cod_uf::text,
+                    'uf', m.sigla_uf
+                )
+                ORDER BY m.sigla_uf
+            ) AS lista
+            FROM (
+                SELECT DISTINCT
+                    m_view.cod_uf,
+                    m_view.sigla_uf
+                FROM base b
+                JOIN {MV_MUNICIPIOS} m_view
+                    ON
+                        m_view.nr_instrumento = b.nr_instrumento
+                WHERE
+                    m_view.sigla_uf IS NOT NULL
             ) m
         ),
 
@@ -539,14 +604,10 @@ async def get_filtros(
             FROM base b
             JOIN
                 painel_dsr.tb_usuario_instrumento_monitoramento ui
-                ON
-                    ui.nr_instrumento::text =
-                    b.nr_instrumento::text
+                ON ui.nr_instrumento = b.nr_instrumento
             JOIN
                 painel_dsr.tb_usuario u
-                ON
-                    u.id_usuario =
-                    ui.id_usuario
+                ON u.id_usuario = ui.id_usuario
         )
 
         SELECT
@@ -582,14 +643,11 @@ async def get_filtros(
             ) AS municipios_beneficiados,
 
             COALESCE(
-                array_agg(
-                    DISTINCT uf
-                    ORDER BY uf
-                )
-                FILTER (
-                    WHERE uf IS NOT NULL
+                (
+                    SELECT lista
+                    FROM uf
                 ),
-                ARRAY[]::text[]
+                '[]'::json
             ) AS uf,
 
             COALESCE(
@@ -954,6 +1012,22 @@ async def buscar_opcoes_filtro(
                 label
             LIMIT :limit
         """
+    
+    elif campo == "uf":
+
+        sql = f"""
+            SELECT DISTINCT
+                cod_uf::text AS valor,
+                sigla_uf AS label
+            FROM {MV_MUNICIPIOS}
+            WHERE
+                sigla_uf IS NOT NULL
+                AND
+                sigla_uf ILIKE :termo
+            ORDER BY
+                label
+            LIMIT :limit
+        """
 
     else:
 
@@ -980,6 +1054,16 @@ async def buscar_opcoes_filtro(
     )
 
     if campo == "municipios_beneficiados":
+
+        data = [
+            {
+                "value": row["valor"],
+                "label": row["label"],
+            }
+            for row in result.mappings().all()
+        ]
+
+    elif campo == "uf":
 
         data = [
             {
@@ -1052,7 +1136,7 @@ async def get_instrumentos(
 
     count_sql = f"""
         SELECT COUNT(*)
-        FROM {MV}
+        FROM {MV} mv
         {where}
     """
 
@@ -1091,7 +1175,7 @@ async def get_instrumentos(
             registro_conclusao,
             vigencia,
             status_de_execucao_da_obra
-        FROM {MV}
+        FROM {MV} mv
 
         {where}
 
@@ -1128,10 +1212,7 @@ async def get_instrumentos(
 @router.get(
     "/data_dados",
     response_model=PontosControleDataDados,
-    summary=(
-        "Informa a data dos dados que "
-        "alimenta os pontos de controle"
-    ),
+    summary=("Informa a data dos dados que alimenta os pontos de controle"),
 )
 async def get_data_dados(
     response: Response,

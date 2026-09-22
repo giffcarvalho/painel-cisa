@@ -19,14 +19,19 @@ class PontosControleBase(BaseModel):
         return data
 
 class MunicipioBeneficiadoFiltroItem(BaseModel):
-    cod_municipio: str  # <--- Ajustado para incluir o ID/Código do município
-    municipio: str      # Nome do município
+    cod_municipio: str
+    municipio: str
+
+class UfFiltroItem(BaseModel):
+    cod_uf: str
+    uf: str
+
 
 class PontosControleFiltrosResponse(BaseModel):
     nr_instrumento: list[str]
     proponente: list[str]
-    municipios_beneficiados: list[MunicipioBeneficiadoFiltroItem]  # <--- Utiliza o novo item estruturado
-    uf: list[str]
+    municipios_beneficiados: list[MunicipioBeneficiadoFiltroItem]
+    uf: list[UfFiltroItem]
     carteira_ativa: list[str]
     projeto_aprovado: list[str]
     possui_aio: list[str]
@@ -57,10 +62,17 @@ class PontosControleFiltrosResponse(BaseModel):
     
     model_config = {"from_attributes": True}
 
+
+class PontosControleBuscaFiltroItem(BaseModel):
+    valor: str
+    label: str
+
+
 class PontosControleBuscaFiltroResponse(BaseModel):
     campo: str
     termo: str
-    data: list[str]
+    data: list[PontosControleBuscaFiltroItem]
+
 
 class PontosControleListaItem(PontosControleBase):
     nr_instrumento: str | None = None
