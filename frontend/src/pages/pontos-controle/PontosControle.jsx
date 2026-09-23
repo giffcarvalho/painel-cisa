@@ -18,6 +18,9 @@ function PontosControleContent() {
   const [dataDados, setDataDados] = useState(null);
 
   const { filtros } = useFiltrosPontosControle();
+
+  //instrumentosQuery não é o array de instrumentos ainda. É o objeto de resultado gerenciado pelo useQuery
+  //esse objeto é que é passado como props para a tabela
   const instrumentosQuery = useInstrumentosPontosControleQuery(
     filtros,
     pagina,
