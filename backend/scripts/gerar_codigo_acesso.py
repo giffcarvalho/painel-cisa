@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.core.security import gerar_hash_codigo_acesso
+from app.core.seguranca import gerar_hash_codigo_acesso
 from app.services.codigo_acesso import gerar_codigo_acesso
 
 

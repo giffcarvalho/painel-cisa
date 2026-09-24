@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Loader2, RefreshCw, Trash2 } from 'lucide-re
 import { useNavigate } from 'react-router-dom'
 import { meuPainelApi } from '@/api/meuPainel'
 import { revisaoInstrumentoApi } from '@/api/revisaoInstrumento'
-import NotificationCenter from '@/components/notificacoes/NotificationCenter'
+import CentralNotificacoes from '@/components/notificacoes/CentralNotificacoes'
 import HistoricoRevisoes from '@/components/revisao-instrumento/HistoricoRevisoes'
 import styles from './MeuPainel.module.css'
 
@@ -215,7 +215,7 @@ export default function MeuPainel() {
         <aside className={styles.sidebar} aria-label="Acompanhamento do Meu Painel">
           <HistoricoRevisoes escopo="pessoal" embedded compact />
           {dados && <RascunhosSection items={dados.rascunhos} total={dados.rascunhos_total ?? dados.resumo.rascunhos} expandido={rascunhosExpandidos} ocupado={cancelando} onContinue={abrirRevisao} onToggle={alternarRascunhos} onCancel={cancelarRascunho} />}
-          <NotificationCenter compact />
+          <CentralNotificacoes compact />
         </aside>
       </div>
     </main>

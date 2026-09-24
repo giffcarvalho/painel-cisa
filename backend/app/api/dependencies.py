@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Depends
 
 from app.api.auth import obter_usuario_atual
-from app.core.authorization import exigir_admin
+from app.core.autorizacao import exigir_admin
 from app.schemas.auth import UsuarioAutenticado
 
 

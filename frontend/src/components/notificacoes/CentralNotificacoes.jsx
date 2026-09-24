@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Check, CheckCheck, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { notificacoesApi } from '@/api/notificacoes'
-import styles from './NotificationCenter.module.css'
+import styles from './CentralNotificacoes.module.css'
 
 const LIMITE = 20
 const LIMITE_COMPACTO = 5
@@ -16,7 +16,7 @@ function formatarData(value) {
   }).format(data)
 }
 
-export default function NotificationCenter({ compact = false }) {
+export default function CentralNotificacoes({ compact = false }) {
   const navigate = useNavigate()
   const [pagina, setPagina] = useState(1)
   const [dados, setDados] = useState(null)

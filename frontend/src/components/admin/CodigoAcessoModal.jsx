@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Check, Copy, X } from 'lucide-react'
 import styles from '@/pages/admin/usuarios/AdminUsuarios.module.css'
 
-export default function AccessCodeModal({ codigo, expiraEm, onClose }) {
+export default function CodigoAcessoModal({ codigo, expiraEm, onClose }) {
   const [copiado, setCopiado] = useState(false)
   const copiar = async () => { await navigator.clipboard.writeText(codigo); setCopiado(true) }
   return <div className={styles.modalBackdrop} role="presentation"><section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="codigo-title">

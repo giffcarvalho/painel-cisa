@@ -4,9 +4,9 @@ import { X } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/auth/useAuth'
 import LoginForm from './LoginForm'
-import FirstAccessForm from './FirstAccessForm'
-import ForgotPassword from './ForgotPassword'
-import PasswordResetForm from './PasswordResetForm'
+import PrimeiroAcessoForm from './PrimeiroAcessoForm'
+import RecuperarSenha from './RecuperarSenha'
+import RedefinirSenhaForm from './RedefinirSenhaForm'
 import styles from './LoginModal.module.css'
 
 const FOCUSABLE_SELECTOR = [
@@ -132,7 +132,7 @@ export default function LoginModal() {
           />
         )}
         {view === 'first-access' && (
-          <FirstAccessForm
+          <PrimeiroAcessoForm
             onBack={() => setView('login')}
             onSubmittingChange={setIsSubmitting}
             onSuccess={(message) => {
@@ -142,13 +142,13 @@ export default function LoginModal() {
           />
         )}
         {view === 'forgot-password' && (
-          <ForgotPassword
+          <RecuperarSenha
             onBack={() => setView('login')}
             onEnterCode={() => setView('password-reset')}
           />
         )}
         {view === 'password-reset' && (
-          <PasswordResetForm
+          <RedefinirSenhaForm
             onBack={() => setView('forgot-password')}
             onSubmittingChange={setIsSubmitting}
             onSuccess={(message) => {

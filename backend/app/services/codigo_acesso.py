@@ -7,7 +7,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import gerar_hash_codigo_acesso
+from app.core.seguranca import gerar_hash_codigo_acesso
 
 
 ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"

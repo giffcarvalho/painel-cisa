@@ -2,8 +2,8 @@ import { createBrowserRouter } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import { Loader2 } from 'lucide-react'
 import AppLayout from '@/components/layout/AppLayout'
-import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import AuthModalLayout from '@/components/auth/AuthModalLayout'
+import RotaProtegida from '@/components/auth/RotaProtegida'
+import LayoutModalAcesso from '@/components/auth/LayoutModalAcesso'
 import Home from '@/pages/home/Home'
 import CarteiraDsr from '@/pages/carteira-dsr/CarteiraDsr'
 import ManualLayout from './pages/manual/ManualLayout'
@@ -37,7 +37,7 @@ function MapaLoading() {
 
 export const router = createBrowserRouter([
   {
-    element: <AuthModalLayout />,
+    element: <LayoutModalAcesso />,
     children: [
       {
         path: '/',
@@ -53,65 +53,65 @@ export const router = createBrowserRouter([
           {
             path: 'revisao-instrumento',
             element: (
-              <ProtectedRoute>
+              <RotaProtegida>
                 <RevisaoInstrumento />
-              </ProtectedRoute>
+              </RotaProtegida>
             ),
           },
           {
             path: 'revisao-instrumento/:numeroInstrumento',
             element: (
-              <ProtectedRoute>
+              <RotaProtegida>
                 <RevisaoInstrumento />
-              </ProtectedRoute>
+              </RotaProtegida>
             ),
           },
           {
             path: 'minhas-revisoes',
             element: (
-              <ProtectedRoute>
+              <RotaProtegida>
                 <MeuPainel />
-              </ProtectedRoute>
+              </RotaProtegida>
             ),
           },
           {
             path: 'meu-painel',
             element: (
-              <ProtectedRoute>
+              <RotaProtegida>
                 <MeuPainel />
-              </ProtectedRoute>
+              </RotaProtegida>
             ),
           },
           {
             path: 'revisao-instrumento/:numeroInstrumento/revisoes',
             element: (
-              <ProtectedRoute>
+              <RotaProtegida>
                 <HistoricoRevisoes escopo="instrumento" />
-              </ProtectedRoute>
+              </RotaProtegida>
             ),
           },
           {
             path: 'revisao-instrumento/:numeroInstrumento/revisoes/:idRevisao',
             element: (
-              <ProtectedRoute>
+              <RotaProtegida>
                 <VisualizarRevisao />
-              </ProtectedRoute>
+              </RotaProtegida>
             ),
           },
           {
             path: 'admin',
             element: (
-              <ProtectedRoute requiredProfile="admin">
+              <RotaProtegida requiredProfile="admin">
                 <AdminUsuarios />
-              </ProtectedRoute>
+              </RotaProtegida>
             ),
           },
           {
             path: 'admin/aplicacao-revisoes',
             element: (
-              <ProtectedRoute requiredProfile="admin">
+              <RotaProtegida requiredProfile="admin">
                 <AplicacaoRevisoes />
-              </ProtectedRoute>
+              </RotaProtegida>
             ),
           },
           {

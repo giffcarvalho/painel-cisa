@@ -3,7 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { useAuth } from '@/context/auth/useAuth'
 
-export default function ProtectedRoute({ children, requiredProfile = null }) {
+export default function RotaProtegida({ children, requiredProfile = null }) {
   const location = useLocation()
   const { isAuthenticated, isLoading, openLoginModal, usuario } = useAuth()
   const redirect = `${location.pathname}${location.search}${location.hash}`

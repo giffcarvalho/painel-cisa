@@ -5,7 +5,7 @@ import styles from '@/pages/admin/usuarios/AdminUsuarios.module.css'
 
 const INICIAL = { nome: '', email: '', perfil: 'tecnico', id_setor: '' }
 
-export default function CreateUserModal({ onClose, onCreated }) {
+export default function CriarUsuarioModal({ onClose, onCreated }) {
   const [form, setForm] = useState(INICIAL)
   const [setores, setSetores] = useState([])
   const [erro, setErro] = useState('')

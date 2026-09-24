@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Loader2, Plus, RefreshCw } from 'lucide-react'
 import { adminUsuariosApi } from '@/api/adminUsuarios'
-import AdminSummaryCards from '@/components/admin/AdminSummaryCards'
-import UsersFilters from '@/components/admin/UsersFilters'
-import UsersTable from '@/components/admin/UsersTable'
-import UserDetailsPanel from '@/components/admin/UserDetailsPanel'
-import CreateUserModal from '@/components/admin/CreateUserModal'
+import ResumoAdminCards from '@/components/admin/ResumoAdminCards'
+import FiltrosUsuarios from '@/components/admin/FiltrosUsuarios'
+import TabelaUsuarios from '@/components/admin/TabelaUsuarios'
+import DetalhesUsuarioPanel from '@/components/admin/DetalhesUsuarioPanel'
+import CriarUsuarioModal from '@/components/admin/CriarUsuarioModal'
 import styles from './AdminUsuarios.module.css'
 
 const iniciais = { busca: '', ativo: '', conta_ativada: '', perfil: '' }
@@ -21,6 +21,6 @@ export default function AdminUsuarios() {
   // listagem imediatamente.
   useEffect(() => { const timer = setTimeout(carregar, filtros.busca ? 300 : 0); return () => clearTimeout(timer) }, [carregar, filtros.busca])
   return <main className={styles.page}><header className={styles.hero}><div><span>Administração</span><h1>Gestão de usuários</h1><p>Contas, acessos, instrumentos, pendências e revisões em um só lugar.</p></div><div className={styles.heroActions}><button type="button" className={styles.primary} onClick={() => setCriando(true)}><Plus /> Adicionar usuário</button><button type="button" onClick={carregar} disabled={carregando}><RefreshCw className={carregando ? styles.spin : ''} /> Atualizar</button></div></header>
-    {erro && <div className={styles.error} role="alert">{erro}</div>}{mensagem && <div className={styles.successMessage} role="status">{mensagem}</div>}{dados && <><AdminSummaryCards resumo={dados.resumo} /><section className={styles.management}><UsersFilters filtros={filtros} onChange={setFiltros} />{carregando ? <div className={styles.loading}><Loader2 className={styles.spin} /> Carregando usuários...</div> : <UsersTable usuarios={dados.data} onSelect={setSelecionado} />}</section></>}{selecionado && <UserDetailsPanel key={selecionado} idUsuario={selecionado} onClose={() => setSelecionado(null)} onChanged={carregar} />}{criando && <CreateUserModal onClose={() => setCriando(false)} onCreated={() => { setCriando(false); setMensagem('Usuário criado e aguardando ativação.'); carregar() }} />}
+    {erro && <div className={styles.error} role="alert">{erro}</div>}{mensagem && <div className={styles.successMessage} role="status">{mensagem}</div>}{dados && <><ResumoAdminCards resumo={dados.resumo} /><section className={styles.management}><FiltrosUsuarios filtros={filtros} onChange={setFiltros} />{carregando ? <div className={styles.loading}><Loader2 className={styles.spin} /> Carregando usuários...</div> : <TabelaUsuarios usuarios={dados.data} onSelect={setSelecionado} />}</section></>}{selecionado && <DetalhesUsuarioPanel key={selecionado} idUsuario={selecionado} onClose={() => setSelecionado(null)} onChanged={carregar} />}{criando && <CriarUsuarioModal onClose={() => setCriando(false)} onCreated={() => { setCriando(false); setMensagem('Usuário criado e aguardando ativação.'); carregar() }} />}
   </main>
 }

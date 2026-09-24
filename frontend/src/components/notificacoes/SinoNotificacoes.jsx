@@ -3,7 +3,7 @@ import { Bell, CheckCheck, Loader2 } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { notificacoesApi } from '@/api/notificacoes'
 import { useAuth } from '@/context/auth/useAuth'
-import styles from './NotificationBell.module.css'
+import styles from './SinoNotificacoes.module.css'
 
 function formatarData(value) {
   const data = new Date(value)
@@ -14,7 +14,7 @@ function formatarData(value) {
   }).format(data)
 }
 
-export default function NotificationBell() {
+export default function SinoNotificacoes() {
   const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()

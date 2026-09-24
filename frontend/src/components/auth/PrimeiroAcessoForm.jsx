@@ -35,7 +35,7 @@ function PasswordInput({ id, label, value, onChange, disabled }) {
   )
 }
 
-export default function FirstAccessForm({ onBack, onSuccess, onSubmittingChange }) {
+export default function PrimeiroAcessoForm({ onBack, onSuccess, onSubmittingChange }) {
   const [codigo, setCodigo] = useState('')
   const [tecnico, setTecnico] = useState(null)
   const [senha, setSenha] = useState('')

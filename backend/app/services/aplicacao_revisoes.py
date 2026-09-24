@@ -33,7 +33,7 @@ from app.schemas.aplicacao_revisoes import (
     SolicitacoesCancelamentoResponse,
 )
 from app.schemas.auth import UsuarioAutenticado
-from app.core.authorization import exigir_admin
+from app.core.autorizacao import exigir_admin
 from app.services.notificacoes import (
     criar_notificacao,
     criar_notificacoes_administradores,

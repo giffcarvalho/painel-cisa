@@ -1,7 +1,7 @@
 import { Users, UserCheck, UserX, KeyRound, ClipboardCheck } from 'lucide-react'
 import styles from '@/pages/admin/usuarios/AdminUsuarios.module.css'
 
-export default function AdminSummaryCards({ resumo }) {
+export default function ResumoAdminCards({ resumo }) {
   const cards = [
     ['Total de usuários', resumo.total_usuarios, Users],
     ['Usuários ativos', resumo.usuarios_ativos, UserCheck],

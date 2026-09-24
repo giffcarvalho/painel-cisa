@@ -9,8 +9,8 @@ os.environ.setdefault("DB_NAME", "teste")
 
 from fastapi import HTTPException
 
-from app.core.authorization import exigir_admin
-from app.core.security import verificar_codigo_acesso
+from app.core.autorizacao import exigir_admin
+from app.core.seguranca import verificar_codigo_acesso
 from app.schemas.auth import UsuarioAutenticado
 from app.services.admin_usuarios import alterar_status_usuario, alterar_vinculo, vincular_instrumento
 from app.services.codigo_acesso import emitir_codigo_acesso, gerar_codigo_acesso

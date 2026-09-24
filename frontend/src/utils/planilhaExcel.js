@@ -1,6 +1,6 @@
 import ExcelJS from 'exceljs'
 
-function normalizeCellValue(value, column) {
+function normalizarValorCelula(value, column) {
     if (value === null || value === undefined || value === '') return null
 
     // Tipos explícitos evitam que o Excel armazene medidas numéricas como texto
@@ -20,7 +20,7 @@ function normalizeCellValue(value, column) {
     return value
 }
 
-export function createExcelWorkbook({ data, columns, sheetName = 'Dados' }) {
+export function criarPlanilhaExcel({ data, columns, sheetName = 'Dados' }) {
     const workbook = new ExcelJS.Workbook()
     const worksheet = workbook.addWorksheet(sheetName)
 
@@ -43,7 +43,7 @@ export function createExcelWorkbook({ data, columns, sheetName = 'Dados' }) {
     // auxiliares presentes nos objetos de origem.
     data.forEach(row => {
         const excelRow = Object.fromEntries(
-            columns.map(column => [column.key, normalizeCellValue(row[column.key], column)])
+            columns.map(column => [column.key, normalizarValorCelula(row[column.key], column)])
         )
         worksheet.addRow(excelRow)
     })

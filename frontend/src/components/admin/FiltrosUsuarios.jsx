@@ -1,7 +1,7 @@
 import { Search } from 'lucide-react'
 import styles from '@/pages/admin/usuarios/AdminUsuarios.module.css'
 
-export default function UsersFilters({ filtros, onChange }) {
+export default function FiltrosUsuarios({ filtros, onChange }) {
   const change = (key) => (event) => onChange({ ...filtros, [key]: event.target.value })
   return <section className={styles.filters} aria-label="Filtros de usuários">
     <label className={styles.search}><Search /><input value={filtros.busca} onChange={change('busca')} placeholder="Buscar por nome, e-mail ou código técnico" /></label>

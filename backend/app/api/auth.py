@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.security import (
+from app.core.seguranca import (
     criar_token_acesso,
     decodificar_token_acesso,
     gerar_hash_senha,

@@ -1,8 +1,8 @@
 import { saveAs } from 'file-saver'
-import { createExcelWorkbook } from './excelWorkbook'
+import { criarPlanilhaExcel } from './planilhaExcel'
 
 export async function exportToExcel({ data, columns, fileName, sheetName = 'Dados' }) {
-    const workbook = createExcelWorkbook({ data, columns, sheetName })
+    const workbook = criarPlanilhaExcel({ data, columns, sheetName })
 
     // A geração em memória permite iniciar o download no navegador sem endpoint
     // intermediário para os gráficos que já têm todos os dados carregados.

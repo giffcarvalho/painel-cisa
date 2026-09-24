@@ -22,7 +22,7 @@ function PasswordInput({ id, label, value, onChange, disabled }) {
   )
 }
 
-export default function PasswordResetForm({ onBack, onSuccess, onSubmittingChange }) {
+export default function RedefinirSenhaForm({ onBack, onSuccess, onSubmittingChange }) {
   const [codigo, setCodigo] = useState('')
   const [usuario, setUsuario] = useState(null)
   const [senha, setSenha] = useState('')

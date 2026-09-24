@@ -137,7 +137,7 @@ class CancelamentoRascunhoTest(unittest.IsolatedAsyncioTestCase):
 class InterfaceListasTest(unittest.TestCase):
     def test_controles_e_buscas_estao_presentes(self):
         painel = (ROOT.parent / "frontend/src/pages/meu-painel/MeuPainel.jsx").read_text(encoding="utf-8")
-        drawer = (ROOT.parent / "frontend/src/components/admin/UserDetailsPanel.jsx").read_text(encoding="utf-8")
+        drawer = (ROOT.parent / "frontend/src/components/admin/DetalhesUsuarioPanel.jsx").read_text(encoding="utf-8")
         self.assertIn("Cancelar rascunho", painel)
         self.assertIn("Coordenadas", painel)
         for texto in (
