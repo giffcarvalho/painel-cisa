@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FiltrosPontosControleProvider } from '../../context/pontos-controle/filtrosContext';
 import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltrosPontosControle';
-import { useInstrumentosPontosControleQuery } from '../../hooks/usePontosControle';
+import { useInstrumentosPontosControleQuery, useDadosAdicionaisPontosControleQuery } from '../../hooks/usePontosControle';
 import TabelaPontosControle from '../../components/pontos-controle/TabelaPontosControle';
 import styles from './PontosControle.module.css';
 import pontosControleApi from '../../api/pontosControle';
 
+
+//essa função extrai do objeto instrumentosQuery.data, o array com os instrumentos
+//primeiro isArray testa se o objeto já é um array, se for, já retorna o proprio array
+//se não for, procura por um array em várias propriedades possíveis, data, items, resultados, instrumentos, dados (aqui daria para especificar a propriedade, pois pelo schema sabe-se que ela é data)
 const getItens = (data) => {
   if (Array.isArray(data)) return data;
   return data?.data ?? data?.items ?? data?.resultados ?? data?.instrumentos ?? data?.dados ?? [];
@@ -19,6 +23,8 @@ function PontosControleContent() {
 
   const { filtros } = useFiltrosPontosControle();
 
+
+
   //instrumentosQuery não é o array de instrumentos ainda. É o objeto de resultado gerenciado pelo useQuery
   //esse objeto é que é passado como props para a tabela
   const instrumentosQuery = useInstrumentosPontosControleQuery(
@@ -26,6 +32,12 @@ function PontosControleContent() {
     pagina,
     tamanhoPagina
   );
+
+
+  //dadosAdicionaisQuery não é o array de instrumentos ainda. É o objeto de resultado gerenciado pelo useQuery
+  //esse objeto é que é passado como props para a tabela
+  const dadosAdicionaisQuery = useDadosAdicionaisPontosControleQuery();
+
 
   useEffect(() => {
     pontosControleApi.getDataDados()
@@ -74,6 +86,7 @@ function PontosControleContent() {
         <TabelaPontosControle
           data={instrumentosQuery.data}
           dataDados={dataDados}
+          dadosAdicionais={dadosAdicionaisQuery.data}
           isLoading={instrumentosQuery.isLoading}
           isError={instrumentosQuery.isError}
           pagina={pagina}

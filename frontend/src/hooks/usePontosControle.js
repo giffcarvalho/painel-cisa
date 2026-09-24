@@ -73,3 +73,18 @@ export function useInstrumentosPontosControleQuery(filtros = {}, pagina = 1, tam
     placeholderData: keepPreviousData,
   });
 }
+
+
+
+export function useDadosAdicionaisPontosControleQuery() {
+
+  return useQuery({
+    queryKey: [
+      'pontos-controle',
+      'dados_adicionais',
+    ],
+    queryFn: () =>
+      pontosControleApi.getDadosAdicionais(),
+    placeholderData: keepPreviousData,
+  });
+}

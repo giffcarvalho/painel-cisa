@@ -93,17 +93,6 @@ export const getInstrumentos = async (filtros = {}, pagina = 1, tamanhoPagina = 
 };
 
 
-/*Dados adicionais dos intrumentos, que virão da view da Carteira e não do Monitoramento*/
-export const getDadosAdicionais = async (filtros = {}, pagina = 1, tamanhoPagina = 50) => {
-  const params = buildInstrumentosParams(filtros, pagina, tamanhoPagina);
-  const { data } = await api.get('/pontos-controle/dados_adicionais', {
-    params,
-  });
-
-  return data;
-};
-
-
 export const getDataDados = async () => {
   const { data } = await api.get('/pontos-controle/data_dados');
 
@@ -111,11 +100,20 @@ export const getDataDados = async () => {
 };
 
 
+/*Dados adicionais dos intrumentos, que virão da view da Carteira e não do Monitoramento*/
+export const getDadosAdicionais = async () => {
+  
+  const { data } = await api.get('/pontos-controle/dados_adicionais');
+
+  return data;
+};
+
 const pontosControleApi = {
   getFiltros,
   buscarFiltro,
   getInstrumentos,
-  getDataDados
+  getDataDados,
+  getDadosAdicionais,
 };
 
 export default pontosControleApi;

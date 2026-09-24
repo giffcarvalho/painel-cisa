@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState, useRef } from 'react';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, formatDate } from '../../utils/formatters';
 import styles from '../../pages/pontos-controle/PontosControle.module.css';
 import FiltroColuna from './FiltrosPontosControle';
 import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltrosPontosControle';
@@ -585,6 +585,7 @@ const InformacaoColuna = ({ label, onClick }) => (
 export default function TabelaPontosControle({
   data,
   dataDados,
+  dadosAdicionais,
   isLoading,
   isError,
   pagina,
@@ -600,6 +601,7 @@ export default function TabelaPontosControle({
   const { limparTodosFiltros, totalFiltrosAtivos } = useFiltrosPontosControle();
   const tableWrapperRef = useRef(null);
   const instrumentos = getItens(data);
+  const instrumentosDadosAdicionais = getItens(dadosAdicionais);
   const total = data?.total ?? instrumentos.length;
   const paginaAtual = data?.pagina ?? pagina;
   const tamanhoAtual = data?.tamanho_pagina ?? tamanhoPagina;
@@ -898,6 +900,7 @@ export default function TabelaPontosControle({
               <tbody>
                 {instrumentos.map((instrumento, index) => {
                   const nrInstrumento = instrumento.nr_instrumento;
+                  const dadosAdicionaisInstrumento = instrumentosDadosAdicionais.find((item) => String(item.nr_instrumento) === String(nrInstrumento));
                   const rowKey = String(nrInstrumento ?? `${instrumento.nr_proposta ?? 'sem-id'}-${index}`);
                   const isSelected = String(nrInstrumentoSelecionado) === String(nrInstrumento);
                   const isResumoAberto = resumoAberto === rowKey;
@@ -932,16 +935,16 @@ export default function TabelaPontosControle({
                             </button>
 
                             <span className={styles.actionDivider} aria-hidden="true" />
-
-                            <button
-                              type="button"
-                              className={styles.actionItem}
-                              title="Abrir ficha detalhada"
-                              disabled={!nrInstrumento}
-                              onClick={(event) => abrirFicha(event, nrInstrumento)}
-                            >
-                              Ficha
-                            </button>
+                          
+                            <a 
+                              href={`https://saci.cidades.gov.br/contratos/${dadosAdicionaisInstrumento.cod_tci}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={styles.actionItem} 
+                            > 
+                              Saci 
+                            </a>
+                            
                           </div>
                         </td>
                         <td className={styles.compactCell}>{emptyValue(instrumento.proponente)}</td>
@@ -979,14 +982,24 @@ export default function TabelaPontosControle({
 
                       {isResumoAberto && (
                         <tr className={styles.previewRow}>
-                          <td colSpan={3}>
+                          <td colSpan={8}>
                             <dl className={styles.previewGrid}>
-                              <PreviewField label="UF" value={instrumento.uf} />
-                              <PreviewField label="Ação" value={instrumento.acao} />
-                              <PreviewField label="Monitor" value={instrumento.monitor} />
-                              <PreviewField label="Município(s)" value={instrumento.municipios_beneficiados} />
-                              <PreviewField label="Carteira ativa" value={instrumento.carteira_ativa} />
-                              <PreviewField label="Projeto aprovado" value={instrumento.projeto_aprovado} />
+                              <PreviewField label="Nº Proposta" value={dadosAdicionaisInstrumento.nr_proposta} />
+                              <PreviewField label="Operação" value={dadosAdicionaisInstrumento.operacao} />
+                              <PreviewField label="Cod. Saci" value={dadosAdicionaisInstrumento.cod_tci} />
+                              <PreviewField label="Nº Seleção PAC" value={dadosAdicionaisInstrumento.nr_proposta_selecao_pac} />
+                              <PreviewField label="Tipo" value={dadosAdicionaisInstrumento.tipo_instrumento} />
+                              <PreviewField label="Ação orçamentária" value={dadosAdicionaisInstrumento.acao_orcamentaria} />
+                              <PreviewField label="Componente" value={dadosAdicionaisInstrumento.componente} />
+                              <PreviewField label="Vigência" value={formatDate(dadosAdicionaisInstrumento.dia_fim_vigenc_conv)} />
+                              <PreviewField label="Situação do instrumento" value={dadosAdicionaisInstrumento.situacao_contrato} />
+                              <PreviewField label="Situação da obra" value={dadosAdicionaisInstrumento.situacao_obra} />
+                              <PreviewField label="Valor de Repasse" value={formatCurrency(dadosAdicionaisInstrumento.valor_repasse)} />
+                              <PreviewField label="Valor Contrapartida" value={formatCurrency(dadosAdicionaisInstrumento.valor_contrapartida)} />
+                              <PreviewField label="Valor empenhado" value={formatCurrency(dadosAdicionaisInstrumento.valor_empenhado)} />
+                              <PreviewField label="Valor desembolsado" value={formatCurrency(dadosAdicionaisInstrumento.valor_desembolsado)} />
+                              <PreviewField label="Valor desbloqueado" value={formatCurrency(dadosAdicionaisInstrumento.valor_desbloqueado)} />
+                              <PreviewField label="Valor pago" value={formatCurrency(dadosAdicionaisInstrumento.valor_pago)} />
                             </dl>
                           </td>
                         </tr>
