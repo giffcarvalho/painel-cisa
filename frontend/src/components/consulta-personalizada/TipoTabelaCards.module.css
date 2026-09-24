@@ -1,3 +1,6 @@
+/* ==========================================================================
+   Seleção da base de consulta
+   ========================================================================== */
 .tipoGridCompact {
   display: flex;
   width: fit-content;
@@ -67,6 +70,7 @@
   display: none;
 }
 
+/* Estados de carregamento e falha do catálogo. */
 .inlineError {
   margin-bottom: 12px;
   padding: 12px;
@@ -85,6 +89,9 @@
   text-align: center;
 }
 
+/* ==========================================================================
+   Responsividade
+   ========================================================================== */
 @media (max-width: 820px) {
   .tipoGridCompact {
     width: 100%;

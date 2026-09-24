@@ -15,6 +15,8 @@ export default function SolicitacoesCancelamento({ resultado, carregando, onAtua
   const [processando, setProcessando] = useState(false)
 
   async function responder() {
+    // Rejeições exigem justificativa administrativa; aprovações aceitam a
+    // observação como complemento opcional.
     if (!modal || processando || (modal.acao === 'rejeitar' && !observacao.trim())) return
     setProcessando(true)
     try {
@@ -27,6 +29,7 @@ export default function SolicitacoesCancelamento({ resultado, carregando, onAtua
   }
 
   function filtrar(event) {
+    // Toda troca de status reinicia a paginação da listagem correspondente.
     const value = event.target.value
     setStatus(value)
     onAtualizar(1, value)

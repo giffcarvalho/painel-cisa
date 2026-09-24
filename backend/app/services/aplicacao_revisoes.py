@@ -33,6 +33,13 @@ from app.schemas.aplicacao_revisoes import (
     SolicitacoesCancelamentoResponse,
 )
 from app.schemas.auth import UsuarioAutenticado
+from app.core.autorizacao import exigir_admin
+from app.services.notificacoes import (
+    criar_notificacao,
+    criar_notificacoes_administradores,
+    dados_revisao_para_notificacao,
+    dados_revisao_para_notificacao_por_execucao,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -62,14 +69,6 @@ TIPOS = {
         "localidade": None,
     },
 }
-
-
-def exigir_admin(usuario: UsuarioAutenticado) -> None:
-    if str(usuario.perfil or "").strip().lower() != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acesso restrito a administradores.",
-        )
 
 
 def _identificador(revisao: dict[str, Any]) -> str:
@@ -1115,7 +1114,8 @@ async def _carregar_execucao_cancelamento(
     result = await db.execute(
         text(
             """
-            SELECT e.*, r.tipo_instrumento, r.nr_instrumento, r.nr_proposta,
+            SELECT e.*, r.id_usuario AS id_usuario_revisao,
+                   r.tipo_instrumento, r.nr_instrumento, r.nr_proposta,
                    r.nr_ted, r.identificador_busca, r.aplicado_em
             FROM painel_dsr.tb_execucao_aplicacao_revisao e
             JOIN painel_dsr.tb_revisao_instrumento r ON r.id_revisao = e.id_revisao
@@ -1484,6 +1484,29 @@ async def cancelar_aplicacao(
                             "observacao": (observacao_resposta or "").strip() or None,
                         },
                     )
+                tipo_notificacao = (
+                    "cancelamento_aprovado"
+                    if solicitacao is not None
+                    else "aplicacao_cancelada"
+                )
+                await criar_notificacao(
+                    db,
+                    id_usuario=execucao["id_usuario_revisao"],
+                    tipo=tipo_notificacao,
+                    chave_evento=(
+                        f"cancelamento_aprovado:{id_solicitacao}"
+                        if solicitacao is not None
+                        else f"aplicacao_cancelada:{id_execucao}"
+                    ),
+                    id_revisao=execucao["id_revisao"],
+                )
+                await criar_notificacoes_administradores(
+                    db,
+                    tipo="admin_revisao_cancelada",
+                    chave_evento=f"revisao_cancelada:{execucao['id_revisao']}",
+                    id_revisao=execucao["id_revisao"],
+                    excluir_ids={execucao["id_usuario_revisao"]},
+                )
     except HTTPException:
         await db.rollback()
         raise
@@ -1601,6 +1624,12 @@ async def solicitar_cancelamento(
             {"id_execucao": id_execucao, "id_usuario": usuario.id_usuario, "motivo": motivo},
         )
         id_solicitacao = result.scalar_one()
+        await criar_notificacoes_administradores(
+            db,
+            tipo="admin_cancelamento_solicitado",
+            chave_evento=f"cancelamento_solicitado:{id_revisao}",
+            id_revisao=id_revisao,
+        )
         await db.commit()
     except IntegrityError as exc:
         await db.rollback()
@@ -1687,6 +1716,15 @@ async def rejeitar_solicitacao_cancelamento(
     if id_execucao is None:
         await db.rollback()
         raise HTTPException(status_code=409, detail="A solicitação não existe ou já foi respondida.")
+    revisao = await dados_revisao_para_notificacao_por_execucao(db, id_execucao)
+    if revisao is not None:
+        await criar_notificacao(
+            db,
+            id_usuario=revisao["id_usuario"],
+            tipo="cancelamento_rejeitado",
+            chave_evento=f"cancelamento_rejeitado:{id_solicitacao}",
+            id_revisao=revisao["id_revisao"],
+        )
     await db.commit()
     solicitacao = await obter_solicitacao_relevante(db, id_execucao)
     assert solicitacao is not None
@@ -1697,17 +1735,28 @@ async def _registrar_falha(
     db: AsyncSession, id_revisao: int, usuario: UsuarioAutenticado, mensagem: str
 ) -> None:
     try:
-        await db.execute(
+        result = await db.execute(
             text(
                 """
                 INSERT INTO painel_dsr.tb_execucao_aplicacao_revisao (
                     id_revisao, id_usuario_admin, status, iniciado_em,
                     concluido_em, mensagem_erro
                 ) VALUES (:id_revisao, :id_usuario, 'falha', NOW(), NOW(), :mensagem)
+                RETURNING id_execucao
                 """
             ),
             {"id_revisao": id_revisao, "id_usuario": usuario.id_usuario, "mensagem": mensagem[:2000]},
         )
+        id_execucao = result.scalar_one()
+        revisao = await dados_revisao_para_notificacao(db, id_revisao)
+        if revisao is not None:
+            await criar_notificacao(
+                db,
+                id_usuario=revisao["id_usuario"],
+                tipo="aplicacao_falhou",
+                chave_evento=f"aplicacao_falhou:{id_execucao}",
+                id_revisao=id_revisao,
+            )
         await db.commit()
     except SQLAlchemyError:
         await db.rollback()
@@ -1813,6 +1862,13 @@ async def aplicar_revisao(
                 db,
                 possui_publico_alvo=bool(publico),
                 possui_obras=bool(obras),
+            )
+            await criar_notificacao(
+                db,
+                id_usuario=revisao["id_usuario"],
+                tipo="revisao_aplicada",
+                chave_evento=f"revisao_aplicada:{execucao['id_execucao']}",
+                id_revisao=id_revisao,
             )
 
         return ExecucaoAplicacaoResponse(

@@ -5,6 +5,7 @@ import { revisaoInstrumentoApi } from '@/api/revisaoInstrumento'
 import styles from './HistoricoRevisoes.module.css'
 
 const LIMITE = 20
+const LIMITE_COMPACTO = 5
 
 function formatarData(value) {
   if (!value) return 'Data de envio não informada'
@@ -22,7 +23,7 @@ function numeroInstrumento(item) {
   return item.nr_instrumento || item.nr_ted || item.nr_proposta || item.identificador_busca
 }
 
-export default function HistoricoRevisoes({ escopo }) {
+export default function HistoricoRevisoes({ escopo, embedded = false, compact = false }) {
   const navigate = useNavigate()
   const { numeroInstrumento: identificadorRota } = useParams()
   const pessoal = escopo === 'pessoal'
@@ -32,8 +33,12 @@ export default function HistoricoRevisoes({ escopo }) {
   const [pagina, setPagina] = useState(1)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
+  const [expandido, setExpandido] = useState(false)
+  const limiteAtual = compact && !expandido ? LIMITE_COMPACTO : LIMITE
 
   useEffect(() => {
+    // O mesmo componente atende o histórico pessoal e o de um instrumento; a
+    // origem da requisição varia com o escopo, mantendo paginação compartilhada.
     let ativo = true
     Promise.resolve().then(() => {
       if (!ativo) return
@@ -42,10 +47,10 @@ export default function HistoricoRevisoes({ escopo }) {
     })
 
     const requisicao = pessoal
-      ? revisaoInstrumentoApi.buscarMinhasRevisoes({ busca: buscaAplicada, page: pagina, limit: LIMITE })
+      ? revisaoInstrumentoApi.buscarMinhasRevisoes({ busca: buscaAplicada, page: pagina, limit: limiteAtual })
       : revisaoInstrumentoApi.buscarHistoricoInstrumento(
         identificadorRota,
-        { page: pagina, limit: LIMITE },
+        { page: pagina, limit: limiteAtual },
       )
 
     requisicao
@@ -56,9 +61,10 @@ export default function HistoricoRevisoes({ escopo }) {
       .finally(() => { if (ativo) setCarregando(false) })
 
     return () => { ativo = false }
-  }, [buscaAplicada, identificadorRota, pagina, pessoal])
+  }, [buscaAplicada, identificadorRota, limiteAtual, pagina, pessoal])
 
   function pesquisar(event) {
+    // Separa o texto digitado do filtro aplicado para não consultar a cada tecla.
     event.preventDefault()
     setPagina(1)
     setBuscaAplicada(busca.trim())
@@ -81,8 +87,10 @@ export default function HistoricoRevisoes({ escopo }) {
       ? 'Você ainda não possui revisões enviadas.'
       : 'Este instrumento ainda não possui revisões enviadas.'
 
+  const Root = embedded ? 'section' : 'main'
+
   return (
-    <main className={`${styles.page} ${pessoal ? styles.personalPage : ''}`}>
+    <Root className={`${styles.page} ${pessoal ? styles.personalPage : ''} ${embedded ? styles.embedded : ''} ${compact ? styles.compact : ''}`}>
       <header className={styles.header}>
         {!pessoal && (
           <button
@@ -93,7 +101,10 @@ export default function HistoricoRevisoes({ escopo }) {
             <ArrowLeft size={18} /> Retornar
           </button>
         )}
-        <h1>{pessoal ? 'Minhas revisões' : 'Histórico de revisões'}</h1>
+        <div className={styles.titleRow}>
+          <h1>{pessoal ? (embedded ? 'Revisões enviadas' : 'Meu Painel') : 'Histórico de revisões'}</h1>
+          {compact && <span className={styles.count}>{resultado?.total ?? resultado?.data?.length ?? 0}</span>}
+        </div>
         <p>
           {pessoal
             ? 'Consulte as revisões de instrumento enviadas por você.'
@@ -158,7 +169,7 @@ export default function HistoricoRevisoes({ escopo }) {
         </>
       )}
 
-      {!carregando && !erro && resultado?.total_paginas > 1 && (
+      {!carregando && !erro && (!compact || expandido) && resultado?.total_paginas > 1 && (
         <nav className={styles.pagination} aria-label="Paginação do histórico">
           <button type="button" disabled={pagina === 1} onClick={() => setPagina((atual) => atual - 1)}>
             <ChevronLeft size={17} /> Anterior
@@ -173,6 +184,13 @@ export default function HistoricoRevisoes({ escopo }) {
           </button>
         </nav>
       )}
-    </main>
+      {compact && !carregando && !erro && (resultado?.total ?? 0) > LIMITE_COMPACTO && (
+        <div className={styles.pagination}>
+          <button type="button" onClick={() => { setExpandido((valor) => !valor); setPagina(1) }}>
+            {expandido ? 'Mostrar menos' : 'Ver todas as revisões'}
+          </button>
+        </div>
+      )}
+    </Root>
   )
 }

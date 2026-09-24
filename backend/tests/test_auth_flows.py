@@ -12,7 +12,7 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 
 from app.api import auth
-from app.core.security import gerar_hash_codigo_acesso, gerar_hash_senha
+from app.core.seguranca import gerar_hash_codigo_acesso, gerar_hash_senha
 from app.schemas.auth import (
     DefinirSenhaRedefinicaoRequest,
     DefinirSenhaPrimeiroAcessoRequest,

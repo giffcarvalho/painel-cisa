@@ -624,18 +624,18 @@ export default function MapaSection() {
     const [featureSelecionada, setFeatureSelecionada] = useState(null);
     const [modoAnalise, setModoAnalise] = useState(false);
     const [coordenadas, setCoordenadas] = useState([]);
-    const [situacaoCorrecao, setSituacaoCorrecao] = useState("Não");
-    const [observacaoGeral, setObservacaoGeral] = useState("");
+    const [situacaoCorrecao, setSituacaoCorrecao] = useState(null);
+    const [observacaoCoordenada, setObservacaoCoordenada] = useState("");
     const { isAuthenticated, openLoginModal } = useAuth();
     const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState('')
+    const [, setMessage] = useState('')
     const [messageType, setMessageType] = useState('')
     const mapContainer = useRef(null);
     const mapRef = useCriarMapa(mapContainer);
     const [carregandoMapa, setCarregandoMapa] = useState(false);
     const coordRef = useRef(null);
-    const situacaoCorrecaoOriginalRef = useRef("Não");
-    const observacaoGeralOriginalRef = useRef("");
+    const situacaoCorrecaoOriginalRef = useRef(null);
+    const observacaoCoordenadaOriginalRef = useRef("");
 
     //chamada das hooks com as funcionalidades principais
     useAdicionarLayers(mapRef, layers, filtros);
@@ -856,10 +856,10 @@ export default function MapaSection() {
             
             if (!instrumentoSelecionado) {
                 setCoordenadas([]);
-                setSituacaoCorrecao("Não");
-                setObservacaoGeral("");
-                situacaoCorrecaoOriginalRef.current = "Não";
-                observacaoGeralOriginalRef.current = "";
+                setSituacaoCorrecao(null);
+                setObservacaoCoordenada("");
+                situacaoCorrecaoOriginalRef.current = null;
+                observacaoCoordenadaOriginalRef.current = "";
                 return;
             }
 
@@ -869,13 +869,13 @@ export default function MapaSection() {
                     await listarDadosAnaliseCoordenadas({nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento, cod_tci: filtros.cod_tci});
                 
                 const listaApi = dadosAnaliseCoordenadas || [];
-                const situacaoCorrecaoInicial = listaApi[0]?.situacao_correcao || "Não";
-                const observacaoGeralInicial = listaApi[0]?.observacao_geral || "";
+                const situacaoCorrecaoInicial = listaApi[0]?.situacao_correcao ?? null;
+                const observacaoCoordenadaInicial = listaApi[0]?.observacao_coordenada || "";
                 
                 setSituacaoCorrecao(situacaoCorrecaoInicial);
-                setObservacaoGeral(observacaoGeralInicial);
+                setObservacaoCoordenada(observacaoCoordenadaInicial);
                 situacaoCorrecaoOriginalRef.current = situacaoCorrecaoInicial;
-                observacaoGeralOriginalRef.current = observacaoGeralInicial;    
+                observacaoCoordenadaOriginalRef.current = observacaoCoordenadaInicial;
 
                 const coordenadasMapeadas = listaApi.map(coordenada => ({
                     ...coordenada,
@@ -915,19 +915,10 @@ export default function MapaSection() {
         };
     };
 
-
-
-    //apenas testa se dois objetos são iguais
-    function objetosIguais(a, b) {
-        return JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
-    }
-
-
-
     //verifica se Houve Alteração Global (Rádio ou Observação)
     const houveAlteracaoGlobal = () => {
-        const correcaoMudou = (situacaoCorrecao || "Não") !== (situacaoCorrecaoOriginalRef.current || "Não");
-        const obsMudou = (observacaoGeral || "").trim() !== (observacaoGeralOriginalRef.current || "").trim();
+        const correcaoMudou = (situacaoCorrecao ?? null) !== (situacaoCorrecaoOriginalRef.current ?? null);
+        const obsMudou = (observacaoCoordenada || "").trim() !== (observacaoCoordenadaOriginalRef.current || "").trim();
         return correcaoMudou || obsMudou;
     };
 
@@ -961,21 +952,21 @@ export default function MapaSection() {
         setMessageType("");
         setSituacaoCorrecao(novaSituacao);
         
-        const correcaoMudou = (novaSituacao || "Não") !== (situacaoCorrecaoOriginalRef.current || "Não");
-        const obsMudou = (observacaoGeral || "").trim() !== (observacaoGeralOriginalRef.current || "").trim();
+        const correcaoMudou = (novaSituacao ?? null) !== (situacaoCorrecaoOriginalRef.current ?? null);
+        const obsMudou = (observacaoCoordenada || "").trim() !== (observacaoCoordenadaOriginalRef.current || "").trim();
         const globalAlterado = correcaoMudou || obsMudou;
 
         setCoordenadas(current => recalcularAlteracoesCoordenadas(current, globalAlterado));
     };
 
 
-    const handleAlterarObservacaoGeral = (novaObservacao) => {
+    const handleAlterarObservacaoCoordenada = (novaObservacao) => {
         setMessage("");
         setMessageType("");
-        setObservacaoGeral(novaObservacao);
+        setObservacaoCoordenada(novaObservacao);
 
-        const correcaoMudou = (situacaoCorrecao || "Não") !== (situacaoCorrecaoOriginalRef.current || "Não");
-        const obsMudou = (novaObservacao || "").trim() !== (observacaoGeralOriginalRef.current || "").trim();
+        const correcaoMudou = (situacaoCorrecao ?? null) !== (situacaoCorrecaoOriginalRef.current ?? null);
+        const obsMudou = (novaObservacao || "").trim() !== (observacaoCoordenadaOriginalRef.current || "").trim();
         const globalAlterado = correcaoMudou || obsMudou;
 
         setCoordenadas(current => recalcularAlteracoesCoordenadas(current, globalAlterado));
@@ -1062,8 +1053,8 @@ export default function MapaSection() {
         if (situacaoCorrecaoOriginalRef.current !== undefined) {
             setSituacaoCorrecao(situacaoCorrecaoOriginalRef.current);
         }
-        if (observacaoGeralOriginalRef.current !== undefined) {
-            setObservacaoGeral(observacaoGeralOriginalRef.current);
+        if (observacaoCoordenadaOriginalRef.current !== undefined) {
+            setObservacaoCoordenada(observacaoCoordenadaOriginalRef.current);
         }
 
     };
@@ -1089,8 +1080,8 @@ export default function MapaSection() {
             nr_instrumento: filtros.nr_instrumento || "",
             nr_proposta: filtros.nr_proposta || "",
             cod_tci: codTciValido,
-            situacao_correcao: situacaoCorrecao || "Não",
-            observacao_geral: (observacaoGeral || "").trim(),
+            situacao_correcao: situacaoCorrecao ?? null,
+            observacao_coordenada: (observacaoCoordenada || "").trim(),
             coordenadas: coordenadasParaEnvio
         };
     };
@@ -1140,7 +1131,7 @@ export default function MapaSection() {
 
             // Atualiza as referências originais com o novo estado salvo
             situacaoCorrecaoOriginalRef.current = situacaoCorrecao;
-            observacaoGeralOriginalRef.current = observacaoGeral;
+            observacaoCoordenadaOriginalRef.current = observacaoCoordenada;
 
             setCoordenadas(current =>
                 current.map(coordenada => ({
@@ -1204,8 +1195,8 @@ export default function MapaSection() {
                     identificador={identificador}
                     situacaoCorrecao={situacaoCorrecao}
                     setSituacaoCorrecao={handleAlterarSituacaoCorrecao}
-                    observacaoGeral={observacaoGeral}
-                    setObservacaoGeral={handleAlterarObservacaoGeral}
+                    observacaoCoordenada={observacaoCoordenada}
+                    setObservacaoCoordenada={handleAlterarObservacaoCoordenada}
                     painelFiltros={painelFiltros}
                     setModoAnalise={setModoAnalise}
                     restaurarEstadoOriginal={restaurarEstadoOriginal}

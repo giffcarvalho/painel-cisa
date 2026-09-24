@@ -8,6 +8,8 @@ import DetalheInstrumento from '../../components/pesquisa-instrumento/DetalheIns
 import styles from './PesquisaInstrumento.module.css';
 
 const getItens = (data) => {
+  // Aceita os formatos históricos do endpoint enquanto a tabela trabalha com
+  // uma coleção única e previsível.
   if (Array.isArray(data)) return data;
   return data?.data ?? data?.items ?? data?.resultados ?? data?.instrumentos ?? data?.dados ?? [];
 };
@@ -28,14 +30,17 @@ function PesquisaInstrumentoContent() {
     () => getItens(instrumentosQuery.data),
     [instrumentosQuery.data]
   );
-  const total = instrumentosQuery.data?.total ?? instrumentos.length;
 
+  // Uma mudança de filtro inicia uma nova navegação de resultados; seleção e
+  // página anteriores não são válidas nesse novo universo.
   useEffect(() => {
     setPagina(1);
     setNrInstrumentoSelecionado(null);
   }, [filtros]);
 
   useEffect(() => {
+    // Mantém o painel de detalhe sincronizado com a página corrente, removendo
+    // seleções que deixaram de existir após paginação ou atualização da consulta.
     if (instrumentosQuery.isLoading || instrumentosQuery.isFetching) return;
     if(
       nrInstrumentoSelecionado &&

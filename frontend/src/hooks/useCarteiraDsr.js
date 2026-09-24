@@ -2,7 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { carteiraDsrApi } from '@/api/carteiraDsr'
 import { useFiltros } from '@/context/carteira-Dsr/useFiltros'
 
-// 1. KPIs
+// Todas as consultas dependentes de filtros incluem o objeto na queryKey. Assim,
+// aplicar um novo recorte cria caches coerentes e dispara a atualização conjunta
+// de KPIs, gráficos e tabela sem invalidação manual.
 export function useKpisQuery() {
   const { filtros } = useFiltros()
   return useQuery({
@@ -11,7 +13,8 @@ export function useKpisQuery() {
   })
 }
 
-// 2. Filtros
+// As opções gerais mudam pouco e podem ser compartilhadas por uma hora entre
+// aberturas do drawer.
 export function useOpcoesFiltrosQuery() {
   return useQuery({
     queryKey: ['carteira-dsr', 'opcoes-filtros'],
@@ -28,12 +31,13 @@ export function useBuscaFiltroQuery(campo, termo) {
     queryFn: async () => (
       await carteiraDsrApi.buscarFiltro(campo, termoNormalizado)
     ).data.data,
+    // Restringe buscas remotas a termos úteis e evita carregar domínios inteiros.
     enabled: Boolean(campo) && termoNormalizado.length >= 2,
     staleTime: 5 * 60 * 1000,
   })
 }
 
-// 3. Valores por UF
+// Consultas dos painéis analíticos
 export function useValoresUfQuery() {
   const { filtros } = useFiltros()
   return useQuery({
@@ -105,7 +109,8 @@ export function useMapaPontosQuery() {
   })
 }
 
-// 11. Busca do GeoJSON estático
+// A geometria é um ativo estático da aplicação e permanece válida durante toda
+// a sessão; os dados temáticos continuam sendo atualizados pelos filtros.
 export function useBrasilGeoJsonQuery() {
   return useQuery({
     queryKey: ['geo', 'brazil'],
@@ -120,7 +125,8 @@ export function useBrasilGeoJsonQuery() {
   })
 }
 
-// 12. Tabela Detalhada
+// Mantém a página anterior visível enquanto a próxima é consultada para evitar
+// saltos de layout na navegação da tabela.
 export function useTabelaQuery(pagina = 1, tamanho = 100) {
   const { filtros } = useFiltros()
   return useQuery({

@@ -98,6 +98,8 @@ const labelFromKey = (key) =>
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 const getOutrasDatas = (instrumento) =>
+  // Inclui datas futuras do contrato sem repetir os campos já posicionados na
+  // seção principal, mantendo a ficha útil quando a API acrescentar metadados.
   Object.entries(instrumento ?? {})
     .filter(([key, value]) => {
       if (!value || camposDataJaUsados.has(key)) return false;

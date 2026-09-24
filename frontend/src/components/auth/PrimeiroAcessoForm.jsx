@@ -35,7 +35,7 @@ function PasswordInput({ id, label, value, onChange, disabled }) {
   )
 }
 
-export default function FirstAccessForm({ onBack, onSuccess, onSubmittingChange }) {
+export default function PrimeiroAcessoForm({ onBack, onSuccess, onSubmittingChange }) {
   const [codigo, setCodigo] = useState('')
   const [tecnico, setTecnico] = useState(null)
   const [senha, setSenha] = useState('')
@@ -54,6 +54,8 @@ export default function FirstAccessForm({ onBack, onSuccess, onSubmittingChange 
   }
 
   async function handleValidate(event) {
+    // O fluxo em duas etapas confirma o código antes de liberar campos de senha e
+    // exibir a identidade associada ao primeiro acesso.
     event.preventDefault()
     setError('')
     setSubmitting(true)
@@ -67,6 +69,8 @@ export default function FirstAccessForm({ onBack, onSuccess, onSubmittingChange 
   }
 
   async function handleCreatePassword(event) {
+    // A conferência local evita consumir o código com senhas divergentes; as
+    // demais políticas continuam sob validação do backend.
     event.preventDefault()
     setError('')
     if (senha !== confirmacao) {

@@ -9,11 +9,11 @@ import { exportToExcel } from '@/utils/exportToExcel'
 
 const CONFIG_COLUNAS = [
   // Identificação 
-  { key: 'nr_instrumento', label: 'Nº Instrumento', fixed: true },
-  { key: 'nr_proposta', label: 'Nº Proposta' },
-  { key: 'operacao', label: 'Operação' },
-  { key: 'nr_proposta_selecao_pac', label: 'Seleção PAC' },
-  { key: 'ano_proposta', label: 'Ano Proposta' },
+  { key: 'nr_instrumento', label: 'Nº Instrumento', fixed: true, excelType: 'string' },
+  { key: 'nr_proposta', label: 'Nº Proposta', excelType: 'string' },
+  { key: 'operacao', label: 'Operação', excelType: 'string' },
+  { key: 'nr_proposta_selecao_pac', label: 'Seleção PAC', excelType: 'string' },
+  { key: 'ano_proposta', label: 'Ano Proposta', excelType: 'number', numFmt: '0' },
   { key: 'tipo_instrumento', label: 'Tipo Instrumento' },
   { key: 'novo_pac', label: 'Novo PAC' },
   { key: 'acao_orcamentaria', label: 'Ação Orçamentária' },
@@ -23,7 +23,7 @@ const CONFIG_COLUNAS = [
   // Proponente e Localização
   { key: 'nome_proponente', label: 'Proponente' },
   { key: 'uf', label: 'UF' },
-  { key: 'qtde_municipios', label: 'Qtde Municípios' },
+  { key: 'qtde_municipios', label: 'Qtde Municípios', excelType: 'number', numFmt: '#,##0' },
   { key: 'municipios_beneficiados', label: 'Municípios Beneficiados' },
   { key: 'comunidades_rurais_beneficiadas', label: 'Comunidades Rurais' },
   
@@ -36,14 +36,14 @@ const CONFIG_COLUNAS = [
   
   // Execução e Prazos
   { key: 'dia_assin_conv', label: 'Data Assinatura', isDate: true },
-  { key: 'dias_termino_vigencia', label: 'Dias Término Vigência' },
+  { key: 'dias_termino_vigencia', label: 'Dias Término Vigência', excelType: 'number', numFmt: '#,##0' },
   { key: 'termino_vigencia', label: 'Término Vigência' },
   { key: 'primeira_data_emissao_aio', label: '1ª Emissão AIO', isDate: true },
   { key: 'situacao_contrato', label: 'Situação Contrato' },
   { key: 'situacao_obra', label: 'Situação Obra' },
-  { key: 'percentual_financeiro_pago', label: '% Financeiro Pago' },
-  { key: 'percentual_fisico_informado', label: '% Físico Informado' },
-  { key: 'percentual_fisico_aferido', label: '% Físico Aferido' },
+  { key: 'percentual_financeiro_pago', label: '% Financeiro Pago', excelType: 'number', numFmt: '0.00' },
+  { key: 'percentual_fisico_informado', label: '% Físico Informado', excelType: 'number', numFmt: '0.00' },
+  { key: 'percentual_fisico_aferido', label: '% Físico Aferido', excelType: 'number', numFmt: '0.00' },
   { key: 'data_ultimo_bm', label: 'Último BM', isDate: true },
   { key: 'data_ultima_vistoria', label: 'Última Vistoria', isDate: true },
   { key: 'data_termino_obra', label: 'Término Obra', isDate: true },
@@ -53,19 +53,19 @@ const CONFIG_COLUNAS = [
   { key: 'motivo_suspensao', label: 'Motivo Suspensão' },
   { key: 'paralisada', label: 'Paralisada' },
   { key: 'principal_motivo_paralisacao', label: 'Principal Motivo Paralisação' },
-  { key: 'dias_sem_evolucao', label: 'Dias Sem Evolução' },
+  { key: 'dias_sem_evolucao', label: 'Dias Sem Evolução', excelType: 'number', numFmt: '#,##0' },
   
   // Valores Financeiros
-  { key: 'valor_global', label: 'Valor Global', isCurrency: true },
-  { key: 'valor_repasse', label: 'Valor Repasse', isCurrency: true },
-  { key: 'valor_contrapartida', label: 'Contrapartida', isCurrency: true },
-  { key: 'valor_empenhado', label: 'Valor Empenhado', isCurrency: true },
-  { key: 'valor_a_empenhar', label: 'Valor a Empenhar', isCurrency: true },
-  { key: 'valor_desembolsado', label: 'Valor Desembolsado', isCurrency: true },
-  { key: 'valor_empenhado_a_desembolsar', label: 'Empenhado a Desembolsar', isCurrency: true },
-  { key: 'valor_a_desembolsar', label: 'Valor a Desembolsar', isCurrency: true },
-  { key: 'valor_desbloqueado', label: 'Valor Desbloqueado', isCurrency: true },
-  { key: 'valor_pago', label: 'Valor Pago', isCurrency: true }
+  { key: 'valor_global', label: 'Valor Global', isCurrency: true, excelType: 'number', numFmt: '"R$" #,##0.00;[Red]-"R$" #,##0.00' },
+  { key: 'valor_repasse', label: 'Valor Repasse', isCurrency: true, excelType: 'number', numFmt: '"R$" #,##0.00;[Red]-"R$" #,##0.00' },
+  { key: 'valor_contrapartida', label: 'Contrapartida', isCurrency: true, excelType: 'number', numFmt: '"R$" #,##0.00;[Red]-"R$" #,##0.00' },
+  { key: 'valor_empenhado', label: 'Valor Empenhado', isCurrency: true, excelType: 'number', numFmt: '"R$" #,##0.00;[Red]-"R$" #,##0.00' },
+  { key: 'valor_a_empenhar', label: 'Valor a Empenhar', isCurrency: true, excelType: 'number', numFmt: '"R$" #,##0.00;[Red]-"R$" #,##0.00' },
+  { key: 'valor_desembolsado', label: 'Valor Desembolsado', isCurrency: true, excelType: 'number', numFmt: '"R$" #,##0.00;[Red]-"R$" #,##0.00' },
+  { key: 'valor_empenhado_a_desembolsar', label: 'Empenhado a Desembolsar', isCurrency: true, excelType: 'number', numFmt: '"R$" #,##0.00;[Red]-"R$" #,##0.00' },
+  { key: 'valor_a_desembolsar', label: 'Valor a Desembolsar', isCurrency: true, excelType: 'number', numFmt: '"R$" #,##0.00;[Red]-"R$" #,##0.00' },
+  { key: 'valor_desbloqueado', label: 'Valor Desbloqueado', isCurrency: true, excelType: 'number', numFmt: '"R$" #,##0.00;[Red]-"R$" #,##0.00' },
+  { key: 'valor_pago', label: 'Valor Pago', isCurrency: true, excelType: 'number', numFmt: '"R$" #,##0.00;[Red]-"R$" #,##0.00' }
 ]
 
 export default function TabelaSection() {
@@ -83,6 +83,8 @@ export default function TabelaSection() {
       const totalExportacao = response.data.total || 0
       const dadosBrutos = response.data.data || []
 
+      // Nunca gera um arquivo silenciosamente parcial: a quantidade retornada
+      // precisa coincidir com o total informado pelo endpoint de exportação.
       if (dadosBrutos.length !== totalExportacao) {
         alert(`Exportação bloqueada: foram recebidos ${dadosBrutos.length} de ${totalExportacao} registros. Nenhum arquivo parcial foi baixado.`)
         return
@@ -91,14 +93,22 @@ export default function TabelaSection() {
       const columnsConfig = CONFIG_COLUNAS.map(col => ({
         header: col.label,
         key: col.key,
-        width: col.isDate ? 15 : col.isCurrency ? 20 : 30
+        width: col.isDate ? 15 : col.isCurrency ? 20 : 30,
+        excelType: col.excelType,
+        numFmt: col.numFmt
       }))
 
+      // Datas são preparadas para a planilha; valores numéricos permanecem como
+      // números para preservar filtros, somas e formatação do Excel.
       const formattedData = dadosBrutos.map((item) => {
         const row = { ...item }
         CONFIG_COLUNAS.forEach(col => {
-          if (col.isCurrency) row[col.key] = formatCurrency(item[col.key])
-          if (col.isDate) row[col.key] = formatDate(item[col.key])
+          if (col.isDate) {
+            const value = item[col.key]
+            row[col.key] = value === null || value === undefined || value === ''
+              ? null
+              : formatDate(value)
+          }
         })
         return row
       })

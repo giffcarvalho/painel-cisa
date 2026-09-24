@@ -15,6 +15,7 @@ export function getStoredUser() {
   try {
     return JSON.parse(rawUser)
   } catch {
+    // Dados antigos ou corrompidos não devem impedir a inicialização da sessão.
     localStorage.removeItem(AUTH_USER_KEY)
     return null
   }
@@ -31,6 +32,7 @@ export function clearAuthSession() {
 }
 
 export function notifyAuthLogout() {
+  // Eventos desacoplam o armazenamento, o interceptor Axios e o provider React.
   window.dispatchEvent(new Event(AUTH_LOGOUT_EVENT))
 }
 

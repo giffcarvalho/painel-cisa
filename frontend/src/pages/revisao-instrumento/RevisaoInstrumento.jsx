@@ -65,6 +65,10 @@ const LOCALIDADE_NOVA_INICIAL = {
   qtde_familias_ben_sugerida: '',
 }
 
+// ============================================================================
+// Normalização e regras de domínio
+// ============================================================================
+
 function normalizarBusca(value) {
   return String(value ?? '')
     .normalize('NFD')
@@ -131,6 +135,8 @@ function normalizarRelacaoInstrumento(value) {
 }
 
 function confirmacoesPermitidas(relacaoInstrumento) {
+  // A confirmação válida depende da avaliação preliminar. Uma obra sem conflito
+  // aparente não pode ser confirmada como sobreposição, e vice-versa.
   if (relacaoInstrumento === 'sem_conflito_aparente') {
     return CONFIRMACOES_STATUS.filter(({ value }) =>
       ['nao_confirmada', 'sem_conflito'].includes(value)
@@ -151,6 +157,8 @@ function normalizarObra(obra) {
     obra.relacao_instrumento
   )
   const confirmacoes = confirmacoesPermitidas(relacaoInstrumento)
+  // Reseta combinações antigas que deixaram de ser válidas quando a relação foi
+  // alterada pelo usuário ou veio inconsistente da API.
   const confirmacaoStatus = confirmacoes.some(
     ({ value }) => value === obra.confirmacao_status
   )
@@ -165,6 +173,8 @@ function normalizarObra(obra) {
 }
 
 function novaChaveLocal() {
+  // Localidades ainda não persistidas precisam de identidade estável para edição,
+  // flags de alteração e keys do React antes de receberem um id do backend.
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID()
   }
@@ -195,6 +205,8 @@ function limparTexto(value) {
 }
 
 function dadosMunicipioPersistencia(municipio) {
+  // Projeta somente o contrato persistido; metadados locais de UI não podem
+  // participar da comparação de alterações nem ser enviados à API.
   return {
     cod_municipio: municipio.cod_municipio,
     nome: municipio.nome ?? null,
@@ -255,6 +267,8 @@ function dadosPublicoAlvoOriginal(item) {
 }
 
 function copiarPublicoAlvo(publicoAlvo = []) {
+  // Mantém uma fotografia do servidor ao lado do estado editável. Essa base é
+  // usada para retirar flags quando o usuário desfaz manualmente uma alteração.
   return publicoAlvo.map((item) => ({
     ...item,
     populacao_beneficiada_original:
@@ -287,6 +301,8 @@ function objetosIguais(a, b) {
 function semIdsPersistencia(dados) {
   if (!dados) return dados
 
+  // O backend atribui ids a registros novos. Ignorá-los permite reconciliar a
+  // resposta com o item local pelo conteúdo efetivamente salvo.
   return Object.fromEntries(
     Object.entries(dados).filter(
       ([chave]) =>
@@ -296,6 +312,8 @@ function semIdsPersistencia(dados) {
 }
 
 function aplicarFlagAlteracao(currentFlags, chave, alterado) {
+  // As flags são esparsas: a ausência da chave significa "igual ao original" e
+  // permite montar payloads apenas com itens realmente modificados.
   const next = { ...currentFlags }
 
   if (alterado) {
@@ -380,6 +398,8 @@ function descricaoRascunhoGlobal(data) {
 }
 
 function contextoRevisao(data, usuarioAtualNome) {
+  // A prioridade reflete bloqueios operacionais: revisão aguardando aplicação,
+  // depois rascunho aberto e, por fim, o histórico individual do usuário.
   const revisaoPendente = data?.revisao_pendente_aplicacao
   if (revisaoPendente) {
     const responsavel = revisaoPendente.responsavel_nome || 'responsável não identificado'
@@ -448,6 +468,8 @@ function formatarDataHora(value) {
 }
 
 function conferenciaVigente(item) {
+  // Uma conferência sem validade explícita não é tratada como vigente, mesmo que
+  // possua data de realização.
   if (!item?.conferido_em) return false
   if (!item.valido_ate) return false
   const validade = Date.parse(item.valido_ate)
@@ -603,6 +625,8 @@ function validadeConferenciaPublicoAlvo(publicoAlvo = []) {
 }
 
 function copiarMunicipios(municipios = []) {
+  // Cada nível recebe originais e flags próprios para permitir salvamento parcial
+  // por município sem perder edições ainda não persistidas em outros cartões.
   return municipios.map((municipio) => {
     const localidades = (municipio.localidades ?? []).map((localidade) => ({
       ...localidade,
@@ -828,6 +852,8 @@ export default function RevisaoInstrumento() {
   const [resumoEnvio, setResumoEnvio] = useState(null)
   const [gerandoPdfEnvio, setGerandoPdfEnvio] = useState(false)
 
+  // Permissões e bloqueios são derivados em conjunto: instrumento fora da
+  // atribuição, revisão enviada ou rascunho de outro técnico impõem leitura.
   const instrumento = numeroInstrumento ? dadosBusca?.instrumento ?? null : null
   const temRascunhoAberto = Boolean(dadosBusca?.rascunho_global)
   const ehAutorRascunho = dadosBusca?.rascunho_global?.eh_autor === true
@@ -884,6 +910,8 @@ export default function RevisaoInstrumento() {
     setObservacaoEmEdicao(false)
   }
   const abrirInstrumento = useCallback(async (termo) => {
+    // Trocar de instrumento elimina todo estado transitório para que formulários,
+    // mensagens e flags da consulta anterior não contaminem a próxima revisão.
     if (!termo) {
       setMessage('Informe um número de instrumento, proposta ou TED.')
       setMessageType('error')
@@ -959,6 +987,8 @@ export default function RevisaoInstrumento() {
   }
 
   useEffect(() => {
+    // A URL é a fonte de verdade da seleção; isso permite abrir links diretos e
+    // usar corretamente o histórico de navegação do navegador.
     if (!numeroInstrumento) return
 
     const valor = String(numeroInstrumento).trim()
@@ -969,6 +999,8 @@ export default function RevisaoInstrumento() {
   }, [abrirInstrumento, numeroInstrumento])
 
   useEffect(() => {
+    // Recarrega a carteira quando o usuário autenticado muda e protege os setters
+    // contra respostas que cheguem depois da desmontagem.
     let ativo = true
 
     revisaoInstrumentoApi.buscarMeusInstrumentos()
@@ -998,6 +1030,8 @@ export default function RevisaoInstrumento() {
   })
 
   const atualizarMunicipio = (codMunicipio, campo, valor) => {
+    // Compara a projeção persistível, e não o objeto completo, para ignorar estado
+    // auxiliar da interface ao decidir se o município está alterado.
     setMunicipios((current) =>
       current.map((municipio) => {
         if (municipio.cod_municipio !== codMunicipio) return municipio
@@ -1516,6 +1550,8 @@ export default function RevisaoInstrumento() {
   }
 
   const montarPayloadMunicipio = (municipio, idRevisaoAtual = idRevisao) => ({
+    // Cada salvamento parcial transporta somente os níveis marcados como alterados;
+    // itens intocados permanecem sob responsabilidade da versão atual no servidor.
     id_revisao: idRevisaoAtual,
     instrumento,
     cod_municipio: municipio.cod_municipio,
@@ -1567,6 +1603,8 @@ export default function RevisaoInstrumento() {
   }
 
   const aplicarResultadoMunicipio = (payload, data) => {
+    // Reconcilia apenas o que a resposta confirma como salvo. Alterações locais
+    // feitas durante a requisição continuam marcadas e não são sobrescritas.
     setIdRevisao(data.id_revisao)
     setDadosBusca((current) =>
       current
@@ -1632,6 +1670,8 @@ export default function RevisaoInstrumento() {
             _clientId: localidade._clientId,
           }
 
+          // Remove a flag somente quando o item retornado corresponde ao snapshot
+          // enviado nesta requisição.
           if (payloadLocalidade) {
             delete localidadesAlteradas[chave]
             localidadesOriginais[chave] = dadosLocalidadePersistencia(
@@ -1691,6 +1731,8 @@ export default function RevisaoInstrumento() {
   }
 
   const montarPayloadRevisao = (status, idRevisaoAtual) => ({
+    // O envio global também é incremental: municípios e público-alvo sem mudanças
+    // não são repetidos no contrato de persistência.
     id_revisao: idRevisaoAtual,
     status,
     observacao_geral: observacaoGeral.trim() || null,
@@ -1714,6 +1756,8 @@ export default function RevisaoInstrumento() {
   })
 
   const existemItensNaoConferidos = () =>
+    // Itens adicionados pelo técnico já nascem como ação explícita e não entram
+    // na verificação de localidades pendentes de conferência.
     municipios.some(
       (municipio) =>
         municipio.acao_sugerida == null ||
@@ -1738,6 +1782,8 @@ export default function RevisaoInstrumento() {
     setMessageType('')
 
     try {
+      // Valida apenas cartões alterados; dados legados sem ação continuam válidos
+      // enquanto não fizerem parte desta revisão.
       const municipioInvalido = municipios
         .filter(municipioTemAlteracoes)
         .find((municipio) => validarMunicipioAntesSalvar(municipio))
@@ -1747,6 +1793,8 @@ export default function RevisaoInstrumento() {
       const payloadRevisao = montarPayloadRevisao(status, idRevisao)
       const data = await revisaoInstrumentoApi.salvarRevisao(payloadRevisao)
       if (status === 'enviado') {
+        // O resumo congela as contagens do momento do envio para o comprovante,
+        // independentemente das reconciliações de estado executadas em seguida.
         const totalMunicipios = municipios.length
         const municipiosAnalisados = municipios.filter((item) => item.acao_sugerida != null).length
         const todasLocalidades = municipios.flatMap((item) => item.localidades)
@@ -1772,6 +1820,8 @@ export default function RevisaoInstrumento() {
         })
       }
       setIdRevisao(data.id_revisao)
+      // Atualiza localmente status, autoria e bloqueios para refletir a resposta
+      // imediatamente, sem exigir uma nova busca do instrumento.
       setDadosBusca((current) =>
         current
           ? {
@@ -1887,6 +1937,8 @@ export default function RevisaoInstrumento() {
   }
 
   const iniciarEnvio = () => {
+    // O envio parcial é permitido, mas exige confirmação explícita quando ainda
+    // existem campos de conferência sem decisão.
     if (existemItensNaoConferidos()) {
       setConfirmarEnvioParcial(true)
       return

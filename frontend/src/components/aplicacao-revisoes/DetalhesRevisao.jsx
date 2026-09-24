@@ -45,6 +45,8 @@ function Grupo({ titulo, itens }) {
 const labelOuPendente = (labels, valor) => labels[valor] || 'Não conferido'
 
 function GrupoPublicoAlvo({ itens }) {
+  // Público-alvo é uma avaliação incorporada à vigência, não uma alteração direta
+  // dos valores originais do instrumento.
   return (
     <section className={styles.changeGroup}>
       <h3>Público-alvo</h3>
@@ -66,6 +68,8 @@ function GrupoPublicoAlvo({ itens }) {
 }
 
 function GrupoObras({ itens }) {
+  // Obras exibem em conjunto a relação preliminar e sua confirmação, pois a
+  // segunda opção só tem significado dentro da primeira.
   return (
     <section className={styles.changeGroup}>
       <h3>Obras</h3>

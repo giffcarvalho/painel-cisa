@@ -1,5 +1,8 @@
 @reference "../../index.css";
 
+/* ==========================================================================
+   Estrutura e cabeçalho da Carteira DSR
+   ========================================================================== */
 .container {
   @apply relative flex flex-col gap-7 min-h-full px-6 py-8 md:px-8 lg:px-10 font-sans overflow-hidden;
   background: #f8f7f5;
@@ -35,6 +38,9 @@
   box-shadow: inset 0 0 0 1px rgba(19, 81, 180, 0.08);
 }
 
+/* ==========================================================================
+   Detalhamento, estado inicial e ações da tabela
+   ========================================================================== */
 .detailsSection {
   @apply relative z-10 flex flex-col gap-4 pt-6;
   border-top: 1px solid rgba(15, 23, 42, 0.06);

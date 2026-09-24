@@ -7,6 +7,8 @@ export const aplicacaoRevisoesApi = {
   },
 
   listarHistorico: async ({ page = 1, pageSize = 10, busca = '', status = '' } = {}) => {
+    // Valores vazios viram undefined para que o Axios os omita da query e o
+    // backend aplique seus padrões de listagem.
     const { data } = await api.get('/aplicacao-revisoes/historico', {
       params: { page, page_size: pageSize, busca: busca || undefined, status: status || undefined },
     })

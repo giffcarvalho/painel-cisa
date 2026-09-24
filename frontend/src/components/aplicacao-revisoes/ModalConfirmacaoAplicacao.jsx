@@ -6,6 +6,8 @@ export default function ModalConfirmacaoAplicacao({ revisao, processando, onCanc
   const cancelRef = useRef(null)
 
   useEffect(() => {
+    // Direciona o foco para a ação segura e permite fechar por Escape enquanto a
+    // aplicação ainda não começou; durante processamento o modal fica bloqueado.
     cancelRef.current?.focus()
     function fechar(event) {
       if (event.key === 'Escape' && !processando) onCancelar()

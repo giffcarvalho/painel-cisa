@@ -13,6 +13,8 @@ function formatarData(value) {
 
 function Resumo({ titulo, valores }) {
   const rotulo = (resultado, quantidade) => {
+    // Público-alvo e obras usam "incorporar" como avaliação, enquanto os demais
+    // grupos descrevem alterações de vínculo; os rótulos refletem essa diferença.
     if (resultado === 'incorporado' && titulo === 'Público-alvo') {
       return `${quantidade} ${quantidade === 1 ? 'avaliação incorporada' : 'avaliações incorporadas'}`
     }
@@ -99,6 +101,8 @@ export default function ResultadoAplicacao({ resultado, contexto = 'pendentes', 
   const cancelado = resultado.status === 'cancelado'
   const processando = resultado.status === 'em_processamento'
   const Icone = sucesso ? CheckCircle2 : cancelado ? Undo2 : processando ? Clock3 : AlertCircle
+  // A mesma ordenação organiza tanto o resumo da aplicação quanto o detalhamento
+  // de uma eventual reversão.
   const secoes = [
     ['Municípios', 'municipio'],
     ['Localidades', 'localidade'],
