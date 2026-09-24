@@ -48,7 +48,11 @@ export default function PreviaExtrator({
   maxColumns = 80,
 }) {
   const rows = preview?.data || []
+  // Prefere o esquema efetivamente retornado na prévia, pois ele representa a
+  // ordem e os metadados usados pelo backend para montar as linhas.
   const columns = preview?.columns || selectedColumns
+  // A prop permite liberar CSV sem prévia quando a seleção excede o limite visual;
+  // nos demais usos, a disponibilidade deriva da prévia concluída.
   const exportacaoDisponivel =
     exportacaoDisponivelProp ?? (previewGerada && Boolean(preview))
 

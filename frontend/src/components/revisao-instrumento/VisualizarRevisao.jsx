@@ -83,6 +83,8 @@ export default function VisualizarRevisao() {
   const [motivoSolicitacao, setMotivoSolicitacao] = useState('')
 
   useEffect(() => {
+    // A combinação instrumento/revisão vem da rota. A flag impede que respostas
+    // da rota anterior atualizem a tela após navegação rápida ou desmontagem.
     let ativo = true
     Promise.resolve().then(() => {
       if (!ativo) return
@@ -129,6 +131,8 @@ export default function VisualizarRevisao() {
     : 'Enviada — aguardando aplicação'
   const solicitacao = revisao.solicitacao_cancelamento
   const podeSolicitar = revisao.usuario.id_usuario === usuario?.id_usuario
+    // Somente o autor pode pedir reversão de uma aplicação concluída, ainda
+    // cancelável e que não possua outra solicitação pendente.
     && revisao.execucao?.status === 'sucesso'
     && revisao.execucao?.pode_cancelar
     && solicitacao?.status !== 'pendente'

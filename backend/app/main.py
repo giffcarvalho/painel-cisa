@@ -12,6 +12,9 @@ from app.api import auth
 from app.api import revisao_instrumento
 from app.api import aplicacao_revisoes
 from app.api import pontos_controle
+from app.api import meu_painel
+from app.api import notificacoes
+from app.api import admin_usuarios
  
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -93,6 +96,23 @@ app.include_router(
     tags=["Pontos Controle"],
 )
 
+app.include_router(
+    meu_painel.router,
+    prefix="/api/v1/meu-painel",
+    tags=["Meu Painel"],
+)
+
+app.include_router(
+    notificacoes.router,
+    prefix="/api/v1/notificacoes",
+    tags=["Notificações"],
+)
+
+app.include_router(
+    admin_usuarios.router,
+    prefix="/api/v1/admin",
+    tags=["Administração de Usuários"],
+)
 
 @app.get("/health", tags=["Infra"])
 async def health_check():

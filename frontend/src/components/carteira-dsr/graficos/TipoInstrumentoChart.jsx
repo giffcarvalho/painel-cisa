@@ -2,6 +2,16 @@ import { forwardRef } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { formatCurrency } from '@/utils/formatters'
 
+// Tooltips do ECharts aceitam HTML; escapa rótulos vindos da API antes de
+// interpolá-los para impedir que conteúdo de dados vire marcação executável.
+const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (character) => ({
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  "'": '&#39;',
+  '"': '&quot;'
+})[character])
+
 const TipoInstrumentoChart = forwardRef(({ dados }, ref) => {
   if (!dados || dados.length === 0) {
     return (
@@ -13,13 +23,18 @@ const TipoInstrumentoChart = forwardRef(({ dados }, ref) => {
 
   const dataSeries = dados.map((item) => ({
     name: item.tipo_instrumento || 'Não informado',
-    value: Number(item.valor_global) || 0
+    value: Number(item.valor_global) || 0,
+    quantidadeInstrumentos: Number(item.quantidade_instrumentos) || 0
   }))
 
   const options = {
     tooltip: {
       trigger: 'item',
-      valueFormatter: (value) => formatCurrency(value, true)
+      formatter: ({ name, value, data, marker }) => [
+        `${marker}${escapeHtml(name)}`,
+        `Valor Global: ${formatCurrency(value, true)}`,
+        `Quantidade de instrumentos: ${data.quantidadeInstrumentos.toLocaleString('pt-BR')}`
+      ].join('<br/>')
     },
     legend: {
       bottom: '0%',

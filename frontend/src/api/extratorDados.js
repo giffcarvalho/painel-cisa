@@ -1,5 +1,7 @@
 import api from './axios'
 
+// Envia somente filtros efetivos para que campos vazios não sejam interpretados
+// como critérios pela API do extrator.
 const limparFiltros = (filtros = {}) =>
   Object.fromEntries(
     Object.entries(filtros).filter(([, value]) => {
@@ -12,6 +14,8 @@ const normalizarErroBlob = async (error) => {
   const blob = error?.response?.data
 
   if (blob instanceof Blob) {
+    // Exportações usam responseType "blob" inclusive quando o servidor devolve
+    // um erro JSON; convertemos esse corpo para preservar a mensagem de negócio.
     const text = await blob.text()
 
     try {
@@ -87,6 +91,7 @@ export const extratorDadosApi = {
           ...payload,
           filtros: limparFiltros(payload.filtros),
         },
+        // Arquivos grandes têm uma janela própria, maior que o timeout global.
         { responseType: 'blob', timeout: 120000 }
       )
     } catch (error) {

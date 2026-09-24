@@ -46,6 +46,11 @@ from app.services.aplicacao_revisoes import (
     solicitar_cancelamento,
     validar_cancelamento,
 )
+from app.services.notificacoes import (
+    criar_notificacao,
+    criar_notificacoes_administradores,
+)
+from app.services.rascunhos import descartar_rascunho
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -64,6 +69,25 @@ async def criar_solicitacao_cancelamento(
     return await solicitar_cancelamento(
         db, id_revisao, usuario, payload.motivo_solicitacao
     )
+
+
+@router.delete("/revisoes/{id_revisao}/rascunho")
+async def cancelar_rascunho(
+    id_revisao: int,
+    usuario: UsuarioAutenticado = Depends(obter_usuario_atual),
+    db: AsyncSession = Depends(get_db),
+):
+    """Descarta somente um rascunho próprio usando a regra compartilhada."""
+    await db.rollback()
+    async with db.begin():
+        try:
+            return await descartar_rascunho(
+                db, id_revisao, id_usuario_esperado=usuario.id_usuario
+            )
+        except HTTPException as exc:
+            if exc.status_code == status.HTTP_403_FORBIDDEN:
+                exc.detail = "Você só pode cancelar um rascunho criado por você."
+            raise
 
 
 def _remover_acentos(valor: str) -> str:
@@ -3365,6 +3389,20 @@ async def salvar_revisao_instrumento(
                 )
             revisao = {**revisao, "status": "enviado", **dict(enviado)}
             status_retorno = "enviado"
+            await criar_notificacao(
+                db,
+                id_usuario=usuario_atual.id_usuario,
+                tipo="revisao_enviada",
+                chave_evento=f"revisao_enviada:{id_revisao}",
+                id_revisao=id_revisao,
+            )
+            await criar_notificacoes_administradores(
+                db,
+                tipo="admin_revisao_enviada",
+                chave_evento=f"revisao_enviada:{id_revisao}",
+                id_revisao=id_revisao,
+                excluir_ids={usuario_atual.id_usuario},
+            )
 
         await db.commit()
 

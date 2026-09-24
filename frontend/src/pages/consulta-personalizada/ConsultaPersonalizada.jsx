@@ -41,6 +41,8 @@ const TIPOS_FALLBACK = [
 ]
 
 const limparObjeto = (obj = {}) =>
+  // Omite filtros vazios para preservar o significado de "sem restrição" no
+  // contrato da API, inclusive para campos multivalorados.
   Object.fromEntries(
     Object.entries(obj).filter(([, value]) => {
       if (Array.isArray(value)) return value.length > 0
@@ -63,6 +65,8 @@ const COLUNAS_OBRIGATORIAS_POR_TIPO = {
 const getRequiredFieldIds = (tipoTabela) => COLUNAS_OBRIGATORIAS_POR_TIPO[tipoTabela] || []
 
 const normalizarFieldIdsConsulta = (tipoTabela, fieldIds = []) =>
+  // Colunas identificadoras são obrigatórias para manter cada linha reconhecível
+  // mesmo quando o usuário personaliza completamente a seleção.
   Array.from(new Set([...getRequiredFieldIds(tipoTabela), ...fieldIds]))
 
 const downloadBlob = (response, fallbackName) => {
@@ -70,6 +74,8 @@ const downloadBlob = (response, fallbackName) => {
     response.headers?.['content-type'] ||
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 
+  // A URL temporária é revogada logo após o clique programático para não reter
+  // o arquivo exportado na memória do navegador.
   const blob = new Blob([response.data], { type: contentType })
   const url = window.URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -123,6 +129,8 @@ export default function ConsultaPersonalizada() {
   )
 
   const payload = useMemo(
+    // Prévia, contagem e exportações compartilham exatamente o mesmo recorte;
+    // centralizar o payload evita divergência entre o que é exibido e baixado.
     () => ({
       tipo_tabela: tipoTabela,
       field_ids: fieldIdsConsulta,
@@ -132,6 +140,7 @@ export default function ConsultaPersonalizada() {
   )
 
   const setorCensitarioSemUf =
+    // Setor censitário exige UF para limitar o volume antes de consultar a API.
     tipoTabela === 'setor_censitario' &&
     (!Array.isArray(filtros.sigla_uf) || filtros.sigla_uf.length === 0)
 
@@ -146,9 +155,12 @@ export default function ConsultaPersonalizada() {
     excelBloqueadoPorLinhas || excelBloqueadoPorColunas
 
   const csvDisponivel =
+    // Acima do limite visual não há prévia, mas CSV continua sendo a saída para
+    // consultas largas que não cabem no Excel ou na tabela do navegador.
     previewGerada || fieldIdsConsulta.length > LIMITE_COLUNAS_PREVIA
 
   const trocarTipoTabela = (nextTipoTabela) => {
+    // Base nova invalida filtros, colunas e resultados derivados da base anterior.
     setTipoTabela(nextTipoTabela)
     setFiltros({})
     setFieldIds(normalizarFieldIdsConsulta(nextTipoTabela, []))
@@ -161,6 +173,8 @@ export default function ConsultaPersonalizada() {
   }
 
   const atualizarFiltros = (nextFiltros) => {
+    // Qualquer alteração de recorte torna prévia, contagem e erros anteriores
+    // obsoletos, por isso todas as mutations são reiniciadas em conjunto.
     setFiltros(nextFiltros)
     previaMutation.reset()
     contagemMutation.reset()
@@ -201,6 +215,8 @@ export default function ConsultaPersonalizada() {
     setPreviewGerada(false)
 
     try {
+      // A contagem vem antes da amostra porque também determina se o Excel pode
+      // ser habilitado para o mesmo payload.
       await contagemMutation.mutateAsync(payload)
       await previaMutation.mutateAsync({
         ...payload,

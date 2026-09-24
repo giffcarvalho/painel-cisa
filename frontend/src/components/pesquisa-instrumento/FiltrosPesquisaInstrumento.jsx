@@ -39,6 +39,8 @@ const normalizarOpcoes = (opcoes) => {
 };
 
 const incluirValorSelecionado = (opcoes, valor) => {
+  // Mantém visível um valor já aplicado mesmo quando filtros dependentes fazem a
+  // API deixar de retorná-lo temporariamente na lista de opções.
   if (!valor) return opcoes;
 
   if (opcoes.some((opcao) => String(opcao.value) === String(valor))) {
@@ -105,6 +107,8 @@ function SelectPesquisavel({
   );
 
   useEffect(() => {
+    // O listener global existe somente enquanto o menu está aberto e permite
+    // fechar o seletor ao interagir com qualquer área externa.
     if(!aberto) return;
 
     const fecharAoClicarFora = (event) => {
@@ -248,6 +252,8 @@ export default function FiltrosPesquisaInstrumento() {
 
       <div className={styles.filtersGrid}>
         {FILTROS.map((filtro) => {
+          // Municípios usam um contrato estruturado; os demais filtros chegam
+          // como listas simples e são normalizados para o mesmo seletor.
           const opcoesBase = 
             filtro.campo === 'municipios_beneficiados'
               ? normalizarMunicipiosBeneficiados(data?.[filtro.campo])

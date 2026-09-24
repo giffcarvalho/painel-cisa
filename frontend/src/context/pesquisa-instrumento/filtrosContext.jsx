@@ -19,6 +19,8 @@ export function FiltrosPesquisaInstrumentoProvider({ children }) {
   const setFiltro = useCallback((campo, valor) => {
     const valorLimpo = limparValor(valor);
 
+    // O primeiro filtro define o universo das opções dependentes. Ao removê-lo,
+    // os demais também são descartados para não manter combinações inválidas.
     if (!valorLimpo && campo === filtroPrincipal) {
       setFiltroPrincipal(null);
       setFiltros(clonarFiltrosIniciais());
@@ -70,6 +72,8 @@ export function FiltrosPesquisaInstrumentoProvider({ children }) {
   );
 
   const value = useMemo(
+    // Estabiliza o objeto compartilhado para que consumidores só atualizem
+    // quando filtros, contagem ou operações realmente mudarem.
     () => ({
       filtros,
       filtroPrincipal,

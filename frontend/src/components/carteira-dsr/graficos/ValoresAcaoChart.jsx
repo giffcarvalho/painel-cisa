@@ -1,8 +1,11 @@
 import { forwardRef } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { formatCurrency } from '@/utils/formatters'
+import { useResponsiveCategoryAxis } from '@/hooks/useResponsiveCategoryAxis'
 
 const ValoresAcaoChart = forwardRef(({ dados }, ref) => {
+  const { containerRef, isCompact } = useResponsiveCategoryAxis()
+
   if (!dados || dados.length === 0) {
     return (
       <div className="flex h-full w-full items-center justify-center text-sm text-gray-500">
@@ -31,6 +34,8 @@ const ValoresAcaoChart = forwardRef(({ dados }, ref) => {
 
   const categorias = dados.map((item) => item.acao_padronizada || 'Não informada')
 
+  // O eixo trabalha em milhões para manter escala legível, mas tooltip e totais
+  // preservam os valores originais em reais para não perder precisão.
   const seriesDesembolsadoOriginal = dados.map((item) => Number(item.desembolsado) || 0)
   const seriesEmpenhadoOriginal = dados.map((item) => Number(item.empenhado_a_desembolsar) || 0)
   const seriesAEmpenharOriginal = dados.map((item) => Number(item.a_empenhar) || 0)
@@ -77,11 +82,17 @@ const ValoresAcaoChart = forwardRef(({ dados }, ref) => {
       }
     },
     legend: { bottom: '0%', type: 'scroll' },
-    grid: { left: '3%', right: '6%', bottom: '25%', top: '12%', containLabel: true },
+    grid: {
+      left: isCompact ? '8%' : '3%',
+      right: '6%',
+      bottom: isCompact ? '34%' : '25%',
+      top: '12%',
+      containLabel: true
+    },
     xAxis: {
       type: 'category',
       data: categorias,
-      axisLabel: { rotate: 0, width: 100, overflow: 'break', interval: 0 }
+      axisLabel: { rotate: isCompact ? 40 : 0, width: 100, overflow: 'break', interval: 0 }
     },
     yAxis: {
       type: 'value',
@@ -132,12 +143,14 @@ const ValoresAcaoChart = forwardRef(({ dados }, ref) => {
   }
 
   return (
-    <ReactECharts
-      ref={ref}
-      option={options}
-      style={{ height: '100%', width: '100%', minHeight: '300px' }}
-      notMerge={true}
-    />
+    <div ref={containerRef} style={{ height: '100%', width: '100%', minHeight: '300px' }}>
+      <ReactECharts
+        ref={ref}
+        option={options}
+        style={{ height: '100%', width: '100%', minHeight: '300px' }}
+        notMerge={true}
+      />
+    </div>
   )
 })
 

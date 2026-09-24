@@ -101,6 +101,8 @@ function FichaPublicoAlvoPdf({ revisao }) {
 
 export async function baixarFichaPublicoAlvo(revisao) {
   const numero = revisao.instrumento.nr_instrumento || revisao.instrumento.nr_ted || revisao.instrumento.nr_proposta
+  // A ficha é renderizada inteiramente no cliente a partir do snapshot da revisão;
+  // a URL temporária é liberada depois que o navegador inicia o download.
   const blob = await pdf(<FichaPublicoAlvoPdf revisao={revisao} />).toBlob()
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')

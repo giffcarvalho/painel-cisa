@@ -39,10 +39,11 @@ class InstrumentosPorAcaoItem(BaseModel):
 class InstrumentosPorAcaoResponse(BaseModel):
     data: list[InstrumentosPorAcaoItem]
 
-#Gráfico de Valor Global por Tipo de Instrumento -- Gráfico de Rosca
+# Gráfico de Valor Global e Quantidade por Tipo de Instrumento -- Gráfico de Rosca
 class ValorPorTipoItem(BaseModel):
     tipo_instrumento: str | None
     valor_global: Decimal | None
+    quantidade_instrumentos: int
 
     model_config = {"from_attributes": True}
 

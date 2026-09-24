@@ -1,28 +1,11 @@
-import ExcelJS from 'exceljs'
 import { saveAs } from 'file-saver'
+import { criarPlanilhaExcel } from './planilhaExcel'
 
 export async function exportToExcel({ data, columns, fileName, sheetName = 'Dados' }) {
-    const workbook = new ExcelJS.Workbook()
-    const worksheet = workbook.addWorksheet(sheetName)
+    const workbook = criarPlanilhaExcel({ data, columns, sheetName })
 
-    worksheet.columns = columns.map(col => ({
-        header: col.header,
-        key: col.key,
-        width: col.width || 20
-    }))
-
-    const headerRow = worksheet.getRow(1)
-    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } }
-    headerRow.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FF1E3A8A' }
-    }
-
-    data.forEach(row => {
-        worksheet.addRow(row)
-    })
-
+    // A geração em memória permite iniciar o download no navegador sem endpoint
+    // intermediário para os gráficos que já têm todos os dados carregados.
     const buffer = await workbook.xlsx.writeBuffer()
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
     saveAs(blob, `${fileName}.xlsx`)

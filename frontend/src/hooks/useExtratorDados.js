@@ -14,6 +14,8 @@ export function useCatalogoExtrator(tipoTabela) {
     queryKey: ['extrator-dados', 'catalogo', tipoTabela],
     queryFn: () => extratorDadosApi.getCatalogo(tipoTabela),
     enabled: Boolean(tipoTabela),
+    // Catálogo e filtros podem mudar conforme a base selecionada; por isso são
+    // revalidados sempre que a tela é montada, mesmo havendo cache.
     staleTime: 0,
     refetchOnMount: 'always',
   })
@@ -35,6 +37,8 @@ export function useBuscaFiltroExtrator(tipoTabela, campo, termo, enabled = true)
   return useQuery({
     queryKey: ['extrator-dados', 'filtros', 'busca', tipoTabela, campo, q],
     queryFn: () => extratorDadosApi.buscarFiltro({ tipoTabela, campo, q }),
+    // A busca depende do contexto completo e só parte após dois caracteres para
+    // não produzir consultas abertas demais.
     enabled: Boolean(enabled && tipoTabela && campo && q.length >= 2),
     staleTime: 60 * 1000,
   })

@@ -1,6 +1,6 @@
 import styles from '@/pages/login/Login.module.css'
 
-export default function ForgotPassword({ onBack, onEnterCode }) {
+export default function RecuperarSenha({ onBack, onEnterCode }) {
   return (
     <>
       <div className={styles.brand}>

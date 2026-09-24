@@ -1,3 +1,6 @@
+/* ==========================================================================
+   Acionadores de autenticação e perfil
+   ========================================================================== */
 .container {
   position: relative;
   display: inline-flex;
@@ -95,6 +98,9 @@
   transform: rotate(180deg);
 }
 
+/* ==========================================================================
+   Menu de conta e permissões administrativas
+   ========================================================================== */
 .dropdown {
   position: absolute;
   top: calc(100% + 8px);
@@ -148,10 +154,17 @@
   text-align: left;
 }
 
-.menuButton { color: #334155; }
-.menuButton:hover { background: #f8fafc; }
+.menuButton {
+  color: #334155;
+}
 
-.logoutButton { color: #9f2323; }
+.menuButton:hover {
+  background: #f8fafc;
+}
+
+.logoutButton {
+  color: #9f2323;
+}
 
 .logoutButton:hover {
   background: #fff5f5;
@@ -163,6 +176,9 @@
   height: 16px;
 }
 
+/* ==========================================================================
+   Responsividade
+   ========================================================================== */
 @media (max-width: 640px) {
   .buttonName {
     display: none;

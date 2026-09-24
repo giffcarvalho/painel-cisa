@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'   //AJUSTAR BOTÕES
+import { useMemo, useState } from 'react'
 import { X, Filter, AlertCircle, ChevronDown } from 'lucide-react'
 import { useFiltros } from '@/context/carteira-Dsr/useFiltros'
 import { useBuscaFiltroQuery, useOpcoesFiltrosQuery } from '@/hooks/useCarteiraDsr'
@@ -30,6 +30,8 @@ export default function FiltrosDrawer({ onClose }) {
   const [rascunho, setRascunho] = useState(filtrosGlobais)
   
   const handleChange = (campo, valor, acao = 'TOGGLE') => {
+    // O drawer edita uma cópia local para que fechar sem aplicar não altere os
+    // gráficos; somente handleAplicar publica o recorte no contexto global.
     setRascunho(prev => {
       if (acao === 'LIMPAR') return { ...prev, [campo]: [] }
       
@@ -145,6 +147,8 @@ function FiltroSelectGenerico({ id, label, valorAtual = [], opcoes, onChange, re
   )
 
   const opcoesFiltradas = useMemo(() => {
+    // Na busca remota, mescla resultados com opções já carregadas para não fazer
+    // seleções existentes desaparecerem durante a digitação.
     const opcoesBase = remoteSearch && termoBusca.trim().length >= 2
     ? [...opcoesBusca, ...opcoes]
     : opcoes

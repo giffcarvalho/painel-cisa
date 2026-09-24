@@ -1,3 +1,6 @@
+/* ==========================================================================
+   Grade e cartões dos gráficos
+   ========================================================================== */
 .dashboardGrid {
     display: flex;
     flex-direction: column;
@@ -22,6 +25,7 @@
   border-bottom: 0;
 }
 
+/* Área interna compartilhada pelos adaptadores de cada gráfico. */
 .chartWrapper {
     display: flex;
     flex-direction: column;

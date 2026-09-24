@@ -90,6 +90,8 @@ function ChartStateWrapper({ isLoading, isError, children }) {
 }
 
 const handlePngExport = (chartRef, fileName) => {
+  // Usa a instância já renderizada pelo ECharts para que o PNG reflita zoom,
+  // legenda e demais interações visíveis no momento da exportação.
   if (chartRef.current) {
     const instance = chartRef.current.getEchartsInstance()
     const url = instance.getDataURL({ type: 'png', backgroundColor: '#ffffff', pixelRatio: 2 })
@@ -141,6 +143,8 @@ function AsyncMapaIntegrado() {
   const queryGeoJson = useBrasilGeoJsonQuery()
   const chartRef = useRef(null)
 
+  // O mapa só pode ser composto quando geometria, agregados por UF e pontos
+  // municipais estiverem disponíveis; qualquer falha torna o card inconsistente.
   const isLoading = queryCoropletico.isLoading || queryPontos.isLoading || queryGeoJson.isLoading
   const isError = queryCoropletico.isError || queryPontos.isError || queryGeoJson.isError
 
@@ -313,7 +317,8 @@ function AsyncTipoInstrumento() {
       data: data || [],
       columns: [
         { header: 'Tipo de Instrumento', key: 'tipo_instrumento', width: 35 },
-        { header: 'Valor Global (R$)', key: 'valor_global', width: 25 }
+        { header: 'Valor Global (R$)', key: 'valor_global', width: 25 },
+        { header: 'Quantidade de Instrumentos', key: 'quantidade_instrumentos', width: 28 }
       ],
       fileName: 'tipo_instrumento'
     })
@@ -322,7 +327,7 @@ function AsyncTipoInstrumento() {
   return (
     <div className={styles.chartWrapper}>
       <div className="flex items-start justify-between gap-4 mb-2">
-        <h3 className={styles.chartTitle}>Valor Global por Tipo de Instrumento</h3>
+        <h3 className={styles.chartTitle}>VALOR GLOBAL E QUANTIDADE POR TIPO DE INSTRUMENTO</h3>
         {data && !isLoading && !isError && (
           <ExportMenu onExportPng={() => handlePngExport(chartRef, 'tipo_instrumento')} onExportExcel={handleExportExcel} />
         )}

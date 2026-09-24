@@ -107,7 +107,7 @@ class DadosAnaliseCoordenadasItem(BaseModel):
     longitude: float
     situacao_analise: str | None = None
     situacao_correcao: str | None = None
-    observacao_geral: str | None = None
+    observacao_coordenada: str | None = None
     
 
 class ListaDadosAnaliseCoordenadas(BaseModel):
@@ -133,11 +133,11 @@ class AnaliseCoordenadasCreate(BaseModel):
     nr_instrumento: str | None = None
     nr_proposta: str | None = None
     cod_tci: str | None = None
-    observacao_geral: str | None = None
-    situacao_correcao: str | None = "Não"
+    observacao_coordenada: str | None = None
+    situacao_correcao: str | None = None
     coordenadas: list[CoordenadaAnaliseCreate]
 
-    @field_validator("observacao_geral", mode="before")
+    @field_validator("observacao_coordenada", mode="before")
     @classmethod
     def sanitizar_observacao(cls, v: str | None) -> str | None:
         if isinstance(v, str):
