@@ -14,6 +14,7 @@ const emptyValue = (value) => {
 //essa função extrai do objeto instrumentosQuery.data, o array com os instrumentos
 //primeiro isArray testa se o objeto já é um array, se for, já retorna o proprio array
 //se não for, procura por um array em várias propriedades possíveis, data, items, resultados, instrumentos, dados (aqui daria para especificar a propriedade, pois pelo schema sabe-se que ela é data)
+//
 const getItens = (data) => {
   if (Array.isArray(data)) return data;
   return data?.data ?? data?.items ?? data?.resultados ?? data?.instrumentos ?? data?.dados ?? [];
