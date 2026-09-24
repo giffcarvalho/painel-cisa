@@ -13,6 +13,7 @@ from app.schemas.pontos_controle import (
     PontosControleFiltrosResponse,
     PontosControleListaResponse,
     PontosControleDataDados,
+    PontosControleDadosAdicionais,
 )
 
 router = APIRouter()
@@ -1233,6 +1234,50 @@ async def get_data_dados(
     result = await _execute_query(db, sql)
 
     return PontosControleDataDados(
+        data=[
+            dict(r)
+            for r in result.mappings().all()
+        ]
+    )
+
+
+
+@router.get("/dados_adicionais", response_model=PontosControleDadosAdicionais, summary=("Retorna dados adicionais dos instrumentos"))
+async def get_dados_adicionais(response: Response, db: AsyncSession = Depends(get_db)):
+    
+    response.headers["Cache-Control"] = ("private, max-age=300")
+
+    sql = """
+        SELECT
+            nr_instrumento,
+            nr_proposta,
+            operacao,
+            cod_tci,
+            nr_proposta_selecao_pac,
+            tipo_instrumento,
+            acao_orcamentaria,
+            componente,
+            dia_fim_vigenc_conv,
+            situacao_contrato,
+            situacao_projeto,
+            situacao_obra,
+            valor_repasse,
+            valor_contrapartida,
+            valor_empenhado,
+            valor_desembolsado,
+            valor_desbloqueado,
+            valor_pago
+        FROM instrumento.vw_carteira_dsr
+    """
+
+    result = await _execute_query(db, sql)
+
+
+    # Esse trecho abaixo quer dizer que cada dict(r) é transformado/validado como PontosControleDadosAdicionaisItem
+    # e a resposta inteira fica no formato PontosControleDadosAdicionais data=[PontosControleDadosAdicionaisItem(...), PontosControleDadosAdicionaisItem(...)]
+    # PontosControleDadosAdicionais é o objeto que encapsula a lista de resultados, e cada elemento dessa lista é um PontosControleDadosAdicionaisItem
+    # O formato resultante será um JSON com uma estrutura mais ou menos assim: { "data": [{"nr_instrumento": "123", "nr_proposta": "456"}, {"nr_instrumento": "789", "nr_proposta": "012"}] }
+    return PontosControleDadosAdicionais(
         data=[
             dict(r)
             for r in result.mappings().all()

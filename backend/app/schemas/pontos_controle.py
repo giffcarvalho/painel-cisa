@@ -5,6 +5,14 @@ from decimal import Decimal
 from typing import Any
 from pydantic import BaseModel, Field, model_validator
 
+
+#BaseModel é a classe base do Pydantic, ela faz:
+    #Define a estrutura esperada
+    #Valida os tipos dos dados
+    #Permite ao FastAPI gerar automaticamente o schema/documentação da APIum modelo de validação
+#Já a classe PontosControleBase herda essa responsabilidade e acrescenta mais coisas, criando um modelo de validação personalizado:
+    #"from_attributes": True permite que o Pydantic consiga criar o modelo a partir de atributos de um objeto, e não somente de um dicionário
+    #função limpar_sujeira_banco está removendo strings vazias e transformando em None
 class PontosControleBase(BaseModel):
     model_config = {"from_attributes": True}
 
@@ -120,3 +128,29 @@ class PontosControleDataDadosItem(BaseModel):
 
 class PontosControleDataDados(BaseModel):
     data: list[PontosControleDataDadosItem]
+
+
+class PontosControleDadosAdicionaisItem(PontosControleBase):
+    nr_instrumento: str | None = None
+    nr_proposta: str | None = None
+    operacao: int | None = None
+    cod_tci: str | None = None
+    nr_proposta_selecao_pac: str | None = None
+    tipo_instrumento: str | None = None
+    acao_orcamentaria: str | None = None
+    componente: str | None = None
+    dia_fim_vigenc_conv: date | None = None
+    situacao_contrato: str | None = None
+    situacao_projeto: str | None = None
+    situacao_obra: str | None = None
+    valor_repasse: float | None = None
+    valor_contrapartida: float | None = None
+    valor_empenhado: float | None = None
+    valor_desembolsado: float | None = None
+    valor_desbloqueado: float | None = None
+    valor_pago: float | None = None
+    
+
+
+class PontosControleDadosAdicionais(BaseModel):
+    data: list[PontosControleDadosAdicionaisItem]
