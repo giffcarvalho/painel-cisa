@@ -11,6 +11,7 @@ from app.api import extrator_dados
 from app.api import auth
 from app.api import revisao_instrumento
 from app.api import aplicacao_revisoes
+from app.api import pontos_controle
 from app.api import meu_painel
 from app.api import notificacoes
 from app.api import admin_usuarios
@@ -87,6 +88,12 @@ app.include_router(
     aplicacao_revisoes.router,
     prefix="/api/v1/aplicacao-revisoes",
     tags=["Aplicação de Revisões"],
+)
+
+app.include_router(
+    pontos_controle.router,
+    prefix="/api/v1/pontos-controle",
+    tags=["Pontos Controle"],
 )
 
 app.include_router(
