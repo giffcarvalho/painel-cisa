@@ -1,9 +1,11 @@
 import { useState } from "react";
-import estilos from "./PlanoAcao.module.css"
+import estilos from "./PlanoAcao.module.css";
+import { X } from "lucide-react";
+import { enviarPlanoAcao } from "../../api/pontosControle";
 
 
 
-export default function PlanoAcao() {
+export default function PlanoAcao({ fecharJanelaPlanoAcao, nrInstrumento, campo, statusPontoControle}) {
 
     const [confirmacao, setConfirmacao] = useState("");
     const [coordenacao, setCoordenacao] = useState("");
@@ -13,7 +15,57 @@ export default function PlanoAcao() {
     const [prazoAcao, setPrazoAcao] = useState("");
     const [statusAcao, setStatusAcao] = useState("");
     const [observacaoStatusAcao, setObservacaoStatusAcao] = useState("");
+    const [enviando, setEnviando] = useState(false);
 
+    //Esta função monta o objeto com os dados do formulário e chama a função enviarPlanoAcao da api
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        if (!nrInstrumento || !campo) {
+            alert("Identificador do instrumento ou campo não informado.");
+            return;
+        }
+
+        const dadosFormulario = {
+            nr_instrumento: nrInstrumento,
+            ponto_controle: campo, // alterado de 'campo' para 'ponto_controle'
+            status_ponto_controle: statusPontoControle,
+            confirmacao,
+            coordenacao,
+            mandataria,
+            recebedor: proponente, // alterado de 'proponente' para 'recebedor'
+            observacao_acao: observacaoAcao,
+            prazo_acao: prazoAcao || null, // Garante null se for string vazia
+            status_acao: statusAcao,
+            observacao_status_acao: observacaoStatusAcao,
+            };
+
+        try {
+            setEnviando(true);
+            const resposta = await enviarPlanoAcao(dadosFormulario);
+            console.log("Plano de ação salvo com sucesso:", resposta);
+            fecharJanelaPlanoAcao();
+        
+        } catch (error) {
+            console.error("Erro ao salvar o plano de ação:", error);
+            alert("Não foi possível salvar o plano de ação. Tente novamente.");
+        
+        } finally {
+            setEnviando(false);
+        }
+    };
+
+
+    const limparFormulario = () => {
+        setConfirmacao("");
+        setCoordenacao("");
+        setMandataria("");
+        setProponente("");
+        setObservacaoAcao("");
+        setPrazoAcao("");
+        setStatusAcao("");
+        setObservacaoStatusAcao("");
+    };
 
 
     const alterarConfirmacao = (e) => {
@@ -52,15 +104,21 @@ export default function PlanoAcao() {
 
     return (
         <div className={estilos.overlay_modal}>
-            <div className={estilos.janela}>
+            <form onSubmit={handleSubmit} className={estilos.janela}>
                 
                 <div className={estilos.cabecalho_plano}>
-                    <h4>Plano de Ação - Instrumento xxxxxx</h4>
+                   <h4>Plano de Ação - Instrumento {nrInstrumento || '—'}</h4>
+                    <button 
+                        type="button"
+                        className={estilos.botaoX}
+                        onClick={fecharJanelaPlanoAcao}>
+                        <X className={estilos.XFechar} />
+                    </button>
                 </div>
 
 
                 <div className={estilos.ponto_controle}>
-                    <h3>Ponto de Controle: Vencimento de Cláusula Suspensiva</h3>
+                    <h3>{campo || '—'}: {statusPontoControle || '—'}</h3>
                 </div>
 
 
@@ -140,7 +198,7 @@ export default function PlanoAcao() {
 
 
                 <div className={estilos.pergunta}>
-                    <h3>Realizar contato com o proponente</h3>
+                    <h3>Foi realizado ou irá realizar contato com o proponente?</h3>
                     <label className={estilos.label_radio}>
                         <input
                             type="radio"
@@ -168,7 +226,7 @@ export default function PlanoAcao() {
                     className={estilos.texto_observacao}
                     rows="3"
                     maxLength={250}
-                    placeholder="Demais ações necessárias"
+                    placeholder="Descrição das ações"
                     value={observacaoAcao}
                     onChange={alterarObservacaoAcao}
                 />
@@ -255,8 +313,26 @@ export default function PlanoAcao() {
                     onChange={alterarObservacaoStatusAcao}
                 />
                 
-              
-            </div>
+                <div className={estilos.acoes_formulario}>
+                    <button 
+                        type="button"
+                        className={estilos.botao_cancelar}
+                        onClick={limparFormulario}
+                        disabled={enviando}
+                    >
+                        Limpar formulário
+                    </button>
+
+                    <button 
+                        type="submit"
+                        className={estilos.botao_salvar}
+                        disabled={enviando}
+                    >
+                        {enviando ? 'Salvando...' : 'Salvar'}
+                    </button>
+                </div>
+
+            </form>
         </div>
         
     )
