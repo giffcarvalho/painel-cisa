@@ -3,6 +3,7 @@ import { FiltrosPontosControleProvider } from '../../context/pontos-controle/fil
 import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltrosPontosControle';
 import { useInstrumentosPontosControleQuery, useDadosAdicionaisPontosControleQuery } from '../../hooks/usePontosControle';
 import TabelaPontosControle from '../../components/pontos-controle/TabelaPontosControle';
+import PlanoAcao from '@/components/pontos-controle/PlanoAcao';
 import styles from './PontosControle.module.css';
 import pontosControleApi from '../../api/pontosControle';
 
@@ -20,6 +21,7 @@ function PontosControleContent() {
   const [tamanhoPagina, setTamanhoPagina] = useState(80);
   const [nrInstrumentoSelecionado, setNrInstrumentoSelecionado] = useState(null);
   const [dataDados, setDataDados] = useState(null);
+  const [janelaPlanoAcao, setJanelaPlanoAcao] = useState(true);
 
   const { filtros } = useFiltrosPontosControle();
 
@@ -101,6 +103,9 @@ function PontosControleContent() {
           onSelectInstrumento={setNrInstrumentoSelecionado}
         />
       </section>}
+
+
+      {janelaPlanoAcao} && <PlanoAcao/>
 
     </main>
   );
