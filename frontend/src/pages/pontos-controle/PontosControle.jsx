@@ -21,11 +21,17 @@ function PontosControleContent() {
   const [tamanhoPagina, setTamanhoPagina] = useState(80);
   const [nrInstrumentoSelecionado, setNrInstrumentoSelecionado] = useState(null);
   const [dataDados, setDataDados] = useState(null);
-  const [janelaPlanoAcao, setJanelaPlanoAcao] = useState(true);
+  const [planoAcaoContexto, setPlanoAcaoContexto] = useState(null);
 
   const { filtros } = useFiltrosPontosControle();
 
+  const fecharJanelaPlanoAcao = () => {
+    setPlanoAcaoContexto(null);
+  };
 
+  const abrirJanelaPlanoAcao = (nrInstrumento, campo, statusPontoControle) => {
+    setPlanoAcaoContexto({ nrInstrumento, campo, statusPontoControle});
+  };
 
   //instrumentosQuery não é o array de instrumentos ainda. É o objeto de resultado gerenciado pelo useQuery
   //esse objeto é que é passado como props para a tabela
@@ -101,11 +107,19 @@ function PontosControleContent() {
           }}
           nrInstrumentoSelecionado={nrInstrumentoSelecionado}
           onSelectInstrumento={setNrInstrumentoSelecionado}
+          abrirJanelaPlanoAcao={abrirJanelaPlanoAcao}
         />
       </section>}
 
 
-      {janelaPlanoAcao} && <PlanoAcao/>
+      {planoAcaoContexto && (
+        <PlanoAcao
+          fecharJanelaPlanoAcao={fecharJanelaPlanoAcao}
+          nrInstrumento={planoAcaoContexto.nrInstrumento}
+          campo={planoAcaoContexto.campo}
+          statusPontoControle={planoAcaoContexto.statusPontoControle}
+        />
+      )}
 
     </main>
   );

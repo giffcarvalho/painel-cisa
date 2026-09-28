@@ -3,6 +3,7 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
 import styles from '../../pages/pontos-controle/PontosControle.module.css';
 import FiltroColuna from './FiltrosPontosControle';
 import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltrosPontosControle';
+import { FormInput } from "lucide-react";
 
 
 const emptyValue = (value) => {
@@ -45,11 +46,35 @@ const classeStatusPontoControle = (valor) => {
   }
 };
 
-const CelulaStatusPontoControle = ({ valor }) => (
-  <td className={`${styles.compactCell} ${classeStatusPontoControle(valor)}`}>
-    {emptyValue(valor)}
-  </td>
-);
+//Define os status que devem possui o botão para preencher o plano de ação
+const status_com_plano_acao = ['Atenção', 'Alerta', 'Crítico', 'Vencido', 'Atrasada'];
+
+//Pequeno componente da célula dos pontos de controle
+const CelulaStatusPontoControle = ({ valor, abrirJanelaPlanoAcao, nrInstrumento, campo }) => {
+  const exibeBotaoPlanoAcao = status_com_plano_acao.includes(valor);
+  return (
+    <td className={`${styles.compactCell} ${classeStatusPontoControle(valor)}`}>
+      <div className={styles.statusCellContainer}>
+        <span>{emptyValue(valor)}</span>
+        
+        {exibeBotaoPlanoAcao && (
+          <button
+            type="button"
+            className={styles.botao_plano_acao}
+            title="Abrir Plano de Ação"
+            onClick={(event) => {
+              event.stopPropagation();
+              abrirJanelaPlanoAcao?.(nrInstrumento, campo, valor);
+            }}
+          >
+            <FormInput size={20} />
+          </button>
+        )}
+      </div>
+    </td>
+  );
+};
+
 
 
 const formatarFonte = (fonte) => {
@@ -595,6 +620,7 @@ export default function TabelaPontosControle({
   onPageSizeChange,
   nrInstrumentoSelecionado,
   onSelectInstrumento,
+  abrirJanelaPlanoAcao,
 }) {
   
   const [resumoAberto, setResumoAberto] = useState(null);
@@ -936,16 +962,17 @@ export default function TabelaPontosControle({
                             </button>
 
                             <span className={styles.actionDivider} aria-hidden="true" />
-                          
-                            <a 
-                              href={`https://saci.cidades.gov.br/contratos/${dadosAdicionaisInstrumento.cod_tci}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={styles.actionItem} 
-                            > 
-                              Saci 
-                            </a>
-                            
+
+                            {dadosAdicionaisInstrumento?.cod_tci && (
+                              <a 
+                                href={`https://saci.cidades.gov.br/contratos/${dadosAdicionaisInstrumento.cod_tci}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={styles.actionItem} 
+                              > 
+                                Saci 
+                              </a>
+                            )}
                           </div>
                         </td>
                         <td className={styles.compactCell}>{emptyValue(instrumento.proponente)}</td>
@@ -957,27 +984,27 @@ export default function TabelaPontosControle({
                         <td className={styles.compactCell}>{emptyValue(instrumento.coordenacao)}</td>
                         <td className={styles.compactCell}>{emptyValue(instrumento.acao)}</td>
                         <td className={styles.compactCell}>{emptyValue(instrumento.monitor)}</td>
-                        <CelulaStatusPontoControle valor={instrumento.prazo_clausulas_suspensivas} />
-                        <CelulaStatusPontoControle valor={instrumento.prazo_emissao_lae} />
-                        <CelulaStatusPontoControle valor={instrumento.prazo_inicio_licitacao} />
-                        <CelulaStatusPontoControle valor={instrumento.prazo_conclusao_licitacao} />
-                        <CelulaStatusPontoControle valor={instrumento.prazo_vrpl} />
-                        <CelulaStatusPontoControle valor={instrumento.prazo_contratacao} />
-                        <CelulaStatusPontoControle valor={instrumento.prazo_solicitacao_aio} />
-                        <CelulaStatusPontoControle valor={instrumento.prazo_analise_tecnica_aio} />
-                        <CelulaStatusPontoControle valor={instrumento.prazo_analise_executiva_aio} />
-                        <CelulaStatusPontoControle valor={instrumento.prazo_registro_aio} />
-                        <CelulaStatusPontoControle valor={instrumento.prazo_emissao_os} />
-                        <CelulaStatusPontoControle valor={instrumento.prazo_inicio_execucao_fisica} />
-                        <CelulaStatusPontoControle valor={instrumento.prazo_progresso_fisico} />
-                        <CelulaStatusPontoControle valor={instrumento.prazo_indicio_paralisacao} />
-                        <CelulaStatusPontoControle valor={instrumento.status_paralisacao_obra} />
-                        <CelulaStatusPontoControle valor={instrumento.vistoria_in_loco_parciais} />
-                        <CelulaStatusPontoControle valor={instrumento.prazo_vistoria_final} />
-                        <CelulaStatusPontoControle valor={instrumento.obras_proximas_conclusao} />
-                        <CelulaStatusPontoControle valor={instrumento.registro_conclusao} />
-                        <CelulaStatusPontoControle valor={instrumento.vigencia} />
-                        <CelulaStatusPontoControle valor={instrumento.status_de_execucao_da_obra} />
+                        <CelulaStatusPontoControle valor={instrumento.prazo_clausulas_suspensivas} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="prazo_clausulas_suspensivas"/>
+                        <CelulaStatusPontoControle valor={instrumento.prazo_emissao_lae} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="prazo_emissao_lae"/>
+                        <CelulaStatusPontoControle valor={instrumento.prazo_inicio_licitacao} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="prazo_inicio_licitacao"/>
+                        <CelulaStatusPontoControle valor={instrumento.prazo_conclusao_licitacao} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="prazo_conclusao_licitacao"/>
+                        <CelulaStatusPontoControle valor={instrumento.prazo_vrpl} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="prazo_vrpl"/>
+                        <CelulaStatusPontoControle valor={instrumento.prazo_contratacao} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="prazo_contratacao"/>
+                        <CelulaStatusPontoControle valor={instrumento.prazo_solicitacao_aio} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="prazo_solicitacao_aio"/>
+                        <CelulaStatusPontoControle valor={instrumento.prazo_analise_tecnica_aio} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="prazo_analise_tecnica_aio"/>
+                        <CelulaStatusPontoControle valor={instrumento.prazo_analise_executiva_aio} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="prazo_analise_executiva_aio"/>
+                        <CelulaStatusPontoControle valor={instrumento.prazo_registro_aio} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="prazo_registro_aio"/>
+                        <CelulaStatusPontoControle valor={instrumento.prazo_emissao_os} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="prazo_emissao_os"/>
+                        <CelulaStatusPontoControle valor={instrumento.prazo_inicio_execucao_fisica} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="prazo_inicio_execucao_fisica"/>
+                        <CelulaStatusPontoControle valor={instrumento.prazo_progresso_fisico} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="prazo_progresso_fisico"/>
+                        <CelulaStatusPontoControle valor={instrumento.prazo_indicio_paralisacao} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="prazo_indicio_paralisacao"/>
+                        <CelulaStatusPontoControle valor={instrumento.status_paralisacao_obra} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="status_paralisacao_obra"/>
+                        <CelulaStatusPontoControle valor={instrumento.vistoria_in_loco_parciais} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="vistoria_in_loco_parciais"/>
+                        <CelulaStatusPontoControle valor={instrumento.prazo_vistoria_final} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="prazo_vistoria_final"/>
+                        <CelulaStatusPontoControle valor={instrumento.obras_proximas_conclusao} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="obras_proximas_conclusao"/>
+                        <CelulaStatusPontoControle valor={instrumento.registro_conclusao} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="registro_conclusao"/>
+                        <CelulaStatusPontoControle valor={instrumento.vigencia} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="vigencia"/>
+                        <CelulaStatusPontoControle valor={instrumento.status_de_execucao_da_obra} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="status_de_execucao_da_obra"/>
                         
                       </tr>
 
@@ -985,22 +1012,22 @@ export default function TabelaPontosControle({
                         <tr className={styles.previewRow}>
                           <td colSpan={8}>
                             <dl className={styles.previewGrid}>
-                              <PreviewField label="Nº Proposta" value={dadosAdicionaisInstrumento.nr_proposta} />
-                              <PreviewField label="Operação" value={dadosAdicionaisInstrumento.operacao} />
-                              <PreviewField label="Cod. Saci" value={dadosAdicionaisInstrumento.cod_tci} />
-                              <PreviewField label="Nº Seleção PAC" value={dadosAdicionaisInstrumento.nr_proposta_selecao_pac} />
-                              <PreviewField label="Tipo" value={dadosAdicionaisInstrumento.tipo_instrumento} />
-                              <PreviewField label="Ação orçamentária" value={dadosAdicionaisInstrumento.acao_orcamentaria} />
-                              <PreviewField label="Componente" value={dadosAdicionaisInstrumento.componente} />
-                              <PreviewField label="Vigência" value={formatDate(dadosAdicionaisInstrumento.dia_fim_vigenc_conv)} />
-                              <PreviewField label="Situação do instrumento" value={dadosAdicionaisInstrumento.situacao_contrato} />
-                              <PreviewField label="Situação da obra" value={dadosAdicionaisInstrumento.situacao_obra} />
-                              <PreviewField label="Valor de Repasse" value={formatCurrency(dadosAdicionaisInstrumento.valor_repasse)} />
-                              <PreviewField label="Valor Contrapartida" value={formatCurrency(dadosAdicionaisInstrumento.valor_contrapartida)} />
-                              <PreviewField label="Valor empenhado" value={formatCurrency(dadosAdicionaisInstrumento.valor_empenhado)} />
-                              <PreviewField label="Valor desembolsado" value={formatCurrency(dadosAdicionaisInstrumento.valor_desembolsado)} />
-                              <PreviewField label="Valor desbloqueado" value={formatCurrency(dadosAdicionaisInstrumento.valor_desbloqueado)} />
-                              <PreviewField label="Valor pago" value={formatCurrency(dadosAdicionaisInstrumento.valor_pago)} />
+                              <PreviewField label="Nº Proposta" value={dadosAdicionaisInstrumento?.nr_proposta} />
+                              <PreviewField label="Operação" value={dadosAdicionaisInstrumento?.operacao} />
+                              <PreviewField label="Cod. Saci" value={dadosAdicionaisInstrumento?.cod_tci} />
+                              <PreviewField label="Nº Seleção PAC" value={dadosAdicionaisInstrumento?.nr_proposta_selecao_pac} />
+                              <PreviewField label="Tipo" value={dadosAdicionaisInstrumento?.tipo_instrumento} />
+                              <PreviewField label="Ação orçamentária" value={dadosAdicionaisInstrumento?.acao_orcamentaria} />
+                              <PreviewField label="Componente" value={dadosAdicionaisInstrumento?.componente} />
+                              <PreviewField label="Vigência" value={formatDate(dadosAdicionaisInstrumento?.dia_fim_vigenc_conv)} />
+                              <PreviewField label="Situação do instrumento" value={dadosAdicionaisInstrumento?.situacao_contrato} />
+                              <PreviewField label="Situação da obra" value={dadosAdicionaisInstrumento?.situacao_obra} />
+                              <PreviewField label="Valor de Repasse" value={formatCurrency(dadosAdicionaisInstrumento?.valor_repasse)} />
+                              <PreviewField label="Valor Contrapartida" value={formatCurrency(dadosAdicionaisInstrumento?.valor_contrapartida)} />
+                              <PreviewField label="Valor empenhado" value={formatCurrency(dadosAdicionaisInstrumento?.valor_empenhado)} />
+                              <PreviewField label="Valor desembolsado" value={formatCurrency(dadosAdicionaisInstrumento?.valor_desembolsado)} />
+                              <PreviewField label="Valor desbloqueado" value={formatCurrency(dadosAdicionaisInstrumento?.valor_desbloqueado)} />
+                              <PreviewField label="Valor pago" value={formatCurrency(dadosAdicionaisInstrumento?.valor_pago)} />
                             </dl>
                           </td>
                         </tr>

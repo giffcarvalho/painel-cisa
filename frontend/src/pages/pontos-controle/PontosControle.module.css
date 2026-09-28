@@ -753,9 +753,32 @@
   width: 220px;
 }
 
+/*Células dos pontos de controle*/
 .compactCell {
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.statusCellContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.botao_plano_acao {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  line-height: 1;
+  transition: background-color 0.2s ease;
+}
+
+.btnPlanoAcao:hover {
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
 .statusAtencao {
