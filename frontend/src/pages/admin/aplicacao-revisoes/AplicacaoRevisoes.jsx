@@ -6,6 +6,7 @@ import HistoricoAplicacoes from '@/components/aplicacao-revisoes/HistoricoAplica
 import ListaRevisoesPendentes from '@/components/aplicacao-revisoes/ListaRevisoesPendentes'
 import ModalConfirmacaoAplicacao from '@/components/aplicacao-revisoes/ModalConfirmacaoAplicacao'
 import ModalCancelamentoAplicacao from '@/components/aplicacao-revisoes/ModalCancelamentoAplicacao'
+import ModalEditarRevisao from '@/components/aplicacao-revisoes/ModalEditarRevisao'
 import ResultadoAplicacao from '@/components/aplicacao-revisoes/ResultadoAplicacao'
 import SolicitacoesCancelamento from '@/components/aplicacao-revisoes/SolicitacoesCancelamento'
 import styles from './AplicacaoRevisoes.module.css'
@@ -25,6 +26,9 @@ export default function AplicacaoRevisoes() {
   const [carregandoDetalhe, setCarregandoDetalhe] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
   const [processando, setProcessando] = useState(false)
+  const [editando, setEditando] = useState(false)
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false)
+  const [erroEdicao, setErroEdicao] = useState('')
   const [erro, setErro] = useState('')
   const [resultado, setResultado] = useState(null)
   const [aba, setAba] = useState('pendentes')
@@ -153,6 +157,29 @@ export default function AplicacaoRevisoes() {
     }
   }
 
+  async function salvarEdicao(payload) {
+    if (!detalhe || salvandoEdicao) return
+    setSalvandoEdicao(true)
+    setErroEdicao('')
+    try {
+      const atualizado = await aplicacaoRevisoesApi.corrigir(
+        detalhe.revisao.id_revisao,
+        payload,
+      )
+      setDetalhe(atualizado)
+      setRevisoes((atuais) => atuais.map((item) => (
+        item.id_revisao === atualizado.revisao.id_revisao
+          ? atualizado.revisao
+          : item
+      )))
+      setEditando(false)
+    } catch (error) {
+      setErroEdicao(mensagemErro(error))
+    } finally {
+      setSalvandoEdicao(false)
+    }
+  }
+
   async function abrirExecucao(idExecucao) {
     setCarregandoHistorico(true)
     setErro('')
@@ -267,7 +294,7 @@ export default function AplicacaoRevisoes() {
 
           <section className={styles.detailPanel} aria-live="polite">
             {carregandoDetalhe && <div className={styles.loading}><Loader2 className={styles.spinner} /> Validando revisão...</div>}
-            {!carregandoDetalhe && detalhe && <DetalhesRevisao detalhe={detalhe} onAplicar={() => setConfirmando(true)} />}
+            {!carregandoDetalhe && detalhe && <DetalhesRevisao detalhe={detalhe} onAplicar={() => setConfirmando(true)} onEditar={() => { setErroEdicao(''); setEditando(true) }} />}
             {!carregandoDetalhe && !detalhe && (
               <div className={styles.detailEmpty}>Selecione uma revisão para conferir as alterações e sua validação.</div>
             )}
@@ -281,6 +308,15 @@ export default function AplicacaoRevisoes() {
           processando={processando}
           onCancelar={() => setConfirmando(false)}
           onConfirmar={confirmarAplicacao}
+        />
+      )}
+      {editando && detalhe && (
+        <ModalEditarRevisao
+          detalhe={detalhe}
+          salvando={salvandoEdicao}
+          erro={erroEdicao}
+          onFechar={() => { setEditando(false); setErroEdicao('') }}
+          onSalvar={salvarEdicao}
         />
       )}
       {confirmandoCancelamento && resultado && validacaoCancelamento?.pode_cancelar && (

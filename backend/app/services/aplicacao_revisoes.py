@@ -16,7 +16,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.aplicacao_revisoes import (
     AlteracaoRevisaoItem,
+    CorrecaoAdministrativaRevisao,
     ContagemAlteracoes,
+    CoordenadaRevisaoItem,
     DetalheExecucao,
     ExecucaoAplicacaoResponse,
     ExecucaoHistoricoItem,
@@ -239,6 +241,24 @@ async def _carregar_revisao(
         [dict(row) for row in publico_result.mappings().all()],
         [dict(row) for row in obras_result.mappings().all()],
     )
+
+
+async def _carregar_coordenadas(
+    db: AsyncSession, id_revisao: int
+) -> list[dict[str, Any]]:
+    result = await db.execute(
+        text(
+            """
+            SELECT id_revisao_coordenada AS id_item, id_coordenada, cod_tci,
+                   situacao_analise, situacao_correcao, observacao_coordenada
+            FROM painel_dsr.tb_revisao_instrumento_coordenada
+            WHERE id_revisao = :id_revisao
+            ORDER BY cod_tci, id_coordenada, id_revisao_coordenada
+            """
+        ),
+        {"id_revisao": id_revisao},
+    )
+    return [dict(row) for row in result.mappings().all()]
 
 
 async def _validar(
@@ -574,10 +594,15 @@ def _avaliacao_obra(row: dict[str, Any]) -> ObraRevisaoItem:
     )
 
 
+def _avaliacao_coordenada(row: dict[str, Any]) -> CoordenadaRevisaoItem:
+    return CoordenadaRevisaoItem(**row)
+
+
 async def obter_detalhe(db: AsyncSession, id_revisao: int) -> RevisaoAplicacaoDetalhe:
     revisao, municipios, localidades, publico, obras = await _carregar_revisao(
         db, id_revisao
     )
+    coordenadas = await _carregar_coordenadas(db, id_revisao)
     row = {
         **revisao,
         "qtd_municipios": sum(item["acao_sugerida"] != "manter" for item in municipios),
@@ -592,6 +617,7 @@ async def obter_detalhe(db: AsyncSession, id_revisao: int) -> RevisaoAplicacaoDe
         localidades=[_alteracao_localidade(item) for item in localidades],
         publico_alvo=[_avaliacao_publico_alvo(item) for item in publico],
         obras=[_avaliacao_obra(item) for item in obras],
+        coordenadas=[_avaliacao_coordenada(item) for item in coordenadas],
         validacao=validacao,
     )
 
@@ -601,6 +627,276 @@ async def validar_aplicacao(db: AsyncSession, id_revisao: int) -> ValidacaoAplic
         db, id_revisao
     )
     return await _validar(db, revisao, municipios, localidades, publico, obras)
+
+
+SECOES_CORRECAO = {
+    "municipios": {
+        "tabela": "painel_dsr.tb_revisao_instrumento_municipio",
+        "id": "id_revisao_municipio",
+        "campos": {"acao_sugerida", "justificativa"},
+        "obrigatorios": {"acao_sugerida"},
+        "auditoria": "municipio",
+    },
+    "localidades": {
+        "tabela": "painel_dsr.tb_revisao_instrumento_localidade",
+        "id": "id_revisao_localidade",
+        "campos": {
+            "acao_sugerida", "qtde_familias_ben_sugerida", "justificativa"
+        },
+        "obrigatorios": {"acao_sugerida"},
+        "auditoria": "localidade",
+    },
+    "publico_alvo": {
+        "tabela": "painel_dsr.tb_revisao_instrumento_publico_alvo",
+        "id": "id_revisao_publico_alvo",
+        "campos": {
+            "status_populacao_beneficiada",
+            "status_desc_populacao_beneficiada",
+            "status_correcao_solicitada",
+            "observacao_publico_alvo",
+        },
+        "obrigatorios": set(),
+        "auditoria": "publico_alvo",
+    },
+    "obras": {
+        "tabela": "painel_dsr.tb_revisao_obra_saneamento",
+        "id": "id_revisao_obra",
+        "campos": {"relacao_instrumento", "confirmacao_status", "justificativa"},
+        "obrigatorios": {"relacao_instrumento", "confirmacao_status"},
+        "auditoria": "obra",
+    },
+    "coordenadas": {
+        "tabela": "painel_dsr.tb_revisao_instrumento_coordenada",
+        "id": "id_revisao_coordenada",
+        "campos": {
+            "situacao_analise", "situacao_correcao", "observacao_coordenada"
+        },
+        "obrigatorios": {"situacao_analise"},
+        "auditoria": "coordenada",
+    },
+}
+
+
+async def _registrar_correcao(
+    db: AsyncSession,
+    *,
+    id_revisao: int,
+    id_usuario: int,
+    secao: str,
+    id_registro: int,
+    campo: str,
+    valor_anterior: Any,
+    valor_novo: Any,
+) -> None:
+    await db.execute(
+        text(
+            """
+            INSERT INTO painel_dsr.tb_auditoria_correcao_revisao (
+                id_revisao, id_usuario_admin, secao, id_registro,
+                campo, valor_anterior, valor_novo
+            ) VALUES (
+                :id_revisao, :id_usuario, :secao, :id_registro,
+                :campo, CAST(:valor_anterior AS jsonb), CAST(:valor_novo AS jsonb)
+            )
+            """
+        ),
+        {
+            "id_revisao": id_revisao,
+            "id_usuario": id_usuario,
+            "secao": secao,
+            "id_registro": id_registro,
+            "campo": campo,
+            "valor_anterior": json.dumps(valor_anterior, ensure_ascii=False),
+            "valor_novo": json.dumps(valor_novo, ensure_ascii=False),
+        },
+    )
+
+
+async def _corrigir_itens_secao(
+    db: AsyncSession,
+    *,
+    id_revisao: int,
+    id_usuario: int,
+    nome_secao: str,
+    itens: list[Any],
+) -> int:
+    config = SECOES_CORRECAO[nome_secao]
+    campos_ordenados = sorted(config["campos"])
+    quantidade = 0
+
+    for item in itens:
+        enviados = item.model_dump(exclude_unset=True, exclude={"id_item"})
+        if not enviados:
+            continue
+        if not set(enviados).issubset(config["campos"]):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=f"A seção {nome_secao} recebeu campos não autorizados.",
+            )
+        if any(enviados.get(campo) is None for campo in config["obrigatorios"] if campo in enviados):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=f"A seção {nome_secao} recebeu um valor obrigatório vazio.",
+            )
+
+        result = await db.execute(
+            text(
+                f"SELECT id_revisao, {', '.join(campos_ordenados)} "
+                f"FROM {config['tabela']} "
+                f"WHERE {config['id']} = :id_item FOR UPDATE"
+            ),
+            {"id_item": item.id_item},
+        )
+        atual = result.mappings().one_or_none()
+        if atual is None or atual["id_revisao"] != id_revisao:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Registro de revisão não encontrado nesta revisão.",
+            )
+
+        alterados = {
+            campo: valor
+            for campo, valor in enviados.items()
+            if atual[campo] != valor
+        }
+        if not alterados:
+            continue
+
+        atribuicoes = ", ".join(f"{campo} = :{campo}" for campo in alterados)
+        await db.execute(
+            text(
+                f"UPDATE {config['tabela']} SET {atribuicoes} "
+                f"WHERE {config['id']} = :id_item AND id_revisao = :id_revisao"
+            ),
+            {**alterados, "id_item": item.id_item, "id_revisao": id_revisao},
+        )
+        for campo, valor_novo in alterados.items():
+            await _registrar_correcao(
+                db,
+                id_revisao=id_revisao,
+                id_usuario=id_usuario,
+                secao=config["auditoria"],
+                id_registro=item.id_item,
+                campo=campo,
+                valor_anterior=atual[campo],
+                valor_novo=valor_novo,
+            )
+        quantidade += 1
+
+    return quantidade
+
+
+async def corrigir_revisao_enviada(
+    db: AsyncSession,
+    id_revisao: int,
+    usuario: UsuarioAutenticado,
+    payload: CorrecaoAdministrativaRevisao,
+) -> RevisaoAplicacaoDetalhe:
+    """Corrige somente campos revisados existentes, preservando a revisão enviada."""
+    if db.in_transaction():
+        await db.rollback()
+
+    try:
+        async with db.begin():
+            result = await db.execute(
+                text(
+                    """
+                    SELECT id_revisao, status, enviado_em, aplicado_em, observacao_geral
+                    FROM painel_dsr.tb_revisao_instrumento
+                    WHERE id_revisao = :id_revisao
+                    FOR UPDATE
+                    """
+                ),
+                {"id_revisao": id_revisao},
+            )
+            revisao = result.mappings().one_or_none()
+            if revisao is None:
+                raise HTTPException(status_code=404, detail="Revisão não encontrada.")
+            if revisao["status"] != "enviado" or revisao["enviado_em"] is None:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Somente uma revisão formalmente enviada pode ser corrigida.",
+                )
+            if revisao["aplicado_em"] is not None:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Uma revisão já aplicada não pode ser corrigida.",
+                )
+
+            await db.execute(
+                text(
+                    "SELECT set_config('painel_dsr.edicao_admin_revisao', "
+                    "CAST(:id_revisao AS text), true)"
+                ),
+                {"id_revisao": id_revisao},
+            )
+
+            quantidade = 0
+            revisao_principal_atualizada = False
+            if "observacao_geral" in payload.model_fields_set:
+                nova_observacao = payload.observacao_geral
+                if revisao["observacao_geral"] != nova_observacao:
+                    await db.execute(
+                        text(
+                            """
+                            UPDATE painel_dsr.tb_revisao_instrumento
+                            SET observacao_geral = :observacao_geral, atualizado_em = NOW()
+                            WHERE id_revisao = :id_revisao
+                            """
+                        ),
+                        {"id_revisao": id_revisao, "observacao_geral": nova_observacao},
+                    )
+                    await _registrar_correcao(
+                        db,
+                        id_revisao=id_revisao,
+                        id_usuario=usuario.id_usuario,
+                        secao="revisao",
+                        id_registro=id_revisao,
+                        campo="observacao_geral",
+                        valor_anterior=revisao["observacao_geral"],
+                        valor_novo=nova_observacao,
+                    )
+                    quantidade += 1
+                    revisao_principal_atualizada = True
+
+            for nome_secao in SECOES_CORRECAO:
+                quantidade += await _corrigir_itens_secao(
+                    db,
+                    id_revisao=id_revisao,
+                    id_usuario=usuario.id_usuario,
+                    nome_secao=nome_secao,
+                    itens=getattr(payload, nome_secao),
+                )
+
+            if quantidade and not revisao_principal_atualizada:
+                await db.execute(
+                    text(
+                        """
+                        UPDATE painel_dsr.tb_revisao_instrumento
+                        SET atualizado_em = NOW()
+                        WHERE id_revisao = :id_revisao
+                        """
+                    ),
+                    {"id_revisao": id_revisao},
+                )
+    except HTTPException:
+        await db.rollback()
+        raise
+    except IntegrityError as exc:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Os valores informados não respeitam as regras da revisão.",
+        ) from exc
+    except SQLAlchemyError as exc:
+        await db.rollback()
+        logger.exception("Falha ao corrigir administrativamente a revisão %s", id_revisao)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Não foi possível salvar a correção da revisão.",
+        ) from exc
+
+    return await obter_detalhe(db, id_revisao)
 
 
 STATUS_EXECUCAO_LABELS = {

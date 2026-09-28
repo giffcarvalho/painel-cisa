@@ -58,6 +58,11 @@ export const aplicacaoRevisoesApi = {
     return data
   },
 
+  corrigir: async (idRevisao, payload) => {
+    const { data } = await api.patch(`/aplicacao-revisoes/${idRevisao}`, payload)
+    return data
+  },
+
   validar: async (idRevisao) => {
     const { data } = await api.post(`/aplicacao-revisoes/${idRevisao}/validar`)
     return data

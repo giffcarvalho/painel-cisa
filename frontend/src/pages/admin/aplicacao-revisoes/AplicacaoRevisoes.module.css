@@ -199,6 +199,12 @@
   font-size: 13px;
 }
 
+.detailActions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 9px;
+}
+
 .validation {
   display: flex;
   gap: 10px;
@@ -653,6 +659,114 @@
   box-shadow: 0 24px 60px rgb(15 23 42 / 25%);
 }
 
+.editModal {
+  display: flex;
+  width: min(100%, 860px);
+  max-height: calc(100vh - 40px);
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.editModalHeader {
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.editModalHeader h2 {
+  margin-top: 4px;
+}
+
+.editModalHeader p {
+  margin: 6px 36px 0 0;
+}
+
+.editModalBody {
+  display: grid;
+  gap: 22px;
+  padding: 20px 24px;
+  overflow-y: auto;
+}
+
+.editSection {
+  display: grid;
+  gap: 10px;
+}
+
+.editSection h3 {
+  margin: 0;
+  color: #334155;
+  font-size: 15px;
+}
+
+.editCard {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  background: #f8fafc;
+  padding: 13px;
+}
+
+.editCard > strong {
+  color: #334155;
+  font-size: 12px;
+}
+
+.editGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 11px;
+}
+
+.editField {
+  display: grid;
+  gap: 5px;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.editFieldWide {
+  grid-column: 1 / -1;
+}
+
+.editField input, .editField select, .editField textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background: #fff;
+  padding: 8px 10px;
+  color: #334155;
+  font: inherit;
+  font-size: 13px;
+}
+
+.editField input, .editField select {
+  min-height: 38px;
+}
+
+.editField textarea {
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.editField input:focus, .editField select:focus, .editField textarea:focus {
+  border-color: #1351b4;
+  outline: 2px solid rgb(19 81 180 / 15%);
+}
+
+.editModal > .errorMessage {
+  margin: 0 24px;
+}
+
+.editModal > .modalActions {
+  margin: 0;
+  border-top: 1px solid #e5e7eb;
+  padding: 16px 24px;
+}
+
 .modal h2 {
   margin: 0 34px 10px 0;
   color: #1f2937;
@@ -1054,6 +1168,19 @@
   .pageHeader, .detailHeader {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .detailActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .editGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .editFieldWide {
+    grid-column: auto;
   }
 
   .pendingItem {

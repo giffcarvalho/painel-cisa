@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Pencil } from 'lucide-react'
 import styles from '@/pages/admin/aplicacao-revisoes/AplicacaoRevisoes.module.css'
 import {
   CONFIRMACOES_OBRA,
@@ -93,7 +93,27 @@ function GrupoObras({ itens }) {
   )
 }
 
-export default function DetalhesRevisao({ detalhe, onAplicar }) {
+function GrupoCoordenadas({ itens }) {
+  return (
+    <section className={styles.changeGroup}>
+      <h3>Coordenadas</h3>
+      {itens.length ? (
+        <ul>{itens.map((item) => (
+          <li className={`${styles.changeItem} ${styles.evaluationItem}`} key={`coordenada-${item.id_item}`}>
+            <span>
+              <strong>Coordenada {item.id_coordenada} — TCI {item.cod_tci}</strong>
+              <small>Análise: {item.situacao_analise}</small>
+              <small>Correção: {item.situacao_correcao || 'Não informada'}</small>
+              {item.observacao_coordenada && <small>Observação: {item.observacao_coordenada}</small>}
+            </span>
+          </li>
+        ))}</ul>
+      ) : <p>Nenhum registro nesta seção.</p>}
+    </section>
+  )
+}
+
+export default function DetalhesRevisao({ detalhe, onAplicar, onEditar }) {
   const { revisao, validacao } = detalhe
   return (
     <div className={styles.detailContent}>
@@ -103,14 +123,19 @@ export default function DetalhesRevisao({ detalhe, onAplicar }) {
           <h2>{revisao.tipo_instrumento_label} {revisao.identificador_principal}</h2>
           <p>Responsável técnico: {revisao.tecnico_responsavel}</p>
         </div>
-        <button
-          type="button"
-          className={styles.primaryButton}
-          disabled={!validacao.aplicavel}
-          onClick={onAplicar}
-        >
-          Aplicar revisão
-        </button>
+        <div className={styles.detailActions}>
+          <button type="button" className={styles.secondaryButton} onClick={onEditar}>
+            <Pencil aria-hidden="true" /> Editar revisão
+          </button>
+          <button
+            type="button"
+            className={styles.primaryButton}
+            disabled={!validacao.aplicavel}
+            onClick={onAplicar}
+          >
+            Aplicar revisão
+          </button>
+        </div>
       </div>
 
       <div className={`${styles.validation} ${validacao.aplicavel ? styles.validationOk : styles.validationBlocked}`}>
@@ -134,6 +159,7 @@ export default function DetalhesRevisao({ detalhe, onAplicar }) {
         <Grupo titulo="Localidades" itens={detalhe.localidades} />
         <GrupoPublicoAlvo itens={detalhe.publico_alvo} />
         <GrupoObras itens={detalhe.obras} />
+        {!!detalhe.coordenadas?.length && <GrupoCoordenadas itens={detalhe.coordenadas} />}
       </div>
     </div>
   )
