@@ -1,0 +1,150 @@
+
+.overlay_modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.4); 
+    backdrop-filter: blur(4px);            
+    -webkit-backdrop-filter: blur(4px);    
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;                         
+}
+
+
+.janela {
+    width: 600px;                          
+    max-width: 90vw;                       
+    max-height: 95vh;
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    border-radius: 8px;
+    background: #ffffff;                  
+    border: 1px solid #e0e0e0;
+    box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.2);
+    animation: surgimentoSuave 0.2s ease-out;
+}
+
+
+.cabecalho_plano {
+    border-bottom: 1px solid black;
+    padding-bottom: 8px;
+    margin-bottom: 15px;
+}
+
+
+.cabecalho_plano h4{
+    font-size: 18px;
+    font-weight: 600;
+    color: #00529e;
+}
+
+
+.ponto_controle {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+
+.pergunta {
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+}
+
+.pergunta h3 {
+    padding: 8px;
+    margin: 0;
+}
+
+.label_radio {
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.pergunta .label_radio:first-of-type {
+    margin-left: auto;
+}
+
+
+.texto_observacao {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px;
+    border: 1px solid #d0d0d0;
+    border-radius: 5px;
+    background-color: white;
+    color: #333;
+    margin-top: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+}
+
+
+.prazo_acao {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 15px;
+    font-size: 13px;
+}
+
+
+.prazo_acao_campo {
+    font-family: inherit;
+    font-size: 13px;
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.cabecalho_status {
+    border-top: 1px solid black;
+    padding-top: 10px;
+    margin-top: 20px;
+    margin-bottom: 15px;
+}
+
+
+.cabecalho_status h4{
+    font-size: 18px;
+    font-weight: 600;
+    color: #00529e;
+}
+
+.opcoes_grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 8px;
+}
+
+
+.pergunta_bloco {
+    display: flex;
+    flex-direction: column;
+    font-size: 13px;
+}
+
+
+.pergunta_bloco h3 {
+    margin: 0;
+    margin-bottom: 5px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.label_radio_bloco {
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
