@@ -100,7 +100,7 @@ export const getDataDados = async () => {
 };
 
 
-/*Dados adicionais dos intrumentos, que virão da view da Carteira e não do Monitoramento*/
+//Dados adicionais dos intrumentos, que virão da view da Carteira e não do Monitoramento
 export const getDadosAdicionais = async () => {
   
   const { data } = await api.get('/pontos-controle/dados_adicionais');
@@ -108,12 +108,25 @@ export const getDadosAdicionais = async () => {
   return data;
 };
 
+
+//Envio do formulário do plano de ação para o backend
+export async function enviarPlanoAcao(dadosFormulario) {
+  
+  const res = await api.post("/pontos-controle/envio_plano_acao", dadosFormulario);
+
+  return res.data;
+}
+
+
+
+
 const pontosControleApi = {
   getFiltros,
   buscarFiltro,
   getInstrumentos,
   getDataDados,
   getDadosAdicionais,
+  enviarPlanoAcao
 };
 
 export default pontosControleApi;
