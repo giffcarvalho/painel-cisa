@@ -92,14 +92,14 @@ export default function MapaSection() {
                 simbolo: "linhaPontilhada",
                 atributo: "cod_sit",
                 classes: [
-                    {valor: 1, label: "Área urbana de alta densidade", cor: "#ff1e00"},
-                    {valor: 2, label: "Área urbana de baixa densidade", cor: "#f87f6f"},
-                    {valor: 3, label: "Núcleo urbano", cor: "#3b0303"},
-                    {valor: 5, label: "Aglomerado rural - Povoado", cor: "#fdff74"},
-                    {valor: 6, label: "Aglomerado rural - Núcleo rural", cor: "#b8905c"},
-                    {valor: 7, label: "Aglomerado rural - Lugarejo", cor: "#365809"},
-                    {valor: 8, label: "Área rural - exclusive aglomerados", cor: "#a6ca03"},
-                    {valor: 9, label: "Massas de água", cor: "#3067ff"},
+                    {valor: 1, label: "1 - Área urbana de alta densidade", cor: "#ff1e00"},
+                    {valor: 2, label: "2 - Área urbana de baixa densidade", cor: "#f87f6f"},
+                    {valor: 3, label: "3 - Núcleo urbano", cor: "#3b0303"},
+                    {valor: 5, label: "5 - Aglomerado rural - Povoado", cor: "#fdff74"},
+                    {valor: 6, label: "6 - Aglomerado rural - Núcleo rural", cor: "#b8905c"},
+                    {valor: 7, label: "7 - Aglomerado rural - Lugarejo", cor: "#27fa4b"},
+                    {valor: 8, label: "8 - Área rural - exclusive aglomerados", cor: "#a6ca03"},
+                    {valor: 9, label: "9 - Massas de água", cor: "#3067ff"},
                 ]
             }
         },
@@ -114,14 +114,14 @@ export default function MapaSection() {
                 simbolo: "ponto",
                 atributo: "cod_especie",
                 classes: [
-                    {valor: 1, label: "Dom. particular", cor: "#fcff4f"},
-                    {valor: 2, label: "Dom. coletivo", cor: "#999b24"},
-                    {valor: 3, label: "Estab. agropecuário", cor: "#007566"},
-                    {valor: 4, label: "Estab. ensino", cor: "#1034ff"},
-                    {valor: 5, label: "Estab. saúde", cor: "#ff61ff"},
-                    {valor: 6, label: "Estab. outras finalidades", cor: "#e9e9e9"},
-                    {valor: 7, label: "Edificação em construção", cor: "#9e9e9e"},
-                    {valor: 8, label: "Estab. religioso", cor: "#fc0543"},
+                    {valor: 1, label: "Dom. particular", cor: "#fcff4f", strokeColor: "#bebebe", strokeWidth: 1.0},
+                    {valor: 2, label: "Dom. coletivo", cor: "#999b24", strokeColor: "#bebebe", strokeWidth: 1.0},
+                    {valor: 3, label: "Estab. agropecuário", cor: "#007566", strokeColor: "#bebebe", strokeWidth: 1.0},
+                    {valor: 4, label: "Estab. ensino", cor: "#1034ff", strokeColor: "#bebebe", strokeWidth: 1.0},
+                    {valor: 5, label: "Estab. saúde", cor: "#ff61ff", strokeColor: "#bebebe", strokeWidth: 1.0},
+                    {valor: 6, label: "Estab. outras finalidades", cor: "#e9e9e9", strokeColor: "#bebebe", strokeWidth: 1.0},
+                    {valor: 7, label: "Edificação em construção", cor: "#9e9e9e", strokeColor: "#bebebe", strokeWidth: 1.0},
+                    {valor: 8, label: "Estab. religioso", cor: "#fc0543", strokeColor: "#bebebe", strokeWidth: 1.0},
                     
                 ] 
             }
@@ -557,6 +557,22 @@ export default function MapaSection() {
             minzoom: 8,
             variavelSel: "",
             variaveis: [
+                {
+                    atributo: "cod_sit",
+                    label: "Situação",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: 1, label: "1 - Área urbana de alta densidade", cor: "#ff1e00"},
+                        {valor: 2, label: "2 - Área urbana de baixa densidade", cor: "#f87f6f"},
+                        {valor: 3, label: "3 - Núcleo urbano", cor: "#3b0303"},
+                        {valor: 5, label: "5 - Aglomerado rural - Povoado", cor: "#fbff11"},
+                        {valor: 6, label: "6 - Aglomerado rural - Núcleo rural", cor: "#b8905c"},
+                        {valor: 7, label: "7 - Aglomerado rural - Lugarejo", cor: "#27fa4b"},
+                        {valor: 8, label: "8 - Área rural - exclusive aglomerados", cor: "#758f00"},
+                        {valor: 9, label: "9 - Massas de água", cor: "#3067ff"},
+                    ]
+                },
                 {
                     atributo: "jenks_perc_agua_forma_nao_adequada",
                     label: "Água - forma não adequada - Setores",

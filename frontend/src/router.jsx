@@ -20,6 +20,7 @@ import VisualizarRevisao from './pages/revisao-instrumento/VisualizarRevisao'
 import AplicacaoRevisoes from './pages/admin/aplicacao-revisoes/AplicacaoRevisoes'
 import AdminUsuarios from './pages/admin/usuarios/AdminUsuarios'
 import Login from './pages/login/Login'
+import PontosControle from './pages/pontos-controle/PontosControle'
 import MeuPainel from './pages/meu-painel/MeuPainel'
 
 const Mapa = lazy(() => import('@/pages/mapa/Mapa'))
@@ -114,6 +115,7 @@ export const router = createBrowserRouter([
               </RotaProtegida>
             ),
           },
+          { path: 'pontos-controle', element: <PontosControle /> },
           {
             path: 'manual',
             element: <ManualLayout />,
