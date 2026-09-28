@@ -1,8 +1,8 @@
 """Contratos da Pesquisa por Instrumento"""
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal, Optional
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -154,3 +154,25 @@ class PontosControleDadosAdicionaisItem(PontosControleBase):
 
 class PontosControleDadosAdicionais(BaseModel):
     data: list[PontosControleDadosAdicionaisItem]
+
+
+
+
+class PlanoAcaoCreate(BaseModel):
+    nr_instrumento: str
+    ponto_controle: str
+    status_ponto_controle: Literal['Atenção', 'Alerta', 'Crítico', 'Vencido', 'Atrasada']
+    confirmacao: Optional[Literal['Sim', 'Não']] = None
+    coordenacao: Optional[Literal['Sim', 'Não']] = None
+    mandataria: Optional[Literal['Sim', 'Não']] = None
+    recebedor: Optional[Literal['Sim', 'Não']] = None
+    observacao_acao: Optional[str] = None
+    prazo_acao: Optional[date] = None
+    status_acao: Optional[Literal['A realizar', 'Em andamento', 'Aguardando retorno', 'Executada parcialmente', 'Concluída']] = None
+    observacao_status_acao: Optional[str] = None
+
+
+class PlanoAcaoEnviadoResponse(BaseModel):
+    id_plano_acao: int
+    criado_em: datetime
+    mensagem: str

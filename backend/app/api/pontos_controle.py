@@ -2,11 +2,11 @@
 
 import logging
 from typing import Annotated
-from fastapi import (APIRouter, Depends, Query, Response, HTTPException)
+from fastapi import (APIRouter, Depends, Query, Response, HTTPException, status)
 from sqlalchemy import text, CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
-
+from app.api.auth import obter_usuario_atual
 from app.core.database import get_db
 from app.schemas.pontos_controle import (
     PontosControleBuscaFiltroResponse,
@@ -14,6 +14,8 @@ from app.schemas.pontos_controle import (
     PontosControleListaResponse,
     PontosControleDataDados,
     PontosControleDadosAdicionais,
+    PlanoAcaoEnviadoResponse,
+    PlanoAcaoCreate,
 )
 
 router = APIRouter()
@@ -1283,3 +1285,74 @@ async def get_dados_adicionais(response: Response, db: AsyncSession = Depends(ge
             for r in result.mappings().all()
         ]
     )
+
+
+# Envia os dados do plano de ação para o banco
+@router.post(
+    "/envio_plano_acao",
+    response_model=PlanoAcaoEnviadoResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Realiza o envio do formulário do plano de ação para o banco",
+)
+async def salvar_plano_acao(
+    dadosFormulario: PlanoAcaoCreate,
+    usuario_atual: UsuarioAutenticado = Depends(obter_usuario_atual),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        result = await db.execute(
+            text(
+                """
+                INSERT INTO painel_dsr.tb_ponto_controle_plano_acao (
+                    nr_instrumento,
+                    ponto_controle,
+                    status_ponto_controle,
+                    confirmacao,
+                    coordenacao,
+                    mandataria,
+                    recebedor,
+                    observacao_acao,
+                    prazo_acao,
+                    status_acao,
+                    observacao_status_acao
+                ) 
+                VALUES (
+                    :nr_instrumento,
+                    :ponto_controle,
+                    :status_ponto_controle,
+                    :confirmacao,
+                    :coordenacao,
+                    :mandataria,
+                    :recebedor,
+                    :observacao_acao,
+                    :prazo_acao,
+                    :status_acao,
+                    :observacao_status_acao
+                )
+                RETURNING
+                    id_plano_acao,
+                    criado_em
+                """
+            ),
+            dadosFormulario.model_dump(),
+        )
+
+        # Captura a primeira linha retornada pelo cláusula RETURNING
+        linha_inserida = result.mappings().first()
+
+        await db.commit()
+
+        
+        return {
+            "id_plano_acao": linha_inserida["id_plano_acao"],
+            "criado_em": linha_inserida["criado_em"],
+            "mensagem": "Plano de ação salvo com sucesso!",
+        }
+
+    except Exception as error:
+        
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao salvar o plano de ação: {str(error)}",
+        )
