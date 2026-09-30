@@ -11,7 +11,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 9999;                         
+    z-index: 999;                         
 }
 
 
@@ -176,12 +176,24 @@
 
 .acoes_formulario {
     display: flex;
+    align-items: center;
     justify-content: flex-end;
     gap: 8px;
     margin-top: 16px;
     padding-top: 12px;
     border-top: 1px solid #aaaaaa;
 }
+
+.ultima_alteracao {
+    margin-right: auto;
+    font-size: 0.875rem;
+    color: #666;
+}
+
+.ultima_alteracao strong {
+    color: #333;
+}
+
 
 .botao_cancelar,
 .botao_salvar {

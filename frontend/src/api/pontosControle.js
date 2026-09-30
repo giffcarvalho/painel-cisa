@@ -119,6 +119,14 @@ export async function enviarPlanoAcao(dadosFormulario) {
 
 
 
+export async function getPlanoAcao() {
+  
+  const res = await api.get("/pontos-controle/busca_plano_acao");
+  
+  return res.data;
+}
+
+
 
 const pontosControleApi = {
   getFiltros,
@@ -126,7 +134,8 @@ const pontosControleApi = {
   getInstrumentos,
   getDataDados,
   getDadosAdicionais,
-  enviarPlanoAcao
+  enviarPlanoAcao,
+  getPlanoAcao,
 };
 
 export default pontosControleApi;

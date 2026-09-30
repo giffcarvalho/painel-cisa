@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FiltrosPontosControleProvider } from '../../context/pontos-controle/filtrosContext';
 import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltrosPontosControle';
-import { useInstrumentosPontosControleQuery, useDadosAdicionaisPontosControleQuery } from '../../hooks/usePontosControle';
+import { useInstrumentosPontosControleQuery, useDadosAdicionaisPontosControleQuery, useBuscaPlanoAcaoQuery } from '../../hooks/usePontosControle';
 import TabelaPontosControle from '../../components/pontos-controle/TabelaPontosControle';
 import PlanoAcao from '@/components/pontos-controle/PlanoAcao';
 import styles from './PontosControle.module.css';
@@ -29,8 +29,20 @@ function PontosControleContent() {
     setPlanoAcaoContexto(null);
   };
 
+  const { data: planoAcaoData } = useBuscaPlanoAcaoQuery();
+
+
   const abrirJanelaPlanoAcao = (nrInstrumento, campo, statusPontoControle) => {
-    setPlanoAcaoContexto({ nrInstrumento, campo, statusPontoControle});
+    const planoExistente = planoAcaoData?.data?.find(
+      (item) => item.nr_instrumento === nrInstrumento && item.ponto_controle === campo
+    );
+
+    setPlanoAcaoContexto({ 
+      nrInstrumento,
+      campo,
+      statusPontoControle,
+      dadosExistentes: planoExistente || null,
+    });
   };
 
   //instrumentosQuery não é o array de instrumentos ainda. É o objeto de resultado gerenciado pelo useQuery
@@ -114,10 +126,12 @@ function PontosControleContent() {
 
       {planoAcaoContexto && (
         <PlanoAcao
+          key={`${planoAcaoContexto.nrInstrumento}-${planoAcaoContexto.campo}`}
           fecharJanelaPlanoAcao={fecharJanelaPlanoAcao}
           nrInstrumento={planoAcaoContexto.nrInstrumento}
           campo={planoAcaoContexto.campo}
           statusPontoControle={planoAcaoContexto.statusPontoControle}
+          dadosExistentes={planoAcaoContexto.dadosExistentes}
         />
       )}
 

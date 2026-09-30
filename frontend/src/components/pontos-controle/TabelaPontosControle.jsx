@@ -3,7 +3,8 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
 import styles from '../../pages/pontos-controle/PontosControle.module.css';
 import FiltroColuna from './FiltrosPontosControle';
 import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltrosPontosControle';
-import { FormInput } from "lucide-react";
+import { useBuscaPlanoAcaoQuery } from "../../hooks/usePontosControle";
+import { FormInput, SquarePen } from "lucide-react";
 
 
 const emptyValue = (value) => {
@@ -46,12 +47,19 @@ const classeStatusPontoControle = (valor) => {
   }
 };
 
-//Define os status que devem possui o botão para preencher o plano de ação
-const status_com_plano_acao = ['Atenção', 'Alerta', 'Crítico', 'Vencido', 'Atrasada'];
 
 //Pequeno componente da célula dos pontos de controle
 const CelulaStatusPontoControle = ({ valor, abrirJanelaPlanoAcao, nrInstrumento, campo }) => {
+  
+  //Define os status que devem possui o botão para preencher o plano de ação
+  const status_com_plano_acao = ['Atenção', 'Alerta', 'Crítico', 'Vencido', 'Atrasada'];
   const exibeBotaoPlanoAcao = status_com_plano_acao.includes(valor);
+  const { data: planoAcaoData } = useBuscaPlanoAcaoQuery();
+  
+  const temPlanoAcao = planoAcaoData?.data?.some(
+    (item) => item.nr_instrumento === nrInstrumento && item.ponto_controle === campo
+  );
+
   return (
     <td className={`${styles.compactCell} ${classeStatusPontoControle(valor)}`}>
       <div className={styles.statusCellContainer}>
@@ -61,13 +69,13 @@ const CelulaStatusPontoControle = ({ valor, abrirJanelaPlanoAcao, nrInstrumento,
           <button
             type="button"
             className={styles.botao_plano_acao}
-            title="Abrir Plano de Ação"
+            title={temPlanoAcao ? "Editar Plano de Ação" : "Criar Plano de Ação"}
             onClick={(event) => {
               event.stopPropagation();
               abrirJanelaPlanoAcao?.(nrInstrumento, campo, valor);
             }}
           >
-            <FormInput size={20} />
+            {temPlanoAcao ? <SquarePen size={20} /> : <FormInput size={20} />}
           </button>
         )}
       </div>

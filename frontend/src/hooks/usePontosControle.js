@@ -88,3 +88,19 @@ export function useDadosAdicionaisPontosControleQuery() {
     placeholderData: keepPreviousData,
   });
 }
+
+
+
+
+export function useBuscaPlanoAcaoQuery() {
+
+  return useQuery({
+    queryKey: [
+      'pontos-controle',
+      'plano_acao',
+    ],
+    queryFn: () =>
+      pontosControleApi.getPlanoAcao(),
+    placeholderData: keepPreviousData,
+  });
+}

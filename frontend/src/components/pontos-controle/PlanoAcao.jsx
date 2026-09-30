@@ -1,54 +1,131 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import estilos from "./PlanoAcao.module.css";
 import { X } from "lucide-react";
 import { enviarPlanoAcao } from "../../api/pontosControle";
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from "@/context/auth/useAuth";
+import { formatDate } from '../../utils/formatters';
 
 
 
-export default function PlanoAcao({ fecharJanelaPlanoAcao, nrInstrumento, campo, statusPontoControle}) {
+export default function PlanoAcao({ 
+    fecharJanelaPlanoAcao,
+    nrInstrumento,
+    campo,
+    statusPontoControle,
+    dadosExistentes,
+}) {
 
-    const [confirmacao, setConfirmacao] = useState("");
-    const [coordenacao, setCoordenacao] = useState("");
-    const [mandataria, setMandataria] = useState("");
-    const [proponente, setProponente] = useState("");
-    const [observacaoAcao, setObservacaoAcao] = useState("");
-    const [prazoAcao, setPrazoAcao] = useState("");
-    const [statusAcao, setStatusAcao] = useState("");
-    const [observacaoStatusAcao, setObservacaoStatusAcao] = useState("");
+    const [confirmacao, setConfirmacao] = useState(dadosExistentes?.confirmacao || "");
+    const [coordenacao, setCoordenacao] = useState(dadosExistentes?.coordenacao || "");
+    const [mandataria, setMandataria] = useState(dadosExistentes?.mandataria || "");
+    const [proponente, setProponente] = useState(dadosExistentes?.recebedor || "");
+    const [observacaoAcao, setObservacaoAcao] = useState(dadosExistentes?.observacao_acao || "");
+    const [prazoAcao, setPrazoAcao] = useState(dadosExistentes?.prazo_acao || "");
+    const [statusAcao, setStatusAcao] = useState(dadosExistentes?.status_acao || "");
+    const [observacaoStatusAcao, setObservacaoStatusAcao] = useState(dadosExistentes?.observacao_status_acao || "");
     const [enviando, setEnviando] = useState(false);
+    const queryClient = useQueryClient();
+    const { isAuthenticated, openLoginModal } = useAuth();
+
+    // Garante que os campos sejam atualizados sempre que dadosExistentes mudar
+    useEffect(() => {
+        if (dadosExistentes) {
+            setConfirmacao(dadosExistentes.confirmacao || "");
+            setCoordenacao(dadosExistentes.coordenacao || "");
+            setMandataria(dadosExistentes.mandataria || "");
+            setProponente(dadosExistentes.recebedor || "");
+            setObservacaoAcao(dadosExistentes.observacao_acao || "");
+            setPrazoAcao(dadosExistentes.prazo_acao || "");
+            setStatusAcao(dadosExistentes.status_acao || "");
+            setObservacaoStatusAcao(dadosExistentes.observacao_status_acao || "");
+        }
+    }, [dadosExistentes]);
+
+
+    // Variável criada para permitir testar se pelo menos um campo editavel foi preenchido.
+    // Ela é usada para bloquear o envio de formulário totalmente vazio
+    const possuiPreenchimento = [
+        confirmacao,
+        coordenacao,
+        mandataria,
+        proponente,
+        observacaoAcao,
+        prazoAcao,
+        statusAcao,
+        observacaoStatusAcao,
+    ].some((valor) => valor !== "" && valor !== null && valor !== undefined);
+    
+
+    // Comparação para saber se HOUVE alguma alteração em relação aos dados salvos originalmente
+    const houveAlteracao = 
+        confirmacao !== (dadosExistentes?.confirmacao || "") ||
+        coordenacao !== (dadosExistentes?.coordenacao || "") ||
+        mandataria !== (dadosExistentes?.mandataria || "") ||
+        proponente !== (dadosExistentes?.recebedor || "") ||
+        observacaoAcao !== (dadosExistentes?.observacao_acao || "") ||
+        prazoAcao !== (dadosExistentes?.prazo_acao || "") ||
+        statusAcao !== (dadosExistentes?.status_acao || "") ||
+        observacaoStatusAcao !== (dadosExistentes?.observacao_status_acao || "");
+
+    // O botão só estará liberado se tiver preenchimento E se tiver havido alteração
+    const podeSalvar = !isAuthenticated || (possuiPreenchimento && houveAlteracao);
+    
+    
 
     //Esta função monta o objeto com os dados do formulário e chama a função enviarPlanoAcao da api
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        // Garante que usuário logado possa salvar o formulário
+        if (!isAuthenticated) {
+            openLoginModal();
+            return;
+        }
+
+        // Garante que haja um instrumento e um ponto de controle relacionado ao formulário
         if (!nrInstrumento || !campo) {
             alert("Identificador do instrumento ou campo não informado.");
             return;
         }
 
+        // Se nenhum campo foi preenchido, bloqueia o envio
+        if (!possuiPreenchimento) {
+            alert("Preencha ao menos um campo do plano de ação antes de enviar.");
+            return;
+        }
+
+        // Se não houve alteração em relação ao Plano de Ação já existente, bloqueia o envio
+        if (!houveAlteracao) {
+            alert("Nenhuma alteração foi realizada para salvar.");
+            return;
+        }
+
+
         const dadosFormulario = {
             nr_instrumento: nrInstrumento,
             ponto_controle: campo, // alterado de 'campo' para 'ponto_controle'
             status_ponto_controle: statusPontoControle,
-            confirmacao,
-            coordenacao,
-            mandataria,
-            recebedor: proponente, // alterado de 'proponente' para 'recebedor'
-            observacao_acao: observacaoAcao,
-            prazo_acao: prazoAcao || null, // Garante null se for string vazia
-            status_acao: statusAcao,
-            observacao_status_acao: observacaoStatusAcao,
+            confirmacao: confirmacao || null,
+            coordenacao: coordenacao || null,
+            mandataria: mandataria || null,
+            recebedor: proponente || null,
+            observacao_acao: observacaoAcao || null,
+            prazo_acao: prazoAcao || null,
+            status_acao: statusAcao || null,
+            observacao_status_acao: observacaoStatusAcao || null,
             };
 
         try {
             setEnviando(true);
             const resposta = await enviarPlanoAcao(dadosFormulario);
             console.log("Plano de ação salvo com sucesso:", resposta);
+            queryClient.invalidateQueries({ queryKey: ['pontos-controle', 'plano_acao'] });
             fecharJanelaPlanoAcao();
         
         } catch (error) {
             console.error("Erro ao salvar o plano de ação:", error);
-            alert("Não foi possível salvar o plano de ação. Tente novamente.");
+            alert(error.message || "Erro ao salvar o plano de ação.");
         
         } finally {
             setEnviando(false);
@@ -99,6 +176,16 @@ export default function PlanoAcao({ fecharJanelaPlanoAcao, nrInstrumento, campo,
     const alterarObservacaoStatusAcao = (e) => {
         setObservacaoStatusAcao(e.target.value);
     };
+
+
+    // Define a mensagem do tooltip do botão Salvar
+    const obterTextoTooltip = () => {
+        if (!isAuthenticated) return "Faça login para salvar o plano de ação";
+        if (!possuiPreenchimento) return "Preencha ao menos um campo para salvar";
+        if (!houveAlteracao) return "Altere ao menos um campo para salvar";
+        return "";
+    };
+
 
 
 
@@ -314,6 +401,14 @@ export default function PlanoAcao({ fecharJanelaPlanoAcao, nrInstrumento, campo,
                 />
                 
                 <div className={estilos.acoes_formulario}>
+                    {dadosExistentes?.id_usuario && (
+                        <span className={estilos.ultima_alteracao}>
+                        Última alteração por: <strong>{dadosExistentes.id_usuario}</strong>
+                        {dadosExistentes.criado_em && (
+                            <> - {formatDate(dadosExistentes.criado_em)}</>
+                        )}
+                        </span>
+                    )}
                     <button 
                         type="button"
                         className={estilos.botao_cancelar}
@@ -326,7 +421,8 @@ export default function PlanoAcao({ fecharJanelaPlanoAcao, nrInstrumento, campo,
                     <button 
                         type="submit"
                         className={estilos.botao_salvar}
-                        disabled={enviando}
+                        disabled={enviando || !podeSalvar}
+                        title={obterTextoTooltip()}
                     >
                         {enviando ? 'Salvando...' : 'Salvar'}
                     </button>
