@@ -1,0 +1,143 @@
+.overlay_modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.4); 
+    backdrop-filter: blur(4px);            
+    -webkit-backdrop-filter: blur(4px);    
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;                         
+}
+
+
+.janela {
+    width: 800px;                          
+    max-width: 90vw;                       
+    max-height: 95vh;
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    border-radius: 8px;
+    background: #ffffff;                  
+    border: 1px solid #e0e0e0;
+    box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.2);
+    animation: surgimentoSuave 0.2s ease-out;
+}
+
+
+.cabecalho_contato {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #aaaaaa;
+    padding-bottom: 8px;
+    margin-bottom: 15px;
+}
+
+
+.cabecalho_contato h4{
+    font-size: 18px;
+    font-weight: 600;
+    color: #00529e;
+    margin: 0;
+}
+
+.botaoX {
+    padding: 8px;
+    color: #6b7280;
+    border-radius: 9999px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.botaoX:hover {
+    background-color: #f6f3f3;
+}
+
+.XFechar {
+    width: 16px;
+    height: 16px;
+}
+
+.contato {
+    display: flex;
+    flex-direction: column;
+    
+}
+
+.contato_caixa {
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* Espaço vertical entre as linhas */
+    border-bottom: 1px solid #aaaaaa;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    margin-top: 10px;
+}
+
+.contato_caixa p {
+    font-size: 13px;
+    color: #00529e;
+}
+
+/* Container de cada linha individual */
+.linha {
+    display: flex;
+    gap: 8px; /* Espaço horizontal entre os campos da mesma linha */
+    width: 100%;
+}
+
+.contato input,
+.contato textarea {
+    box-sizing: border-box;
+    padding: 8px 12px;
+    border: 1px solid #d0d0d0;
+    border-radius: 5px;
+    background-color: #ffffff;
+    color: #333;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+}
+
+.contato input {
+    height: 35px;
+}
+
+
+.contato input:focus,
+.contato textarea:focus {
+    border-color: #00529e;
+}
+
+/* Proporções da LINHA 1 */
+.campo_nome {
+    flex: 1.8;
+}
+
+.campo_cargo {
+    flex: 1.5;
+}
+
+.campo_telefone {
+    flex: 1;
+}
+
+/* Proporções da LINHA 2 */
+.campo_email {
+    flex: 1.33;
+}
+
+.campo_observacao {
+    flex: 2.0;
+    resize: none;
+    outline: none;
+}
