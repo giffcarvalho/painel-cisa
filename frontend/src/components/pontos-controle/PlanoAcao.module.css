@@ -186,14 +186,18 @@
 
 .ultima_alteracao {
     margin-right: auto;
-    font-size: 0.875rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.79rem;
     color: #666;
+    line-height: 1.2;
 }
 
-.ultima_alteracao strong {
-    color: #333;
+.data_alteracao {
+  font-size: 0.775rem;
+  color: #888;
 }
-
 
 .botao_cancelar,
 .botao_salvar {
