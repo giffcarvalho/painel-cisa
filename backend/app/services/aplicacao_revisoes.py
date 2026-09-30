@@ -635,7 +635,6 @@ SECOES_CORRECAO = {
         "id": "id_revisao_municipio",
         "campos": {"acao_sugerida", "justificativa"},
         "obrigatorios": {"acao_sugerida"},
-        "auditoria": "municipio",
     },
     "localidades": {
         "tabela": "painel_dsr.tb_revisao_instrumento_localidade",
@@ -644,7 +643,6 @@ SECOES_CORRECAO = {
             "acao_sugerida", "qtde_familias_ben_sugerida", "justificativa"
         },
         "obrigatorios": {"acao_sugerida"},
-        "auditoria": "localidade",
     },
     "publico_alvo": {
         "tabela": "painel_dsr.tb_revisao_instrumento_publico_alvo",
@@ -656,14 +654,12 @@ SECOES_CORRECAO = {
             "observacao_publico_alvo",
         },
         "obrigatorios": set(),
-        "auditoria": "publico_alvo",
     },
     "obras": {
         "tabela": "painel_dsr.tb_revisao_obra_saneamento",
         "id": "id_revisao_obra",
         "campos": {"relacao_instrumento", "confirmacao_status", "justificativa"},
         "obrigatorios": {"relacao_instrumento", "confirmacao_status"},
-        "auditoria": "obra",
     },
     "coordenadas": {
         "tabela": "painel_dsr.tb_revisao_instrumento_coordenada",
@@ -672,43 +668,21 @@ SECOES_CORRECAO = {
             "situacao_analise", "situacao_correcao", "observacao_coordenada"
         },
         "obrigatorios": {"situacao_analise"},
-        "auditoria": "coordenada",
     },
 }
 
 
-async def _registrar_correcao(
-    db: AsyncSession,
-    *,
-    id_revisao: int,
-    id_usuario: int,
-    secao: str,
-    id_registro: int,
-    campo: str,
-    valor_anterior: Any,
-    valor_novo: Any,
+async def _habilitar_correcao_administrativa(
+    db: AsyncSession, id_revisao: int
 ) -> None:
+    # set_config recebe texto no PostgreSQL; a conversão explícita em Python
+    # evita que o asyncpg tente codificar o identificador inteiro como varchar.
     await db.execute(
         text(
-            """
-            INSERT INTO painel_dsr.tb_auditoria_correcao_revisao (
-                id_revisao, id_usuario_admin, secao, id_registro,
-                campo, valor_anterior, valor_novo
-            ) VALUES (
-                :id_revisao, :id_usuario, :secao, :id_registro,
-                :campo, CAST(:valor_anterior AS jsonb), CAST(:valor_novo AS jsonb)
-            )
-            """
+            "SELECT set_config('painel_dsr.edicao_admin_revisao', "
+            ":id_revisao, true)"
         ),
-        {
-            "id_revisao": id_revisao,
-            "id_usuario": id_usuario,
-            "secao": secao,
-            "id_registro": id_registro,
-            "campo": campo,
-            "valor_anterior": json.dumps(valor_anterior, ensure_ascii=False),
-            "valor_novo": json.dumps(valor_novo, ensure_ascii=False),
-        },
+        {"id_revisao": str(id_revisao)},
     )
 
 
@@ -716,7 +690,6 @@ async def _corrigir_itens_secao(
     db: AsyncSession,
     *,
     id_revisao: int,
-    id_usuario: int,
     nome_secao: str,
     itens: list[Any],
 ) -> int:
@@ -770,17 +743,6 @@ async def _corrigir_itens_secao(
             ),
             {**alterados, "id_item": item.id_item, "id_revisao": id_revisao},
         )
-        for campo, valor_novo in alterados.items():
-            await _registrar_correcao(
-                db,
-                id_revisao=id_revisao,
-                id_usuario=id_usuario,
-                secao=config["auditoria"],
-                id_registro=item.id_item,
-                campo=campo,
-                valor_anterior=atual[campo],
-                valor_novo=valor_novo,
-            )
         quantidade += 1
 
     return quantidade
@@ -789,7 +751,6 @@ async def _corrigir_itens_secao(
 async def corrigir_revisao_enviada(
     db: AsyncSession,
     id_revisao: int,
-    usuario: UsuarioAutenticado,
     payload: CorrecaoAdministrativaRevisao,
 ) -> RevisaoAplicacaoDetalhe:
     """Corrige somente campos revisados existentes, preservando a revisão enviada."""
@@ -823,13 +784,7 @@ async def corrigir_revisao_enviada(
                     detail="Uma revisão já aplicada não pode ser corrigida.",
                 )
 
-            await db.execute(
-                text(
-                    "SELECT set_config('painel_dsr.edicao_admin_revisao', "
-                    "CAST(:id_revisao AS text), true)"
-                ),
-                {"id_revisao": id_revisao},
-            )
+            await _habilitar_correcao_administrativa(db, id_revisao)
 
             quantidade = 0
             revisao_principal_atualizada = False
@@ -846,16 +801,6 @@ async def corrigir_revisao_enviada(
                         ),
                         {"id_revisao": id_revisao, "observacao_geral": nova_observacao},
                     )
-                    await _registrar_correcao(
-                        db,
-                        id_revisao=id_revisao,
-                        id_usuario=usuario.id_usuario,
-                        secao="revisao",
-                        id_registro=id_revisao,
-                        campo="observacao_geral",
-                        valor_anterior=revisao["observacao_geral"],
-                        valor_novo=nova_observacao,
-                    )
                     quantidade += 1
                     revisao_principal_atualizada = True
 
@@ -863,7 +808,6 @@ async def corrigir_revisao_enviada(
                 quantidade += await _corrigir_itens_secao(
                     db,
                     id_revisao=id_revisao,
-                    id_usuario=usuario.id_usuario,
                     nome_secao=nome_secao,
                     itens=getattr(payload, nome_secao),
                 )

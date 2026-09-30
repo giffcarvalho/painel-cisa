@@ -172,7 +172,7 @@ async def corrigir_revisao(
     db: AsyncSession = Depends(get_db),
 ):
     exigir_admin(usuario)
-    return await corrigir_revisao_enviada(db, id_revisao, usuario, payload)
+    return await corrigir_revisao_enviada(db, id_revisao, payload)
 
 
 @router.post("/{id_revisao}/validar", response_model=ValidacaoAplicacao)

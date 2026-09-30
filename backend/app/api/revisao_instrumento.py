@@ -603,17 +603,13 @@ async def _buscar_obras_saneamento(
             obras.orgao,
             obras.link_transferegov,
             obras.link_obrasgov,
-            CASE WHEN revisada.valido_ate >= NOW()
-                THEN revisada.relacao_instrumento
-                ELSE 'nao_analisada'
-            END AS relacao_instrumento,
-            CASE WHEN revisada.valido_ate >= NOW()
-                THEN revisada.confirmacao_status
-                ELSE 'nao_confirmada'
-            END AS confirmacao_status,
-            CASE WHEN revisada.valido_ate >= NOW() THEN revisada.justificativa END AS justificativa,
-            CASE WHEN revisada.valido_ate >= NOW() THEN revisada.conferido_em END AS conferido_em,
-            CASE WHEN revisada.valido_ate >= NOW() THEN revisada.valido_ate END AS valido_ate
+            COALESCE(revisada.relacao_instrumento, 'nao_analisada')
+                AS relacao_instrumento,
+            COALESCE(revisada.confirmacao_status, 'nao_confirmada')
+                AS confirmacao_status,
+            revisada.justificativa,
+            revisada.conferido_em,
+            revisada.valido_ate
         FROM instrumento.vw_investimento_saneamento obras
         LEFT JOIN instrumento.vw_obra_saneamento_revisada revisada
           ON revisada.tipo_instrumento = CAST(:tipo_instrumento AS varchar)
@@ -810,27 +806,27 @@ async def _buscar_publico_alvo(
             p.desc_populacao_beneficiada_original,
             CASE WHEN rpa.id_revisao_publico_alvo IS NOT NULL
                 THEN rpa.status_populacao_beneficiada
-                WHEN revisado.valido_ate >= NOW() THEN revisado.status_populacao_beneficiada
+                ELSE revisado.status_populacao_beneficiada
             END AS status_populacao_beneficiada,
             CASE WHEN rpa.id_revisao_publico_alvo IS NOT NULL
                 THEN rpa.status_desc_populacao_beneficiada
-                WHEN revisado.valido_ate >= NOW() THEN revisado.status_desc_populacao_beneficiada
+                ELSE revisado.status_desc_populacao_beneficiada
             END AS status_desc_populacao_beneficiada,
             CASE WHEN rpa.id_revisao_publico_alvo IS NOT NULL
                 THEN rpa.observacao_publico_alvo
-                WHEN revisado.valido_ate >= NOW() THEN revisado.observacao_publico_alvo
+                ELSE revisado.observacao_publico_alvo
             END AS observacao_publico_alvo,
             CASE WHEN rpa.id_revisao_publico_alvo IS NOT NULL
                 THEN rpa.status_correcao_solicitada
-                WHEN revisado.valido_ate >= NOW() THEN revisado.status_correcao_solicitada
+                ELSE revisado.status_correcao_solicitada
             END AS status_correcao_solicitada,
             CASE WHEN rpa.id_revisao_publico_alvo IS NOT NULL
                 THEN rpa.conferido_em
-                WHEN revisado.valido_ate >= NOW() THEN revisado.conferido_em
+                ELSE revisado.conferido_em
             END AS conferido_em,
             CASE WHEN rpa.id_revisao_publico_alvo IS NOT NULL
                 THEN rpa.valido_ate
-                WHEN revisado.valido_ate >= NOW() THEN revisado.valido_ate
+                ELSE revisado.valido_ate
             END AS valido_ate
         FROM projetos p
         LEFT JOIN obrasgov.vw_publico_alvo_revisado revisado
@@ -977,7 +973,7 @@ async def _carregar_estado_aplicado(
         )
         SELECT cod_municipio, conferido_em, valido_ate
         FROM ultima
-        WHERE acao_sugerida <> 'remover' AND valido_ate >= NOW()
+        WHERE acao_sugerida <> 'remover'
         """,
         params,
     )
@@ -1022,7 +1018,7 @@ async def _carregar_estado_aplicado(
         SELECT id_revisao_localidade, cod_municipio, cod_comunidade_rural,
                conferido_em, valido_ate
         FROM ultima
-        WHERE acao_sugerida <> 'remover' AND valido_ate >= NOW()
+        WHERE acao_sugerida <> 'remover'
         """,
         params,
     )
