@@ -1381,21 +1381,22 @@ async def get_plano_acao(response: Response, db: AsyncSession = Depends(get_db))
 
     sql = """
         SELECT DISTINCT ON (nr_instrumento, ponto_controle)
-            nr_instrumento,
-            id_usuario,
-            ponto_controle,
-            status_ponto_controle,
-            confirmacao,
-            coordenacao,
-            mandataria,
-            recebedor,
-            observacao_acao,
-            prazo_acao,
-            status_acao,
-            observacao_status_acao,
-            criado_em
-        FROM painel_dsr.tb_ponto_controle_plano_acao
-        ORDER BY nr_instrumento, ponto_controle, id_plano_acao DESC
+            p.nr_instrumento,
+            u.nome as usuario,
+            p.ponto_controle,
+            p.status_ponto_controle,
+            p.confirmacao,
+            p.coordenacao,
+            p.mandataria,
+            p.recebedor,
+            p.observacao_acao,
+            p.prazo_acao,
+            p.status_acao,
+            p.observacao_status_acao,
+            p.criado_em
+        FROM painel_dsr.tb_ponto_controle_plano_acao p
+        LEFT JOIN painel_dsr.tb_usuario u ON u.id_usuario = p.id_usuario
+        ORDER BY p.nr_instrumento, p.ponto_controle, p.id_plano_acao DESC
     """
 
     result = await _execute_query(db, sql)

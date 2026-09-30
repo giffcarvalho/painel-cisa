@@ -181,7 +181,7 @@ class PlanoAcaoEnviadoResponse(BaseModel):
 
 class PlanoAcaoBuscaItem(BaseModel):
     nr_instrumento: str
-    id_usuario: int
+    usuario: str | None = None
     ponto_controle: str
     status_ponto_controle: str
     confirmacao: str | None = None
