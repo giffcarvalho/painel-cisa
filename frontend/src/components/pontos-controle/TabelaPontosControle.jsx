@@ -53,12 +53,13 @@ const CelulaStatusPontoControle = ({ valor, abrirJanelaPlanoAcao, nrInstrumento,
   
   //Define os status que devem possui o botão para preencher o plano de ação
   const status_com_plano_acao = ['Atenção', 'Alerta', 'Crítico', 'Vencido', 'Atrasada'];
-  const exibeBotaoPlanoAcao = status_com_plano_acao.includes(valor);
   const { data: planoAcaoData } = useBuscaPlanoAcaoQuery();
   
   const temPlanoAcao = planoAcaoData?.data?.some(
     (item) => item.nr_instrumento === nrInstrumento && item.ponto_controle === campo
   );
+  
+  const exibeBotaoPlanoAcao = status_com_plano_acao.includes(valor) || temPlanoAcao;
 
   return (
     <td className={`${styles.compactCell} ${classeStatusPontoControle(valor)}`}>
