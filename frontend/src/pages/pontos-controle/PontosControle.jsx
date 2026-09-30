@@ -4,8 +4,11 @@ import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltr
 import { useInstrumentosPontosControleQuery, useDadosAdicionaisPontosControleQuery, useBuscaPlanoAcaoQuery } from '../../hooks/usePontosControle';
 import TabelaPontosControle from '../../components/pontos-controle/TabelaPontosControle';
 import PlanoAcao from '@/components/pontos-controle/PlanoAcao';
+import ContatoRecebedor from '@/components/pontos-controle/ContatoRecebedor';
 import styles from './PontosControle.module.css';
 import pontosControleApi from '../../api/pontosControle';
+
+import { Layers } from "lucide-react";
 
 
 //essa função extrai do objeto instrumentosQuery.data, o array com os instrumentos
@@ -22,6 +25,7 @@ function PontosControleContent() {
   const [nrInstrumentoSelecionado, setNrInstrumentoSelecionado] = useState(null);
   const [dataDados, setDataDados] = useState(null);
   const [planoAcaoContexto, setPlanoAcaoContexto] = useState(null);
+  const [contatoRecebedorContexto, setContatoRecebedorContexto] = useState(null);
 
   const { filtros } = useFiltrosPontosControle();
 
@@ -44,6 +48,17 @@ function PontosControleContent() {
       dadosExistentes: planoExistente || null,
     });
   };
+
+
+  const fecharJanelaContato = () => {
+    setContatoRecebedorContexto(null);
+  };
+
+  const abrirJanelaContato = () => {
+    setContatoRecebedorContexto(true);
+  };
+
+
 
   //instrumentosQuery não é o array de instrumentos ainda. É o objeto de resultado gerenciado pelo useQuery
   //esse objeto é que é passado como props para a tabela
@@ -134,6 +149,20 @@ function PontosControleContent() {
           dadosExistentes={planoAcaoContexto.dadosExistentes}
         />
       )}
+
+
+      {contatoRecebedorContexto && (
+        <ContatoRecebedor
+          //key={`${planoAcaoContexto.nrInstrumento}-${planoAcaoContexto.campo}`}
+          fecharJanelaContato={fecharJanelaContato}
+          //nrInstrumento={planoAcaoContexto.nrInstrumento}
+          //campo={planoAcaoContexto.campo}
+          //statusPontoControle={planoAcaoContexto.statusPontoControle}
+          //dadosExistentes={planoAcaoContexto.dadosExistentes}
+        />
+      )}
+
+      <button className={styles.botaoCamadas} onClick={() => abrirJanelaContato()}> <Layers className={styles.Icon}/></button>
 
     </main>
   );
