@@ -16,6 +16,8 @@ from app.schemas.pontos_controle import (
     PontosControleDadosAdicionais,
     PlanoAcaoEnviadoResponse,
     PlanoAcaoCreate,
+    PlanoAcaoBusca,
+    PlanoAcaoBuscaItem,
 )
 
 router = APIRouter()
@@ -1300,11 +1302,18 @@ async def salvar_plano_acao(
     db: AsyncSession = Depends(get_db),
 ):
     try:
+        # 1. Converte os dados do formulário para dicionário
+        payload = dadosFormulario.model_dump()
+
+        # 2. Injeta o id_usuario obtido com segurança a partir do token
+        payload["id_usuario"] = usuario_atual.id_usuario
+
         result = await db.execute(
             text(
                 """
                 INSERT INTO painel_dsr.tb_ponto_controle_plano_acao (
                     nr_instrumento,
+                    id_usuario,
                     ponto_controle,
                     status_ponto_controle,
                     confirmacao,
@@ -1318,6 +1327,7 @@ async def salvar_plano_acao(
                 ) 
                 VALUES (
                     :nr_instrumento,
+                    :id_usuario,
                     :ponto_controle,
                     :status_ponto_controle,
                     :confirmacao,
@@ -1334,7 +1344,7 @@ async def salvar_plano_acao(
                     criado_em
                 """
             ),
-            dadosFormulario.model_dump(),
+            payload,
         )
 
         # Captura a primeira linha retornada pelo cláusula RETURNING
@@ -1356,3 +1366,46 @@ async def salvar_plano_acao(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao salvar o plano de ação: {str(error)}",
         )
+
+
+
+
+@router.get("/busca_plano_acao", response_model=PlanoAcaoBusca, summary=("Busca o último Plano de Ação do ponto de controle, se houver"))
+async def get_plano_acao(response: Response, db: AsyncSession = Depends(get_db)):
+    
+    # Estou testando essa linha abaixo de no-cache, para ver se resolve o bug do plano de ação vir antigo quando o usuario salva e reabre logo em seguida
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    
+    # Para voltar com o cahe, descomente linha abaixo e apague a linha de cima
+    #response.headers["Cache-Control"] = ("private, max-age=300")
+
+    sql = """
+        SELECT DISTINCT ON (nr_instrumento, ponto_controle)
+            nr_instrumento,
+            id_usuario,
+            ponto_controle,
+            status_ponto_controle,
+            confirmacao,
+            coordenacao,
+            mandataria,
+            recebedor,
+            observacao_acao,
+            prazo_acao,
+            status_acao,
+            observacao_status_acao,
+            criado_em
+        FROM painel_dsr.tb_ponto_controle_plano_acao
+        ORDER BY nr_instrumento, ponto_controle, id_plano_acao DESC
+    """
+
+    result = await _execute_query(db, sql)
+
+
+    # Esse trecho abaixo quer dizer que cada dict(r) é transformado/validado como PontosControleDadosAdicionaisItem
+    # e a resposta inteira fica no formato PontosControleDadosAdicionais data=[PontosControleDadosAdicionaisItem(...), PontosControleDadosAdicionaisItem(...)]
+    # PontosControleDadosAdicionais é o objeto que encapsula a lista de resultados, e cada elemento dessa lista é um PontosControleDadosAdicionaisItem
+    # O formato resultante será um JSON com uma estrutura mais ou menos assim: { "data": [{"nr_instrumento": "123", "nr_proposta": "456"}, {"nr_instrumento": "789", "nr_proposta": "012"}] }
+    return PlanoAcaoBusca(
+      data=[PlanoAcaoBuscaItem(**r) for r in result.mappings().all()]
+    )
+    

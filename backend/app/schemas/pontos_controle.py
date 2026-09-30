@@ -176,3 +176,24 @@ class PlanoAcaoEnviadoResponse(BaseModel):
     id_plano_acao: int
     criado_em: datetime
     mensagem: str
+
+
+
+class PlanoAcaoBuscaItem(BaseModel):
+    nr_instrumento: str
+    id_usuario: int
+    ponto_controle: str
+    status_ponto_controle: str
+    confirmacao: str | None = None
+    coordenacao: str | None = None
+    mandataria: str | None = None
+    recebedor: str | None = None
+    observacao_acao: str | None = None
+    prazo_acao: date | None = None
+    status_acao: str | None = None
+    observacao_status_acao: str | None = None
+    criado_em: datetime
+
+
+class PlanoAcaoBusca(BaseModel):
+    data: list[PlanoAcaoBuscaItem]
