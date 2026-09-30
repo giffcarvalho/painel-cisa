@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import { enviarPlanoAcao } from "../../api/pontosControle";
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from "@/context/auth/useAuth";
-import { formatDate } from '../../utils/formatters';
+import { formatDatetime } from '../../utils/formatters';
 
 
 
@@ -401,13 +401,17 @@ export default function PlanoAcao({
                 />
                 
                 <div className={estilos.acoes_formulario}>
-                    {dadosExistentes?.id_usuario && (
-                        <span className={estilos.ultima_alteracao}>
-                        Última alteração por: <strong>{dadosExistentes.id_usuario}</strong>
-                        {dadosExistentes.criado_em && (
-                            <> - {formatDate(dadosExistentes.criado_em)}</>
-                        )}
-                        </span>
+                    {dadosExistentes?.usuario && (
+                        <div className={estilos.ultima_alteracao}>
+                            <span>
+                                Última alteração: {dadosExistentes.usuario}
+                            </span>
+                            {dadosExistentes.criado_em && (
+                                <small className={estilos.data_alteracao}>
+                                    {formatDatetime(dadosExistentes.criado_em)}
+                                </small>
+                            )}
+                            </div>
                     )}
                     <button 
                         type="button"
