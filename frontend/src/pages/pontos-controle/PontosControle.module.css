@@ -1065,3 +1065,30 @@
     justify-content: space-between;
   }
 }
+
+
+
+.botaoCamadas {
+  position: absolute;
+  top: 80px;
+  left: 300px;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border-radius: 5px;
+  background: rgb(255, 255, 255);
+  cursor: pointer;
+  z-index: 999999;
+}
+
+
+
+.Icon {
+  color: #0019a7;
+  width: 25px;
+  height: 25px;
+  transition: color .2s;
+}
