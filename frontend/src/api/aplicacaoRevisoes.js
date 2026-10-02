@@ -63,6 +63,13 @@ export const aplicacaoRevisoesApi = {
     return data
   },
 
+  devolver: async (idRevisao, comentarioAdmin) => {
+    const { data } = await api.post(`/aplicacao-revisoes/${idRevisao}/devolver`, {
+      comentario_admin: comentarioAdmin,
+    })
+    return data
+  },
+
   validar: async (idRevisao) => {
     const { data } = await api.post(`/aplicacao-revisoes/${idRevisao}/validar`)
     return data

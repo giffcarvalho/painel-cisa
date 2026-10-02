@@ -125,6 +125,12 @@ def montar_mensagem_notificacao(tipo: str, revisao: dict[str, Any]) -> str:
             f"Não foi possível aplicar a revisão {numero_revisao} "
             f"do instrumento {instrumento}."
         ),
+        "revisao_devolvida": (
+            f"A revisão do instrumento {instrumento} foi devolvida para correção."
+        ),
+        "revisao_devolvida_reenviada": (
+            f"A revisão corrigida do instrumento {instrumento} foi reenviada pelo monitor."
+        ),
     }
     return mensagens.get(
         tipo,

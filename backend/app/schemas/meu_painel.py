@@ -40,6 +40,7 @@ class RascunhoMeuPainelItem(MeuPainelBase):
     criado_em: datetime
     atualizado_em: datetime
     alteracoes: ResumoAlteracoesRascunho
+    devolutiva: dict | None = None
 
 
 class ResumoMeuPainel(MeuPainelBase):

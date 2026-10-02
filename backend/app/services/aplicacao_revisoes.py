@@ -42,6 +42,7 @@ from app.services.notificacoes import (
     dados_revisao_para_notificacao,
     dados_revisao_para_notificacao_por_execucao,
 )
+from app.services.devolutivas_revisao import obter_tramitacao
 
 
 logger = logging.getLogger(__name__)
@@ -134,6 +135,10 @@ async def listar_pendentes(db: AsyncSession) -> RevisoesPendentesResponse:
             WHERE r.status = 'enviado'
               AND r.enviado_em IS NOT NULL
               AND r.aplicado_em IS NULL
+              AND NOT EXISTS (
+                  SELECT 1 FROM painel_dsr.tb_devolutiva_revisao d
+                  WHERE d.id_revisao_devolvida = r.id_revisao
+              )
             ORDER BY r.enviado_em ASC, r.id_revisao ASC
             """
         )
@@ -281,6 +286,21 @@ async def _validar(
     if revisao.get("status") != "enviado" or revisao.get("enviado_em") is None:
         pendencias.append("A revisão precisa estar formalmente enviada antes da aplicação.")
 
+    devolvida = await db.execute(
+        text(
+            """SELECT status FROM painel_dsr.tb_devolutiva_revisao
+               WHERE id_revisao_devolvida = :id_revisao LIMIT 1"""
+        ),
+        {"id_revisao": revisao["id_revisao"]},
+    )
+    status_devolutiva = devolvida.scalar_one_or_none()
+    if status_devolutiva is not None:
+        pendencias.append(
+            "Esta revisão foi devolvida e foi substituída por uma versão corrigida."
+            if status_devolutiva == "reenviada"
+            else "Esta revisão foi devolvida e aguarda correção do monitor."
+        )
+
     tipo = revisao.get("tipo_instrumento")
     config = TIPOS.get(tipo)
     if config is None:
@@ -329,6 +349,17 @@ async def _validar(
         anterior_aplicado = anterior_result.scalar_one_or_none()
         if anterior_aplicado is None:
             anterior_nao_aplicado = True
+            substituicao = await db.execute(
+                text(
+                    """SELECT 1 FROM painel_dsr.tb_devolutiva_revisao
+                       WHERE id_revisao_devolvida = :anterior
+                         AND id_revisao_reenvio = :atual
+                         AND status = 'reenviada' LIMIT 1"""
+                ),
+                {"anterior": anterior, "atual": revisao["id_revisao"]},
+            )
+            if substituicao.scalar_one_or_none() is not None:
+                anterior_nao_aplicado = False
 
     primeira_pendente = None
     if revisao.get("status") == "enviado" and revisao.get("aplicado_em") is None:
@@ -341,6 +372,10 @@ async def _validar(
                   AND status = 'enviado'
                   AND enviado_em IS NOT NULL
                   AND aplicado_em IS NULL
+                  AND NOT EXISTS (
+                      SELECT 1 FROM painel_dsr.tb_devolutiva_revisao d
+                      WHERE d.id_revisao_devolvida = tb_revisao_instrumento.id_revisao
+                  )
                   AND (
                         (:tipo_instrumento = 'ted' AND nr_ted = :nr_ted)
                      OR (:tipo_instrumento <> 'ted'
@@ -611,6 +646,7 @@ async def obter_detalhe(db: AsyncSession, id_revisao: int) -> RevisaoAplicacaoDe
         "qtd_obras": len(obras),
     }
     validacao = await _validar(db, revisao, municipios, localidades, publico, obras)
+    devolutiva = await obter_tramitacao(db, id_revisao)
     return RevisaoAplicacaoDetalhe(
         revisao=_item_pendente(row),
         municipios=[_alteracao_municipio(item) for item in municipios],
@@ -619,6 +655,7 @@ async def obter_detalhe(db: AsyncSession, id_revisao: int) -> RevisaoAplicacaoDe
         obras=[_avaliacao_obra(item) for item in obras],
         coordenadas=[_avaliacao_coordenada(item) for item in coordenadas],
         validacao=validacao,
+        devolutiva=devolutiva,
     )
 
 
@@ -782,6 +819,15 @@ async def corrigir_revisao_enviada(
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail="Uma revisão já aplicada não pode ser corrigida.",
+                )
+            devolvida = await db.execute(text("""
+                SELECT 1 FROM painel_dsr.tb_devolutiva_revisao
+                WHERE id_revisao_devolvida = :id_revisao LIMIT 1
+            """), {"id_revisao": id_revisao})
+            if devolvida.scalar_one_or_none() is not None:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="A revisão foi devolvida e não pode ser editada administrativamente.",
                 )
 
             await _habilitar_correcao_administrativa(db, id_revisao)

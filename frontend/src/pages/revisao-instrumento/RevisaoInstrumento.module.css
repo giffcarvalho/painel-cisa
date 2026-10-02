@@ -1198,6 +1198,49 @@ button:disabled {
   margin-top: 4px;
 }
 
+.confirmationField {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.confirmationField textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  padding: 10px;
+  color: #334155;
+  font: inherit;
+  line-height: 1.45;
+}
+
+.returnNotice {
+  margin-bottom: 18px;
+  border: 1px solid #93b4df;
+  border-left: 4px solid #1351b4;
+  border-radius: 8px;
+  background: #f3f7fc;
+  padding: 16px 18px;
+  color: #334155;
+}
+
+.returnNotice h2 {
+  margin: 0 0 7px;
+  color: #0c326f;
+  font-size: 17px;
+}
+
+.returnNotice p {
+  margin: 5px 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 /* ==========================================================================
    Tabelas de localidades e obras
    ========================================================================== */

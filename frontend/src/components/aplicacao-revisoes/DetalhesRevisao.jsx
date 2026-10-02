@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, Pencil } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Pencil, RotateCcw } from 'lucide-react'
 import styles from '@/pages/admin/aplicacao-revisoes/AplicacaoRevisoes.module.css'
 import {
   CONFIRMACOES_OBRA,
@@ -113,7 +113,7 @@ function GrupoCoordenadas({ itens }) {
   )
 }
 
-export default function DetalhesRevisao({ detalhe, onAplicar, onEditar }) {
+export default function DetalhesRevisao({ detalhe, onAplicar, onEditar, onDevolver }) {
   const { revisao, validacao } = detalhe
   return (
     <div className={styles.detailContent}>
@@ -126,6 +126,9 @@ export default function DetalhesRevisao({ detalhe, onAplicar, onEditar }) {
         <div className={styles.detailActions}>
           <button type="button" className={styles.secondaryButton} onClick={onEditar}>
             <Pencil aria-hidden="true" /> Editar revisão
+          </button>
+          <button type="button" className={styles.secondaryButton} onClick={onDevolver}>
+            <RotateCcw aria-hidden="true" /> Devolver para correção
           </button>
           <button
             type="button"
@@ -161,6 +164,15 @@ export default function DetalhesRevisao({ detalhe, onAplicar, onEditar }) {
         <GrupoObras itens={detalhe.obras} />
         {!!detalhe.coordenadas?.length && <GrupoCoordenadas itens={detalhe.coordenadas} />}
       </div>
+
+      {detalhe.devolutiva && (
+        <div className={styles.observation}>
+          <strong>Tramitação da devolutiva</strong>
+          <p>Comentário do administrador: {detalhe.devolutiva.comentario_admin}</p>
+          {detalhe.devolutiva.comentario_monitor && <p>Resposta do monitor: {detalhe.devolutiva.comentario_monitor}</p>}
+          {detalhe.devolutiva.id_revisao_devolvida !== revisao.id_revisao && <p>Versão anteriormente devolvida: revisão nº {detalhe.devolutiva.id_revisao_devolvida}</p>}
+        </div>
+      )}
     </div>
   )
 }

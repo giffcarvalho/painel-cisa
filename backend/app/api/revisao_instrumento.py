@@ -51,6 +51,11 @@ from app.services.notificacoes import (
     criar_notificacoes_administradores,
 )
 from app.services.rascunhos import descartar_rascunho
+from app.services.devolutivas_revisao import (
+    buscar_devolutiva_do_rascunho,
+    concluir_reenvio,
+    obter_tramitacao,
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -1115,6 +1120,10 @@ async def _buscar_revisoes_pendentes_aplicacao(
           AND r.status = 'enviado'
           AND r.enviado_em IS NOT NULL
           AND r.aplicado_em IS NULL
+          AND NOT EXISTS (
+              SELECT 1 FROM painel_dsr.tb_devolutiva_revisao d
+              WHERE d.id_revisao_devolvida = r.id_revisao
+          )
           AND (
                 (:tipo_instrumento = 'ted' AND r.nr_ted = :nr_ted)
              OR (:tipo_instrumento <> 'ted'
@@ -1978,6 +1987,7 @@ async def _buscar_detalhe_revisao_enviada(
 
     solicitacao = None
     execucao = None
+    devolutiva = await obter_tramitacao(db, id_revisao)
     if revisao.get("id_execucao_atualizacao") is not None:
         solicitacao_model = await obter_solicitacao_relevante(
             db, revisao["id_execucao_atualizacao"]
@@ -2025,6 +2035,7 @@ async def _buscar_detalhe_revisao_enviada(
         publico_alvo=publico_alvo,
         execucao=execucao,
         solicitacao_cancelamento=solicitacao,
+        devolutiva=devolutiva,
     )
 
 
@@ -2858,6 +2869,11 @@ async def _montar_resposta_busca(
         revisao is None or eh_autor_rascunho
     )
     id_revisao = revisao["id_revisao"] if revisao else None
+    devolutiva = (
+        await buscar_devolutiva_do_rascunho(db, id_revisao)
+        if id_revisao is not None and eh_autor_rascunho
+        else None
+    )
     municipios_salvos: dict[int, dict] = {}
     localidades_salvas: list[dict] = []
     obras_salvas: list[dict] = []
@@ -3118,6 +3134,7 @@ async def _montar_resposta_busca(
         situacao_atualizacao=situacao_atualizacao,
         situacao_colaborativa=situacao_colaborativa,
         completude=completude,
+        devolutiva=devolutiva,
     )
 
 
@@ -3364,6 +3381,12 @@ async def salvar_revisao_instrumento(
 
         status_retorno = "rascunho"
         if payload.status == "enviado":
+            eh_reenvio_devolutiva = await concluir_reenvio(
+                db,
+                id_revisao,
+                usuario_atual.id_usuario,
+                payload.comentario_correcao,
+            )
             enviado_result = await db.execute(
                 text(
                     """
@@ -3392,13 +3415,14 @@ async def salvar_revisao_instrumento(
                 chave_evento=f"revisao_enviada:{id_revisao}",
                 id_revisao=id_revisao,
             )
-            await criar_notificacoes_administradores(
-                db,
-                tipo="admin_revisao_enviada",
-                chave_evento=f"revisao_enviada:{id_revisao}",
-                id_revisao=id_revisao,
-                excluir_ids={usuario_atual.id_usuario},
-            )
+            if not eh_reenvio_devolutiva:
+                await criar_notificacoes_administradores(
+                    db,
+                    tipo="admin_revisao_enviada",
+                    chave_evento=f"revisao_enviada:{id_revisao}",
+                    id_revisao=id_revisao,
+                    excluir_ids={usuario_atual.id_usuario},
+                )
 
         await db.commit()
 

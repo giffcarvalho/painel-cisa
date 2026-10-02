@@ -105,6 +105,28 @@ class RevisaoAplicacaoDetalhe(AplicacaoBase):
     obras: list[ObraRevisaoItem] = Field(default_factory=list)
     coordenadas: list[CoordenadaRevisaoItem] = Field(default_factory=list)
     validacao: ValidacaoAplicacao
+    devolutiva: dict[str, Any] | None = None
+
+
+class DevolverRevisaoRequest(AplicacaoBase):
+    comentario_admin: str = Field(..., min_length=1, max_length=4000)
+
+    @field_validator("comentario_admin")
+    @classmethod
+    def validar_comentario(cls, value: str) -> str:
+        comentario = value.strip()
+        if not comentario:
+            raise ValueError("O comentário para o monitor é obrigatório.")
+        return comentario
+
+
+class DevolutivaRevisaoResponse(AplicacaoBase):
+    id_devolutiva: int
+    id_revisao_devolvida: int
+    id_rascunho: int
+    comentario_admin: str
+    devolvido_em: datetime
+    status: str
 
 
 class EdicaoAdministrativaBase(AplicacaoBase):

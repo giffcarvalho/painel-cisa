@@ -844,6 +844,8 @@ export default function RevisaoInstrumento() {
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState('')
   const [confirmarEnvioParcial, setConfirmarEnvioParcial] = useState(false)
+  const [confirmarReenvio, setConfirmarReenvio] = useState(false)
+  const [comentarioCorrecao, setComentarioCorrecao] = useState('')
   const [meusInstrumentos, setMeusInstrumentos] = useState([])
   const [filtroMeusInstrumentos, setFiltroMeusInstrumentos] = useState('')
   const [carregandoMeusInstrumentos, setCarregandoMeusInstrumentos] = useState(true)
@@ -946,6 +948,8 @@ export default function RevisaoInstrumento() {
     setObservacaoEmEdicao(false)
     setRascunhoObservacaoGeral('')
     setHistoricoSessao([])
+    setConfirmarReenvio(false)
+    setComentarioCorrecao('')
 
     try {
       const data = await revisaoInstrumentoApi.buscarInstrumento(termo)
@@ -1736,6 +1740,9 @@ export default function RevisaoInstrumento() {
     id_revisao: idRevisaoAtual,
     status,
     observacao_geral: observacaoGeral.trim() || null,
+    comentario_correcao: status === 'enviado' && dadosBusca?.devolutiva
+      ? comentarioCorrecao.trim()
+      : null,
     instrumento,
     municipios: municipios
       .filter(municipioTemAlteracoes)
@@ -1902,6 +1909,7 @@ export default function RevisaoInstrumento() {
         })
       }
       setConfirmarEnvioParcial(false)
+      setConfirmarReenvio(false)
       registrarEventoHistorico(
         status === 'enviado' ? 'Revisão enviada' : 'Rascunho salvo',
         status === 'enviado'
@@ -1937,6 +1945,10 @@ export default function RevisaoInstrumento() {
   }
 
   const iniciarEnvio = () => {
+    if (dadosBusca?.devolutiva) {
+      setConfirmarReenvio(true)
+      return
+    }
     // O envio parcial é permitido, mas exige confirmação explícita quando ainda
     // existem campos de conferência sem decisão.
     if (existemItensNaoConferidos()) {
@@ -2246,6 +2258,21 @@ export default function RevisaoInstrumento() {
             </div>
           )}
 
+          {canEditRevision && confirmarReenvio && dadosBusca?.devolutiva && (
+            <div className={styles.confirmationBox} role="dialog" aria-modal="true" aria-labelledby="confirmar-reenvio-titulo">
+              <strong id="confirmar-reenvio-titulo">Reenviar revisão corrigida</strong>
+              {existemItensNaoConferidos() && <p>Há itens ainda não conferidos; somente o estado atual e as alterações registradas serão enviados.</p>}
+              <label className={styles.confirmationField}>
+                Comentário sobre as correções realizadas
+                <textarea rows="4" maxLength="4000" value={comentarioCorrecao} onChange={(event) => setComentarioCorrecao(event.target.value)} />
+              </label>
+              <div className={styles.confirmationActions}>
+                <button type="button" className={styles.secondaryButton} onClick={() => setConfirmarReenvio(false)}>Continuar revisando</button>
+                <button type="button" className={styles.primaryButton} disabled={!comentarioCorrecao.trim() || isSaving} onClick={() => salvarRevisao('enviado')}>Reenviar revisão</button>
+              </div>
+            </div>
+          )}
+
           {resumoEnvio && (
             <div className={styles.successModalBackdrop} role="presentation">
               <section className={styles.successModal} role="dialog" aria-modal="true" aria-labelledby="sucesso-envio-title">
@@ -2270,6 +2297,14 @@ export default function RevisaoInstrumento() {
           {instrumento && (
             <fieldset className={styles.reviewFieldset}>
               <div className={styles.reviewModule}>
+                {dadosBusca?.devolutiva && (
+                  <section className={styles.returnNotice} aria-labelledby="devolutiva-titulo">
+                    <h2 id="devolutiva-titulo">Revisão devolvida para correção</h2>
+                    <p>Devolvida em {formatarDataHora(dadosBusca.devolutiva.devolvido_em)} por {dadosBusca.devolutiva.administrador}.</p>
+                    <strong>Comentário do administrador</strong>
+                    <p>{dadosBusca.devolutiva.comentario_admin}</p>
+                  </section>
+                )}
                 <section className={styles.generalReviewIntro} aria-labelledby="revisao-geral-titulo">
                   <div>
                     <h2 id="revisao-geral-titulo">Revisão do instrumento</h2>

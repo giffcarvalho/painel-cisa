@@ -247,6 +247,7 @@ class RevisaoInstrumentoBuscaResponse(RevisaoInstrumentoBase):
     situacao_validade: dict[str, Any] = Field(default_factory=dict)
     situacao_colaborativa: dict[str, Any] = Field(default_factory=dict)
     completude: dict[str, Any] = Field(default_factory=dict)
+    devolutiva: dict[str, Any] | None = None
 
 
 class UsuarioRevisaoInfo(RevisaoInstrumentoBase):
@@ -271,6 +272,7 @@ class RevisaoInstrumentoDetalheResponse(RevisaoInstrumentoBase):
     publico_alvo: list[PublicoAlvoRevisaoItem] = Field(default_factory=list)
     execucao: dict[str, Any] | None = None
     solicitacao_cancelamento: dict[str, Any] | None = None
+    devolutiva: dict[str, Any] | None = None
 
 
 class RevisaoHistoricoItem(RevisaoInstrumentoBase):
@@ -330,6 +332,7 @@ class RevisaoInstrumentoCreate(RevisaoInstrumentoBase):
     id_revisao: int | None = None
     status: StatusRevisao = "rascunho"
     observacao_geral: str | None = None
+    comentario_correcao: str | None = Field(default=None, max_length=4000)
 
     instrumento: InstrumentoRevisaoInfo
     municipios: list[MunicipioRevisaoItem] = Field(default_factory=list)

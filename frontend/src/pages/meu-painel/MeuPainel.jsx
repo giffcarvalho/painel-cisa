@@ -128,7 +128,7 @@ function RascunhosSection({ items, total, expandido, ocupado, onContinue, onTogg
         <div className={styles.drafts}>
           {items.map((item) => (
             <article className={styles.draft} key={item.id_revisao}>
-              <div><small>{item.tipo_instrumento_label}</small><h3>Instrumento {item.identificador_instrumento}</h3><p><strong>Alterações salvas:</strong> {resumoAlteracoes(item.alteracoes)}</p><time>Criado em {formatarData(item.criado_em)} · Atualizado em {formatarData(item.atualizado_em)}</time></div>
+              <div><small>{item.tipo_instrumento_label}</small><h3>Instrumento {item.identificador_instrumento}</h3>{item.devolutiva && <p><strong>Revisão devolvida para correção:</strong> {item.devolutiva.comentario_admin}</p>}<p><strong>Alterações salvas:</strong> {resumoAlteracoes(item.alteracoes)}</p><time>Criado em {formatarData(item.criado_em)} · Atualizado em {formatarData(item.atualizado_em)}</time></div>
               <div className={styles.draftActions}>
                 <button type="button" className={styles.primary} onClick={() => onContinue(item.identificador_instrumento)}>Continuar revisão</button>
                 <button type="button" className={styles.dangerSecondary} disabled={ocupado === item.id_revisao} onClick={() => onCancel(item)}><Trash2 /> Cancelar rascunho</button>

@@ -50,6 +50,8 @@ async def _listar_rascunhos(
             SELECT r.id_revisao, r.identificador_busca, r.tipo_instrumento,
                    r.nr_instrumento, r.nr_proposta, r.nr_ted,
                    r.criado_em, r.atualizado_em,
+                   d.id_devolutiva, d.id_revisao_devolvida, d.comentario_admin,
+                   d.devolvido_em, admin.nome AS administrador,
                    COALESCE(m.total, 0) AS municipios,
                    COALESCE(l.total, 0) AS localidades,
                    COALESCE(c.total, 0) AS coordenadas,
@@ -57,6 +59,10 @@ async def _listar_rascunhos(
                    COALESCE(o.total, 0) AS obras,
                    (NULLIF(BTRIM(r.observacao_geral), '') IS NOT NULL) AS observacao_geral
             FROM painel_dsr.tb_revisao_instrumento r
+            LEFT JOIN painel_dsr.tb_devolutiva_revisao d
+              ON d.id_revisao_devolvida = r.id_revisao_anterior
+             AND d.status = 'aguardando_correcao'
+            LEFT JOIN painel_dsr.tb_usuario admin ON admin.id_usuario = d.id_usuario_admin
             LEFT JOIN LATERAL (
                 SELECT COUNT(*) AS total
                 FROM painel_dsr.tb_revisao_instrumento_coordenada x
@@ -116,6 +122,17 @@ async def _listar_rascunhos(
                 criado_em=dados["criado_em"],
                 atualizado_em=dados["atualizado_em"],
                 alteracoes=ResumoAlteracoesRascunho(**dados),
+                devolutiva=(
+                    {
+                        "id_devolutiva": dados["id_devolutiva"],
+                        "id_revisao_devolvida": dados["id_revisao_devolvida"],
+                        "comentario_admin": dados["comentario_admin"],
+                        "devolvido_em": dados["devolvido_em"],
+                        "administrador": dados["administrador"],
+                    }
+                    if dados.get("id_devolutiva") is not None
+                    else None
+                ),
             )
         )
     return itens

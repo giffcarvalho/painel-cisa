@@ -88,6 +88,14 @@ export default function CentralNotificacoes({ compact = false }) {
 
   async function verRevisao(item) {
     await marcarLida(item)
+    if (item.tipo === 'revisao_devolvida') {
+      navigate(`/revisao-instrumento/${encodeURIComponent(item.identificador_instrumento)}`)
+      return
+    }
+    if (item.tipo === 'revisao_devolvida_reenviada') {
+      navigate(`/admin/aplicacao-revisoes?revisao=${item.id_revisao}`)
+      return
+    }
     navigate(`/revisao-instrumento/${encodeURIComponent(item.identificador_instrumento)}/revisoes/${item.id_revisao}`)
   }
 
