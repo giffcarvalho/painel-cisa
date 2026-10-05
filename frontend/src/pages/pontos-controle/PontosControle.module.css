@@ -781,6 +781,52 @@
   background-color: rgba(0, 0, 0, 0.1);
 }
 
+
+/* Estilo base do botão proponente */
+.botao_proponente {
+  background: transparent;
+  border: none;
+  padding: 2px 4px;
+  margin: 0;
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+  color: inherit;
+  text-align: left;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+
+.icone_phone {
+  flex-shrink: 0;
+  transition: color 0.2s ease;
+}
+
+
+.proponente_com_contato .icone_phone {
+  color: #0066cc;
+}
+
+
+.proponente_sem_contato .icone_phone {
+  color: #8c8c8c;
+}
+
+
+.botao_proponente:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+
+
+
+
+
+
 .statusAtencao {
   background-color: #dcfce7;
   color: #166534;
@@ -917,10 +963,6 @@
 
 
 
-
-.tableRow {
-  cursor: pointer;
-}
 
 .tableRow:hover {
   background: #f9fafb;
@@ -1064,31 +1106,4 @@
   .paginationControls {
     justify-content: space-between;
   }
-}
-
-
-
-.botaoCamadas {
-  position: absolute;
-  top: 80px;
-  left: 300px;
-  width: 50px;
-  height: 50px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  border-radius: 5px;
-  background: rgb(255, 255, 255);
-  cursor: pointer;
-  z-index: 999999;
-}
-
-
-
-.Icon {
-  color: #0019a7;
-  width: 25px;
-  height: 25px;
-  transition: color .2s;
 }

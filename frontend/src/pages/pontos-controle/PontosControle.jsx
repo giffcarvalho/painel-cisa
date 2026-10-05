@@ -8,7 +8,7 @@ import ContatoRecebedor from '@/components/pontos-controle/ContatoRecebedor';
 import styles from './PontosControle.module.css';
 import pontosControleApi from '../../api/pontosControle';
 
-import { Layers } from "lucide-react";
+
 
 
 //essa função extrai do objeto instrumentosQuery.data, o array com os instrumentos
@@ -34,6 +34,7 @@ function PontosControleContent() {
   };
 
   const { data: planoAcaoData } = useBuscaPlanoAcaoQuery();
+  
 
 
   const abrirJanelaPlanoAcao = (nrInstrumento, campo, statusPontoControle) => {
@@ -54,8 +55,12 @@ function PontosControleContent() {
     setContatoRecebedorContexto(null);
   };
 
-  const abrirJanelaContato = () => {
-    setContatoRecebedorContexto(true);
+  const abrirJanelaContato = (idRecebedor, recebedor) => {
+        
+    setContatoRecebedorContexto({
+      idRecebedor,
+      recebedor
+    });
   };
 
 
@@ -135,6 +140,7 @@ function PontosControleContent() {
           nrInstrumentoSelecionado={nrInstrumentoSelecionado}
           onSelectInstrumento={setNrInstrumentoSelecionado}
           abrirJanelaPlanoAcao={abrirJanelaPlanoAcao}
+          abrirJanelaContato={abrirJanelaContato}
         />
       </section>}
 
@@ -153,16 +159,12 @@ function PontosControleContent() {
 
       {contatoRecebedorContexto && (
         <ContatoRecebedor
-          //key={`${planoAcaoContexto.nrInstrumento}-${planoAcaoContexto.campo}`}
+          key={`${contatoRecebedorContexto.idRecebedor}`}
           fecharJanelaContato={fecharJanelaContato}
-          //nrInstrumento={planoAcaoContexto.nrInstrumento}
-          //campo={planoAcaoContexto.campo}
-          //statusPontoControle={planoAcaoContexto.statusPontoControle}
-          //dadosExistentes={planoAcaoContexto.dadosExistentes}
+          idRecebedor={contatoRecebedorContexto.idRecebedor}
+          recebedor={contatoRecebedorContexto.recebedor}
         />
       )}
-
-      <button className={styles.botaoCamadas} onClick={() => abrirJanelaContato()}> <Layers className={styles.Icon}/></button>
 
     </main>
   );
