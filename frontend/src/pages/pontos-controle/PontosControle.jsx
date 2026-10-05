@@ -5,7 +5,7 @@ import { useInstrumentosPontosControleQuery, useDadosAdicionaisPontosControleQue
 import TabelaPontosControle from '../../components/pontos-controle/TabelaPontosControle';
 import PlanoAcao from '@/components/pontos-controle/PlanoAcao';
 import ContatoRecebedor from '@/components/pontos-controle/ContatoRecebedor';
-import styles from './PontosControle.module.css';
+import estilos from './PontosControle.module.css';
 import pontosControleApi from '../../api/pontosControle';
 
 
@@ -38,15 +38,17 @@ function PontosControleContent() {
 
 
   const abrirJanelaPlanoAcao = (nrInstrumento, campo, statusPontoControle) => {
-    const planoExistente = planoAcaoData?.data?.find(
+    
+    const historicoExistente = planoAcaoData?.data?.filter(
       (item) => item.nr_instrumento === nrInstrumento && item.ponto_controle === campo
-    );
+    ) || [];
+    
 
     setPlanoAcaoContexto({ 
       nrInstrumento,
       campo,
       statusPontoControle,
-      dadosExistentes: planoExistente || null,
+      historicoExistente,
     });
   };
 
@@ -76,7 +78,7 @@ function PontosControleContent() {
 
   //dadosAdicionaisQuery não é o array de instrumentos ainda. É o objeto de resultado gerenciado pelo useQuery
   //esse objeto é que é passado como props para a tabela
-  const dadosAdicionaisQuery = useDadosAdicionaisPontosControleQuery();
+  //const dadosAdicionaisQuery = useDadosAdicionaisPontosControleQuery();
 
 
   useEffect(() => {
@@ -119,14 +121,14 @@ function PontosControleContent() {
   };
 
   return (
-    <main className={styles.page}>
+    <main className={estilos.page}>
       
             
-      {<section className={styles.contentGrid}>
+      {<section className={estilos.contentGrid}>
         <TabelaPontosControle
           data={instrumentosQuery.data}
           dataDados={dataDados}
-          dadosAdicionais={dadosAdicionaisQuery.data}
+          //dadosAdicionais={dadosAdicionaisQuery.data}
           isLoading={instrumentosQuery.isLoading}
           isError={instrumentosQuery.isError}
           pagina={pagina}
@@ -152,7 +154,7 @@ function PontosControleContent() {
           nrInstrumento={planoAcaoContexto.nrInstrumento}
           campo={planoAcaoContexto.campo}
           statusPontoControle={planoAcaoContexto.statusPontoControle}
-          dadosExistentes={planoAcaoContexto.dadosExistentes}
+          historicoExistente={planoAcaoContexto.historicoExistente}
         />
       )}
 
