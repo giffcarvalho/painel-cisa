@@ -118,13 +118,36 @@ export async function enviarPlanoAcao(dadosFormulario) {
 }
 
 
-
+//Busca os planos de ação já salvos no banco
 export async function getPlanoAcao() {
   
   const res = await api.get("/pontos-controle/busca_plano_acao");
   
   return res.data;
 }
+
+
+
+//Envio do formulário dos contatos para o backend
+export async function enviarContato(contatosParaEnviar) {
+  
+  const res = await api.post("/pontos-controle/envio_contato", {data: contatosParaEnviar});
+
+  return res.data;
+}
+
+
+
+//Busca os contatos já salvos no banco
+export async function getContato(idRecebedor) {
+  
+  const res = await api.get("/pontos-controle/busca_contato", {
+    params: { id_recebedor: idRecebedor }
+  });
+  
+  return res.data;
+}
+
 
 
 
@@ -136,6 +159,8 @@ const pontosControleApi = {
   getDadosAdicionais,
   enviarPlanoAcao,
   getPlanoAcao,
+  enviarContato,
+  getContato,
 };
 
 export default pontosControleApi;
