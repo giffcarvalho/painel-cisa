@@ -1,0 +1,620 @@
+/* Card principal do container da tabela */
+.card {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+/* Cabeçalho do card */
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 18px;
+  border-bottom: 1px solid #e5e7eb;
+  gap: 16px;
+}
+
+/* Área de informações no cabeçalho do card */
+.cardHeaderInfo {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.cardHeaderInfo h2{
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Subinformações no cabeçalho do card */
+.cardHeaderSubInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 2px;
+  font-size: 13px;
+}
+
+/* Botão para limpar todos os filtros */
+.btnClearFilters {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.8rem;
+  color: #2563eb;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.btnClearFilters:hover {
+  color: #1d4ed8;
+}
+
+/* Grupo de botões de rolagem horizontal da tabela */
+.scrollButtonsGroup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+/* Botões individuais de rolagem por seta */
+.scrollArrowButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.scrollArrowButton:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.scrollArrowButton:active {
+  background: #e5e7eb;
+}
+
+/* Seção com datas e fontes de atualização dos dados no cabeçalho */
+.cardHeaderDataDados {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center; 
+  flex: 1;
+}
+
+/* Item individual da data de dados */
+.cardHeaderDataDadosItem { 
+  font-size: 12px;
+  margin-left: 10px;
+}
+
+/* Envolvente rolável da tabela */
+.tableWrapper {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Container de estado (carregamento / vazio / erro) */
+.state {
+  padding: 28px 18px;
+  color: #6b7280;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Modificador de estado de erro */
+.error {
+  color: #b91c1c;
+}
+
+/* Tabela principal */
+.table {
+  width: max-content;
+  min-width: 4200px;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  table-layout: fixed;
+}
+
+.table td {
+  padding: 3px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  vertical-align: center;
+}
+
+.table th {
+  padding: 6px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  vertical-align: middle;
+  background: #f9fafb;
+  color: #374151;
+  font-weight: 700;
+}
+
+/* Linha do cabeçalho principal */
+.headerRow th {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #f9fafb;
+}
+
+/* Título do cabeçalho da coluna acompanhado do botão de informação */
+.headerTitleWithInfo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+}
+
+/* Botão de interrogação no cabeçalho da coluna */
+.headerInfoButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid #94a3b8;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.headerInfoButton:hover {
+  background: #eff6ff;
+  border-color: #2563eb;
+  color: #1d4ed8;
+}
+
+.headerInfoButton:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+
+
+.checkAcoes {
+    width: 18px;
+    height: 18px;
+    color: #00529e;
+}
+
+
+/* Largura de coluna muito pequena (60px) */
+.colMini {
+  width: 60px;
+  max-width: 60px;
+}
+
+/* Largura de coluna pequena (100px) */
+.colPequena {
+  width: 100px;
+  max-width: 100px;
+}
+
+/* Largura de coluna média (120px) */
+.colMedia {
+  width: 120px;
+  max-width: 120px;
+}
+
+/* Largura de coluna grande (180px) */
+.colGrande {
+  width: 180px;
+  max-width: 180px;
+}
+
+/* Largura de coluna gigante (220px) */
+.colGigante {
+  width: 240px;
+  max-width: 240px;
+}
+
+/* Linha do cabeçalho destinada aos filtros de coluna */
+.filterRow th {
+  position: sticky;
+  top: 49px;
+  z-index: 19;
+  background: #f9fafb;
+}
+
+/* Linha regular de dados da tabela */
+.tableRow:hover {
+  background: #f9fafb;
+}
+
+/* Linha selecionada da tabela */
+.tableRowSelected {
+  background: #eff6ff;
+}
+
+/* Célula da coluna de ações */
+.actionCell {
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Grupo de itens de ação */
+.actionGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+}
+
+/* Item/Botão individual dentro do grupo de ação */
+.actionItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 2px 2px;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 4px 4px 0 0;
+  background: transparent;
+  color: #334155;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.actionItem:hover:not(:disabled) {
+  background: #f8fafc;
+  color: #1d4ed8;
+  border-bottom-color: #94a3b8;
+}
+
+.actionItem:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+  color: #1d4ed8;
+  border-bottom-color: #2563eb;
+}
+
+.actionItem:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+/* Divisor vertical entre botões de ação */
+.actionDivider {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 14px;
+  background: #d1d5db;
+}
+
+/* Link de navegação para detalhes no Transferegov */
+.detailLink {
+  color: #1d4ed8;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.detailLink:hover {
+  color: #1e40af;
+}
+
+/* Células compactas e com quebra de palavra */
+.compactCell {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.truncateCell {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Botão da célula Proponente */
+.botao_proponente {
+  background: transparent;
+  border: none;
+  padding: 2px 4px;
+  margin: 0;
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+  color: inherit;
+  text-align: left;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.botao_proponente:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Modificador do ícone do proponente quando há contato cadastrado */
+.proponente_com_contato .icone_phone {
+  color: #0066cc;
+}
+
+/* Modificador do ícone do proponente quando não há contato */
+.proponente_sem_contato .icone_phone {
+  color: #8c8c8c;
+}
+
+/* Ícone do telefone na célula do proponente */
+.icone_phone {
+  flex-shrink: 0;
+  transition: color 0.2s ease;
+}
+
+/* Container flex interno para células de status */
+.statusCellContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+/* Estilo de status Atenção */
+.statusAtencao {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+/* Estilo de status Alerta */
+.statusAlerta {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+/* Estilo de status Crítico */
+.statusCritico {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+/* Estilo de status Vencido */
+.statusVencido {
+  background-color: #fecaca;
+  color: #7f1d1d;
+}
+
+/* Botão para criar/editar Plano de Ação */
+.botao_plano_acao {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  line-height: 1;
+  transition: background-color 0.2s ease;
+}
+
+/* Container do rodapé de paginação */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-top: 1px solid #e5e7eb;
+  color: #4b5563;
+  font-size: 13px;
+}
+
+.pagination button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Container de controles de botões da paginação */
+.paginationControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Select de tamanho da página */
+.pageSize {
+  min-height: 34px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #374151;
+}
+
+/* Overlay de fundo escuro para o modal com textos explicativos */
+.columnInfoOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+/* Janela modal do texto explicativo da coluna */
+.columnInfoWindow {
+  width: min(850px, 100%);
+  max-height: calc(100vh - 80px);
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.2);
+  overflow: hidden;
+}
+
+/* Cabeçalho da janela modal do texto explicativo */
+.columnInfoHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.columnInfoHeader h3 {
+  margin: 0;
+  color: #111827;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* Botão de fechar a janela modal explicativa */
+.columnInfoCloseButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #64748b;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.columnInfoCloseButton:hover {
+  background: #f1f5f9;
+  color: #111827;
+}
+
+/* Conteúdo rolável da janela modal explicativa */
+.columnInfoContent {
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  padding: 18px 20px 20px;
+}
+
+.columnInfoContent::-webkit-scrollbar {
+  width: 8px;
+}
+
+.columnInfoContent::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+.columnInfoContent::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: #cbd5e1;
+}
+
+.columnInfoContent::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Seção de bloco dentro da janela modal explicativa */
+.columnInfoSection {
+  margin-bottom: 18px;
+}
+
+.columnInfoSection:last-child {
+  margin-bottom: 0;
+}
+
+.columnInfoSection > strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.columnInfoSection p {
+  margin: 0;
+  color: #4b5563;
+  font-size: 13px;
+  line-height: 1.55;
+  text-align: justify;
+  white-space: pre-line;
+}
+
+/* Subseção dentro da janela modal explicativa */
+.columnInfoSubsection {
+  margin-top: 8px;
+  padding-left: 16px;
+  text-align: justify;
+}
+
+.columnInfoSubsection strong {
+  display: inline;
+  margin-right: 5px;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.columnInfoSubsection p {
+  display: inline;
+  margin: 0;
+  color: #4b5563;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* Adaptação para telas menores */
+@media (max-width: 720px) {
+  .pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .paginationControls {
+    justify-content: space-between;
+  }
+}

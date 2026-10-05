@@ -1,0 +1,201 @@
+/* Container pai do componente de filtro de coluna */
+.tableFilterHeaderCell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+/* Wrapper do select pesquisável */
+.searchableSelect {
+  position: relative;
+  width: 100%;
+}
+
+/* Botão principal que abre o dropdown do select */
+.searchableSelectTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.searchableSelectTrigger:hover:not(:disabled) {
+  border-color: #9ca3af;
+}
+
+.searchableSelectTrigger:focus-visible {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.searchableSelectTrigger:disabled {
+  background: #f3f4f6;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Estado do botão de disparo quando o menu está aberto */
+.searchableSelectTriggerOpen {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+/* Texto com o valor selecionado ou placeholder */
+.searchableSelectValue {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+/* Estilo aplicado quando nenhum valor está selecionado */
+.searchableSelectPlaceholder {
+  color: #9ca3af;
+}
+
+/* Ícone de seta (chevron) do select */
+.searchableSelectChevron {
+  flex-shrink: 0;
+  margin-left: 4px;
+  color: #6b7280;
+  transition: transform 0.2s ease;
+}
+
+/* Rotação da seta quando o dropdown está aberto */
+.searchableSelectChevronOpen {
+  transform: rotate(180deg);
+}
+
+/* Menu suspenso (dropdown) com a caixa de busca e opções */
+.searchableSelectMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 50;
+  width: 100%;
+  min-width: 160px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+/* Wrapper do campo de input de busca dentro do dropdown */
+.searchableSelectSearchWrap {
+  padding: 6px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+/* Campo de input para filtrar as opções do select */
+.searchableSelectSearch {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 12px;
+  outline: none;
+}
+
+.searchableSelectSearch:focus {
+  border-color: #2563eb;
+}
+
+/* Lista rolável contendo as opções */
+.searchableSelectOptions {
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.searchableSelectOptions::-webkit-scrollbar {
+  width: 6px;
+}
+
+.searchableSelectOptions::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+.searchableSelectOptions::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: #cbd5e1;
+}
+
+/* Item de opção individual dentro da lista */
+.searchableSelectOption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  color: #374151;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.searchableSelectOption:hover {
+  background: #f3f4f6;
+}
+
+/* Estilo aplicado à opção que está selecionada atualmente */
+.searchableSelectOptionSelected {
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+/* Ícone de check de confirmação da opção selecionada */
+.searchableSelectCheck {
+  flex-shrink: 0;
+  color: #2563eb;
+}
+
+/* Espaçador transparente mantendo o alinhamento das opções não selecionadas */
+.searchableSelectCheckPlaceholder {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* Mensagem exibida quando a busca não encontra resultados */
+.searchableSelectEmpty {
+  padding: 8px;
+  color: #9ca3af;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* Botão para limpar o filtro ativo da coluna */
+.clearHeaderFilterButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  padding: 2px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.clearHeaderFilterButton:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
