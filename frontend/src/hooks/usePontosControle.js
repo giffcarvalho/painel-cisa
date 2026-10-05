@@ -104,3 +104,19 @@ export function useBuscaPlanoAcaoQuery() {
     placeholderData: keepPreviousData,
   });
 }
+
+
+
+export function useBuscaContatoQuery(idRecebedor) {
+
+  return useQuery({
+    queryKey: [
+      'pontos-controle',
+      'contato',
+      idRecebedor,
+    ],
+    queryFn: () => pontosControleApi.getContato(idRecebedor),
+    enabled: !!idRecebedor,
+    placeholderData: keepPreviousData,
+  });
+}
