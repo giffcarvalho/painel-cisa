@@ -84,7 +84,9 @@ class PontosControleBuscaFiltroResponse(BaseModel):
 
 class PontosControleListaItem(PontosControleBase):
     nr_instrumento: str | None = None
+    id_recebedor: int | None = None
     proponente: str | None = None
+    tem_contato: bool | None = False
     municipios_beneficiados: str | None = None
     uf: str | None = None
     link_transferegov: str | None = None
@@ -179,9 +181,10 @@ class PlanoAcaoEnviadoResponse(BaseModel):
 
 
 
+
 class PlanoAcaoBuscaItem(BaseModel):
     nr_instrumento: str
-    usuario: str | None = None
+    usuario: str
     ponto_controle: str
     status_ponto_controle: str
     confirmacao: str | None = None
@@ -197,3 +200,40 @@ class PlanoAcaoBuscaItem(BaseModel):
 
 class PlanoAcaoBusca(BaseModel):
     data: list[PlanoAcaoBuscaItem]
+
+
+
+class ContatoCreateItem(BaseModel):
+    id_recebedor: int
+    nr_contato: int
+    nome: str
+    cargo: Optional[str] = None
+    telefone: Optional[str] = None
+    email: Optional[str] = None
+    observacao: Optional[str] = None
+
+class ContatoCreate(BaseModel):
+    data: list[ContatoCreateItem]
+
+
+class ContatoEnviadoResponse(BaseModel):
+    sucesso: bool
+    mensagem: str
+    total_salvos: int
+
+
+
+class ContatoBuscaItem(BaseModel):
+    id_recebedor: int
+    usuario: str
+    nr_contato: int
+    nome: str
+    cargo: str | None = None
+    telefone: str | None = None
+    email: str | None = None
+    observacao: str | None = None
+    alterado_em: datetime
+
+
+class ContatoBusca(BaseModel):
+    data: list[ContatoBuscaItem]

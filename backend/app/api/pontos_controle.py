@@ -18,6 +18,10 @@ from app.schemas.pontos_controle import (
     PlanoAcaoCreate,
     PlanoAcaoBusca,
     PlanoAcaoBuscaItem,
+    ContatoEnviadoResponse,
+    ContatoCreate,
+    ContatoBusca,
+    ContatoBuscaItem,
 )
 
 router = APIRouter()
@@ -1124,14 +1128,8 @@ async def get_instrumentos(
         "private, max-age=300"
     )
 
-    where, params = _build_where(
-        filtros
-    )
-
-    offset = (
-        (pagina - 1)
-        * tamanho_pagina
-    )
+    where, params = _build_where(filtros)
+    offset = ((pagina - 1) * tamanho_pagina)
 
     data_params = {
         **params,
@@ -1148,38 +1146,40 @@ async def get_instrumentos(
     data_sql = f"""
         SELECT
 
-            nr_instrumento::text AS nr_instrumento,
-            proponente,
-            municipios_beneficiados,
-            uf,
-            link_transferegov,
-            carteira_ativa,
-            projeto_aprovado,
-            possui_aio,
-            coordenacao,
-            acao,
-            monitor,
-            prazo_clausulas_suspensivas,
-            prazo_emissao_lae,
-            prazo_inicio_licitacao,
-            prazo_conclusao_licitacao,
-            prazo_vrpl,
-            prazo_contratacao,
-            prazo_solicitacao_aio,
-            prazo_analise_tecnica_aio,
-            prazo_analise_executiva_aio,
-            prazo_registro_aio,
-            prazo_emissao_os,
-            prazo_inicio_execucao_fisica,
-            prazo_progresso_fisico,
-            prazo_indicio_paralisacao,
-            status_paralisacao_obra,
-            vistoria_in_loco_parciais,
-            prazo_vistoria_final,
-            obras_proximas_conclusao,
-            registro_conclusao,
-            vigencia,
-            status_de_execucao_da_obra
+            mv.nr_instrumento::text AS nr_instrumento,
+            mv.id_proponente as id_recebedor,
+            mv.proponente,
+            EXISTS (SELECT 1 FROM painel_dsr.tb_contato_recebedor c WHERE c.id_recebedor = mv.id_proponente AND c.nome IS NOT NULL) AS tem_contato,
+            mv.municipios_beneficiados,
+            mv.uf,
+            mv.link_transferegov,
+            mv.carteira_ativa,
+            mv.projeto_aprovado,
+            mv.possui_aio,
+            mv.coordenacao,
+            mv.acao,
+            mv.monitor,
+            mv.prazo_clausulas_suspensivas,
+            mv.prazo_emissao_lae,
+            mv.prazo_inicio_licitacao,
+            mv.prazo_conclusao_licitacao,
+            mv.prazo_vrpl,
+            mv.prazo_contratacao,
+            mv.prazo_solicitacao_aio,
+            mv.prazo_analise_tecnica_aio,
+            mv.prazo_analise_executiva_aio,
+            mv.prazo_registro_aio,
+            mv.prazo_emissao_os,
+            mv.prazo_inicio_execucao_fisica,
+            mv.prazo_progresso_fisico,
+            mv.prazo_indicio_paralisacao,
+            mv.status_paralisacao_obra,
+            mv.vistoria_in_loco_parciais,
+            mv.prazo_vistoria_final,
+            mv.obras_proximas_conclusao,
+            mv.registro_conclusao,
+            mv.vigencia,
+            mv.status_de_execucao_da_obra
         FROM {MV} mv
 
         {where}
@@ -1410,3 +1410,119 @@ async def get_plano_acao(response: Response, db: AsyncSession = Depends(get_db))
       data=[PlanoAcaoBuscaItem(**r) for r in result.mappings().all()]
     )
     
+
+
+
+# Envia os dados dos contatos para o banco
+@router.post(
+    "/envio_contato",
+    response_model=ContatoEnviadoResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Realiza o envio do formulário dos contatos para o banco",
+)
+async def salvar_contato(
+    contatosParaEnviar: ContatoCreate,
+    usuario_atual: UsuarioAutenticado = Depends(obter_usuario_atual),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        # Prepara a lista de dicionários injetando id_usuario
+        payload = [
+            {**contato.model_dump(), "id_usuario": usuario_atual.id_usuario}
+            for contato in contatosParaEnviar.data
+        ]
+
+        # UPSERT: Insere novos ou atualiza existentes se já houver registro com mesmo (id_recebedor, nr_contato)
+        query = text("""
+            INSERT INTO painel_dsr.tb_contato_recebedor (
+                id_usuario,
+                id_recebedor,
+                nr_contato,
+                nome,
+                cargo,
+                telefone,
+                email,
+                observacao
+            ) 
+            VALUES (
+                :id_usuario,
+                :id_recebedor,
+                :nr_contato,
+                :nome,
+                :cargo,
+                :telefone,
+                :email,
+                :observacao
+            )
+            ON CONFLICT (id_recebedor, nr_contato) DO UPDATE SET
+                id_usuario = EXCLUDED.id_usuario,
+                nome = EXCLUDED.nome,
+                cargo = EXCLUDED.cargo,
+                telefone = EXCLUDED.telefone,
+                email = EXCLUDED.email,
+                observacao = EXCLUDED.observacao,
+                alterado_em = NOW();
+        """)
+
+        # Executa para todos os itens do payload
+        await db.execute(query, payload)
+        await db.commit()
+
+        return {
+            "sucesso": True,
+            "mensagem": "Contatos salvos com sucesso!",
+            "total_salvos": len(payload)
+        }
+
+    except Exception as error:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao salvar os contatos: {str(error)}",
+        )
+
+
+
+
+
+@router.get(
+    "/busca_contato",
+    response_model=ContatoBusca,
+    summary=("Busca os contatos do recebedor, se houver")
+)
+async def get_contato(
+    id_recebedor: int = Query(..., description="ID do recebedor para filtrar"),
+    response: Response = None,
+    db: AsyncSession = Depends(get_db)
+):
+    
+    # Estou testando essa linha abaixo de no-cache, para ver se resolve o bug do plano de ação vir antigo quando o usuario salva e reabre logo em seguida
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    
+    # Para voltar com o cahe, descomente linha abaixo e apague a linha de cima
+    #response.headers["Cache-Control"] = ("private, max-age=300")
+
+    sql = text( """
+        SELECT
+            c.id_recebedor,
+            u.nome as usuario,
+            c.nr_contato,
+            c.nome,
+            c.cargo,
+            c.telefone,
+            c.email,
+            c.observacao,
+            c.alterado_em
+        FROM painel_dsr.tb_contato_recebedor c
+        LEFT JOIN painel_dsr.tb_usuario u ON u.id_usuario = c.id_usuario
+        WHERE c.id_recebedor = :id_recebedor
+        ORDER BY c.nr_contato ASC
+    """)
+
+    result = await db.execute(sql, {"id_recebedor": id_recebedor})
+
+
+    
+    return ContatoBusca(
+      data=[ContatoBuscaItem(**r) for r in result.mappings().all()]
+    )
