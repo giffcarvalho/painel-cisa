@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import estilos from "./PlanoAcao.module.css";
-import { X } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { enviarPlanoAcao } from "../../api/pontosControle";
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from "@/context/auth/useAuth";
@@ -13,34 +13,75 @@ export default function PlanoAcao({
     nrInstrumento,
     campo,
     statusPontoControle,
-    dadosExistentes,
+    historicoExistente = [],
 }) {
-
-    const [confirmacao, setConfirmacao] = useState(dadosExistentes?.confirmacao || "");
-    const [coordenacao, setCoordenacao] = useState(dadosExistentes?.coordenacao || "");
-    const [mandataria, setMandataria] = useState(dadosExistentes?.mandataria || "");
-    const [proponente, setProponente] = useState(dadosExistentes?.recebedor || "");
-    const [observacaoAcao, setObservacaoAcao] = useState(dadosExistentes?.observacao_acao || "");
-    const [prazoAcao, setPrazoAcao] = useState(dadosExistentes?.prazo_acao || "");
-    const [statusAcao, setStatusAcao] = useState(dadosExistentes?.status_acao || "");
-    const [observacaoStatusAcao, setObservacaoStatusAcao] = useState(dadosExistentes?.observacao_status_acao || "");
+    const [indiceAtual, setIndiceAtual] = useState(0);
+    const [modoCriacao, setModoCriacao] = useState(historicoExistente.length === 0);
+    const dadosExibicao = !modoCriacao ? historicoExistente[indiceAtual] : null;
+    
+    const [confirmacao, setConfirmacao] = useState(dadosExibicao?.confirmacao || "");
+    const [coordenacao, setCoordenacao] = useState(dadosExibicao?.coordenacao || "");
+    const [mandataria, setMandataria] = useState(dadosExibicao?.mandataria || "");
+    const [proponente, setProponente] = useState(dadosExibicao?.recebedor || "");
+    const [observacaoAcao, setObservacaoAcao] = useState(dadosExibicao?.observacao_acao || "");
+    const [prazoAcao, setPrazoAcao] = useState(dadosExibicao?.prazo_acao || "");
+    const [statusAcao, setStatusAcao] = useState(dadosExibicao?.status_acao || "");
+    const [observacaoStatusAcao, setObservacaoStatusAcao] = useState(dadosExibicao?.observacao_status_acao || "");
+    
     const [enviando, setEnviando] = useState(false);
     const queryClient = useQueryClient();
     const { isAuthenticated, openLoginModal } = useAuth();
 
-    // Garante que os campos sejam atualizados sempre que dadosExistentes mudar
+    // Sincroniza os estados com o item do histórico selecionado ou limpa para criação
     useEffect(() => {
-        if (dadosExistentes) {
-            setConfirmacao(dadosExistentes.confirmacao || "");
-            setCoordenacao(dadosExistentes.coordenacao || "");
-            setMandataria(dadosExistentes.mandataria || "");
-            setProponente(dadosExistentes.recebedor || "");
-            setObservacaoAcao(dadosExistentes.observacao_acao || "");
-            setPrazoAcao(dadosExistentes.prazo_acao || "");
-            setStatusAcao(dadosExistentes.status_acao || "");
-            setObservacaoStatusAcao(dadosExistentes.observacao_status_acao || "");
+        if (!modoCriacao && dadosExibicao) {
+            setConfirmacao(dadosExibicao.confirmacao || "");
+            setCoordenacao(dadosExibicao.coordenacao || "");
+            setMandataria(dadosExibicao.mandataria || "");
+            setProponente(dadosExibicao.recebedor || "");
+            setObservacaoAcao(dadosExibicao.observacao_acao || "");
+            setPrazoAcao(dadosExibicao.prazo_acao || "");
+            setStatusAcao(dadosExibicao.status_acao || "");
+            setObservacaoStatusAcao(dadosExibicao.observacao_status_acao || "");
+        } else if (modoCriacao) {
+            limparCampos();
         }
-    }, [dadosExistentes]);
+    }, [indiceAtual, modoCriacao, historicoExistente]);
+
+    
+    const limparCampos = () => {
+        setConfirmacao("");
+        setCoordenacao("");
+        setMandataria("");
+        setProponente("");
+        setObservacaoAcao("");
+        setPrazoAcao("");
+        setStatusAcao("");
+        setObservacaoStatusAcao("");
+    };
+
+
+    // Navegação no Histórico
+    const handleAnterior = () => {
+        if (modoCriacao) {
+            setModoCriacao(false);
+            setIndiceAtual(0);
+        } else if (indiceAtual < historicoExistente.length - 1) {
+            setIndiceAtual((prev) => prev + 1);
+        }
+    };
+
+    const handleProximo = () => {
+        if (indiceAtual > 0) {
+            setIndiceAtual((prev) => prev - 1);
+        }
+    };
+
+    const handleNovoRegistro = () => {
+        setModoCriacao(true);
+    };
+
+
 
 
     // Variável criada para permitir testar se pelo menos um campo editavel foi preenchido.
@@ -59,17 +100,17 @@ export default function PlanoAcao({
 
     // Comparação para saber se HOUVE alguma alteração em relação aos dados salvos originalmente
     const houveAlteracao = 
-        confirmacao !== (dadosExistentes?.confirmacao || "") ||
-        coordenacao !== (dadosExistentes?.coordenacao || "") ||
-        mandataria !== (dadosExistentes?.mandataria || "") ||
-        proponente !== (dadosExistentes?.recebedor || "") ||
-        observacaoAcao !== (dadosExistentes?.observacao_acao || "") ||
-        prazoAcao !== (dadosExistentes?.prazo_acao || "") ||
-        statusAcao !== (dadosExistentes?.status_acao || "") ||
-        observacaoStatusAcao !== (dadosExistentes?.observacao_status_acao || "");
+        confirmacao !== (dadosExibicao?.confirmacao || "") ||
+        coordenacao !== (dadosExibicao?.coordenacao || "") ||
+        mandataria !== (dadosExibicao?.mandataria || "") ||
+        proponente !== (dadosExibicao?.recebedor || "") ||
+        observacaoAcao !== (dadosExibicao?.observacao_acao || "") ||
+        prazoAcao !== (dadosExibicao?.prazo_acao || "") ||
+        statusAcao !== (dadosExibicao?.status_acao || "") ||
+        observacaoStatusAcao !== (dadosExibicao?.observacao_status_acao || "");
 
     // O botão só estará liberado se tiver preenchimento E se tiver havido alteração
-    const podeSalvar = !isAuthenticated || (possuiPreenchimento && houveAlteracao);
+    const podeSalvar = modoCriacao && isAuthenticated && possuiPreenchimento;
     
     
 
@@ -96,7 +137,7 @@ export default function PlanoAcao({
         }
 
         // Se não houve alteração em relação ao Plano de Ação já existente, bloqueia o envio
-        if (!houveAlteracao) {
+        if (!modoCriacao && !houveAlteracao) {
             alert("Nenhuma alteração foi realizada para salvar.");
             return;
         }
@@ -132,57 +173,10 @@ export default function PlanoAcao({
         }
     };
 
-
-    const limparFormulario = () => {
-        setConfirmacao("");
-        setCoordenacao("");
-        setMandataria("");
-        setProponente("");
-        setObservacaoAcao("");
-        setPrazoAcao("");
-        setStatusAcao("");
-        setObservacaoStatusAcao("");
-    };
-
-
-    const alterarConfirmacao = (e) => {
-        setConfirmacao(e.target.value);
-    };
-
-    const alterarCoordenacao = (e) => {
-        setCoordenacao(e.target.value);
-    };
-
-    const alterarMandataria = (e) => {
-        setMandataria(e.target.value);
-    };
-
-    const alterarProponente = (e) => {
-        setProponente(e.target.value);
-    };
-
-    const alterarObservacaoAcao = (e) => {
-        setObservacaoAcao(e.target.value);
-    };
-
-    const alterarPrazoAcao = (e) => {
-        setPrazoAcao(e.target.value);
-    };
-
-    const alterarStatusAcao = (e) => {
-        setStatusAcao(e.target.value);
-    };
-
-    const alterarObservacaoStatusAcao = (e) => {
-        setObservacaoStatusAcao(e.target.value);
-    };
-
-
-    // Define a mensagem do tooltip do botão Salvar
     const obterTextoTooltip = () => {
+        if (!modoCriacao) return "Clique em 'Novo Plano' para cadastrar um novo registro";
         if (!isAuthenticated) return "Faça login para salvar o plano de ação";
         if (!possuiPreenchimento) return "Preencha ao menos um campo para salvar";
-        if (!houveAlteracao) return "Altere ao menos um campo para salvar";
         return "";
     };
 
@@ -193,234 +187,218 @@ export default function PlanoAcao({
         <div className={estilos.overlay_modal}>
             <form onSubmit={handleSubmit} className={estilos.janela}>
                 
-                <div className={estilos.cabecalho_plano}>
-                   <h4>Ações realizadas - Instrumento {nrInstrumento || '—'}</h4>
-                    <button 
-                        type="button"
-                        className={estilos.botaoX}
-                        onClick={fecharJanelaPlanoAcao}>
-                        <X className={estilos.XFechar} />
-                    </button>
+                {/* Cabeçalho */}
+                <div className={estilos.cabecalho}>
+                    <div className={estilos.cabecalho_plano}>
+                        <h4>Ações realizadas - Instrumento {nrInstrumento || '—'}</h4>
+                        <button 
+                            type="button"
+                            className={estilos.botaoX}
+                            onClick={fecharJanelaPlanoAcao}>
+                            <X className={estilos.XFechar} />
+                        </button>
+                    </div>
+                    <div className={estilos.ponto_controle}>
+                        <h3>{campo || '—'}: {statusPontoControle || '—'}</h3>
+                    </div>
                 </div>
 
+                
 
-                <div className={estilos.ponto_controle}>
-                    <h3>{campo || '—'}: {statusPontoControle || '—'}</h3>
+                {/* Barra de Navegação no Histórico */}
+                <div className={estilos.barra_navegacao}>
+                    <div className={estilos.controles_historico}>
+                        <button
+                            type="button"
+                            className={estilos.botao_nav}
+                            onClick={handleAnterior}
+                            disabled={modoCriacao ? historicoExistente.length === 0 : indiceAtual === historicoExistente.length - 1}
+                            title="Ver registro mais antigo"
+                        >
+                            <ChevronLeft size={18} />
+                            Anterior
+                        </button>
+
+                        <span className={estilos.indicador_pagina}>
+                            {modoCriacao ? (
+                                <strong>Novo Registro</strong>
+                            ) : (
+                                `Registro ${historicoExistente.length - indiceAtual} de ${historicoExistente.length}`
+                            )}
+                        </span>
+
+                        <button
+                            type="button"
+                            className={estilos.botao_nav}
+                            onClick={handleProximo}
+                            disabled={modoCriacao || indiceAtual === 0}
+                            title="Ver registro mais recente"
+                        >
+                            Próximo
+                            <ChevronRight size={18} />
+                        </button>
+                    </div>
+
+                    {!modoCriacao && (
+                        <button
+                            type="button"
+                            className={estilos.botao_novo}
+                            onClick={handleNovoRegistro}
+                        >
+                            <Plus size={16} />
+                            Nova ação
+                        </button>
+                    )}
                 </div>
-
 
                 <div className={estilos.pergunta}>
                     <h3>Confirma status do Ponto de Controle?</h3>
-                    <label className={estilos.label_radio}>
+                    <label className={`${estilos.label_radio} ${!modoCriacao ? estilos.disabled : ''}`}>
                         <input
                             type="radio"
                             name="confirmacao"
                             value="Sim"
                             checked={confirmacao === "Sim"}
-                            onChange={alterarConfirmacao}
+                            onChange={(e) => setConfirmacao(e.target.value)}
+                            disabled={!modoCriacao}
                         />
                         Sim
                     </label>
-                    <label className={estilos.label_radio}>
+                    <label className={`${estilos.label_radio} ${!modoCriacao ? estilos.disabled : ''}`}>
                         <input
                             type="radio"
                             name="confirmacao"
                             value="Não"
                             checked={confirmacao === "Não"}
-                            onChange={alterarConfirmacao}
+                            onChange={(e) => setConfirmacao(e.target.value)}
+                            disabled={!modoCriacao}
                         />
                         Não
                     </label>
                 </div>
 
-
                 <div className={estilos.pergunta}>
                     <h3>Deseja que o Coordenador avalie a situação?</h3>
-                    <label className={estilos.label_radio}>
+                    <label className={`${estilos.label_radio} ${!modoCriacao ? estilos.disabled : ''}`}>
                         <input
                             type="radio"
                             name="coordenacao"
                             value="Sim"
                             checked={coordenacao === "Sim"}
-                            onChange={alterarCoordenacao}
+                            onChange={(e) => setCoordenacao(e.target.value)}
+                            disabled={!modoCriacao}
                         />
                         Sim
                     </label>
-                    <label className={estilos.label_radio}>
+                    <label className={`${estilos.label_radio} ${!modoCriacao ? estilos.disabled : ''}`}>
                         <input
                             type="radio"
                             name="coordenacao"
                             value="Não"
                             checked={coordenacao === "Não"}
-                            onChange={alterarCoordenacao}
+                            onChange={(e) => setCoordenacao(e.target.value)}
+                            disabled={!modoCriacao}
                         />
                         Não
                     </label>
                 </div>
 
-
                 <div className={estilos.pergunta}>
                     <h3>Foi realizado contato com a mandatária?</h3>
-                    <label className={estilos.label_radio}>
+                    <label className={`${estilos.label_radio} ${!modoCriacao ? estilos.disabled : ''}`}>
                         <input
                             type="radio"
                             name="mandataria"
                             value="Sim"
                             checked={mandataria === "Sim"}
-                            onChange={alterarMandataria}
+                            onChange={(e) => setMandataria(e.target.value)}
+                            disabled={!modoCriacao}
                         />
                         Sim
                     </label>
-                    <label className={estilos.label_radio}>
+                    <label className={`${estilos.label_radio} ${!modoCriacao ? estilos.disabled : ''}`}>
                         <input
                             type="radio"
                             name="mandataria"
                             value="Não"
                             checked={mandataria === "Não"}
-                            onChange={alterarMandataria}
+                            onChange={(e) => setMandataria(e.target.value)}
+                            disabled={!modoCriacao}
                         />
                         Não
                     </label>
                 </div>
 
-
                 <div className={estilos.pergunta}>
                     <h3>Foi realizado contato com o ente recebedor?</h3>
-                    <label className={estilos.label_radio}>
+                    <label className={`${estilos.label_radio} ${!modoCriacao ? estilos.disabled : ''}`}>
                         <input
                             type="radio"
                             name="proponente"
                             value="Sim"
                             checked={proponente === "Sim"}
-                            onChange={alterarProponente}
+                            onChange={(e) => setProponente(e.target.value)}
+                            disabled={!modoCriacao}
                         />
                         Sim
                     </label>
-                    <label className={estilos.label_radio}>
+                    <label className={`${estilos.label_radio} ${!modoCriacao ? estilos.disabled : ''}`}>
                         <input
                             type="radio"
                             name="proponente"
                             value="Não"
                             checked={proponente === "Não"}
-                            onChange={alterarProponente}
+                            onChange={(e) => setProponente(e.target.value)}
+                            disabled={!modoCriacao}
                         />
                         Não
                     </label>
                 </div>
 
-                
+                {/* Textarea */}
                 <textarea
                     className={estilos.texto_observacao}
                     rows="3"
                     maxLength={250}
                     placeholder="Descrição da ação realizada"
                     value={observacaoAcao}
-                    onChange={alterarObservacaoAcao}
+                    onChange={(e) => setObservacaoAcao(e.target.value)}
+                    disabled={!modoCriacao}
                 />
 
-                
+                {/* Campo de Data */}
                 <div className={estilos.prazo_acao}>
                     <label htmlFor="prazoAcao">Gostaria de definir um prazo para ser lembrado de retornar a esse Ponto?</label>
-                    <input className={estilos.prazo_acao_campo}
+                    <input 
+                        className={estilos.prazo_acao_campo}
                         type="date"
                         id="prazoAcao"
                         value={prazoAcao}
-                        onChange={alterarPrazoAcao}
+                        onChange={(e) => setPrazoAcao(e.target.value)}
+                        disabled={!modoCriacao}
                     />
                 </div>
 
-                {/*}
-                <div className={estilos.cabecalho_status}>
-                    <h4>Acompanhamento do Plano de Ação</h4>
-                </div>
-
-                <div className={estilos.pergunta_bloco}>
-                    <h3>Status de execução das ações previstas:</h3>
-                    <div className={estilos.opcoes_grid}>
-                        <label className={estilos.label_radio_bloco}>
-                            <input
-                                type="radio"
-                                name="statusAcao"
-                                value="A realizar"
-                                checked={statusAcao === "A realizar"}
-                                onChange={alterarStatusAcao}
-                            />
-                            A realizar
-                        </label>
-                        <label className={estilos.label_radio_bloco}>
-                            <input
-                                type="radio"
-                                name="statusAcao"
-                                value="Em andamento"
-                                checked={statusAcao === "Em andamento"}
-                                onChange={alterarStatusAcao}
-                            />
-                            Em andamento
-                        </label>
-                        <label className={estilos.label_radio_bloco}>
-                            <input
-                                type="radio"
-                                name="statusAcao"
-                                value="Aguardando retorno"
-                                checked={statusAcao === "Aguardando retorno"}
-                                onChange={alterarStatusAcao}
-                            />
-                            Aguardando retorno
-                        </label>
-                        <label className={estilos.label_radio_bloco}>
-                            <input
-                                type="radio"
-                                name="statusAcao"
-                                value="Executada parcialmente"
-                                checked={statusAcao === "Executada parcialmente"}
-                                onChange={alterarStatusAcao}
-                            />
-                            Executada parcialmente
-                        </label>
-                        <label className={estilos.label_radio_bloco}>
-                            <input
-                                type="radio"
-                                name="statusAcao"
-                                value="Concluída"
-                                checked={statusAcao === "Concluída"}
-                                onChange={alterarStatusAcao}
-                            />
-                            Concluída
-                        </label>
-                    </div>
-                </div>
-
-
-                <textarea
-                    className={estilos.texto_observacao}
-                    rows="3"
-                    maxLength={250}
-                    placeholder="Descrição do status de execução das ações previstas"
-                    value={observacaoStatusAcao}
-                    onChange={alterarObservacaoStatusAcao}
-                />
-                */}
-
-
-
+                {/* Botões do Rodapé */}
                 <div className={estilos.acoes_formulario}>
-                    {dadosExistentes?.usuario && (
+                    {!modoCriacao && dadosExibicao?.usuario && (
                         <div className={estilos.ultima_alteracao}>
                             <span>
-                                Última alteração: {dadosExistentes.usuario}
+                                Registrado por: {dadosExibicao.usuario}
                             </span>
-                            {dadosExistentes.criado_em && (
+                            {dadosExibicao.criado_em && (
                                 <small className={estilos.data_alteracao}>
-                                    {formatDatetime(dadosExistentes.criado_em)}
+                                    {formatDatetime(dadosExibicao.criado_em)}
                                 </small>
                             )}
-                            </div>
+                        </div>
                     )}
+
                     <button 
                         type="button"
                         className={estilos.botao_cancelar}
-                        onClick={limparFormulario}
-                        disabled={enviando}
+                        onClick={limparCampos}
+                        disabled={!modoCriacao || enviando}
                     >
                         Limpar formulário
                     </button>
@@ -428,7 +406,7 @@ export default function PlanoAcao({
                     <button 
                         type="submit"
                         className={estilos.botao_salvar}
-                        disabled={enviando || !podeSalvar}
+                        disabled={!modoCriacao || enviando || !podeSalvar}
                         title={obterTextoTooltip()}
                     >
                         {enviando ? 'Salvando...' : 'Salvar'}
@@ -437,6 +415,5 @@ export default function PlanoAcao({
 
             </form>
         </div>
-        
-    )
+    );
 }
