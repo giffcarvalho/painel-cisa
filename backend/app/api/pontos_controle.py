@@ -13,7 +13,7 @@ from app.schemas.pontos_controle import (
     PontosControleFiltrosResponse,
     PontosControleListaResponse,
     PontosControleDataDados,
-    PontosControleDadosAdicionais,
+    PontosControleDadosAdicionaisItem,
     PlanoAcaoEnviadoResponse,
     PlanoAcaoCreate,
     PlanoAcaoBusca,
@@ -22,6 +22,8 @@ from app.schemas.pontos_controle import (
     ContatoCreate,
     ContatoBusca,
     ContatoBuscaItem,
+    PlanoAcaoHistorico,
+    PlanoAcaoHistoricoItem,
 )
 
 router = APIRouter()
@@ -1147,6 +1149,7 @@ async def get_instrumentos(
         SELECT
 
             mv.nr_instrumento::text AS nr_instrumento,
+            mv.cod_tci,
             mv.id_proponente as id_recebedor,
             mv.proponente,
             EXISTS (SELECT 1 FROM painel_dsr.tb_contato_recebedor c WHERE c.id_recebedor = mv.id_proponente AND c.nome IS NOT NULL) AS tem_contato,
@@ -1246,8 +1249,16 @@ async def get_data_dados(
 
 
 
-@router.get("/dados_adicionais", response_model=PontosControleDadosAdicionais, summary=("Retorna dados adicionais dos instrumentos"))
-async def get_dados_adicionais(response: Response, db: AsyncSession = Depends(get_db)):
+@router.get(
+    "/dados_adicionais/{nr_instrumento}",
+    response_model=PontosControleDadosAdicionaisItem,
+    summary="Retorna dados adicionais de um instrumento especifico"
+)
+async def get_dados_adicionais(
+    nr_instrumento: str,
+    response: Response,
+    db: AsyncSession = Depends(get_db)
+):
     
     response.headers["Cache-Control"] = ("private, max-age=300")
 
@@ -1272,21 +1283,21 @@ async def get_dados_adicionais(response: Response, db: AsyncSession = Depends(ge
             valor_desbloqueado,
             valor_pago
         FROM instrumento.vw_carteira_dsr
+        WHERE nr_instrumento = :nr_instrumento
     """
 
-    result = await _execute_query(db, sql)
+    result = await _execute_query(db, sql, {"nr_instrumento": nr_instrumento})
+    item = result.mappings().first()
 
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Dados adicionais não encontrados para o instrumento {nr_instrumento}"
+        )
 
-    # Esse trecho abaixo quer dizer que cada dict(r) é transformado/validado como PontosControleDadosAdicionaisItem
-    # e a resposta inteira fica no formato PontosControleDadosAdicionais data=[PontosControleDadosAdicionaisItem(...), PontosControleDadosAdicionaisItem(...)]
-    # PontosControleDadosAdicionais é o objeto que encapsula a lista de resultados, e cada elemento dessa lista é um PontosControleDadosAdicionaisItem
-    # O formato resultante será um JSON com uma estrutura mais ou menos assim: { "data": [{"nr_instrumento": "123", "nr_proposta": "456"}, {"nr_instrumento": "789", "nr_proposta": "012"}] }
-    return PontosControleDadosAdicionais(
-        data=[
-            dict(r)
-            for r in result.mappings().all()
-        ]
-    )
+    
+    return PontosControleDadosAdicionaisItem(**dict(item))
+    
 
 
 # Envia os dados do plano de ação para o banco
@@ -1370,7 +1381,7 @@ async def salvar_plano_acao(
 
 
 
-@router.get("/busca_plano_acao", response_model=PlanoAcaoBusca, summary=("Busca o último Plano de Ação do ponto de controle, se houver"))
+@router.get("/busca_plano_acao", response_model=PlanoAcaoBusca, summary=("Busca o histórico de Planos de Ação"))
 async def get_plano_acao(response: Response, db: AsyncSession = Depends(get_db)):
     
     # Estou testando essa linha abaixo de no-cache, para ver se resolve o bug do plano de ação vir antigo quando o usuario salva e reabre logo em seguida
@@ -1380,7 +1391,8 @@ async def get_plano_acao(response: Response, db: AsyncSession = Depends(get_db))
     #response.headers["Cache-Control"] = ("private, max-age=300")
 
     sql = """
-        SELECT DISTINCT ON (nr_instrumento, ponto_controle)
+        SELECT
+            p.id_plano_acao,
             p.nr_instrumento,
             u.nome as usuario,
             p.ponto_controle,
@@ -1402,10 +1414,7 @@ async def get_plano_acao(response: Response, db: AsyncSession = Depends(get_db))
     result = await _execute_query(db, sql)
 
 
-    # Esse trecho abaixo quer dizer que cada dict(r) é transformado/validado como PontosControleDadosAdicionaisItem
-    # e a resposta inteira fica no formato PontosControleDadosAdicionais data=[PontosControleDadosAdicionaisItem(...), PontosControleDadosAdicionaisItem(...)]
-    # PontosControleDadosAdicionais é o objeto que encapsula a lista de resultados, e cada elemento dessa lista é um PontosControleDadosAdicionaisItem
-    # O formato resultante será um JSON com uma estrutura mais ou menos assim: { "data": [{"nr_instrumento": "123", "nr_proposta": "456"}, {"nr_instrumento": "789", "nr_proposta": "012"}] }
+    
     return PlanoAcaoBusca(
       data=[PlanoAcaoBuscaItem(**r) for r in result.mappings().all()]
     )
@@ -1525,4 +1534,50 @@ async def get_contato(
     
     return ContatoBusca(
       data=[ContatoBuscaItem(**r) for r in result.mappings().all()]
+    )
+
+
+
+
+@router.get(
+    "/busca_historico_acao/{nr_instrumento}",
+    response_model=PlanoAcaoHistorico,
+    summary="Busca o histórico completo de Planos de Ação de um Instrumento",
+)
+async def get_historico_acao_instrumento(
+    nr_instrumento: str,
+    response: Response,
+    db: AsyncSession = Depends(get_db)
+):
+    # Desativa cache para garantir a entrega imediata de registros recém-salvos
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+
+    sql = """
+        SELECT
+            p.id_plano_acao,
+            p.nr_instrumento,
+            u.nome AS usuario,
+            p.ponto_controle,
+            p.status_ponto_controle,
+            p.confirmacao,
+            p.coordenacao,
+            p.mandataria,
+            p.recebedor,
+            p.observacao_acao,
+            p.prazo_acao,
+            p.status_acao,
+            p.observacao_status_acao,
+            p.criado_em
+        FROM painel_dsr.tb_ponto_controle_plano_acao p
+        LEFT JOIN painel_dsr.tb_usuario u ON u.id_usuario = p.id_usuario
+        WHERE p.nr_instrumento = :nr_instrumento
+        ORDER BY p.id_plano_acao DESC
+    """
+
+    result = await _execute_query(db, sql, {"nr_instrumento": nr_instrumento})
+
+    return PlanoAcaoHistorico(
+        data=[
+            PlanoAcaoHistoricoItem(**r) for r in result.mappings().all()
+        ]
     )

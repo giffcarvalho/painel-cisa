@@ -84,6 +84,7 @@ class PontosControleBuscaFiltroResponse(BaseModel):
 
 class PontosControleListaItem(PontosControleBase):
     nr_instrumento: str | None = None
+    cod_tci: str | None = None
     id_recebedor: int | None = None
     proponente: str | None = None
     tem_contato: bool | None = False
@@ -153,9 +154,9 @@ class PontosControleDadosAdicionaisItem(PontosControleBase):
     valor_pago: float | None = None
     
 
-
-class PontosControleDadosAdicionais(BaseModel):
-    data: list[PontosControleDadosAdicionaisItem]
+# Acho que não há mais necessidade, pois agora os dados adicionais são puxados de um único instrumento de cada vez
+#class PontosControleDadosAdicionais(BaseModel):
+#    data: list[PontosControleDadosAdicionaisItem]
 
 
 
@@ -237,3 +238,24 @@ class ContatoBuscaItem(BaseModel):
 
 class ContatoBusca(BaseModel):
     data: list[ContatoBuscaItem]
+
+
+class PlanoAcaoHistoricoItem(BaseModel):
+    id_plano_acao: int
+    nr_instrumento: str
+    usuario: Optional[str] = None
+    ponto_controle: Optional[str] = None
+    status_ponto_controle: Optional[str] = None
+    confirmacao: Optional[str] = None
+    coordenacao: Optional[str] = None
+    mandataria: Optional[str] = None
+    recebedor: Optional[str] = None
+    observacao_acao: Optional[str] = None
+    prazo_acao: Optional[date] = None
+    status_acao: Optional[str] = None
+    observacao_status_acao: Optional[str] = None
+    criado_em: Optional[datetime] = None
+
+
+class PlanoAcaoHistorico(BaseModel):
+    data: List[PlanoAcaoHistoricoItem]
