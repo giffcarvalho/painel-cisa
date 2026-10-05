@@ -101,9 +101,9 @@ export const getDataDados = async () => {
 
 
 //Dados adicionais dos intrumentos, que virão da view da Carteira e não do Monitoramento
-export const getDadosAdicionais = async () => {
+export const getDadosAdicionais = async (nrInstrumento) => {
   
-  const { data } = await api.get('/pontos-controle/dados_adicionais');
+  const { data } = await api.get(`/pontos-controle/dados_adicionais/${nrInstrumento}`);
 
   return data;
 };
@@ -149,6 +149,12 @@ export async function getContato(idRecebedor) {
 }
 
 
+export const getHistoricoAcao = async (nrInstrumento) => {
+  
+  const { data } = await api.get(`/pontos-controle/busca_historico_acao/${nrInstrumento}`);
+
+  return data;
+};
 
 
 const pontosControleApi = {
@@ -161,6 +167,7 @@ const pontosControleApi = {
   getPlanoAcao,
   enviarContato,
   getContato,
+  getHistoricoAcao,
 };
 
 export default pontosControleApi;
