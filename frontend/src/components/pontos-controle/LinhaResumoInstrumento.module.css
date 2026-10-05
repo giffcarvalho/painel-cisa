@@ -1,0 +1,47 @@
+.previewItem {
+  display: flex;
+  min-width: 0;
+  gap: 4px;
+  align-items: baseline;
+  color: #111827;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.previewItem dt {
+  flex: 0 0 auto;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.previewItem dt::after {
+  content: ':';
+}
+
+.previewItem dd {
+  min-width: 0;
+  margin: 0;
+  color: #111827;
+  font-size: 12px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.previewItemWide {
+  grid-column: 1 / -1;
+}
+
+.previewRow td {
+  padding: 0;
+  background: #f8fafc;
+}
+
+.previewGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px 12px;
+  margin: 0;
+  padding: 8px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
