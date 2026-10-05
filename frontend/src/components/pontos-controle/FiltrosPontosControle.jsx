@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronDown, X } from 'lucide-react';
 import { useOpcoesPontosControleQuery } from '../../hooks/usePontosControle';
 import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltrosPontosControle';
-import styles from '../../pages/pontos-controle/PontosControle.module.css';
+import styles from './FiltrosPontosControle.module.css';
 
 // --- Funções Auxiliares de Normalização ---
 
