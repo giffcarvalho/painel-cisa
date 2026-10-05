@@ -1,35 +1,41 @@
 import { Fragment, useEffect, useState, useRef } from 'react';
-import { formatCurrency, formatDate } from '../../utils/formatters';
+import { emptyValue, formatDate } from '../../utils/formatters';
 import { textosExplicativos } from '../../utils/pontoControleUtils';
-import styles from '../../pages/pontos-controle/PontosControle.module.css';
+import styles from './TabelaPontosControle.module.css';
 import FiltroColuna from './FiltrosPontosControle';
 import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltrosPontosControle';
 import { useBuscaPlanoAcaoQuery } from "../../hooks/usePontosControle";
-import { FormInput, SquarePen, Phone } from "lucide-react";
+import { FormInput, SquarePen, Phone, ListChecks } from "lucide-react";
+import { LinhaResumoInstrumento } from './LinhaResumoInstrumento';
 
 
-const emptyValue = (value) => {
-  if (value === null || value === undefined || value === '') return '—';
-  return value;
-};
 
+//-----------------FUNÇÕES AUXILIARES-------------------//
 
 //essa função extrai do objeto instrumentosQuery.data, o array com os instrumentos
 //primeiro isArray testa se o objeto já é um array, se for, já retorna o proprio array
-//se não for, procura por um array em várias propriedades possíveis, data, items, resultados, instrumentos, dados (aqui daria para especificar a propriedade, pois pelo schema sabe-se que ela é data)
-//
+//se não for, procura por um array em várias propriedades possíveis, data, items, resultados, instrumentos, dados 
+// (aqui daria para especificar a propriedade, pois pelo schema sabe-se que ela é data)
 const getItens = (data) => {
   if (Array.isArray(data)) return data;
   return data?.data ?? data?.items ?? data?.resultados ?? data?.instrumentos ?? data?.dados ?? [];
 };
 
 
-const PreviewField = ({ label, value, wide = false }) => (
-  <div className={`${styles.previewItem} ${wide ? styles.previewItemWide : ''}`}>
-    <dt>{label}</dt>
-    <dd>{emptyValue(value)}</dd>
-  </div>
-);
+
+const formatarFonte = (fonte) => {
+  switch (fonte?.toLowerCase()) {
+    case 'transferegov':
+      return 'Transferegov';
+    case 'caixa':
+      return 'BDGestores Caixa';
+    default:
+      return fonte || '—';
+  }
+};
+
+
+//-----------------VARIÁVEIS AUXILIARES-------------------//
 
 const classeStatusPontoControle = (valor) => {
   switch (valor) {
@@ -50,7 +56,7 @@ const classeStatusPontoControle = (valor) => {
 
 
 
-
+//-----------------COMPONENTES AUXILIARES-------------------//
 
 //Pequeno componente da célula dos pontos de controle
 const CelulaStatusPontoControle = ({ valor, abrirJanelaPlanoAcao, nrInstrumento, campo }) => {
@@ -74,7 +80,7 @@ const CelulaStatusPontoControle = ({ valor, abrirJanelaPlanoAcao, nrInstrumento,
           <button
             type="button"
             className={styles.botao_plano_acao}
-            title={temPlanoAcao ? "Editar Plano de Ação" : "Criar Plano de Ação"}
+            title={temPlanoAcao ? "Visualizar/Registrar Ação" : "Registrar Ação"}
             onClick={(event) => {
               event.stopPropagation();
               abrirJanelaPlanoAcao?.(nrInstrumento, campo, valor);
@@ -87,29 +93,6 @@ const CelulaStatusPontoControle = ({ valor, abrirJanelaPlanoAcao, nrInstrumento,
     </td>
   );
 };
-
-
-
-const formatarFonte = (fonte) => {
-  switch (fonte?.toLowerCase()) {
-    case 'transferegov':
-      return 'Transferegov';
-    case 'caixa':
-      return 'BDGestores Caixa';
-    default:
-      return fonte || '—';
-  }
-};
-
-const formatarData = (dataStr) => {
-  if (!dataStr) return '—';
-  
-  const [ano, mes, dia] = String(dataStr).split('T')[0].split('-');
-  if (!ano || !mes || !dia) return dataStr;
-  return `${dia}/${mes}/${ano}`;
-};
-
-
 
 
 const InformacaoColuna = ({ label, onClick }) => (
@@ -132,12 +115,11 @@ const InformacaoColuna = ({ label, onClick }) => (
 
 
 
-
+//-----------------COMPONENTE PRINCIPAL-------------------//
 
 export default function TabelaPontosControle({
   data,
   dataDados,
-  dadosAdicionais,
   isLoading,
   isError,
   pagina,
@@ -154,7 +136,6 @@ export default function TabelaPontosControle({
   const { limparTodosFiltros, totalFiltrosAtivos } = useFiltrosPontosControle();
   const tableWrapperRef = useRef(null);
   const instrumentos = getItens(data);
-  const instrumentosDadosAdicionais = getItens(dadosAdicionais);
   const total = data?.total ?? instrumentos.length;
   const paginaAtual = data?.pagina ?? pagina;
   const tamanhoAtual = data?.tamanho_pagina ?? tamanhoPagina;
@@ -234,7 +215,7 @@ export default function TabelaPontosControle({
           {dataDados && getItens(dataDados).map((item, idx) => (
               <span key={idx} className={styles.cardHeaderDataDadosItem}>
                 <strong>{formatarFonte(item.fonte)}:</strong>{' '}
-                {formatarData(item.data_dados)}
+                {formatDate(item.data_dados)}
               </span>
             ))}
         </div>
@@ -375,7 +356,7 @@ export default function TabelaPontosControle({
 
                 <tr className={styles.headerRow}>
                   <th className={styles.colPequena}>Nº Instrumento</th>
-                  <th className={styles.colMedia}>Ações</th>
+                  <th className={styles.colMedia}>Informações adicionais</th>
                   <th className={styles.colGigante}>Proponente</th>
                   <th className={styles.colGigante}>Municípios beneficiados</th>
                   <th className={styles.colMini}>UF</th>
@@ -383,8 +364,9 @@ export default function TabelaPontosControle({
                   <th className={styles.colMini}>Projeto aprovado</th>
                   <th className={styles.colMini}>Possui AIO</th>
                   <th className={styles.colMini}>Coordenação</th>
-                  <th className={styles.colGigante}>Ação</th>
+                  <th className={styles.colGigante}>Ação padronizada</th>
                   <th className={styles.colGrande}>Monitores</th>
+                  <th className={styles.colMini}>Ações</th>
                   <th className={styles.colGrande}><InformacaoColuna label="Vencimento Suspensivas" onClick={abrirInformacaoColuna} /></th>
                   <th className={styles.colGrande}><InformacaoColuna label="Emissão LAE" onClick={abrirInformacaoColuna} /></th>
                   <th className={styles.colGrande}><InformacaoColuna label="Início Processo Licitatório" onClick={abrirInformacaoColuna} /></th>
@@ -420,6 +402,7 @@ export default function TabelaPontosControle({
                   <th><FiltroColuna campo="coordenacao" label="Coordenação" /></th>
                   <th><FiltroColuna campo="acao" label="Ação" /></th>
                   <th><FiltroColuna campo="monitor" label="Monitores" /></th>
+                  <th></th>
                   <th><FiltroColuna campo="prazo_clausulas_suspensivas" label="Cláusulas Suspensivas" /></th>
                   <th><FiltroColuna campo="prazo_emissao_lae" label="Emissão LAE" /></th>
                   <th><FiltroColuna campo="prazo_inicio_licitacao" label="Início Processo Licitatório" /></th>
@@ -448,7 +431,6 @@ export default function TabelaPontosControle({
               <tbody>
                 {instrumentos.map((instrumento, index) => {
                   const nrInstrumento = instrumento.nr_instrumento;
-                  const dadosAdicionaisInstrumento = instrumentosDadosAdicionais.find((item) => String(item.nr_instrumento) === String(nrInstrumento));
                   const rowKey = String(nrInstrumento ?? `${instrumento.nr_proposta ?? 'sem-id'}-${index}`);
                   const isSelected = String(nrInstrumentoSelecionado) === String(nrInstrumento);
                   const isResumoAberto = resumoAberto === rowKey;
@@ -464,6 +446,7 @@ export default function TabelaPontosControle({
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className={styles.detailLink}
+                                title="Abrir no Transferegov"
                               >
                                 {instrumento.nr_instrumento}
                               </a>
@@ -477,20 +460,21 @@ export default function TabelaPontosControle({
                               className={styles.actionItem}
                               aria-expanded={isResumoAberto}
                               aria-label={isResumoAberto ? 'Recolher resumo' : 'Ver resumo'}
-                              title="Pré-visualizar informações principais"
+                              title="Visualizar informações adicionais"
                               onClick={(event) => toggleResumo(event, rowKey)}
                             >
-                              Resumo {isResumoAberto ? '−' : '+'}
+                              Info {isResumoAberto ? '−' : '+'}
                             </button>
 
                             <span className={styles.actionDivider} aria-hidden="true" />
 
-                            {dadosAdicionaisInstrumento?.cod_tci && (
+                            {instrumento?.cod_tci && (
                               <a 
-                                href={`https://saci.cidades.gov.br/contratos/${dadosAdicionaisInstrumento.cod_tci}`}
+                                href={`https://saci.cidades.gov.br/contratos/${instrumento.cod_tci}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className={styles.actionItem} 
+                                className={styles.actionItem}
+                                title="Abrir no Saci"
                               > 
                                 Saci 
                               </a>
@@ -511,7 +495,7 @@ export default function TabelaPontosControle({
                             <Phone size={13} className={styles.icone_phone} />
                           </button>
                         </td>
-                        <td className={styles.compactCell}>{emptyValue(instrumento.municipios_beneficiados)}</td>
+                        <td className={styles.colGigante}><span className={styles.truncateCell} title={emptyValue(instrumento.municipios_beneficiados)}>{emptyValue(instrumento.municipios_beneficiados)}</span></td>
                         <td className={styles.compactCell}>{emptyValue(instrumento.uf)}</td>
                         <td className={styles.compactCell}>{emptyValue(instrumento.carteira_ativa)}</td>
                         <td className={styles.compactCell}>{emptyValue(instrumento.projeto_aprovado)}</td>
@@ -519,6 +503,17 @@ export default function TabelaPontosControle({
                         <td className={styles.compactCell}>{emptyValue(instrumento.coordenacao)}</td>
                         <td className={styles.compactCell}>{emptyValue(instrumento.acao)}</td>
                         <td className={styles.compactCell}>{emptyValue(instrumento.monitor)}</td>
+                        <td className={styles.compactCell}>
+                          <button
+                            title="Ver ações realizadas"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              abrirJanelaContato?.(instrumento?.id_recebedor, instrumento?.proponente);
+                            }}
+                          >
+                            <ListChecks className={styles.checkAcoes}/>
+                          </button>
+                        </td>
                         <CelulaStatusPontoControle valor={instrumento.prazo_clausulas_suspensivas} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="prazo_clausulas_suspensivas"/>
                         <CelulaStatusPontoControle valor={instrumento.prazo_emissao_lae} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="prazo_emissao_lae"/>
                         <CelulaStatusPontoControle valor={instrumento.prazo_inicio_licitacao} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="prazo_inicio_licitacao"/>
@@ -543,30 +538,8 @@ export default function TabelaPontosControle({
                         
                       </tr>
 
-                      {isResumoAberto && (
-                        <tr className={styles.previewRow}>
-                          <td colSpan={8}>
-                            <dl className={styles.previewGrid}>
-                              <PreviewField label="Nº Proposta" value={dadosAdicionaisInstrumento?.nr_proposta} />
-                              <PreviewField label="Operação" value={dadosAdicionaisInstrumento?.operacao} />
-                              <PreviewField label="Cod. Saci" value={dadosAdicionaisInstrumento?.cod_tci} />
-                              <PreviewField label="Nº Seleção PAC" value={dadosAdicionaisInstrumento?.nr_proposta_selecao_pac} />
-                              <PreviewField label="Tipo" value={dadosAdicionaisInstrumento?.tipo_instrumento} />
-                              <PreviewField label="Ação orçamentária" value={dadosAdicionaisInstrumento?.acao_orcamentaria} />
-                              <PreviewField label="Componente" value={dadosAdicionaisInstrumento?.componente} />
-                              <PreviewField label="Vigência" value={formatDate(dadosAdicionaisInstrumento?.dia_fim_vigenc_conv)} />
-                              <PreviewField label="Situação do instrumento" value={dadosAdicionaisInstrumento?.situacao_contrato} />
-                              <PreviewField label="Situação da obra" value={dadosAdicionaisInstrumento?.situacao_obra} />
-                              <PreviewField label="Valor de Repasse" value={formatCurrency(dadosAdicionaisInstrumento?.valor_repasse)} />
-                              <PreviewField label="Valor Contrapartida" value={formatCurrency(dadosAdicionaisInstrumento?.valor_contrapartida)} />
-                              <PreviewField label="Valor empenhado" value={formatCurrency(dadosAdicionaisInstrumento?.valor_empenhado)} />
-                              <PreviewField label="Valor desembolsado" value={formatCurrency(dadosAdicionaisInstrumento?.valor_desembolsado)} />
-                              <PreviewField label="Valor desbloqueado" value={formatCurrency(dadosAdicionaisInstrumento?.valor_desbloqueado)} />
-                              <PreviewField label="Valor pago" value={formatCurrency(dadosAdicionaisInstrumento?.valor_pago)} />
-                            </dl>
-                          </td>
-                        </tr>
-                      )}
+                      {isResumoAberto && (<LinhaResumoInstrumento nrInstrumento={nrInstrumento} />)}
+
                     </Fragment>
                   );
                 })}
