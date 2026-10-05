@@ -56,3 +56,11 @@ export function formatPercentualPontos(value) {
     maximumFractionDigits: 2,
   })}%`
 }
+
+
+
+
+export const emptyValue = (value) => {
+  if (value === null || value === undefined || value === '') return '—';
+  return value;
+};
