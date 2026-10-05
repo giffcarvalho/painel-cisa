@@ -13,11 +13,10 @@
     z-index: 999;                         
 }
 
-
 .janela {
-    width: 800px;                          
+    width: 1100px;                          
     max-width: 90vw;                       
-    max-height: 95vh;
+    max-height: 90vh;
     display: flex;
     flex-direction: column;
     padding: 12px;
@@ -28,16 +27,14 @@
     animation: surgimentoSuave 0.2s ease-out;
 }
 
-
 .cabecalho_contato {
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #aaaaaa;
     padding-bottom: 8px;
-    margin-bottom: 15px;
+    margin-bottom: 8px;
 }
-
 
 .cabecalho_contato h4{
     font-size: 18px;
@@ -70,74 +67,111 @@
 .contato {
     display: flex;
     flex-direction: column;
-    
+}
+
+.cabecalho_colunas {
+    display: flex;
+    align-items: center;
+    gap: 6px;   
+    margin-bottom: 6px;
+    padding: 0;
+}
+
+.cabecalho_colunas span {
+    font-size: 12px;
+    font-weight: 600;
+    color: #00529e;
+    box-sizing: border-box;
+    padding: 0 10px;
+}
+
+.coluna_numero {
+    width: 16px;
+    text-align: center;
+    margin: 0;
+    flex-shrink: 0;
+    padding: 0;
+}
+
+.coluna_nome {
+    flex: 2.5;
+}
+
+.coluna_cargo {
+    flex: 2;
+}
+
+.coluna_telefone {
+    flex: 1.4;
+}
+
+.coluna_email {
+    flex: 3.5;
+}
+
+.coluna_observacao {
+    flex: 3;
 }
 
 .contato_caixa {
     display: flex;
-    flex-direction: column;
-    gap: 8px; /* Espaço vertical entre as linhas */
-    border-bottom: 1px solid #aaaaaa;
-    padding-bottom: 10px;
-    margin-bottom: 10px;
-    margin-top: 10px;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    width: 100%;
 }
 
 .contato_caixa p {
     font-size: 13px;
     color: #00529e;
-}
-
-/* Container de cada linha individual */
-.linha {
-    display: flex;
-    gap: 8px; /* Espaço horizontal entre os campos da mesma linha */
-    width: 100%;
+    margin: 0;
 }
 
 .contato input,
-.contato textarea {
+.contato textarea,
+.input_telefone {
     box-sizing: border-box;
     padding: 8px 12px;
     border: 1px solid #d0d0d0;
     border-radius: 5px;
     background-color: #ffffff;
     color: #333;
-    font-size: 13px;
+    font-size: 12.5px;
     font-family: inherit;
     outline: none;
+    height: 38px;
+    min-width: 0;
 }
-
-.contato input {
-    height: 35px;
-}
-
 
 .contato input:focus,
-.contato textarea:focus {
+.contato textarea:focus,
+.input_telefone:focus {
     border-color: #00529e;
 }
 
-/* Proporções da LINHA 1 */
-.campo_nome {
-    flex: 1.8;
-}
-
-.campo_cargo {
-    flex: 1.5;
-}
-
-.campo_telefone {
-    flex: 1;
-}
-
-/* Proporções da LINHA 2 */
-.campo_email {
-    flex: 1.33;
-}
-
 .campo_observacao {
-    flex: 2.0;
     resize: none;
     outline: none;
+}
+
+.acoes_formulario {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 4px;
+}
+
+.botao_salvar {
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    border: none;
+}
+
+.botao_salvar {
+    background-color: #0066cc;
+    color: white;
 }

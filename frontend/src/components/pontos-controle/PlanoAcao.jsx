@@ -194,7 +194,7 @@ export default function PlanoAcao({
             <form onSubmit={handleSubmit} className={estilos.janela}>
                 
                 <div className={estilos.cabecalho_plano}>
-                   <h4>Plano de Ação - Instrumento {nrInstrumento || '—'}</h4>
+                   <h4>Ações realizadas - Instrumento {nrInstrumento || '—'}</h4>
                     <button 
                         type="button"
                         className={estilos.botaoX}
@@ -235,7 +235,7 @@ export default function PlanoAcao({
 
 
                 <div className={estilos.pergunta}>
-                    <h3>Submeter situação à Coordenação?</h3>
+                    <h3>Deseja que o Coordenador avalie a situação?</h3>
                     <label className={estilos.label_radio}>
                         <input
                             type="radio"
@@ -260,7 +260,7 @@ export default function PlanoAcao({
 
 
                 <div className={estilos.pergunta}>
-                    <h3>Colocar em pauta de reunião com a mandatária?</h3>
+                    <h3>Foi realizado contato com a mandatária?</h3>
                     <label className={estilos.label_radio}>
                         <input
                             type="radio"
@@ -285,7 +285,7 @@ export default function PlanoAcao({
 
 
                 <div className={estilos.pergunta}>
-                    <h3>Foi realizado ou irá realizar contato com o proponente?</h3>
+                    <h3>Foi realizado contato com o ente recebedor?</h3>
                     <label className={estilos.label_radio}>
                         <input
                             type="radio"
@@ -313,14 +313,14 @@ export default function PlanoAcao({
                     className={estilos.texto_observacao}
                     rows="3"
                     maxLength={250}
-                    placeholder="Descrição das ações"
+                    placeholder="Descrição da ação realizada"
                     value={observacaoAcao}
                     onChange={alterarObservacaoAcao}
                 />
 
                 
                 <div className={estilos.prazo_acao}>
-                    <label htmlFor="prazoAcao">Gostaria de definir um prazo?</label>
+                    <label htmlFor="prazoAcao">Gostaria de definir um prazo para ser lembrado de retornar a esse Ponto?</label>
                     <input className={estilos.prazo_acao_campo}
                         type="date"
                         id="prazoAcao"
@@ -329,7 +329,7 @@ export default function PlanoAcao({
                     />
                 </div>
 
-
+                {/*}
                 <div className={estilos.cabecalho_status}>
                     <h4>Acompanhamento do Plano de Ação</h4>
                 </div>
@@ -399,7 +399,10 @@ export default function PlanoAcao({
                     value={observacaoStatusAcao}
                     onChange={alterarObservacaoStatusAcao}
                 />
-                
+                */}
+
+
+
                 <div className={estilos.acoes_formulario}>
                     {dadosExistentes?.usuario && (
                         <div className={estilos.ultima_alteracao}>
