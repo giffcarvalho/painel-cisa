@@ -1,5 +1,7 @@
 
 
+
+
 export const textosExplicativos = {
   'Vencimento Suspensivas': {
     titulo: 'Vencimento das Cláusulas Suspensivas',
