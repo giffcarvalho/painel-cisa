@@ -152,6 +152,9 @@ class PontosControleDadosAdicionaisItem(PontosControleBase):
     valor_desembolsado: float | None = None
     valor_desbloqueado: float | None = None
     valor_pago: float | None = None
+    percentual_fisico_informado: float | None = None
+    percentual_fisico_aferido: float | None = None
+    data_ultimo_bm: date | None = None
     
 
 # Acho que não há mais necessidade, pois agora os dados adicionais são puxados de um único instrumento de cada vez
@@ -258,4 +261,4 @@ class PlanoAcaoHistoricoItem(BaseModel):
 
 
 class PlanoAcaoHistorico(BaseModel):
-    data: List[PlanoAcaoHistoricoItem]
+    data: list[PlanoAcaoHistoricoItem]

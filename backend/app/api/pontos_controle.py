@@ -293,6 +293,10 @@ def _build_where(
                     WHERE
                         ui_f.nr_instrumento = mv.nr_instrumento
                         AND
+                        ui_f.ordem_prioridade = 1
+                        AND
+                        ui_f.ativo IS TRUE
+                        AND
                         u_f.nome ILIKE :{key}
                 )
                 """
@@ -619,6 +623,9 @@ async def get_filtros(
             JOIN
                 painel_dsr.tb_usuario u
                 ON u.id_usuario = ui.id_usuario
+            WHERE
+                ui.ordem_prioridade = 1
+                AND ui.ativo IS TRUE
         )
 
         SELECT
@@ -1281,7 +1288,10 @@ async def get_dados_adicionais(
             valor_empenhado,
             valor_desembolsado,
             valor_desbloqueado,
-            valor_pago
+            valor_pago,
+            percentual_fisico_informado,
+            percentual_fisico_aferido,
+            data_ultimo_bm
         FROM instrumento.vw_carteira_dsr
         WHERE nr_instrumento = :nr_instrumento
     """
