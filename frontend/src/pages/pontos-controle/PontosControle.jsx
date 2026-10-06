@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FiltrosPontosControleProvider } from '../../context/pontos-controle/filtrosContext';
 import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltrosPontosControle';
-import { useInstrumentosPontosControleQuery, useDadosAdicionaisPontosControleQuery, useBuscaPlanoAcaoQuery } from '../../hooks/usePontosControle';
+import { useInstrumentosPontosControleQuery, useBuscaPlanoAcaoQuery } from '../../hooks/usePontosControle';
 import TabelaPontosControle from '../../components/pontos-controle/TabelaPontosControle';
 import PlanoAcao from '@/components/pontos-controle/PlanoAcao';
 import ContatoRecebedor from '@/components/pontos-controle/ContatoRecebedor';
+import HistoricoAcao from '@/components/pontos-controle/HistoricoAcao';
 import estilos from './PontosControle.module.css';
 import pontosControleApi from '../../api/pontosControle';
 
@@ -26,6 +27,7 @@ function PontosControleContent() {
   const [dataDados, setDataDados] = useState(null);
   const [planoAcaoContexto, setPlanoAcaoContexto] = useState(null);
   const [contatoRecebedorContexto, setContatoRecebedorContexto] = useState(null);
+  const [historicoAcaoContexto, setHistoricoAcaoContexto] = useState(null);
 
   const { filtros } = useFiltrosPontosControle();
 
@@ -65,7 +67,16 @@ function PontosControleContent() {
     });
   };
 
+  const fecharJanelaHistoricoAcao = () => {
+    setHistoricoAcaoContexto(null);
+  };
 
+  const abrirJanelaHistoricoAcao = (nrInstrumento) => {
+        
+    setHistoricoAcaoContexto({
+      nrInstrumento
+    });
+  };
 
   //instrumentosQuery não é o array de instrumentos ainda. É o objeto de resultado gerenciado pelo useQuery
   //esse objeto é que é passado como props para a tabela
@@ -143,6 +154,7 @@ function PontosControleContent() {
           onSelectInstrumento={setNrInstrumentoSelecionado}
           abrirJanelaPlanoAcao={abrirJanelaPlanoAcao}
           abrirJanelaContato={abrirJanelaContato}
+          abrirJanelaHistoricoAcao={abrirJanelaHistoricoAcao}
         />
       </section>}
 
@@ -165,6 +177,15 @@ function PontosControleContent() {
           fecharJanelaContato={fecharJanelaContato}
           idRecebedor={contatoRecebedorContexto.idRecebedor}
           recebedor={contatoRecebedorContexto.recebedor}
+        />
+      )}
+
+
+      {historicoAcaoContexto && (
+        <HistoricoAcao
+          key={`${historicoAcaoContexto.nrInstrumento}`}
+          fecharJanelaHistoricoAcao={fecharJanelaHistoricoAcao}
+          nrInstrumento={historicoAcaoContexto.nrInstrumento}
         />
       )}
 
