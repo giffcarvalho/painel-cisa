@@ -240,7 +240,7 @@ export default function FiltroPainel ({ setPainelFiltros, layers, painelDetalhe,
                 </div>
 
                 <div className={estilos.areaBotoes}>
-                    {filtros.cod_municipio && (<button className={estilos.botaoDetalhe} onClick={() => setPainelDetalhe(!painelDetalhe)}>Detalhar Município</button>)} 
+                    {/* {filtros.cod_municipio && (<button className={estilos.botaoDetalhe} onClick={() => setPainelDetalhe(!painelDetalhe)}>Detalhar Município</button>)} */}
                     <button className={estilos.botaoLimpar} onClick={limparFiltros} >Limpar Filtros</button>
                 </div>
             </div>
