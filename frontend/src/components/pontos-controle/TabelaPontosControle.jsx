@@ -129,6 +129,7 @@ export default function TabelaPontosControle({
   nrInstrumentoSelecionado,
   abrirJanelaPlanoAcao,
   abrirJanelaContato,
+  abrirJanelaHistoricoAcao,
 }) {
   
   const [resumoAberto, setResumoAberto] = useState(null);
@@ -365,7 +366,7 @@ export default function TabelaPontosControle({
                   <th className={styles.colMini}>Possui AIO</th>
                   <th className={styles.colMini}>Coordenação</th>
                   <th className={styles.colGigante}>Ação padronizada</th>
-                  <th className={styles.colGrande}>Monitores</th>
+                  <th className={styles.colGigante}>Monitores</th>
                   <th className={styles.colMini}>Ações</th>
                   <th className={styles.colGrande}><InformacaoColuna label="Vencimento Suspensivas" onClick={abrirInformacaoColuna} /></th>
                   <th className={styles.colGrande}><InformacaoColuna label="Emissão LAE" onClick={abrirInformacaoColuna} /></th>
@@ -508,7 +509,7 @@ export default function TabelaPontosControle({
                             title="Ver ações realizadas"
                             onClick={(event) => {
                               event.stopPropagation();
-                              abrirJanelaContato?.(instrumento?.id_recebedor, instrumento?.proponente);
+                              abrirJanelaHistoricoAcao?.(instrumento?.nr_instrumento);
                             }}
                           >
                             <ListChecks className={styles.checkAcoes}/>
