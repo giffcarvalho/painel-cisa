@@ -50,6 +50,9 @@ export function LinhaResumoInstrumento({ nrInstrumento }) {
           <PreviewField label="Valor desembolsado" value={formatCurrency(dadosAdicionais?.valor_desembolsado)} />
           <PreviewField label="Valor desbloqueado" value={formatCurrency(dadosAdicionais?.valor_desbloqueado)} />
           <PreviewField label="Valor pago" value={formatCurrency(dadosAdicionais?.valor_pago)} />
+          <PreviewField label="% Físico informado" value={dadosAdicionais?.percentual_fisico_informado} />
+          <PreviewField label="% Físico aferido" value={dadosAdicionais?.percentual_fisico_aferido} />
+          <PreviewField label="Data últmio BM" value={formatDate(dadosAdicionais?.data_ultimo_bm)} />
         </dl>
       </td>
     </tr>
