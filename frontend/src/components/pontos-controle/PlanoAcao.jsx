@@ -5,6 +5,8 @@ import { enviarPlanoAcao } from "../../api/pontosControle";
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from "@/context/auth/useAuth";
 import { formatDatetime } from '../../utils/formatters';
+import { ajudaPergunta } from '../../utils/pontoControleUtils';
+
 
 
 
@@ -18,6 +20,8 @@ export default function PlanoAcao({
     const [indiceAtual, setIndiceAtual] = useState(0);
     const [modoCriacao, setModoCriacao] = useState(historicoExistente.length === 0);
     const dadosExibicao = !modoCriacao ? historicoExistente[indiceAtual] : null;
+    const [ajudaAberta, setAjudaAberta] = useState(null);
+  
     
     const [confirmacao, setConfirmacao] = useState(dadosExibicao?.confirmacao || "");
     const [coordenacao, setCoordenacao] = useState(dadosExibicao?.coordenacao || "");
@@ -30,6 +34,29 @@ export default function PlanoAcao({
     const [enviando, setEnviando] = useState(false);
     const queryClient = useQueryClient();
     const { isAuthenticated, openLoginModal } = useAuth();
+
+
+    const abrirAjuda = (chavePergunta) => {
+        setAjudaAberta(chavePergunta);
+    };    
+        
+
+    const fecharAjuda = () => {
+        setAjudaAberta(null);
+    };
+
+    // Fecha o modal de ajuda ao pressionar ESC
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+        if (e.key === "Escape" && ajudaAberta) {
+            fecharAjuda();
+        }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [ajudaAberta]);
+
+
 
     // Sincroniza os estados com o item do histórico selecionado ou limpa para criação
     useEffect(() => {
@@ -161,10 +188,44 @@ export default function PlanoAcao({
     };
 
 
-
+    const conteudoAjuda = ajudaAberta ? ajudaPergunta[ajudaAberta] : null;
 
     return (
         <div className={estilos.overlay_modal}>
+            
+
+            {conteudoAjuda && (
+                <div className={estilos.modal_ajuda_overlay} onClick={fecharAjuda}>
+                <div
+                    className={estilos.modal_ajuda_card}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className={estilos.modal_ajuda_cabecalho}>
+                    <h4>{conteudoAjuda.titulo}</h4>
+                    <button
+                        type="button"
+                        className={estilos.botaoX}
+                        onClick={fecharAjuda}
+                    >
+                        <X className={estilos.XFechar} />
+                    </button>
+                    </div>
+                    {Array.isArray(conteudoAjuda.explicacao) ? (
+                        conteudoAjuda.explicacao.map((paragrafo, index) => (
+                        <p key={index} className={estilos.modal_ajuda_texto}>
+                            {paragrafo}
+                        </p>
+                        ))
+                    ) : (
+                        <p className={estilos.modal_ajuda_texto}>
+                        {conteudoAjuda.explicacao}
+                        </p>
+                    )}
+                </div>
+                </div>
+            )}
+
+
             <form onSubmit={handleSubmit} className={estilos.janela}>
                 
                 {/* Cabeçalho */}
@@ -233,6 +294,18 @@ export default function PlanoAcao({
 
                 <div className={estilos.pergunta}>
                     <h3>Confirma status do Ponto de Controle?</h3>
+                    <button
+                        type="button"
+                        className={estilos.headerInfoButton}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            abrirAjuda("confirmacao");
+                        }}
+                        aria-label={"Abrir ajuda sobre esta pergunta"}
+                        title={"Abrir ajuda sobre esta pergunta"}
+                        >
+                        ?
+                    </button>  
                     <label className={`${estilos.label_radio} ${!modoCriacao ? estilos.disabled : ''}`}>
                         <input
                             type="radio"
@@ -259,6 +332,18 @@ export default function PlanoAcao({
 
                 <div className={estilos.pergunta}>
                     <h3>Deseja que o Coordenador avalie a situação?</h3>
+                    <button
+                        type="button"
+                        className={estilos.headerInfoButton}
+                        onClick={(e) => {
+                        e.stopPropagation();
+                        abrirAjuda("coordenacao");
+                        }}
+                        aria-label="Abrir ajuda sobre esta pergunta"
+                        title="Abrir ajuda sobre esta pergunta"
+                    >
+                        ?
+                    </button>
                     <label className={`${estilos.label_radio} ${!modoCriacao ? estilos.disabled : ''}`}>
                         <input
                             type="radio"
@@ -285,6 +370,18 @@ export default function PlanoAcao({
 
                 <div className={estilos.pergunta}>
                     <h3>Foi realizado contato com a mandatária?</h3>
+                    <button
+                        type="button"
+                        className={estilos.headerInfoButton}
+                        onClick={(e) => {
+                        e.stopPropagation();
+                        abrirAjuda("mandataria");
+                        }}
+                        aria-label="Abrir ajuda sobre esta pergunta"
+                        title="Abrir ajuda sobre esta pergunta"
+                    >
+                        ?
+                    </button>
                     <label className={`${estilos.label_radio} ${!modoCriacao ? estilos.disabled : ''}`}>
                         <input
                             type="radio"
@@ -311,6 +408,18 @@ export default function PlanoAcao({
 
                 <div className={estilos.pergunta}>
                     <h3>Foi realizado contato com o ente recebedor?</h3>
+                    <button
+                        type="button"
+                        className={estilos.headerInfoButton}
+                        onClick={(e) => {
+                        e.stopPropagation();
+                        abrirAjuda("proponente");
+                        }}
+                        aria-label="Abrir ajuda sobre esta pergunta"
+                        title="Abrir ajuda sobre esta pergunta"
+                    >
+                        ?
+                    </button>
                     <label className={`${estilos.label_radio} ${!modoCriacao ? estilos.disabled : ''}`}>
                         <input
                             type="radio"
@@ -356,6 +465,19 @@ export default function PlanoAcao({
                 {/* Campo de Data */}
                 <div className={estilos.prazo_pactuado}>
                     <label htmlFor="prazoPactuado">Foi pactuado algum prazo com o ente recebedor ou mandatária?</label>
+                    <button
+                        type="button"
+                        className={estilos.headerInfoButton}
+                        onClick={(e) => {
+                        e.stopPropagation();
+                        abrirAjuda("prazoPactuado");
+                        }}
+                        aria-label="Abrir ajuda sobre esta pergunta"
+                        title="Abrir ajuda sobre esta pergunta"
+                        style={{ marginLeft: "4px", marginRight: "auto" }}
+                    >
+                        ?
+                    </button>
                     <input 
                         className={estilos.prazo_pactuado_campo}
                         type="date"
