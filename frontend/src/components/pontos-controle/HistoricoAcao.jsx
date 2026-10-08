@@ -64,7 +64,7 @@ export default function HistoricoPlanosAcao({ nrInstrumento, fecharJanelaHistori
                     {/* 4. Lista de Planos de Ação */}
                     {!isLoading && !isError && listaPlanos.length > 0 && (
                         listaPlanos.map((plano) => (
-                            <div key={plano.id_plano_acao} className={estilos.card_plano}>
+                            <div key={plano.id_acao} className={estilos.card_plano}>
                                 {/* Topo do Card */}
                                 <div className={estilos.card_cabecalho}>
                                     <span className={estilos.ponto_controle_tag}>
@@ -99,18 +99,18 @@ export default function HistoricoPlanosAcao({ nrInstrumento, fecharJanelaHistori
                                 </div>
 
                                 {/* Observação / Descrição da Ação */}
-                                {plano.observacao_acao && (
+                                {plano.descricao_acao && (
                                     <div className={estilos.card_observacao}>
                                         <strong>Descrição da Ação:</strong>
-                                        <p>{plano.observacao_acao}</p>
+                                        <p>{plano.descricao_acao}</p>
                                     </div>
                                 )}
 
                                 {/* Rodapé do Card */}
                                 <div className={estilos.card_rodape}>
-                                    {plano.prazo_acao && (
+                                    {plano.prazo_pactuado && (
                                         <div className={estilos.prazo_alerta}>
-                                            <span>Prazo definido: <strong>{plano.prazo_acao}</strong></span>
+                                            <span>Prazo pactuado: <strong>{plano.prazo_pactuado}</strong></span>
                                         </div>
                                     )}
                                     {plano.usuario && (
