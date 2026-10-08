@@ -1,17 +1,18 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { House, Wallet, Map, Menu, Info, FileSearch, PackageSearch, ClipboardCheck } from 'lucide-react'
+import { House, Wallet, Map, Menu, Info, FileSearch, PackageSearch, ClipboardCheck, Flag } from 'lucide-react'
 
 export function Sidebar({ openOnClick = false }) {
   const [isOpen, setIsOpen] = useState(false)
 
   const navItems = [
     { to: '/', label: 'Menu Inicial', icon: House, exact: true },
-    { to: '/carteira-dsr', label: 'Carteira DSR', icon: Wallet, exact: false },
+    { to: '/carteira-dsr', label: 'Painel carteira DSR', icon: Wallet, exact: false },
     { to: '/mapa', label: 'Mapa Interativo', icon: Map, exact: false },
     { to: '/pesquisa-instrumento', label: 'Pesquisa Instrumento', icon: FileSearch, exact: false },
     { to: '/consulta-personalizada', label: 'Consulta Personalizada', icon: PackageSearch, exact: false },
     { to: '/revisao-instrumento', label: 'Revisão Instrumento', icon: ClipboardCheck, exact: false },
+    { to: '/pontos-controle', label: 'Pontos de Controle', icon: Flag, exact: false },
     { to: '/manual', label: 'Manual do Usuário', icon: Info, exact: false },
   ]
   
