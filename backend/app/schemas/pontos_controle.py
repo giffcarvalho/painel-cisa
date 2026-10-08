@@ -97,6 +97,7 @@ class PontosControleListaItem(PontosControleBase):
     coordenacao: str | None = None
     acao: str | None = None
     monitor: str | None = None
+    tem_acao: bool | None = False
     prazo_clausulas_suspensivas: str | None = None
     prazo_emissao_lae: str | None = None
     prazo_inicio_licitacao: str | None = None
@@ -167,19 +168,17 @@ class PontosControleDadosAdicionaisItem(PontosControleBase):
 class PlanoAcaoCreate(BaseModel):
     nr_instrumento: str
     ponto_controle: str
-    status_ponto_controle: Literal['Atenção', 'Alerta', 'Crítico', 'Vencido', 'Atrasada']
+    status_ponto_controle: Literal['Atenção', 'Alerta', 'Crítico', 'Vencido', 'Atrasada', 'OK', '-']
     confirmacao: Optional[Literal['Sim', 'Não']] = None
     coordenacao: Optional[Literal['Sim', 'Não']] = None
     mandataria: Optional[Literal['Sim', 'Não']] = None
     recebedor: Optional[Literal['Sim', 'Não']] = None
-    observacao_acao: Optional[str] = None
-    prazo_acao: Optional[date] = None
-    status_acao: Optional[Literal['A realizar', 'Em andamento', 'Aguardando retorno', 'Executada parcialmente', 'Concluída']] = None
-    observacao_status_acao: Optional[str] = None
+    descricao_acao: str
+    prazo_pactuado: Optional[date] = None
 
 
 class PlanoAcaoEnviadoResponse(BaseModel):
-    id_plano_acao: int
+    id_acao: int
     criado_em: datetime
     mensagem: str
 
@@ -195,10 +194,8 @@ class PlanoAcaoBuscaItem(BaseModel):
     coordenacao: str | None = None
     mandataria: str | None = None
     recebedor: str | None = None
-    observacao_acao: str | None = None
-    prazo_acao: date | None = None
-    status_acao: str | None = None
-    observacao_status_acao: str | None = None
+    descricao_acao: str
+    prazo_pactuado: date | None = None
     criado_em: datetime
 
 
@@ -244,7 +241,7 @@ class ContatoBusca(BaseModel):
 
 
 class PlanoAcaoHistoricoItem(BaseModel):
-    id_plano_acao: int
+    id_acao: int
     nr_instrumento: str
     usuario: Optional[str] = None
     ponto_controle: Optional[str] = None
@@ -252,11 +249,9 @@ class PlanoAcaoHistoricoItem(BaseModel):
     confirmacao: Optional[str] = None
     coordenacao: Optional[str] = None
     mandataria: Optional[str] = None
-    recebedor: Optional[str] = None
-    observacao_acao: Optional[str] = None
-    prazo_acao: Optional[date] = None
-    status_acao: Optional[str] = None
-    observacao_status_acao: Optional[str] = None
+    recebedor: str
+    descricao_acao: Optional[str] = None
+    prazo_pactuado: Optional[date] = None
     criado_em: Optional[datetime] = None
 
 

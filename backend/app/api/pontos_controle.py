@@ -1169,6 +1169,7 @@ async def get_instrumentos(
             mv.coordenacao,
             mv.acao,
             mv.monitor,
+            EXISTS (SELECT 1 FROM painel_dsr.tb_ponto_controle_acao a WHERE a.nr_instrumento = mv.nr_instrumento) AS tem_acao,
             mv.prazo_clausulas_suspensivas,
             mv.prazo_emissao_lae,
             mv.prazo_inicio_licitacao,
@@ -1332,7 +1333,7 @@ async def salvar_plano_acao(
         result = await db.execute(
             text(
                 """
-                INSERT INTO painel_dsr.tb_ponto_controle_plano_acao (
+                INSERT INTO painel_dsr.tb_ponto_controle_acao (
                     nr_instrumento,
                     id_usuario,
                     ponto_controle,
@@ -1341,10 +1342,8 @@ async def salvar_plano_acao(
                     coordenacao,
                     mandataria,
                     recebedor,
-                    observacao_acao,
-                    prazo_acao,
-                    status_acao,
-                    observacao_status_acao
+                    descricao_acao,
+                    prazo_pactuado
                 ) 
                 VALUES (
                     :nr_instrumento,
@@ -1355,13 +1354,11 @@ async def salvar_plano_acao(
                     :coordenacao,
                     :mandataria,
                     :recebedor,
-                    :observacao_acao,
-                    :prazo_acao,
-                    :status_acao,
-                    :observacao_status_acao
+                    :descricao_acao,
+                    :prazo_pactuado
                 )
                 RETURNING
-                    id_plano_acao,
+                    id_acao,
                     criado_em
                 """
             ),
@@ -1375,9 +1372,9 @@ async def salvar_plano_acao(
 
         
         return {
-            "id_plano_acao": linha_inserida["id_plano_acao"],
+            "id_acao": linha_inserida["id_acao"],
             "criado_em": linha_inserida["criado_em"],
-            "mensagem": "Plano de ação salvo com sucesso!",
+            "mensagem": "Ação salva com sucesso!",
         }
 
     except Exception as error:
@@ -1402,7 +1399,7 @@ async def get_plano_acao(response: Response, db: AsyncSession = Depends(get_db))
 
     sql = """
         SELECT
-            p.id_plano_acao,
+            p.id_acao,
             p.nr_instrumento,
             u.nome as usuario,
             p.ponto_controle,
@@ -1411,14 +1408,12 @@ async def get_plano_acao(response: Response, db: AsyncSession = Depends(get_db))
             p.coordenacao,
             p.mandataria,
             p.recebedor,
-            p.observacao_acao,
-            p.prazo_acao,
-            p.status_acao,
-            p.observacao_status_acao,
+            p.descricao_acao,
+            p.prazo_pactuado,
             p.criado_em
-        FROM painel_dsr.tb_ponto_controle_plano_acao p
+        FROM painel_dsr.tb_ponto_controle_acao p
         LEFT JOIN painel_dsr.tb_usuario u ON u.id_usuario = p.id_usuario
-        ORDER BY p.nr_instrumento, p.ponto_controle, p.id_plano_acao DESC
+        ORDER BY p.nr_instrumento, p.ponto_controle, p.id_acao DESC
     """
 
     result = await _execute_query(db, sql)
@@ -1564,7 +1559,7 @@ async def get_historico_acao_instrumento(
 
     sql = """
         SELECT
-            p.id_plano_acao,
+            p.id_acao,
             p.nr_instrumento,
             u.nome AS usuario,
             p.ponto_controle,
@@ -1573,15 +1568,13 @@ async def get_historico_acao_instrumento(
             p.coordenacao,
             p.mandataria,
             p.recebedor,
-            p.observacao_acao,
-            p.prazo_acao,
-            p.status_acao,
-            p.observacao_status_acao,
+            p.descricao_acao,
+            p.prazo_pactuado,
             p.criado_em
-        FROM painel_dsr.tb_ponto_controle_plano_acao p
+        FROM painel_dsr.tb_ponto_controle_acao p
         LEFT JOIN painel_dsr.tb_usuario u ON u.id_usuario = p.id_usuario
         WHERE p.nr_instrumento = :nr_instrumento
-        ORDER BY p.id_plano_acao DESC
+        ORDER BY p.id_acao DESC
     """
 
     result = await _execute_query(db, sql, {"nr_instrumento": nr_instrumento})
