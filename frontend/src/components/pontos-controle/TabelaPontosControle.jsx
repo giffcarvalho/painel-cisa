@@ -5,7 +5,7 @@ import styles from './TabelaPontosControle.module.css';
 import FiltroColuna from './FiltrosPontosControle';
 import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltrosPontosControle';
 import { useBuscaPlanoAcaoQuery } from "../../hooks/usePontosControle";
-import { FormInput, SquarePen, Phone, ListChecks } from "lucide-react";
+import { Ellipsis, SquarePen, Phone, ListChecks } from "lucide-react";
 import { LinhaResumoInstrumento } from './LinhaResumoInstrumento';
 
 
@@ -49,6 +49,10 @@ const classeStatusPontoControle = (valor) => {
       return styles.statusVencido;
     case 'Atrasada':
       return styles.statusAlerta;
+    case 'OK':
+      return styles.statusOk;
+    case '-':
+      return styles.statusTraco;
     default:
       return '';
   }
@@ -62,7 +66,7 @@ const classeStatusPontoControle = (valor) => {
 const CelulaStatusPontoControle = ({ valor, abrirJanelaPlanoAcao, nrInstrumento, campo }) => {
   
   //Define os status que devem possui o botão para preencher o plano de ação
-  const status_com_plano_acao = ['Atenção', 'Alerta', 'Crítico', 'Vencido', 'Atrasada'];
+  const status_com_plano_acao = ['Atenção', 'Alerta', 'Crítico', 'Vencido', 'Atrasada', 'OK', '-'];
   const { data: planoAcaoData } = useBuscaPlanoAcaoQuery();
   
   const temPlanoAcao = planoAcaoData?.data?.some(
@@ -86,7 +90,7 @@ const CelulaStatusPontoControle = ({ valor, abrirJanelaPlanoAcao, nrInstrumento,
               abrirJanelaPlanoAcao?.(nrInstrumento, campo, valor);
             }}
           >
-            {temPlanoAcao ? <SquarePen size={20} /> : <FormInput size={20} />}
+            {temPlanoAcao ? <SquarePen size={20} /> : <Ellipsis size={15} />}
           </button>
         )}
       </div>
@@ -435,7 +439,7 @@ export default function TabelaPontosControle({
                   const rowKey = String(nrInstrumento ?? `${instrumento.nr_proposta ?? 'sem-id'}-${index}`);
                   const isSelected = String(nrInstrumentoSelecionado) === String(nrInstrumento);
                   const isResumoAberto = resumoAberto === rowKey;
-                  const temContato = instrumento?.tem_contato;
+                  
 
                   return (
                     <Fragment key={rowKey}>
@@ -506,13 +510,15 @@ export default function TabelaPontosControle({
                         <td className={styles.compactCell}>{emptyValue(instrumento.monitor)}</td>
                         <td className={styles.compactCell}>
                           <button
+                            type="button"
+                            className={`${styles.botaoAcao} ${instrumento?.tem_acao ? styles.comAcao : styles.semAcao}`}
                             title="Ver ações realizadas"
                             onClick={(event) => {
                               event.stopPropagation();
                               abrirJanelaHistoricoAcao?.(instrumento?.nr_instrumento);
                             }}
                           >
-                            <ListChecks className={styles.checkAcoes}/>
+                            <ListChecks size={18}/>
                           </button>
                         </td>
                         <CelulaStatusPontoControle valor={instrumento.prazo_clausulas_suspensivas} abrirJanelaPlanoAcao={abrirJanelaPlanoAcao} nrInstrumento={instrumento.nr_instrumento} campo="prazo_clausulas_suspensivas"/>

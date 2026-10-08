@@ -200,12 +200,20 @@
   outline-offset: 2px;
 }
 
+.botaoAcao {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
 
+.comAcao {
+  color: #0066cc;
+}
 
-.checkAcoes {
-    width: 18px;
-    height: 18px;
-    color: #00529e;
+.semAcao {
+  color: #8c8c8c;
 }
 
 
@@ -414,6 +422,18 @@
 .statusVencido {
   background-color: #fecaca;
   color: #7f1d1d;
+}
+
+/* Estilo de status OK */
+.statusOk {
+  background-color: #ffffff;
+  color: #525151;
+}
+
+/* Estilo de status '-' */
+.statusTraco {
+  background-color: #ffffff;
+  color: #8b8b8b;
 }
 
 /* Botão para criar/editar Plano de Ação */
