@@ -23,10 +23,9 @@ export default function PlanoAcao({
     const [coordenacao, setCoordenacao] = useState(dadosExibicao?.coordenacao || "");
     const [mandataria, setMandataria] = useState(dadosExibicao?.mandataria || "");
     const [proponente, setProponente] = useState(dadosExibicao?.recebedor || "");
-    const [observacaoAcao, setObservacaoAcao] = useState(dadosExibicao?.observacao_acao || "");
-    const [prazoAcao, setPrazoAcao] = useState(dadosExibicao?.prazo_acao || "");
-    const [statusAcao, setStatusAcao] = useState(dadosExibicao?.status_acao || "");
-    const [observacaoStatusAcao, setObservacaoStatusAcao] = useState(dadosExibicao?.observacao_status_acao || "");
+    const [descricaoAcao, setDescricaoAcao] = useState(dadosExibicao?.descricao_acao || "");
+    const [prazoPactuado, setPrazoPactuado] = useState(dadosExibicao?.prazo_pactuado || "");
+    
     
     const [enviando, setEnviando] = useState(false);
     const queryClient = useQueryClient();
@@ -39,10 +38,8 @@ export default function PlanoAcao({
             setCoordenacao(dadosExibicao.coordenacao || "");
             setMandataria(dadosExibicao.mandataria || "");
             setProponente(dadosExibicao.recebedor || "");
-            setObservacaoAcao(dadosExibicao.observacao_acao || "");
-            setPrazoAcao(dadosExibicao.prazo_acao || "");
-            setStatusAcao(dadosExibicao.status_acao || "");
-            setObservacaoStatusAcao(dadosExibicao.observacao_status_acao || "");
+            setDescricaoAcao(dadosExibicao.descricao_acao || "");
+            setPrazoPactuado(dadosExibicao.prazo_pactuado || "");
         } else if (modoCriacao) {
             limparCampos();
         }
@@ -54,10 +51,8 @@ export default function PlanoAcao({
         setCoordenacao("");
         setMandataria("");
         setProponente("");
-        setObservacaoAcao("");
-        setPrazoAcao("");
-        setStatusAcao("");
-        setObservacaoStatusAcao("");
+        setDescricaoAcao("");
+        setPrazoPactuado("");
     };
 
 
@@ -82,21 +77,10 @@ export default function PlanoAcao({
     };
 
 
+    // Validação específica para o campo 'observacaoAcao'
+    const descricaoAcaoValida = descricaoAcao.trim().length >= 30;
 
-
-    // Variável criada para permitir testar se pelo menos um campo editavel foi preenchido.
-    // Ela é usada para bloquear o envio de formulário totalmente vazio
-    const possuiPreenchimento = [
-        confirmacao,
-        coordenacao,
-        mandataria,
-        proponente,
-        observacaoAcao,
-        prazoAcao,
-        statusAcao,
-        observacaoStatusAcao,
-    ].some((valor) => valor !== "" && valor !== null && valor !== undefined);
-    
+       
 
     // Comparação para saber se HOUVE alguma alteração em relação aos dados salvos originalmente
     const houveAlteracao = 
@@ -104,13 +88,11 @@ export default function PlanoAcao({
         coordenacao !== (dadosExibicao?.coordenacao || "") ||
         mandataria !== (dadosExibicao?.mandataria || "") ||
         proponente !== (dadosExibicao?.recebedor || "") ||
-        observacaoAcao !== (dadosExibicao?.observacao_acao || "") ||
-        prazoAcao !== (dadosExibicao?.prazo_acao || "") ||
-        statusAcao !== (dadosExibicao?.status_acao || "") ||
-        observacaoStatusAcao !== (dadosExibicao?.observacao_status_acao || "");
+        descricaoAcao !== (dadosExibicao?.descricao_acao || "") ||
+        prazoPactuado !== (dadosExibicao?.prazo_pactuado || "")
 
-    // O botão só estará liberado se tiver preenchimento E se tiver havido alteração
-    const podeSalvar = modoCriacao && isAuthenticated && possuiPreenchimento;
+    // O botão só estará liberado se tiver preenchimento e se tiver havido alteração
+    const podeSalvar = modoCriacao && descricaoAcaoValida;
     
     
 
@@ -130,9 +112,9 @@ export default function PlanoAcao({
             return;
         }
 
-        // Se nenhum campo foi preenchido, bloqueia o envio
-        if (!possuiPreenchimento) {
-            alert("Preencha ao menos um campo do plano de ação antes de enviar.");
+        // Validação de obrigatoriedade e tamanho mínimo
+        if (!descricaoAcaoValida) {
+            alert("A descrição da ação é obrigatória e deve ter no mínimo 30 caracteres.");
             return;
         }
 
@@ -151,16 +133,13 @@ export default function PlanoAcao({
             coordenacao: coordenacao || null,
             mandataria: mandataria || null,
             recebedor: proponente || null,
-            observacao_acao: observacaoAcao || null,
-            prazo_acao: prazoAcao || null,
-            status_acao: statusAcao || null,
-            observacao_status_acao: observacaoStatusAcao || null,
+            descricao_acao: descricaoAcao || null,
+            prazo_pactuado: prazoPactuado || null,
             };
 
         try {
             setEnviando(true);
             const resposta = await enviarPlanoAcao(dadosFormulario);
-            console.log("Plano de ação salvo com sucesso:", resposta);
             queryClient.invalidateQueries({ queryKey: ['pontos-controle', 'plano_acao'] });
             fecharJanelaPlanoAcao();
         
@@ -174,9 +153,10 @@ export default function PlanoAcao({
     };
 
     const obterTextoTooltip = () => {
-        if (!modoCriacao) return "Clique em 'Novo Plano' para cadastrar um novo registro";
-        if (!isAuthenticated) return "Faça login para salvar o plano de ação";
-        if (!possuiPreenchimento) return "Preencha ao menos um campo para salvar";
+        if (!modoCriacao) return "Clique em 'Nova Ação' para cadastrar um novo registro";
+        if (!descricaoAcaoValida) return "A descrição da ação é obrigatória";
+        if (!isAuthenticated) return "Você precisará fazer login para concluir o salvamento";
+        
         return "";
     };
 
@@ -356,25 +336,32 @@ export default function PlanoAcao({
                 </div>
 
                 {/* Textarea */}
-                <textarea
-                    className={estilos.texto_observacao}
-                    rows="3"
-                    maxLength={250}
-                    placeholder="Descrição da ação realizada"
-                    value={observacaoAcao}
-                    onChange={(e) => setObservacaoAcao(e.target.value)}
-                    disabled={!modoCriacao}
-                />
+                <div>
+                    <textarea
+                        className={estilos.texto_descricao}
+                        rows="3"
+                        maxLength={250}
+                        placeholder="Descrição da ação realizada (mínimo 30 caracteres) *"
+                        value={descricaoAcao}
+                        onChange={(e) => setDescricaoAcao(e.target.value)}
+                        disabled={!modoCriacao}
+                    />
+                    {modoCriacao && (
+                        <span className={estilos.mensagem_erro_campo}>
+                            ({descricaoAcao.trim().length}/250)
+                        </span>
+                    )}
+                </div>
 
                 {/* Campo de Data */}
-                <div className={estilos.prazo_acao}>
-                    <label htmlFor="prazoAcao">Gostaria de definir um prazo para ser lembrado de retornar a esse Ponto?</label>
+                <div className={estilos.prazo_pactuado}>
+                    <label htmlFor="prazoPactuado">Foi pactuado algum prazo com o ente recebedor ou mandatária?</label>
                     <input 
-                        className={estilos.prazo_acao_campo}
+                        className={estilos.prazo_pactuado_campo}
                         type="date"
                         id="prazoAcao"
-                        value={prazoAcao}
-                        onChange={(e) => setPrazoAcao(e.target.value)}
+                        value={prazoPactuado}
+                        onChange={(e) => setPrazoPactuado(e.target.value)}
                         disabled={!modoCriacao}
                     />
                 </div>

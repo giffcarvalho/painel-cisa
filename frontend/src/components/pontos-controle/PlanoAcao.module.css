@@ -116,7 +116,7 @@
 }
 
 
-.texto_observacao {
+.texto_descricao {
     width: 100%;
     box-sizing: border-box;
     padding: 8px;
@@ -131,8 +131,13 @@
     outline: none;
 }
 
+.mensagem_erro_campo {
+    font-size: 11px;
+    font-family: inherit;
+    margin-left: 6px;
+}
 
-.prazo_acao {
+.prazo_pactuado {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -141,7 +146,7 @@
 }
 
 
-.prazo_acao_campo {
+.prazo_pactuado_campo {
     font-family: inherit;
     font-size: 13px;
     padding: 4px 8px;
