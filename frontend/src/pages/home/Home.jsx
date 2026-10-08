@@ -6,7 +6,7 @@ import marcaMcid from '../../assets/marca-mcid-atz.png'
 
 export default function Home() {
   return (
-    <div className="relative flex flex-col min-h-screen bg-[#FAFAFA] px-6 py-8 lg:py-14 overflow-hidden font-sans">
+    <div className="relative flex flex-col min-h-screen bg-[#FAFAFA] px-6 py-6 lg:py-10 overflow-hidden font-sans">
       
       <div className={styles.heroBackground} />
       
@@ -20,44 +20,44 @@ export default function Home() {
         <AuthMenu />
       </div>
 
-      <div className="relative z-10 w-full max-w-[1280px] mx-auto flex lg:-translate-x-8 xl:-translate-x-14 2xl:-translate-x-20">
+      
+      <div className="relative z-10 w-full max-w-[1180px] mr-auto px-6 lg:pl-30 xl:pl-30 flex flex-col">
         
-        <div className="flex flex-col w-full max-w-[550px] xl:max-w-[600px]">
+        <header className="flex flex-col items-start max-w-[600px]">
+          <div className={styles.badgeLabel}>
+            <Activity className="w-3.5 h-3.5 text-cisa-primary" />
+            <span>Painel de Informações</span>
+          </div>
           
-          <header className="flex flex-col items-start">
-            <div className={styles.badgeLabel}>
-              <Activity className="w-3.5 h-3.5 text-cisa-primary" />
-              <span>Painel de Informações</span>
-            </div>
+          <h1 className={styles.title}>
+            Departamento de Saneamento Rural <br />
+            <span className="text-gray-400 font-medium tracking-normal">& de Pequenos Municípios</span>
+          </h1>
+        </header>
+
+        <div className="mt-20 flex flex-col w-full">
+          <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1 pl-2">
+            Módulos
+          </h2>
+
+          <p className="text-[12px] text-gray-400 font-bold mb-4 pl-2">
+            Selecione a ferramenta desejada:
+          </p>
+
+          {/* GRID EM 2 COLUNAS */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-14 gap-y-4">
             
-            <h1 className={styles.title}>
-              Departamento de Saneamento Rural <br />
-              <span className="text-gray-400 font-medium tracking-normal">& de Pequenos Municípios</span>
-            </h1>
-
-          </header>
-
-          <div className="mt-12 flex flex-col w-full">
-            <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4 pl-2">
-              Módulos Analíticos
-            </h2>
-
-            <p className="text-[12px] text-gray-400 font-bold mb-4 pl-2">
-              Selecione a ferramenta desejada:
-            </p>
-
-            <div className="flex flex-col gap-1">
-              
-              {/* Item 1: Carteira DSR */}
+            {/* Item 1: Carteira DSR */}
+            <div className="flex flex-col justify-between">
               <Link to="/carteira-dsr" className={`group ${styles.editorialRow}`}>
-                <div className="flex items-center gap-5">
+                <div className="flex items-center gap-4">
                   <div className={styles.iconWrapperPrimary}>
                     <Wallet className="w-[18px] h-[18px] text-gray-600 group-hover:text-gray-900 transition-colors" />
                   </div>
                   <div className="flex flex-col">
-                    <span className={styles.rowTitle}>Carteira DSR</span>
+                    <span className={styles.rowTitle}>Painel da carteira DSR</span>
                     <span className={styles.rowDesc}>
-                      Visão analítica e financeira dos repasses e status das obras.
+                      Visão gerencial dos instrumentos de repasse.
                     </span>
                   </div>
                 </div>
@@ -67,19 +67,20 @@ export default function Home() {
                   <div className={styles.arrowBottom}></div>
                 </div>
               </Link>
+              <div className="h-px w-auto ml-18 mr-28 bg-black/[0.06] my-1 rounded-full" />
+            </div>
 
-              <div className="h-px w-5/12 ml-[76px] bg-black/[0.06] my-0.5 rounded-full" />
-
-              {/* Item 2: Mapa Interativo */}
+            {/* Item 2: Mapa Interativo */}
+            <div className="flex flex-col justify-between">
               <Link to="/mapa" className={`group ${styles.editorialRow}`}>
-                <div className="flex items-center gap-5">
+                <div className="flex items-center gap-4">
                   <div className={styles.iconWrapperSecondary}>
                     <Map className="w-[18px] h-[18px] text-gray-600 group-hover:text-gray-900 transition-colors" />
                   </div>
                   <div className="flex flex-col">
                     <span className={styles.rowTitle}>Mapa Interativo</span>
                     <span className={styles.rowDesc}>
-                      Visão geoespacial para análise de investimentos por localidade.
+                      Visão geoespacial das principais informações do DSR.
                     </span>
                   </div>
                 </div>
@@ -89,19 +90,20 @@ export default function Home() {
                   <div className={styles.arrowBottom}></div>
                 </div>
               </Link>
+              <div className="h-px w-auto ml-18 mr-28 bg-black/[0.06] my-1 rounded-full" />
+            </div>
 
-              <div className="h-px w-5/12 ml-[76px] bg-black/[0.06] my-0.5 rounded-full" />
-
-              {/* Item 3: Pesquisa Instrumento */}
+            {/* Item 3: Pesquisa Instrumento */}
+            <div className="flex flex-col justify-between">
               <Link to="/pesquisa-instrumento" className={`group ${styles.editorialRow}`}>
-                <div className="flex items-center gap-5">
+                <div className="flex items-center gap-4">
                   <div className={styles.iconWrapperSecondary}>
                     <FileSearch className="w-[18px] h-[18px] text-gray-600 group-hover:text-gray-900 transition-colors" />
                   </div>
                   <div className="flex flex-col">
                     <span className={styles.rowTitle}>Pesquisa Instrumento</span>
                     <span className={styles.rowDesc}>
-                      Consulte instrumentos, propostas, valores e situação de execução.
+                      Consulte informações resumidas de um instrumento de repasse.
                     </span>
                   </div>
                 </div>
@@ -111,19 +113,20 @@ export default function Home() {
                   <div className={styles.arrowBottom}></div>
                 </div>
               </Link>
+              <div className="h-px w-auto ml-18 mr-28 bg-black/[0.06] my-1 rounded-full" />
+            </div>
 
-              <div className="h-px w-5/12 ml-[76px] bg-black/[0.06] my-0.5 rounded-full" />
-
-              {/* Item 4: Consulta Personalizada */}
+            {/* Item 4: Consulta Personalizada */}
+            <div className="flex flex-col justify-between">
               <Link to="/consulta-personalizada" className={`group ${styles.editorialRow}`}>
-                <div className="flex items-center gap-5">
+                <div className="flex items-center gap-4">
                   <div className={styles.iconWrapperSecondary}>
                     <PackageSearch className="w-[18px] h-[18px] text-gray-600 group-hover:text-gray-900 transition-colors" />
                   </div>
                   <div className="flex flex-col">
                     <span className={styles.rowTitle}>Consulta Personalizada</span>
                     <span className={styles.rowDesc}>
-                      Monte consultas personalizadas a partir das bases do Painel DSR.
+                      Faça downloads personalizados das bases do Painel DSR.
                     </span>
                   </div>
                 </div>
@@ -133,19 +136,20 @@ export default function Home() {
                   <div className={styles.arrowBottom}></div>
                 </div>
               </Link>
+              <div className="h-px w-auto ml-18 mr-28 bg-black/[0.06] my-1 rounded-full" />
+            </div>
 
-              <div className="h-px w-5/12 ml-[76px] bg-black/[0.06] my-0.5 rounded-full" />
-
-              {/* Item 5: Consulta Personalizada*/}
+            {/* Item 5: Revisão Instrumento */}
+            <div className="flex flex-col justify-between">
               <Link to="/revisao-instrumento" className={`group ${styles.editorialRow}`}>
-                <div className="flex items-center gap-5">
+                <div className="flex items-center gap-4">
                   <div className={styles.iconWrapperSecondary}>
                     <ClipboardCheck className="w-[18px] h-[18px] text-gray-600 group-hover:text-gray-900 transition-colors" />
                   </div>
                   <div className="flex flex-col">
                     <span className={styles.rowTitle}>Revisão Instrumento</span>
                     <span className={styles.rowDesc}>
-                      Registre ajustes por instrumento.
+                      Registre análise e realize ajustes das informações cadastrais.
                     </span>
                   </div>
                 </div>
@@ -155,12 +159,36 @@ export default function Home() {
                   <div className={styles.arrowBottom}></div>
                 </div>
               </Link>
+              <div className="h-px w-auto ml-18 mr-28 bg-black/[0.06] my-1 rounded-full" />
+            </div>
 
-              <div className="h-px w-5/12 ml-[76px] bg-black/[0.06] my-0.5 rounded-full" />
+            {/* Item 6: Pontos de Controle */}
+            <div className="flex flex-col justify-between">
+              <Link to="/pontos-controle" className={`group ${styles.editorialRow}`}>
+                <div className="flex items-center gap-4">
+                  <div className={styles.iconWrapperSecondary}>
+                    <ClipboardCheck className="w-[18px] h-[18px] text-gray-600 group-hover:text-gray-900 transition-colors" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className={styles.rowTitle}>Pontos de Controle</span>
+                    <span className={styles.rowDesc}>
+                      Visualize a situação dos Pontos de Controle e registre providências.
+                    </span>
+                  </div>
+                </div>
 
-              {/* Item 6: Manual do Usuário */}
+                <div className={styles.customArrow}>
+                  <div className={styles.arrowTop}></div>
+                  <div className={styles.arrowBottom}></div>
+                </div>
+              </Link>
+              <div className="h-px w-auto ml-18 mr-28 bg-black/[0.06] my-1 rounded-full" />
+            </div>
+
+            {/* Item 7: Manual do Usuário */}
+            <div className="flex flex-col justify-between">
               <Link to="/manual" className={`group ${styles.editorialRow}`}>
-                <div className="flex items-center gap-5">
+                <div className="flex items-center gap-4">
                   <div className={styles.iconWrapperSecondary}>
                     <Info className="w-[18px] h-[18px] text-gray-600 group-hover:text-gray-900 transition-colors" />
                   </div>
@@ -177,24 +205,29 @@ export default function Home() {
                   <div className={styles.arrowBottom}></div>
                 </div>
               </Link>
-
-              <div className="h-px w-full bg-gradient-to-r from-gray-200/60 to-transparent my-4" />
-
-              {/* Itens Futuros */}
-              <div className="flex flex-col gap-2 pl-2">
-                <div className="flex items-center justify-between py-2 opacity-50 cursor-not-allowed">
-                  <div className="flex items-center gap-4">
-                    <Sprout className="w-4 h-4 text-gray-400" />
-                    <span className="text-[14px] font-medium text-gray-500">Saneamento Rural</span>
-                  </div>
-                  <span className={styles.badgeSoon}>Em breve</span>
-                </div>
-              </div>
-
+              <div className="h-px w-auto ml-18 mr-28 bg-black/[0.06] my-1 rounded-full" />
             </div>
-          </div>
 
+            {/* Itens Futuros (Em breve) */}
+            <div className="flex flex-col justify-between">
+              <div className="flex items-center justify-between p-3 opacity-50 cursor-not-allowed">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-gray-100 rounded-xl">
+                    <Sprout className="w-[18px] h-[18px] text-gray-400" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[15px] font-semibold text-gray-500">Saneamento Rural</span>
+                    <span className="text-[13px] text-gray-400">Módulo em desenvolvimento.</span>
+                  </div>
+                </div>
+                <span className={styles.badgeSoon}>Em breve</span>
+              </div>
+              <div className="h-px w-auto ml-18 mr-28 bg-black/[0.06] my-1 rounded-full" />
+            </div>
+
+          </div>
         </div>
+
       </div>
     </div>
   )

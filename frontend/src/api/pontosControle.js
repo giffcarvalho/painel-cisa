@@ -100,13 +100,62 @@ export const getDataDados = async () => {
 };
 
 
-/*Dados adicionais dos intrumentos, que virão da view da Carteira e não do Monitoramento*/
-export const getDadosAdicionais = async () => {
+//Dados adicionais dos intrumentos, que virão da view da Carteira e não do Monitoramento
+export const getDadosAdicionais = async (nrInstrumento) => {
   
-  const { data } = await api.get('/pontos-controle/dados_adicionais');
+  const { data } = await api.get(`/pontos-controle/dados_adicionais/${nrInstrumento}`);
 
   return data;
 };
+
+
+//Envio do formulário do plano de ação para o backend
+export async function enviarPlanoAcao(dadosFormulario) {
+  
+  const res = await api.post("/pontos-controle/envio_plano_acao", dadosFormulario);
+
+  return res.data;
+}
+
+
+//Busca os planos de ação já salvos no banco
+export async function getPlanoAcao() {
+  
+  const res = await api.get("/pontos-controle/busca_plano_acao");
+  
+  return res.data;
+}
+
+
+
+//Envio do formulário dos contatos para o backend
+export async function enviarContato(contatosParaEnviar) {
+  
+  const res = await api.post("/pontos-controle/envio_contato", {data: contatosParaEnviar});
+
+  return res.data;
+}
+
+
+
+//Busca os contatos já salvos no banco
+export async function getContato(idRecebedor) {
+  
+  const res = await api.get("/pontos-controle/busca_contato", {
+    params: { id_recebedor: idRecebedor }
+  });
+  
+  return res.data;
+}
+
+
+export const getHistoricoAcao = async (nrInstrumento) => {
+  
+  const { data } = await api.get(`/pontos-controle/busca_historico_acao/${nrInstrumento}`);
+
+  return data;
+};
+
 
 const pontosControleApi = {
   getFiltros,
@@ -114,6 +163,11 @@ const pontosControleApi = {
   getInstrumentos,
   getDataDados,
   getDadosAdicionais,
+  enviarPlanoAcao,
+  getPlanoAcao,
+  enviarContato,
+  getContato,
+  getHistoricoAcao,
 };
 
 export default pontosControleApi;

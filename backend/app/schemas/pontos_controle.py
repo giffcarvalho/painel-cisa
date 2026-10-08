@@ -1,8 +1,8 @@
 """Contratos da Pesquisa por Instrumento"""
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal, Optional
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -84,7 +84,10 @@ class PontosControleBuscaFiltroResponse(BaseModel):
 
 class PontosControleListaItem(PontosControleBase):
     nr_instrumento: str | None = None
+    cod_tci: str | None = None
+    id_recebedor: int | None = None
     proponente: str | None = None
+    tem_contato: bool | None = False
     municipios_beneficiados: str | None = None
     uf: str | None = None
     link_transferegov: str | None = None
@@ -94,6 +97,7 @@ class PontosControleListaItem(PontosControleBase):
     coordenacao: str | None = None
     acao: str | None = None
     monitor: str | None = None
+    tem_acao: bool | None = False
     prazo_clausulas_suspensivas: str | None = None
     prazo_emissao_lae: str | None = None
     prazo_inicio_licitacao: str | None = None
@@ -149,8 +153,107 @@ class PontosControleDadosAdicionaisItem(PontosControleBase):
     valor_desembolsado: float | None = None
     valor_desbloqueado: float | None = None
     valor_pago: float | None = None
+    percentual_fisico_informado: float | None = None
+    percentual_fisico_aferido: float | None = None
+    data_ultimo_bm: date | None = None
     
 
+# Acho que não há mais necessidade, pois agora os dados adicionais são puxados de um único instrumento de cada vez
+#class PontosControleDadosAdicionais(BaseModel):
+#    data: list[PontosControleDadosAdicionaisItem]
 
-class PontosControleDadosAdicionais(BaseModel):
-    data: list[PontosControleDadosAdicionaisItem]
+
+
+
+class PlanoAcaoCreate(BaseModel):
+    nr_instrumento: str
+    ponto_controle: str
+    status_ponto_controle: Literal['Atenção', 'Alerta', 'Crítico', 'Vencido', 'Atrasada', 'OK', '-']
+    confirmacao: Optional[Literal['Sim', 'Não']] = None
+    coordenacao: Optional[Literal['Sim', 'Não']] = None
+    mandataria: Optional[Literal['Sim', 'Não']] = None
+    recebedor: Optional[Literal['Sim', 'Não']] = None
+    descricao_acao: str
+    prazo_pactuado: Optional[date] = None
+
+
+class PlanoAcaoEnviadoResponse(BaseModel):
+    id_acao: int
+    criado_em: datetime
+    mensagem: str
+
+
+
+
+class PlanoAcaoBuscaItem(BaseModel):
+    nr_instrumento: str
+    usuario: str
+    ponto_controle: str
+    status_ponto_controle: str
+    confirmacao: str | None = None
+    coordenacao: str | None = None
+    mandataria: str | None = None
+    recebedor: str | None = None
+    descricao_acao: str
+    prazo_pactuado: date | None = None
+    criado_em: datetime
+
+
+class PlanoAcaoBusca(BaseModel):
+    data: list[PlanoAcaoBuscaItem]
+
+
+
+class ContatoCreateItem(BaseModel):
+    id_recebedor: int
+    nr_contato: int
+    nome: str
+    cargo: Optional[str] = None
+    telefone: Optional[str] = None
+    email: Optional[str] = None
+    observacao: Optional[str] = None
+
+class ContatoCreate(BaseModel):
+    data: list[ContatoCreateItem]
+
+
+class ContatoEnviadoResponse(BaseModel):
+    sucesso: bool
+    mensagem: str
+    total_salvos: int
+
+
+
+class ContatoBuscaItem(BaseModel):
+    id_recebedor: int
+    usuario: str
+    nr_contato: int
+    nome: str
+    cargo: str | None = None
+    telefone: str | None = None
+    email: str | None = None
+    observacao: str | None = None
+    alterado_em: datetime
+
+
+class ContatoBusca(BaseModel):
+    data: list[ContatoBuscaItem]
+
+
+class PlanoAcaoHistoricoItem(BaseModel):
+    id_acao: int
+    nr_instrumento: str
+    usuario: Optional[str] = None
+    ponto_controle: Optional[str] = None
+    status_ponto_controle: Optional[str] = None
+    confirmacao: Optional[str] = None
+    coordenacao: Optional[str] = None
+    mandataria: Optional[str] = None
+    recebedor: str
+    descricao_acao: Optional[str] = None
+    prazo_pactuado: Optional[date] = None
+    criado_em: Optional[datetime] = None
+
+
+class PlanoAcaoHistorico(BaseModel):
+    data: list[PlanoAcaoHistoricoItem]

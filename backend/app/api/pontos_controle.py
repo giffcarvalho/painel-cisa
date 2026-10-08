@@ -2,18 +2,28 @@
 
 import logging
 from typing import Annotated
-from fastapi import (APIRouter, Depends, Query, Response, HTTPException)
+from fastapi import (APIRouter, Depends, Query, Response, HTTPException, status)
 from sqlalchemy import text, CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
-
+from app.api.auth import obter_usuario_atual
 from app.core.database import get_db
 from app.schemas.pontos_controle import (
     PontosControleBuscaFiltroResponse,
     PontosControleFiltrosResponse,
     PontosControleListaResponse,
     PontosControleDataDados,
-    PontosControleDadosAdicionais,
+    PontosControleDadosAdicionaisItem,
+    PlanoAcaoEnviadoResponse,
+    PlanoAcaoCreate,
+    PlanoAcaoBusca,
+    PlanoAcaoBuscaItem,
+    ContatoEnviadoResponse,
+    ContatoCreate,
+    ContatoBusca,
+    ContatoBuscaItem,
+    PlanoAcaoHistorico,
+    PlanoAcaoHistoricoItem,
 )
 
 router = APIRouter()
@@ -282,6 +292,10 @@ def _build_where(
                         ON u_f.id_usuario = ui_f.id_usuario
                     WHERE
                         ui_f.nr_instrumento = mv.nr_instrumento
+                        AND
+                        ui_f.ordem_prioridade = 1
+                        AND
+                        ui_f.ativo IS TRUE
                         AND
                         u_f.nome ILIKE :{key}
                 )
@@ -609,6 +623,9 @@ async def get_filtros(
             JOIN
                 painel_dsr.tb_usuario u
                 ON u.id_usuario = ui.id_usuario
+            WHERE
+                ui.ordem_prioridade = 1
+                AND ui.ativo IS TRUE
         )
 
         SELECT
@@ -1120,14 +1137,8 @@ async def get_instrumentos(
         "private, max-age=300"
     )
 
-    where, params = _build_where(
-        filtros
-    )
-
-    offset = (
-        (pagina - 1)
-        * tamanho_pagina
-    )
+    where, params = _build_where(filtros)
+    offset = ((pagina - 1) * tamanho_pagina)
 
     data_params = {
         **params,
@@ -1144,38 +1155,42 @@ async def get_instrumentos(
     data_sql = f"""
         SELECT
 
-            nr_instrumento::text AS nr_instrumento,
-            proponente,
-            municipios_beneficiados,
-            uf,
-            link_transferegov,
-            carteira_ativa,
-            projeto_aprovado,
-            possui_aio,
-            coordenacao,
-            acao,
-            monitor,
-            prazo_clausulas_suspensivas,
-            prazo_emissao_lae,
-            prazo_inicio_licitacao,
-            prazo_conclusao_licitacao,
-            prazo_vrpl,
-            prazo_contratacao,
-            prazo_solicitacao_aio,
-            prazo_analise_tecnica_aio,
-            prazo_analise_executiva_aio,
-            prazo_registro_aio,
-            prazo_emissao_os,
-            prazo_inicio_execucao_fisica,
-            prazo_progresso_fisico,
-            prazo_indicio_paralisacao,
-            status_paralisacao_obra,
-            vistoria_in_loco_parciais,
-            prazo_vistoria_final,
-            obras_proximas_conclusao,
-            registro_conclusao,
-            vigencia,
-            status_de_execucao_da_obra
+            mv.nr_instrumento::text AS nr_instrumento,
+            mv.cod_tci,
+            mv.id_proponente as id_recebedor,
+            mv.proponente,
+            EXISTS (SELECT 1 FROM painel_dsr.tb_contato_recebedor c WHERE c.id_recebedor = mv.id_proponente AND c.nome IS NOT NULL) AS tem_contato,
+            mv.municipios_beneficiados,
+            mv.uf,
+            mv.link_transferegov,
+            mv.carteira_ativa,
+            mv.projeto_aprovado,
+            mv.possui_aio,
+            mv.coordenacao,
+            mv.acao,
+            mv.monitor,
+            EXISTS (SELECT 1 FROM painel_dsr.tb_ponto_controle_acao a WHERE a.nr_instrumento = mv.nr_instrumento) AS tem_acao,
+            mv.prazo_clausulas_suspensivas,
+            mv.prazo_emissao_lae,
+            mv.prazo_inicio_licitacao,
+            mv.prazo_conclusao_licitacao,
+            mv.prazo_vrpl,
+            mv.prazo_contratacao,
+            mv.prazo_solicitacao_aio,
+            mv.prazo_analise_tecnica_aio,
+            mv.prazo_analise_executiva_aio,
+            mv.prazo_registro_aio,
+            mv.prazo_emissao_os,
+            mv.prazo_inicio_execucao_fisica,
+            mv.prazo_progresso_fisico,
+            mv.prazo_indicio_paralisacao,
+            mv.status_paralisacao_obra,
+            mv.vistoria_in_loco_parciais,
+            mv.prazo_vistoria_final,
+            mv.obras_proximas_conclusao,
+            mv.registro_conclusao,
+            mv.vigencia,
+            mv.status_de_execucao_da_obra
         FROM {MV} mv
 
         {where}
@@ -1242,8 +1257,16 @@ async def get_data_dados(
 
 
 
-@router.get("/dados_adicionais", response_model=PontosControleDadosAdicionais, summary=("Retorna dados adicionais dos instrumentos"))
-async def get_dados_adicionais(response: Response, db: AsyncSession = Depends(get_db)):
+@router.get(
+    "/dados_adicionais/{nr_instrumento}",
+    response_model=PontosControleDadosAdicionaisItem,
+    summary="Retorna dados adicionais de um instrumento especifico"
+)
+async def get_dados_adicionais(
+    nr_instrumento: str,
+    response: Response,
+    db: AsyncSession = Depends(get_db)
+):
     
     response.headers["Cache-Control"] = ("private, max-age=300")
 
@@ -1266,20 +1289,298 @@ async def get_dados_adicionais(response: Response, db: AsyncSession = Depends(ge
             valor_empenhado,
             valor_desembolsado,
             valor_desbloqueado,
-            valor_pago
+            valor_pago,
+            percentual_fisico_informado,
+            percentual_fisico_aferido,
+            data_ultimo_bm
         FROM instrumento.vw_carteira_dsr
+        WHERE nr_instrumento = :nr_instrumento
+    """
+
+    result = await _execute_query(db, sql, {"nr_instrumento": nr_instrumento})
+    item = result.mappings().first()
+
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Dados adicionais não encontrados para o instrumento {nr_instrumento}"
+        )
+
+    
+    return PontosControleDadosAdicionaisItem(**dict(item))
+    
+
+
+# Envia os dados do plano de ação para o banco
+@router.post(
+    "/envio_plano_acao",
+    response_model=PlanoAcaoEnviadoResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Realiza o envio do formulário do plano de ação para o banco",
+)
+async def salvar_plano_acao(
+    dadosFormulario: PlanoAcaoCreate,
+    usuario_atual: UsuarioAutenticado = Depends(obter_usuario_atual),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        # 1. Converte os dados do formulário para dicionário
+        payload = dadosFormulario.model_dump()
+
+        # 2. Injeta o id_usuario obtido com segurança a partir do token
+        payload["id_usuario"] = usuario_atual.id_usuario
+
+        result = await db.execute(
+            text(
+                """
+                INSERT INTO painel_dsr.tb_ponto_controle_acao (
+                    nr_instrumento,
+                    id_usuario,
+                    ponto_controle,
+                    status_ponto_controle,
+                    confirmacao,
+                    coordenacao,
+                    mandataria,
+                    recebedor,
+                    descricao_acao,
+                    prazo_pactuado
+                ) 
+                VALUES (
+                    :nr_instrumento,
+                    :id_usuario,
+                    :ponto_controle,
+                    :status_ponto_controle,
+                    :confirmacao,
+                    :coordenacao,
+                    :mandataria,
+                    :recebedor,
+                    :descricao_acao,
+                    :prazo_pactuado
+                )
+                RETURNING
+                    id_acao,
+                    criado_em
+                """
+            ),
+            payload,
+        )
+
+        # Captura a primeira linha retornada pelo cláusula RETURNING
+        linha_inserida = result.mappings().first()
+
+        await db.commit()
+
+        
+        return {
+            "id_acao": linha_inserida["id_acao"],
+            "criado_em": linha_inserida["criado_em"],
+            "mensagem": "Ação salva com sucesso!",
+        }
+
+    except Exception as error:
+        
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao salvar o plano de ação: {str(error)}",
+        )
+
+
+
+
+@router.get("/busca_plano_acao", response_model=PlanoAcaoBusca, summary=("Busca o histórico de Planos de Ação"))
+async def get_plano_acao(response: Response, db: AsyncSession = Depends(get_db)):
+    
+    # Estou testando essa linha abaixo de no-cache, para ver se resolve o bug do plano de ação vir antigo quando o usuario salva e reabre logo em seguida
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    
+    # Para voltar com o cahe, descomente linha abaixo e apague a linha de cima
+    #response.headers["Cache-Control"] = ("private, max-age=300")
+
+    sql = """
+        SELECT
+            p.id_acao,
+            p.nr_instrumento,
+            u.nome as usuario,
+            p.ponto_controle,
+            p.status_ponto_controle,
+            p.confirmacao,
+            p.coordenacao,
+            p.mandataria,
+            p.recebedor,
+            p.descricao_acao,
+            p.prazo_pactuado,
+            p.criado_em
+        FROM painel_dsr.tb_ponto_controle_acao p
+        LEFT JOIN painel_dsr.tb_usuario u ON u.id_usuario = p.id_usuario
+        ORDER BY p.nr_instrumento, p.ponto_controle, p.id_acao DESC
     """
 
     result = await _execute_query(db, sql)
 
 
-    # Esse trecho abaixo quer dizer que cada dict(r) é transformado/validado como PontosControleDadosAdicionaisItem
-    # e a resposta inteira fica no formato PontosControleDadosAdicionais data=[PontosControleDadosAdicionaisItem(...), PontosControleDadosAdicionaisItem(...)]
-    # PontosControleDadosAdicionais é o objeto que encapsula a lista de resultados, e cada elemento dessa lista é um PontosControleDadosAdicionaisItem
-    # O formato resultante será um JSON com uma estrutura mais ou menos assim: { "data": [{"nr_instrumento": "123", "nr_proposta": "456"}, {"nr_instrumento": "789", "nr_proposta": "012"}] }
-    return PontosControleDadosAdicionais(
+    
+    return PlanoAcaoBusca(
+      data=[PlanoAcaoBuscaItem(**r) for r in result.mappings().all()]
+    )
+    
+
+
+
+# Envia os dados dos contatos para o banco
+@router.post(
+    "/envio_contato",
+    response_model=ContatoEnviadoResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Realiza o envio do formulário dos contatos para o banco",
+)
+async def salvar_contato(
+    contatosParaEnviar: ContatoCreate,
+    usuario_atual: UsuarioAutenticado = Depends(obter_usuario_atual),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        # Prepara a lista de dicionários injetando id_usuario
+        payload = [
+            {**contato.model_dump(), "id_usuario": usuario_atual.id_usuario}
+            for contato in contatosParaEnviar.data
+        ]
+
+        # UPSERT: Insere novos ou atualiza existentes se já houver registro com mesmo (id_recebedor, nr_contato)
+        query = text("""
+            INSERT INTO painel_dsr.tb_contato_recebedor (
+                id_usuario,
+                id_recebedor,
+                nr_contato,
+                nome,
+                cargo,
+                telefone,
+                email,
+                observacao
+            ) 
+            VALUES (
+                :id_usuario,
+                :id_recebedor,
+                :nr_contato,
+                :nome,
+                :cargo,
+                :telefone,
+                :email,
+                :observacao
+            )
+            ON CONFLICT (id_recebedor, nr_contato) DO UPDATE SET
+                id_usuario = EXCLUDED.id_usuario,
+                nome = EXCLUDED.nome,
+                cargo = EXCLUDED.cargo,
+                telefone = EXCLUDED.telefone,
+                email = EXCLUDED.email,
+                observacao = EXCLUDED.observacao,
+                alterado_em = NOW();
+        """)
+
+        # Executa para todos os itens do payload
+        await db.execute(query, payload)
+        await db.commit()
+
+        return {
+            "sucesso": True,
+            "mensagem": "Contatos salvos com sucesso!",
+            "total_salvos": len(payload)
+        }
+
+    except Exception as error:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao salvar os contatos: {str(error)}",
+        )
+
+
+
+
+
+@router.get(
+    "/busca_contato",
+    response_model=ContatoBusca,
+    summary=("Busca os contatos do recebedor, se houver")
+)
+async def get_contato(
+    id_recebedor: int = Query(..., description="ID do recebedor para filtrar"),
+    response: Response = None,
+    db: AsyncSession = Depends(get_db)
+):
+    
+    # Estou testando essa linha abaixo de no-cache, para ver se resolve o bug do plano de ação vir antigo quando o usuario salva e reabre logo em seguida
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    
+    # Para voltar com o cahe, descomente linha abaixo e apague a linha de cima
+    #response.headers["Cache-Control"] = ("private, max-age=300")
+
+    sql = text( """
+        SELECT
+            c.id_recebedor,
+            u.nome as usuario,
+            c.nr_contato,
+            c.nome,
+            c.cargo,
+            c.telefone,
+            c.email,
+            c.observacao,
+            c.alterado_em
+        FROM painel_dsr.tb_contato_recebedor c
+        LEFT JOIN painel_dsr.tb_usuario u ON u.id_usuario = c.id_usuario
+        WHERE c.id_recebedor = :id_recebedor
+        ORDER BY c.nr_contato ASC
+    """)
+
+    result = await db.execute(sql, {"id_recebedor": id_recebedor})
+
+
+    
+    return ContatoBusca(
+      data=[ContatoBuscaItem(**r) for r in result.mappings().all()]
+    )
+
+
+
+
+@router.get(
+    "/busca_historico_acao/{nr_instrumento}",
+    response_model=PlanoAcaoHistorico,
+    summary="Busca o histórico completo de Planos de Ação de um Instrumento",
+)
+async def get_historico_acao_instrumento(
+    nr_instrumento: str,
+    response: Response,
+    db: AsyncSession = Depends(get_db)
+):
+    # Desativa cache para garantir a entrega imediata de registros recém-salvos
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+
+    sql = """
+        SELECT
+            p.id_acao,
+            p.nr_instrumento,
+            u.nome AS usuario,
+            p.ponto_controle,
+            p.status_ponto_controle,
+            p.confirmacao,
+            p.coordenacao,
+            p.mandataria,
+            p.recebedor,
+            p.descricao_acao,
+            p.prazo_pactuado,
+            p.criado_em
+        FROM painel_dsr.tb_ponto_controle_acao p
+        LEFT JOIN painel_dsr.tb_usuario u ON u.id_usuario = p.id_usuario
+        WHERE p.nr_instrumento = :nr_instrumento
+        ORDER BY p.id_acao DESC
+    """
+
+    result = await _execute_query(db, sql, {"nr_instrumento": nr_instrumento})
+
+    return PlanoAcaoHistorico(
         data=[
-            dict(r)
-            for r in result.mappings().all()
+            PlanoAcaoHistoricoItem(**r) for r in result.mappings().all()
         ]
     )

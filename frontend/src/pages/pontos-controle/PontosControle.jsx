@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FiltrosPontosControleProvider } from '../../context/pontos-controle/filtrosContext';
 import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltrosPontosControle';
-import { useInstrumentosPontosControleQuery, useDadosAdicionaisPontosControleQuery } from '../../hooks/usePontosControle';
+import { useInstrumentosPontosControleQuery, useBuscaPlanoAcaoQuery } from '../../hooks/usePontosControle';
 import TabelaPontosControle from '../../components/pontos-controle/TabelaPontosControle';
-import styles from './PontosControle.module.css';
+import PlanoAcao from '@/components/pontos-controle/PlanoAcao';
+import ContatoRecebedor from '@/components/pontos-controle/ContatoRecebedor';
+import HistoricoAcao from '@/components/pontos-controle/HistoricoAcao';
+import estilos from './PontosControle.module.css';
 import pontosControleApi from '../../api/pontosControle';
+
+
 
 
 //essa função extrai do objeto instrumentosQuery.data, o array com os instrumentos
@@ -20,10 +25,58 @@ function PontosControleContent() {
   const [tamanhoPagina, setTamanhoPagina] = useState(80);
   const [nrInstrumentoSelecionado, setNrInstrumentoSelecionado] = useState(null);
   const [dataDados, setDataDados] = useState(null);
+  const [planoAcaoContexto, setPlanoAcaoContexto] = useState(null);
+  const [contatoRecebedorContexto, setContatoRecebedorContexto] = useState(null);
+  const [historicoAcaoContexto, setHistoricoAcaoContexto] = useState(null);
 
   const { filtros } = useFiltrosPontosControle();
 
+  const fecharJanelaPlanoAcao = () => {
+    setPlanoAcaoContexto(null);
+  };
 
+  const { data: planoAcaoData } = useBuscaPlanoAcaoQuery();
+  
+
+
+  const abrirJanelaPlanoAcao = (nrInstrumento, campo, statusPontoControle) => {
+    
+    const historicoExistente = planoAcaoData?.data?.filter(
+      (item) => item.nr_instrumento === nrInstrumento && item.ponto_controle === campo
+    ) || [];
+    
+
+    setPlanoAcaoContexto({ 
+      nrInstrumento,
+      campo,
+      statusPontoControle,
+      historicoExistente,
+    });
+  };
+
+
+  const fecharJanelaContato = () => {
+    setContatoRecebedorContexto(null);
+  };
+
+  const abrirJanelaContato = (idRecebedor, recebedor) => {
+        
+    setContatoRecebedorContexto({
+      idRecebedor,
+      recebedor
+    });
+  };
+
+  const fecharJanelaHistoricoAcao = () => {
+    setHistoricoAcaoContexto(null);
+  };
+
+  const abrirJanelaHistoricoAcao = (nrInstrumento) => {
+        
+    setHistoricoAcaoContexto({
+      nrInstrumento
+    });
+  };
 
   //instrumentosQuery não é o array de instrumentos ainda. É o objeto de resultado gerenciado pelo useQuery
   //esse objeto é que é passado como props para a tabela
@@ -36,7 +89,7 @@ function PontosControleContent() {
 
   //dadosAdicionaisQuery não é o array de instrumentos ainda. É o objeto de resultado gerenciado pelo useQuery
   //esse objeto é que é passado como props para a tabela
-  const dadosAdicionaisQuery = useDadosAdicionaisPontosControleQuery();
+  //const dadosAdicionaisQuery = useDadosAdicionaisPontosControleQuery();
 
 
   useEffect(() => {
@@ -79,14 +132,14 @@ function PontosControleContent() {
   };
 
   return (
-    <main className={styles.page}>
+    <main className={estilos.page}>
       
             
-      {<section className={styles.contentGrid}>
+      {<section className={estilos.contentGrid}>
         <TabelaPontosControle
           data={instrumentosQuery.data}
           dataDados={dataDados}
-          dadosAdicionais={dadosAdicionaisQuery.data}
+          //dadosAdicionais={dadosAdicionaisQuery.data}
           isLoading={instrumentosQuery.isLoading}
           isError={instrumentosQuery.isError}
           pagina={pagina}
@@ -99,8 +152,42 @@ function PontosControleContent() {
           }}
           nrInstrumentoSelecionado={nrInstrumentoSelecionado}
           onSelectInstrumento={setNrInstrumentoSelecionado}
+          abrirJanelaPlanoAcao={abrirJanelaPlanoAcao}
+          abrirJanelaContato={abrirJanelaContato}
+          abrirJanelaHistoricoAcao={abrirJanelaHistoricoAcao}
         />
       </section>}
+
+
+      {planoAcaoContexto && (
+        <PlanoAcao
+          key={`${planoAcaoContexto.nrInstrumento}-${planoAcaoContexto.campo}`}
+          fecharJanelaPlanoAcao={fecharJanelaPlanoAcao}
+          nrInstrumento={planoAcaoContexto.nrInstrumento}
+          campo={planoAcaoContexto.campo}
+          statusPontoControle={planoAcaoContexto.statusPontoControle}
+          historicoExistente={planoAcaoContexto.historicoExistente}
+        />
+      )}
+
+
+      {contatoRecebedorContexto && (
+        <ContatoRecebedor
+          key={`${contatoRecebedorContexto.idRecebedor}`}
+          fecharJanelaContato={fecharJanelaContato}
+          idRecebedor={contatoRecebedorContexto.idRecebedor}
+          recebedor={contatoRecebedorContexto.recebedor}
+        />
+      )}
+
+
+      {historicoAcaoContexto && (
+        <HistoricoAcao
+          key={`${historicoAcaoContexto.nrInstrumento}`}
+          fecharJanelaHistoricoAcao={fecharJanelaHistoricoAcao}
+          nrInstrumento={historicoAcaoContexto.nrInstrumento}
+        />
+      )}
 
     </main>
   );

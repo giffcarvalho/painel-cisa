@@ -76,15 +76,64 @@ export function useInstrumentosPontosControleQuery(filtros = {}, pagina = 1, tam
 
 
 
-export function useDadosAdicionaisPontosControleQuery() {
+export function useDadosAdicionaisPontosControleQuery(nrInstrumento) {
 
   return useQuery({
     queryKey: [
       'pontos-controle',
       'dados_adicionais',
+      nrInstrumento,
+    ],
+    queryFn: () => pontosControleApi.getDadosAdicionais(nrInstrumento),
+    enabled: Boolean(nrInstrumento),
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+
+
+
+export function useBuscaPlanoAcaoQuery() {
+
+  return useQuery({
+    queryKey: [
+      'pontos-controle',
+      'plano_acao',
     ],
     queryFn: () =>
-      pontosControleApi.getDadosAdicionais(),
+      pontosControleApi.getPlanoAcao(),
     placeholderData: keepPreviousData,
+  });
+}
+
+
+
+export function useBuscaContatoQuery(idRecebedor) {
+
+  return useQuery({
+    queryKey: [
+      'pontos-controle',
+      'contato',
+      idRecebedor,
+    ],
+    queryFn: () => pontosControleApi.getContato(idRecebedor),
+    enabled: !!idRecebedor,
+    placeholderData: keepPreviousData,
+  });
+}
+
+
+
+export function useBuscaHistoricoAcaoQuery(nrInstrumento) {
+
+  return useQuery({
+    queryKey: [
+      'pontos-controle',
+      'historico-acao',
+      nrInstrumento,
+    ],
+    queryFn: () => pontosControleApi.getHistoricoAcao(nrInstrumento),
+    enabled: Boolean(nrInstrumento),
+    staleTime: 0,
   });
 }
