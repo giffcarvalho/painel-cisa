@@ -491,3 +491,40 @@ export const textosExplicativos = {
     },
   },
 }
+
+
+
+export const ajudaPergunta = {
+  confirmacao: {
+    titulo: "Confirmação do status do ponto de controle",
+    explicacao: [
+      'Responda "Sim" caso o status do Ponto de Controle, calculado automaticamente, esteja correto.',
+      'Responda "Não" caso o status do Ponto de Controle não coincida com a situação encontrada ao analisar a condição do instrumento no Transferegov ou outras fontes.',
+      'Caso responda "Não", a equipe que faz a manutenção do Painel estará visualizando esta informação e tentará aperfeiçoar o cálculo automático.',
+    ]
+  },
+  coordenacao: {
+    titulo: "Avaliação da Coordenação",
+    explicacao: [
+      'Responda "Sim" caso entenda que a situação deva ser analisada pela Coordenação ou Coordenação Geral.',
+      'Os casos recomendados para serem submetidos à Coordenação são:',
+      '• Análise técnica AIO e Análise GAB/SE AIO\n• Vencimento de Cláusula Suspensiva\n• Indícios de paralisação de obra\n• Reincidência de prazos vencidos em obras em andamento\n• Ausência reiterada de respostas\n• Necessidade de Termos Aditivos ou Apostilamentos\n• Indícios de irregularidade\n• Início de execução física, Vistoria final, Vigência do instrumento e Registro de conclusão do instrumento com status "Vencido".'
+    ]
+  },
+  mandataria: {
+    titulo: "Contato com a Mandatária",
+    explicacao: [
+      "Indique se houve algum tipo de interlocução (ligação, reunião, e-mail ou mensagem) com a instituição mandatária sobre a situação deste ponto de controle.",
+    ]
+  },
+  proponente: {
+    titulo: "Contato com o Ente Recebedor",
+    explicacao:
+      "Indique se houve algum tipo de interlocução (ligação, reunião, e-mail ou mensagem) com o órgão recebedor (proponente) para tratar da situação deste ponto de controle.",
+  },
+  prazoPactuado: {
+    titulo: "Prazo Pactuado",
+    explicacao:
+      "Informe a data pactuada, se houver, com o ente recebedor ou mandatária para o envio de documentos ou qualquer outra tomada de providências em relação a este ponto de controle.",
+  },
+};
