@@ -3,7 +3,7 @@
 ## Alterações
 
 - Seletor pesquisável e limpável na nova coluna anterior a Observação, nas duas inclusões manuais e na edição administrativa. Pesquisa sem distinção de acentos ou maiúsculas, nomes com quebra de linha e lista com rolagem.
-- As 28 opções e descrições integrais estão centralizadas em `frontend/src/data/tiposLocalidade.js`. Os nomes foram comparados com as duas constraints do PostgreSQL: correspondência exata.
+- As 28 opções e descrições integrais estão centralizadas em `frontend/src/utils/tiposLocalidade.js`. Os nomes foram comparados com as duas constraints do PostgreSQL: correspondência exata.
 - `TipoLocalidadeSelect` reutiliza `react-select` e `Popover` do `radix-ui`, já instalados. O tooltip simples existente não atende ao posicionamento fora do contêiner com rolagem e à interação por toque; por isso, o popover fica restrito ao novo seletor. Descrições aparecem por interação no ícone, inclusive por foco de teclado, sem seleção acidental.
 - A classificação participa do carregamento da base, payload, rascunho, reabertura, visualização, edição administrativa e clonagem de revisão devolvida. Não muda automaticamente a ação da localidade.
 - Payload omitido conserva a classificação salva; na primeira inserção, recupera o valor definitivo. `null` explícito limpa. A aplicação grava `territorio.tb_comunidade_rural.tipo_localidade` para localidades mantidas, corrigidas ou adicionadas; remover o vínculo preserva o cadastro territorial.
@@ -15,7 +15,7 @@
 
 Frontend:
 
-- `frontend/src/data/tiposLocalidade.js` — catálogo único.
+- `frontend/src/utils/tiposLocalidade.js` — catálogo único.
 - `frontend/src/components/revisao-instrumento/TipoLocalidadeSelect.jsx` — componente reutilizável.
 - `frontend/src/components/revisao-instrumento/TipoLocalidadeSelect.module.css` — estilos isolados.
 - `frontend/src/pages/revisao-instrumento/RevisaoInstrumento.jsx` — tabela, formulários e payload.

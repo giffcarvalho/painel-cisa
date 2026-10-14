@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import Select, { components, createFilter } from 'react-select'
 import { Popover } from 'radix-ui'
 import { Info } from 'lucide-react'
-import comunidadesTradicionais from '@/data/tiposLocalidade'
+import comunidadesTradicionais from '@/utils/tiposLocalidade'
 import styles from './TipoLocalidadeSelect.module.css'
 
 const opcoes = comunidadesTradicionais.map(({ nome, descricao }) => ({
