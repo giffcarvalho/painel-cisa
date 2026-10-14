@@ -24,6 +24,8 @@ from app.schemas.pontos_controle import (
     ContatoBuscaItem,
     PlanoAcaoHistorico,
     PlanoAcaoHistoricoItem,
+    ContatoMandatariaBuscaItem,
+    ContatoMandatariaBusca,
 )
 
 router = APIRouter()
@@ -1510,12 +1512,9 @@ async def get_contato(
     db: AsyncSession = Depends(get_db)
 ):
     
-    # Estou testando essa linha abaixo de no-cache, para ver se resolve o bug do plano de ação vir antigo quando o usuario salva e reabre logo em seguida
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     
-    # Para voltar com o cahe, descomente linha abaixo e apague a linha de cima
-    #response.headers["Cache-Control"] = ("private, max-age=300")
-
+    
     sql = text( """
         SELECT
             c.id_recebedor,
@@ -1583,4 +1582,46 @@ async def get_historico_acao_instrumento(
         data=[
             PlanoAcaoHistoricoItem(**r) for r in result.mappings().all()
         ]
+    )
+
+
+
+@router.get(
+    "/busca_contato_mandataria",
+    response_model=ContatoMandatariaBusca,
+    summary=("Busca os contatos da mandatária")
+)
+async def get_contato_mandataria(
+    cod_uf: int = Query(..., description="Código da UF da mandatária para filtrar"),
+    response: Response = None,
+    db: AsyncSession = Depends(get_db)
+):
+    
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    
+    
+    sql = text( """
+        SELECT
+            c.cod_uf,
+            u.nome as usuario,
+            c.nome,
+            c.cargo,
+            c.tipo_setor,
+            c.setor,
+            c.telefone,
+            c.email,
+            c.observacao,
+            c.alterado_em
+        FROM painel_dsr.tb_contato_mandataria c
+        LEFT JOIN painel_dsr.tb_usuario u ON u.id_usuario = c.id_usuario
+        WHERE c.cod_uf = :cod_uf
+        ORDER BY c.id_contato ASC
+    """)
+
+    result = await db.execute(sql, {"cod_uf": cod_uf})
+
+
+    
+    return ContatoMandatariaBusca(
+      data=[ContatoMandatariaBuscaItem(**r) for r in result.mappings().all()]
     )

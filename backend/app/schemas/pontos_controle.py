@@ -257,3 +257,21 @@ class PlanoAcaoHistoricoItem(BaseModel):
 
 class PlanoAcaoHistorico(BaseModel):
     data: list[PlanoAcaoHistoricoItem]
+
+
+
+class ContatoMandatariaBuscaItem(BaseModel):
+    cod_uf: int
+    usuario: str
+    nome: str
+    cargo: str | None = None
+    tipo_setor: str | None = None
+    setor: str | None = None
+    telefone: str | None = None
+    email: str | None = None
+    observacao: str | None = None
+    alterado_em: datetime
+
+
+class ContatoMandatariaBusca(BaseModel):
+    data: list[ContatoMandatariaBuscaItem]
