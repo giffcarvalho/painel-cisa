@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Info, Wallet, Sprout, Map, Activity, FileSearch, PackageSearch, ClipboardCheck } from 'lucide-react'
+import { Info, Wallet, Sprout, Map, Activity, FileSearch, PackageSearch, ClipboardCheck, Flag } from 'lucide-react'
 import AuthMenu from '@/components/auth/AuthMenu'
 import styles from './Home.module.css'
 import marcaMcid from '../../assets/marca-mcid-atz.png'
@@ -45,7 +45,7 @@ export default function Home() {
           </p>
 
           {/* GRID EM 2 COLUNAS */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-14 gap-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-3 gap-y-4">
             
             {/* Item 1: Carteira DSR */}
             <div className="flex flex-col justify-between">
@@ -167,7 +167,7 @@ export default function Home() {
               <Link to="/pontos-controle" className={`group ${styles.editorialRow}`}>
                 <div className="flex items-center gap-4">
                   <div className={styles.iconWrapperSecondary}>
-                    <ClipboardCheck className="w-[18px] h-[18px] text-gray-600 group-hover:text-gray-900 transition-colors" />
+                    <Flag className="w-[18px] h-[18px] text-gray-600 group-hover:text-gray-900 transition-colors" />
                   </div>
                   <div className="flex flex-col">
                     <span className={styles.rowTitle}>Pontos de Controle</span>
