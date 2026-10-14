@@ -32,14 +32,23 @@ function resumoAlteracoes(alteracoes) {
 }
 
 function PendenciaCard({ item, onReview }) {
+  const status = item.status_instrumento?.trim() || 'Não informado'
+  const statusLabel = status === 'Homologado Automaticamente pelo Sistema' ? 'Homologado' : status
   return (
     <article className={styles.card}>
       <div className={styles.cardTop}>
-        <div><small>{item.tipo_instrumento_label}</small><h3>Instrumento {item.identificador_instrumento}</h3></div>
-        <strong>{item.total_pendencias} {item.total_pendencias === 1 ? 'item pendente' : 'itens pendentes'}</strong>
+        <small>{item.tipo_instrumento_label}</small>
+        <h3>Instrumento {item.identificador_instrumento}</h3>
+        <strong className={styles.pendingCount}>{item.total_pendencias} {item.total_pendencias === 1 ? 'pendência' : 'pendências'}</strong>
+        <span className={styles.projectStatus} title={`${item.tipo_instrumento === 'ted' ? 'Status do TED' : 'Status do projeto'}: ${status}`}>
+          Status{item.tipo_instrumento === 'ted' ? ' do TED' : ''}: {statusLabel}
+        </span>
       </div>
       <dl className={styles.groups}>
-        {Object.entries(GRUPOS).map(([chave, label]) => <div key={chave}><dt>{label}</dt><dd>{item.grupos[chave]}</dd></div>)}
+        {Object.entries(GRUPOS).filter(([chave]) => chave !== 'municipios').map(([chave, label]) => {
+          const naoExigivel = chave !== 'obras' && item.analise_projeto_exigivel === false
+          return <div key={chave}><dt>{label}</dt><dd title={naoExigivel ? 'Análise ainda não exigível em razão da situação do projeto.' : undefined} aria-label={naoExigivel ? 'Análise ainda não exigível em razão da situação do projeto.' : undefined}>{naoExigivel ? '—' : item.grupos[chave]}</dd></div>
+        })}
       </dl>
       <button type="button" className={styles.primary} onClick={() => onReview(item.identificador_instrumento)}>Revisar instrumento</button>
     </article>

@@ -21,6 +21,8 @@ class InstrumentoPendenteItem(MeuPainelBase):
     tipo_instrumento_label: str
     total_pendencias: int
     grupos: PendenciasPorGrupo
+    status_instrumento: str | None = None
+    analise_projeto_exigivel: bool = True
 
 
 class ResumoAlteracoesRascunho(MeuPainelBase):

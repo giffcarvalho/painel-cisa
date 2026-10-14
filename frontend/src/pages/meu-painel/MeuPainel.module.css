@@ -152,22 +152,38 @@
 .card {
   display: grid;
   align-content: start;
-  gap: 16px;
+  gap: 12px;
   border: 1px solid #dfe6ee;
   border-radius: 12px;
   padding: 18px;
 }
 
 .pendingCards:not(.expanded) .card {
-  min-width: calc((100% - 24px) / 3);
+  flex: 0 0 calc((100% - 24px) / 3);
+  min-width: 0;
   scroll-snap-align: start;
 }
 
 .cardTop {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.card h3 {
+  overflow-wrap: anywhere;
+}
+
+.projectStatus {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #64748b;
 }
 
 .card small, .draft small {
@@ -182,18 +198,26 @@
   font-size: 15px;
 }
 
-.cardTop > strong {
+.cardTop h3 {
+  margin: 0;
+}
+
+.pendingCount {
+  justify-self: start;
+  max-width: 100%;
   border-radius: 999px;
   background: #fff7df;
   color: #7a5211;
-  padding: 6px 9px;
+  padding: 5px 9px;
   font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.3;
   white-space: nowrap;
 }
 
 .groups {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(115px, 100%), 1fr));
   gap: 8px;
   margin: 0;
 }
@@ -201,6 +225,7 @@
 .groups div {
   display: flex;
   justify-content: space-between;
+  gap: 8px;
   border-radius: 7px;
   background: #f8fafc;
   padding: 8px 10px;
@@ -368,7 +393,7 @@
 
 @media (max-width: 1220px) {
   .pendingCards:not(.expanded) .card {
-    min-width: calc((100% - 12px) / 2);
+    flex-basis: calc((100% - 12px) / 2);
   }
 
   .pendingCards.expanded {
@@ -382,7 +407,7 @@
   }
 
   .pendingCards:not(.expanded) .card {
-    min-width: calc((100% - 12px) / 2);
+    flex-basis: calc((100% - 12px) / 2);
   }
 }
 
@@ -401,16 +426,11 @@
   }
 
   .pendingCards:not(.expanded) .card {
-    min-width: min(88%, 330px);
+    flex-basis: min(88%, 330px);
   }
 
   .pendingCards.expanded {
     grid-template-columns: 1fr;
-  }
-
-  .cardTop {
-    flex-direction: column;
-    gap: 10px;
   }
 
   .draft .primary {

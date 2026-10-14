@@ -1,5 +1,6 @@
 """Dados operacionais pessoais do técnico."""
 
+import json
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
@@ -15,6 +16,7 @@ from app.api.revisao_instrumento import (
 )
 from app.core.database import get_db
 from app.schemas.auth import UsuarioAutenticado
+from app.schemas.revisao_instrumento import MeuInstrumentoRevisaoItem
 from app.schemas.meu_painel import (
     InstrumentoPendenteItem,
     MeuPainelResponse,
@@ -158,16 +160,104 @@ async def _pendencias_coordenadas(db: AsyncSession, identificadores: list[str]) 
     return {chave: valores["pendentes"] for chave, valores in resumo.items()}
 
 
+async def _buscar_status_instrumentos(
+    db: AsyncSession, atribuicoes: list[MeuInstrumentoRevisaoItem]
+) -> dict[tuple[str, str], str | None]:
+    """Consulta o projeto e o status próprio do TED nas fontes atuais, em lote."""
+    instrumentos = [
+        {
+            "tipo_instrumento": item.tipo_instrumento,
+            "identificador": _identificador(item),
+            "nr_proposta": item.nr_proposta,
+            "nr_instrumento": item.nr_instrumento,
+            "nr_ted": item.nr_ted,
+        }
+        for item in atribuicoes
+    ]
+    if not instrumentos:
+        return {}
+    result = await db.execute(
+        text(
+            """
+            WITH atribuicoes AS (
+                SELECT * FROM jsonb_to_recordset(CAST(:instrumentos AS jsonb))
+                    AS a(tipo_instrumento text, identificador text,
+                         nr_proposta text, nr_instrumento text, nr_ted integer)
+            ), instrumentos_dsr AS (
+                SELECT 'contrato_repasse'::text AS tipo_instrumento,
+                       cr.nr_proposta::text AS nr_proposta, cr.id_proposta
+                FROM instrumento.tb_contrato_repasse cr
+                UNION ALL
+                SELECT 'termo_compromisso'::text AS tipo_instrumento,
+                       tc.nr_proposta::text AS nr_proposta, tc.id_proposta
+                FROM instrumento.tb_termo_de_compromisso tc
+            )
+            SELECT a.tipo_instrumento, a.identificador,
+                   CASE WHEN a.tipo_instrumento = 'ted'
+                        THEN ted.tx_situacao_termo
+                        ELSE projeto.situacao_projeto_basico END AS status
+            FROM atribuicoes a
+            LEFT JOIN LATERAL (
+                SELECT p.situacao_projeto_basico
+                FROM instrumentos_dsr i
+                JOIN transferegov.tb_proposta p ON p.id_proposta = i.id_proposta
+                WHERE i.tipo_instrumento = a.tipo_instrumento
+                  AND (
+                      i.nr_proposta = NULLIF(a.nr_proposta, '')
+                      OR (NULLIF(a.nr_proposta, '') IS NULL AND EXISTS (
+                          SELECT 1 FROM transferegov.tb_convenio cv
+                          WHERE cv.id_proposta = i.id_proposta
+                            AND cv.nr_convenio::text = a.nr_instrumento
+                      ))
+                  )
+                ORDER BY p.id_proposta DESC
+                LIMIT 1
+            ) projeto ON TRUE
+            LEFT JOIN LATERAL (
+                SELECT te.tx_situacao_termo
+                FROM instrumento.tb_ted t
+                JOIN transferegov.tb_termo_execucao te
+                  ON te.id_plano_acao = t.id_plano_acao
+                WHERE a.tipo_instrumento = 'ted' AND t.nr_ted = a.nr_ted
+                ORDER BY te.id_termo DESC
+                LIMIT 1
+            ) ted ON TRUE
+            """
+        ),
+        {"instrumentos": json.dumps(instrumentos)},
+    )
+    return {
+        (row["tipo_instrumento"], row["identificador"]): row["status"]
+        for row in result.mappings().all()
+    }
+
+
+async def _buscar_projetos_aprovados(
+    db: AsyncSession, atribuicoes: list[MeuInstrumentoRevisaoItem]
+) -> set[tuple[str, str]]:
+    status = await _buscar_status_instrumentos(db, atribuicoes)
+    return {chave for chave, valor in status.items() if chave[0] != "ted" and valor in (
+        "Aprovado", "Homologado Automaticamente pelo Sistema"
+    )}
+
+
 async def _listar_pendencias(
     db: AsyncSession,
     usuario: UsuarioAutenticado,
     identificador: str | None = None,
+    *,
+    exigir_projeto_aprovado: bool = False,
 ) -> list[InstrumentoPendenteItem]:
-    """Reusa a mesma montagem e `calcular_completude` do fluxo de envio."""
+    """Reusa a completude; o filtro específico do Meu Painel é optativo para o admin."""
     atribuicoes = await _buscar_meus_instrumentos(db, usuario)
     if identificador is not None:
         alvo = identificador.strip()
         atribuicoes = [item for item in atribuicoes if _identificador(item) == alvo]
+    status_por_instrumento = (
+        await _buscar_status_instrumentos(db, atribuicoes)
+        if exigir_projeto_aprovado
+        else {}
+    )
     coordenadas_por_instrumento = await _pendencias_coordenadas(
         db, [_identificador(item) for item in atribuicoes]
     )
@@ -184,7 +274,21 @@ async def _listar_pendencias(
         resposta = await _montar_resposta_busca(db, instrumento, usuario)
         completude = resposta.completude
         coordenadas = coordenadas_por_instrumento.get(identificador, 0)
+        localidades = int(completude.get("localidades_pendentes") or 0)
+        publico_alvo = int(bool(completude.get("publico_alvo_pendente")))
+        municipios = int(completude.get("municipios_pendentes") or 0)
+        obras = int(completude.get("obras_pendentes") or 0)
+        status = status_por_instrumento.get((atribuicao.tipo_instrumento, identificador))
+        analise_exigivel = (
+            not exigir_projeto_aprovado
+            or atribuicao.tipo_instrumento == "ted"
+            or status in ("Aprovado", "Homologado Automaticamente pelo Sistema")
+        )
         total = int(completude.get("total_pendencias") or 0) + coordenadas
+        if exigir_projeto_aprovado:
+            # Regra exclusiva do Meu Painel; a completude da ficha fica intacta.
+            municipios = 0
+            total = obras + (coordenadas + localidades + publico_alvo if analise_exigivel else 0)
         if total == 0:
             continue
         itens.append(
@@ -195,12 +299,14 @@ async def _listar_pendencias(
                     instrumento.tipo_instrumento, instrumento.tipo_instrumento
                 ),
                 total_pendencias=total,
+                status_instrumento=status,
+                analise_projeto_exigivel=analise_exigivel,
                 grupos=PendenciasPorGrupo(
-                    municipios=int(completude.get("municipios_pendentes") or 0),
-                    localidades=int(completude.get("localidades_pendentes") or 0),
+                    municipios=municipios,
+                    localidades=localidades,
                     coordenadas=coordenadas,
-                    publico_alvo=int(bool(completude.get("publico_alvo_pendente"))),
-                    obras=int(completude.get("obras_pendentes") or 0),
+                    publico_alvo=publico_alvo,
+                    obras=obras,
                 ),
             )
         )
@@ -218,7 +324,7 @@ async def consultar_meu_painel(
         db, usuario.id_usuario, limite=rascunhos_limit, offset=rascunhos_offset
     )
     rascunhos_total = await _contar_rascunhos(db, usuario.id_usuario)
-    pendencias = await _listar_pendencias(db, usuario)
+    pendencias = await _listar_pendencias(db, usuario, exigir_projeto_aprovado=True)
     enviadas_result = await db.execute(
         text(
             """
