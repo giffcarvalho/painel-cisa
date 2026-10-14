@@ -7,6 +7,7 @@ import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltr
 import { useBuscaPlanoAcaoQuery } from "../../hooks/usePontosControle";
 import { Ellipsis, SquarePen, Phone, ListChecks } from "lucide-react";
 import { LinhaResumoInstrumento } from './LinhaResumoInstrumento';
+import { useAuth } from "@/context/auth/useAuth";
 
 
 
@@ -134,6 +135,7 @@ export default function TabelaPontosControle({
   abrirJanelaPlanoAcao,
   abrirJanelaContato,
   abrirJanelaHistoricoAcao,
+  setContatoMandataria,
 }) {
   
   const [resumoAberto, setResumoAberto] = useState(null);
@@ -145,6 +147,7 @@ export default function TabelaPontosControle({
   const paginaAtual = data?.pagina ?? pagina;
   const tamanhoAtual = data?.tamanho_pagina ?? tamanhoPagina;
   const totalPaginas = Math.max(1, Math.ceil(total / tamanhoAtual));
+  const { isAuthenticated, openLoginModal } = useAuth();
 
   useEffect(() => {
     setResumoAberto(null);
@@ -180,9 +183,9 @@ export default function TabelaPontosControle({
     <section className={styles.card}>
       
       <header className={styles.cardHeader}>
-        <div className={styles.cardHeaderInfo}>
+        <div className={styles.cardHeaderLeft}>
           <h2>Pontos de Controle</h2>
-          <div className={styles.cardHeaderSubInfo}>
+          <div className={styles.cardHeaderSubLeft}>
             <p>{total ? `${total} registro(s) encontrado(s)` : 'Resultado da pesquisa'}</p>
             
             {totalFiltrosAtivos > 0 && (
@@ -215,16 +218,27 @@ export default function TabelaPontosControle({
             &#9654;
           </button>
         </div>
-        
-        <div className={styles.cardHeaderDataDados}>
-          {dataDados && getItens(dataDados).map((item, idx) => (
-              <span key={idx} className={styles.cardHeaderDataDadosItem}>
-                <strong>{formatarFonte(item.fonte)}:</strong>{' '}
-                {formatDate(item.data_dados)}
-              </span>
-            ))}
-        </div>
 
+        <div className={styles.cardHeaderRight}>
+          <div className={styles.cardPhone}>
+            <button 
+              type="button" 
+              title="Ver contatos com a mandatária"
+              onClick={() => isAuthenticated ? setContatoMandataria(true) : openLoginModal()}
+            >
+              <Phone className={styles.phoneIcon}/>
+            </button>
+          </div>
+          
+          <div className={styles.cardDataDados}>
+            {dataDados && getItens(dataDados).map((item, idx) => (
+                <span key={idx} className={styles.cardDataDadosItem}>
+                  <strong>{formatarFonte(item.fonte)}:</strong>{' '}
+                  {formatDate(item.data_dados)}
+                </span>
+              ))}
+          </div>
+        </div>
 
       </header>
 

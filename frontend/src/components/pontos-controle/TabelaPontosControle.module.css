@@ -21,19 +21,19 @@
 }
 
 /* Área de informações no cabeçalho do card */
-.cardHeaderInfo {
+.cardHeaderLeft {
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
-.cardHeaderInfo h2{
+.cardHeaderLeft h2{
   font-size: 16px;
   font-weight: 600;
 }
 
 /* Subinformações no cabeçalho do card */
-.cardHeaderSubInfo {
+.cardHeaderSubLeft {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -91,19 +91,45 @@
   background: #e5e7eb;
 }
 
-/* Seção com datas e fontes de atualização dos dados no cabeçalho */
-.cardHeaderDataDados {
+.cardHeaderRight {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1;
+  gap: 8px;
+}
+
+.cardDataDados {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   justify-content: center; 
-  flex: 1;
+  flex: 0 0 auto;
 }
 
-/* Item individual da data de dados */
-.cardHeaderDataDadosItem { 
+.cardDataDadosItem { 
   font-size: 12px;
-  margin-left: 10px;
+}
+
+.cardPhone {
+  width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+  flex: 0 0 auto;
+}
+
+.cardPhone:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.phoneIcon {
+  color: #0066cc;
+  width: 15px;
+  height: 15px;
 }
 
 /* Envolvente rolável da tabela */
