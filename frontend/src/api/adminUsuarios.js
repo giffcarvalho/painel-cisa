@@ -15,6 +15,8 @@ export const adminUsuariosApi = {
   alterarStatus: async (id, ativo) => api.patch(`/admin/usuarios/${id}/status`, { ativo }),
   gerarCodigo: async (id) => (await api.post(`/admin/usuarios/${id}/codigo-acesso`)).data,
   buscarInstrumentos: async (q) => (await api.get('/admin/instrumentos/busca', { params: { q } })).data,
-  vincularInstrumento: async (id, nr_instrumento) => (await api.post(`/admin/usuarios/${id}/instrumentos`, { nr_instrumento })).data,
-  alterarVinculo: async (id, nr, ativo) => (await api.patch(`/admin/usuarios/${id}/instrumentos/${encodeURIComponent(nr)}`, { ativo })).data,
+  monitoresInstrumento: async (nr) => (await api.get(`/admin/instrumentos/${encodeURIComponent(nr)}/monitores`)).data,
+  salvarPrioridades: async (nr, payload) => (await api.put(`/admin/instrumentos/${encodeURIComponent(nr)}/prioridades`, payload)).data,
+  vincularInstrumento: async (id, nr_instrumento, prioridades) => (await api.post(`/admin/usuarios/${id}/instrumentos`, { nr_instrumento, ...prioridades })).data,
+  alterarVinculo: async (id, nr, ativo, prioridades) => (await api.patch(`/admin/usuarios/${id}/instrumentos/${encodeURIComponent(nr)}`, { ativo, prioridades })).data,
 }
