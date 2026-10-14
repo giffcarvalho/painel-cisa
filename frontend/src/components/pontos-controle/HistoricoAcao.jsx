@@ -57,7 +57,7 @@ export default function HistoricoPlanosAcao({ nrInstrumento, fecharJanelaHistori
                     {!isLoading && !isError && listaPlanos.length === 0 && (
                         <div className={estilos.mensagem_status}>
                             <FileText size={32} />
-                            <p>Nenhum plano de ação cadastrado para este instrumento.</p>
+                            <p>Ainda não há ações cadastradas para este instrumento.</p>
                         </div>
                     )}
 
