@@ -137,3 +137,20 @@ export function useBuscaHistoricoAcaoQuery(nrInstrumento) {
     staleTime: 0,
   });
 }
+
+
+
+
+export function useBuscaContatoMandatariaQuery(codUF) {
+
+  return useQuery({
+    queryKey: [
+      'pontos-controle',
+      'contato-mandataria',
+      codUF,
+    ],
+    queryFn: () => pontosControleApi.getContatoMandataria(codUF),
+    enabled: !!codUF,
+    placeholderData: keepPreviousData,
+  });
+}
