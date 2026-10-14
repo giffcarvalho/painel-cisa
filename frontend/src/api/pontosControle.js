@@ -157,6 +157,23 @@ export const getHistoricoAcao = async (nrInstrumento) => {
 };
 
 
+
+
+
+//Busca os contatos da mandatária já salvos no banco
+export async function getContatoMandataria(codUF) {
+  
+  const res = await api.get("/pontos-controle/busca_contato_mandataria", {
+    params: { cod_uf: codUF }
+  });
+  
+  return res.data;
+}
+
+
+
+
+
 const pontosControleApi = {
   getFiltros,
   buscarFiltro,
@@ -168,6 +185,7 @@ const pontosControleApi = {
   enviarContato,
   getContato,
   getHistoricoAcao,
+  getContatoMandataria,
 };
 
 export default pontosControleApi;
