@@ -3076,7 +3076,8 @@ export default function RevisaoInstrumento() {
                                         </tr>
                                       ) : (
                                         municipio.obras_saneamento.map((obra) => {
-                                          const chaveJustificativaObra = chaveObra(obra)
+                                          // Este estado é compartilhado entre todos os municípios da revisão.
+                                          const chaveJustificativaObra = `${municipio.cod_municipio}:${chaveObra(obra)}`
                                           const mostrarJustificativaObra = Boolean(
                                             justificativasObraAbertas[chaveJustificativaObra]
                                           )
