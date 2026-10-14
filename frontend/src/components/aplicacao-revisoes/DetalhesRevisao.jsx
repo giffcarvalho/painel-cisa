@@ -25,6 +25,9 @@ function ItemAlteracao({ item }) {
         {item.acao === 'corrigir' && (
           <small>Famílias beneficiadas: {item.valor_anterior ?? '—'} → {item.valor_sugerido ?? '—'}</small>
         )}
+        {item.entidade === 'localidade' && (
+          <small>Tipo de Localidade: {item.tipo_localidade_anterior || 'Não classificada'} → {item.tipo_localidade || 'Não classificada'}</small>
+        )}
         {item.justificativa && <small>{item.justificativa}</small>}
       </span>
     </li>

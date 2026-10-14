@@ -22,10 +22,10 @@ async def _clonar_filhos(db: AsyncSession, origem: int, destino: int) -> None:
         """INSERT INTO painel_dsr.tb_revisao_instrumento_localidade
            (id_revisao, cod_municipio, cod_comunidade_rural, nome_localidade_informada,
             origem_registro, acao_sugerida, qtde_familias_ben_original,
-            qtde_familias_ben_sugerida, justificativa, conferido_em, valido_ate, atualizado_em)
+            qtde_familias_ben_sugerida, tipo_localidade, justificativa, conferido_em, valido_ate, atualizado_em)
            SELECT :destino, cod_municipio, cod_comunidade_rural, nome_localidade_informada,
                   origem_registro, acao_sugerida, qtde_familias_ben_original,
-                  qtde_familias_ben_sugerida, justificativa, conferido_em, valido_ate, NOW()
+                  qtde_familias_ben_sugerida, tipo_localidade, justificativa, conferido_em, valido_ate, NOW()
            FROM painel_dsr.tb_revisao_instrumento_localidade WHERE id_revisao = :origem""",
         """INSERT INTO painel_dsr.tb_revisao_instrumento_publico_alvo
            (id_revisao, id_projeto_investimento, status_populacao_beneficiada,

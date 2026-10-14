@@ -4,6 +4,7 @@ import { Check, ChevronDown, Download, Plus, Save, Search, Send, X } from 'lucid
 import { useNavigate, useParams } from 'react-router-dom'
 import { revisaoInstrumentoApi } from '@/api/revisaoInstrumento'
 import Tooltip from '@/components/revisao-instrumento/Tooltip'
+import TipoLocalidadeSelect from '@/components/revisao-instrumento/TipoLocalidadeSelect'
 import { useAuth } from '@/context/auth/useAuth'
 import styles from './RevisaoInstrumento.module.css'
 import { formatPercentualPontos } from '../../utils/formatters'
@@ -62,6 +63,7 @@ const MUNICIPIO_NOVO_INICIAL = {
 const LOCALIDADE_NOVA_INICIAL = {
   cod_comunidade_rural: null,
   nome_localidade_informada: '',
+  tipo_localidade: null,
   qtde_familias_ben_sugerida: '',
 }
 
@@ -230,6 +232,10 @@ function dadosLocalidadePersistencia(localidade, codMunicipio) {
         : null),
     origem_registro: localidade.origem_registro,
     acao_sugerida: localidade.acao_sugerida,
+    // Uma propriedade omitida não representa a limpeza explícita da seleção.
+    ...(Object.hasOwn(localidade, 'tipo_localidade')
+      ? { tipo_localidade: localidade.tipo_localidade ?? null }
+      : {}),
     qtde_familias_ben_original: numeroOuNull(localidade.qtde_familias_ben_original),
     qtde_familias_ben_sugerida: numeroOuNull(localidade.qtde_familias_ben_sugerida),
     justificativa: limparTexto(localidade.justificativa),
@@ -1114,6 +1120,7 @@ export default function RevisaoInstrumento() {
         cod_comunidade_rural: localidadeNovoMunicipio.cod_comunidade_rural,
         nome_localidade: nome,
         nome_localidade_informada: nome,
+        tipo_localidade: localidadeNovoMunicipio.tipo_localidade,
         qtde_familias_ben_sugerida:
           localidadeNovoMunicipio.qtde_familias_ben_sugerida,
       },
@@ -1237,6 +1244,7 @@ export default function RevisaoInstrumento() {
         origem_registro: 'adicionado_tecnico',
         acao_sugerida: 'adicionar',
         qtde_familias_ben_original: null,
+        tipo_localidade: localidade.tipo_localidade,
         qtde_familias_ben_sugerida: localidade.qtde_familias_ben_sugerida,
         justificativa: '',
       })),
@@ -1520,6 +1528,7 @@ export default function RevisaoInstrumento() {
           origem_registro: 'adicionado_tecnico',
           acao_sugerida: 'adicionar',
           qtde_familias_ben_original: null,
+          tipo_localidade: form.tipo_localidade,
           qtde_familias_ben_sugerida: form.qtde_familias_ben_sugerida,
           justificativa: '',
         }
@@ -2446,6 +2455,7 @@ export default function RevisaoInstrumento() {
                                 ...current,
                                 cod_comunidade_rural: selecionada?.cod_comunidade_rural ?? null,
                                 nome_localidade_informada: nome,
+                                tipo_localidade: selecionada?.tipo_localidade ?? null,
                               }))
                             }}
                           />
@@ -2472,6 +2482,12 @@ export default function RevisaoInstrumento() {
                             }
                           />
                         </label>
+
+                        <div className={styles.tipoLocalidadeForm}>
+                          <span>Tipo de Localidade</span>
+                          <TipoLocalidadeSelect value={localidadeNovoMunicipio.tipo_localidade}
+                            onChange={(valor) => setLocalidadeNovoMunicipio((current) => ({ ...current, tipo_localidade: valor }))} />
+                        </div>
 
                         <button type="button" onClick={adicionarLocalidadeNovoMunicipio}>
                           <Plus size={16} />
@@ -2719,6 +2735,7 @@ export default function RevisaoInstrumento() {
                                       <th>Localidade</th>
                                       <th>Revisão da Localidade</th>
                                       <th>Famílias Beneficiadas</th>
+                                      <th>Tipo de Localidade</th>
                                       <th>Observação</th>
                                     </tr>
                                   </thead>
@@ -2726,7 +2743,7 @@ export default function RevisaoInstrumento() {
                                   <tbody>
                                     {municipio.localidades.length === 0 ? (
                                       <tr>
-                                        <td colSpan={4} className={styles.emptyCell}>
+                                        <td colSpan={5} className={styles.emptyCell}>
                                           Nenhuma localidade cadastrada.
                                         </td>
                                       </tr>
@@ -2865,6 +2882,18 @@ export default function RevisaoInstrumento() {
                                             </td>
 
                                             <td>
+                                              <TipoLocalidadeSelect
+                                                value={localidade.tipo_localidade}
+                                                disabled={!canEditRevision}
+                                                onChange={(valor) => atualizarLocalidade(
+                                                  municipio.cod_municipio,
+                                                  chaveJustificativaLocalidade,
+                                                  'tipo_localidade', valor,
+                                                )}
+                                              />
+                                            </td>
+
+                                            <td>
                                               {!canEditRevision ? (
                                                 valorOuTraco(localidade.justificativa)
                                               ) : mostrarJustificativa ? (
@@ -2961,6 +2990,12 @@ export default function RevisaoInstrumento() {
                                       }
                                     />
                                   </label>
+
+                                  <div className={styles.tipoLocalidadeForm}>
+                                    <span>Tipo de Localidade</span>
+                                    <TipoLocalidadeSelect value={formLocalidade.tipo_localidade}
+                                      onChange={(valor) => atualizarNovaLocalidade(municipio.cod_municipio, 'tipo_localidade', valor)} />
+                                  </div>
 
                                   <button
                                     type="button"

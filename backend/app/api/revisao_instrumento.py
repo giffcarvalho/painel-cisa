@@ -303,7 +303,25 @@ def calcular_completude(
     )
     publico_alvo_revisado = any(item.conferido_em is not None for item in publico_alvo)
     municipios_pendentes = max(municipios_total - municipios_revisados, 0)
-    localidades_pendentes = max(localidades_total - localidades_revisadas, 0)
+    # Uma localidade conta uma vez, mesmo faltando ação e classificação.
+    # A contagem de ações revisadas permanece independente da classificação.
+    localidades_sem_classificacao = sum(
+        1 for municipio in municipios if municipio.acao_sugerida != "remover"
+        for localidade in municipio.localidades
+        if localidade.acao_sugerida != "remover" and not localidade.tipo_localidade
+    )
+    localidades_pendentes = sum(
+        1 for municipio in municipios
+        for localidade in municipio.localidades
+        if (
+            not _item_tem_conferencia(localidade.acao_sugerida)
+            and localidade.origem_registro != "adicionado_tecnico"
+        ) or (
+            municipio.acao_sugerida != "remover"
+            and localidade.acao_sugerida != "remover"
+            and not localidade.tipo_localidade
+        )
+    )
     obras_pendentes = max(obras_total - obras_revisadas, 0)
     publico_alvo_pendente = bool(publico_alvo) and not publico_alvo_revisado
     total = municipios_pendentes + localidades_pendentes + obras_pendentes + int(publico_alvo_pendente)
@@ -326,6 +344,7 @@ def calcular_completude(
         "total_pendencias": total,
         "municipios_pendentes": municipios_pendentes,
         "localidades_pendentes": localidades_pendentes,
+        "localidades_sem_classificacao": localidades_sem_classificacao,
         "obras_pendentes": obras_pendentes,
         "publico_alvo_pendente": publico_alvo_pendente,
     }
@@ -567,6 +586,7 @@ async def _buscar_localidades(
                 to_jsonb(cr)->>'nome',
                 to_jsonb(cr)->>'dsc_comunidade_rural'
             ) AS nome_localidade,
+            cr.tipo_localidade,
             rel.qtde_familias_ben
         FROM {tabela} rel
         JOIN territorio.tb_comunidade_rural cr
@@ -582,6 +602,7 @@ async def _buscar_localidades(
             cod_municipio=row["cod_municipio"],
             cod_comunidade_rural=row["cod_comunidade_rural"],
             nome_localidade=row["nome_localidade"],
+            tipo_localidade=row["tipo_localidade"],
             origem_registro="base_atual",
             acao_sugerida=None,
             qtde_familias_ben_original=row["qtde_familias_ben"],
@@ -689,7 +710,8 @@ async def _buscar_localidades_municipio(
                 to_jsonb(cr)->>'nome_localidade',
                 to_jsonb(cr)->>'nome',
                 to_jsonb(cr)->>'dsc_comunidade_rural'
-            ) AS nome_localidade
+            ) AS nome_localidade,
+            cr.tipo_localidade
         FROM territorio.tb_comunidade_rural cr
         WHERE cr.cod_municipio = :cod_municipio
         ORDER BY nome_localidade NULLS LAST, cr.cod_comunidade_rural
@@ -701,6 +723,7 @@ async def _buscar_localidades_municipio(
             cod_municipio=row["cod_municipio"],
             cod_comunidade_rural=row["cod_comunidade_rural"],
             nome_localidade=row["nome_localidade"],
+            tipo_localidade=row["tipo_localidade"],
             origem_registro="base_atual",
         )
         for row in result.mappings().all()
@@ -1726,6 +1749,7 @@ async def _carregar_revisao_salva(
             rl.nome_localidade_informada,
             rl.origem_registro,
             rl.acao_sugerida,
+            rl.tipo_localidade,
             rl.qtde_familias_ben_original,
             rl.qtde_familias_ben_sugerida,
             rl.justificativa,
@@ -2445,6 +2469,9 @@ async def _persistir_municipio_revisao(
             "nome_localidade_informada": nome_informado,
             "origem_registro": localidade.origem_registro,
             "acao_sugerida": localidade.acao_sugerida,
+            # Ausência no payload preserva o valor salvo; NULL explícito limpa.
+            "tipo_localidade": localidade.tipo_localidade,
+            "tipo_localidade_informado": "tipo_localidade" in localidade.model_fields_set,
             "qtde_familias_ben_original": localidade.qtde_familias_ben_original,
             "qtde_familias_ben_sugerida": localidade.qtde_familias_ben_sugerida,
             "justificativa": localidade.justificativa,
@@ -2462,10 +2489,12 @@ async def _persistir_municipio_revisao(
                     acao_sugerida = :acao_sugerida,
                     qtde_familias_ben_original = :qtde_familias_ben_original,
                     qtde_familias_ben_sugerida = :qtde_familias_ben_sugerida,
-                    justificativa = :justificativa
+                    justificativa = :justificativa,
+                    tipo_localidade = CASE WHEN :tipo_localidade_informado
+                        THEN CAST(:tipo_localidade AS varchar) ELSE tipo_localidade END
                 WHERE id_revisao = :id_revisao
                   AND id_revisao_localidade = :id_revisao_localidade
-                RETURNING id_revisao_localidade
+                RETURNING id_revisao_localidade, tipo_localidade
             """
         else:
             update_sql = """
@@ -2476,7 +2505,9 @@ async def _persistir_municipio_revisao(
                     acao_sugerida = :acao_sugerida,
                     qtde_familias_ben_original = :qtde_familias_ben_original,
                     qtde_familias_ben_sugerida = :qtde_familias_ben_sugerida,
-                    justificativa = :justificativa
+                    justificativa = :justificativa,
+                    tipo_localidade = CASE WHEN :tipo_localidade_informado
+                        THEN CAST(:tipo_localidade AS varchar) ELSE tipo_localidade END
                 WHERE id_revisao = :id_revisao
                   AND cod_municipio = :cod_municipio
                   AND (
@@ -2491,7 +2522,7 @@ async def _persistir_municipio_revisao(
                             COALESCE(:nome_localidade_informada, '')
                     )
                   )
-                RETURNING id_revisao_localidade
+                RETURNING id_revisao_localidade, tipo_localidade
             """
 
         update_result = await db.execute(_localidade_text(update_sql), params)
@@ -2519,7 +2550,8 @@ async def _persistir_municipio_revisao(
                         acao_sugerida,
                         qtde_familias_ben_original,
                         qtde_familias_ben_sugerida,
-                        justificativa
+                        justificativa,
+                        tipo_localidade
                     )
                     VALUES (
                         :id_revisao,
@@ -2530,9 +2562,12 @@ async def _persistir_municipio_revisao(
                         :acao_sugerida,
                         :qtde_familias_ben_original,
                         :qtde_familias_ben_sugerida,
-                        :justificativa
+                        :justificativa,
+                        CASE WHEN :tipo_localidade_informado THEN CAST(:tipo_localidade AS varchar)
+                             ELSE (SELECT cr.tipo_localidade FROM territorio.tb_comunidade_rural cr
+                                   WHERE cr.cod_comunidade_rural = CAST(:cod_comunidade_rural AS bigint)) END
                     )
-                    RETURNING id_revisao_localidade
+                    RETURNING id_revisao_localidade, tipo_localidade
                     """
                 ),
                 params,
@@ -2546,8 +2581,10 @@ async def _persistir_municipio_revisao(
                         "id_revisao_localidade",
                         "cod_municipio",
                         "nome_localidade_informada",
+                        "tipo_localidade",
                     }
                 ),
+                tipo_localidade=localidade_row["tipo_localidade"],
                 id_revisao_localidade=localidade_row["id_revisao_localidade"],
                 cod_municipio=cod_localidade_municipio,
                 nome_localidade_informada=nome_informado,
@@ -2971,6 +3008,7 @@ async def _montar_resposta_busca(
             nome_localidade_informada=localidade_salva["nome_localidade_informada"],
             origem_registro=localidade_salva["origem_registro"],
             acao_sugerida=localidade_salva["acao_sugerida"],
+            tipo_localidade=localidade_salva["tipo_localidade"],
             qtde_familias_ben_original=localidade_salva["qtde_familias_ben_original"],
             qtde_familias_ben_sugerida=localidade_salva["qtde_familias_ben_sugerida"],
             justificativa=localidade_salva["justificativa"],
@@ -2998,6 +3036,7 @@ async def _montar_resposta_busca(
                     "nome_localidade_informada": item_salvo.nome_localidade_informada,
                     "origem_registro": item_salvo.origem_registro,
                     "acao_sugerida": item_salvo.acao_sugerida,
+                    "tipo_localidade": item_salvo.tipo_localidade,
                     "qtde_familias_ben_sugerida": item_salvo.qtde_familias_ben_sugerida,
                     "justificativa": item_salvo.justificativa,
                     "conferido_em": item_salvo.conferido_em,

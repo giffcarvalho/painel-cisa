@@ -92,6 +92,7 @@ class LocalidadeRevisaoItem(RevisaoInstrumentoBase):
     origem_registro: OrigemRegistro = "base_atual"
     acao_sugerida: AcaoLocalidade | None = None
 
+    tipo_localidade: str | None = Field(default=None, max_length=100)
     qtde_familias_ben_original: int | None = None
     qtde_familias_ben_sugerida: int | None = None
 
@@ -135,6 +136,7 @@ class LocalidadeRevisaoAlteracao(RevisaoInstrumentoBase):
     origem_registro: OrigemRegistro = "base_atual"
     acao_sugerida: AcaoLocalidade
 
+    tipo_localidade: str | None = Field(default=None, max_length=100)
     qtde_familias_ben_original: int | None = None
     qtde_familias_ben_sugerida: int | None = None
 

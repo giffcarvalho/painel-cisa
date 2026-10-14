@@ -49,6 +49,8 @@ class AlteracaoRevisaoItem(AplicacaoBase):
     cod_comunidade_rural: int | None = None
     localidade: str | None = None
     origem_registro: str | None = None
+    tipo_localidade: str | None = None
+    tipo_localidade_anterior: str | None = None
     valor_anterior: int | None = None
     valor_sugerido: int | None = None
     justificativa: str | None = None
@@ -157,6 +159,7 @@ class EdicaoMunicipioItem(EdicaoAdministrativaBase):
 class EdicaoLocalidadeItem(EdicaoAdministrativaBase):
     id_item: int
     acao_sugerida: Literal["manter", "remover", "adicionar", "corrigir"] | None = None
+    tipo_localidade: str | None = Field(default=None, max_length=100)
     qtde_familias_ben_sugerida: int | None = Field(default=None, ge=0)
     justificativa: str | None = Field(default=None, max_length=4000)
 

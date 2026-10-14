@@ -78,9 +78,12 @@ async def _listar_rascunhos(
             LEFT JOIN LATERAL (
                 SELECT COUNT(*) AS total
                 FROM painel_dsr.tb_revisao_instrumento_localidade x
+                LEFT JOIN territorio.tb_comunidade_rural cr
+                  ON cr.cod_comunidade_rural = x.cod_comunidade_rural
                 WHERE x.id_revisao = r.id_revisao
                   AND (x.origem_registro = 'adicionado_tecnico'
-                       OR (x.acao_sugerida IS NOT NULL AND x.acao_sugerida <> 'manter'))
+                       OR (x.acao_sugerida IS NOT NULL AND x.acao_sugerida <> 'manter')
+                       OR x.tipo_localidade IS DISTINCT FROM cr.tipo_localidade)
             ) l ON TRUE
             LEFT JOIN LATERAL (
                 SELECT COUNT(*) AS total

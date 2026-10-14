@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { X } from 'lucide-react'
+import TipoLocalidadeSelect from '@/components/revisao-instrumento/TipoLocalidadeSelect'
 import styles from '@/pages/admin/aplicacao-revisoes/AplicacaoRevisoes.module.css'
 import {
   CONFIRMACOES_OBRA,
@@ -29,7 +30,7 @@ const SITUACOES_CORRECAO = ['Sim', 'Não', 'Sem necessidade']
 
 const CAMPOS = {
   municipios: ['acao', 'justificativa'],
-  localidades: ['acao', 'valor_sugerido', 'justificativa'],
+  localidades: ['acao', 'valor_sugerido', 'tipo_localidade', 'justificativa'],
   publico_alvo: [
     'status_populacao_beneficiada',
     'status_desc_populacao_beneficiada',
@@ -143,6 +144,7 @@ export default function ModalEditarRevisao({ detalhe, salvando, erro, onFechar, 
               <strong>{item.localidade || `Comunidade ${item.cod_comunidade_rural || ''}`} — {item.municipio || item.cod_municipio}</strong>
               <div className={styles.editGrid}>
                 <label className={styles.editField}><span>Ação</span><select value={item.acao || ''} onChange={(event) => alterarItem('localidades', item.id_item, 'acao', event.target.value)}>{opcoes(ACOES_LOCALIDADE)}</select></label>
+                <div className={styles.editField}><span>Tipo de Localidade</span><TipoLocalidadeSelect value={item.tipo_localidade} onChange={(valor) => alterarItem('localidades', item.id_item, 'tipo_localidade', valor)} /></div>
                 <label className={styles.editField}><span>Famílias sugeridas</span><input type="number" min="0" value={item.valor_sugerido ?? ''} onChange={(event) => alterarItem('localidades', item.id_item, 'valor_sugerido', event.target.value === '' ? null : Number(event.target.value))} /></label>
                 <label className={`${styles.editField} ${styles.editFieldWide}`}><span>Justificativa</span><textarea value={item.justificativa || ''} onChange={(event) => alterarItem('localidades', item.id_item, 'justificativa', event.target.value)} rows={2} /></label>
               </div>

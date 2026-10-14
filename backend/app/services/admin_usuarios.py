@@ -176,7 +176,8 @@ async def _calcular_pendencias(
         c = resposta.completude
         coordenadas = resumo_coordenadas.get(identificador, {"total": 0, "pendentes": 0})
         total = int(c.get("municipios_total", 0)) + int(c.get("localidades_total", 0)) + int(c.get("obras_total", 0)) + int(bool(resposta.publico_alvo)) + coordenadas["total"]
-        feitos = int(c.get("municipios_revisados", 0)) + int(c.get("localidades_revisadas", 0)) + int(c.get("obras_revisadas", 0)) + int(bool(c.get("publico_alvo_revisado"))) + coordenadas["total"] - coordenadas["pendentes"]
+        localidades_concluidas = max(int(c.get("localidades_total", 0)) - int(c.get("localidades_pendentes", 0)), 0)
+        feitos = int(c.get("municipios_revisados", 0)) + localidades_concluidas + int(c.get("obras_revisadas", 0)) + int(bool(c.get("publico_alvo_revisado"))) + coordenadas["total"] - coordenadas["pendentes"]
         total_itens += total
         concluidos += feitos
         instrumentos.append({

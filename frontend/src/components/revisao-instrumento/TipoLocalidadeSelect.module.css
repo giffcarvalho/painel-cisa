@@ -1,0 +1,78 @@
+.campo {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 400;
+  color: #334155;
+}
+
+.campo > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Evita que os estilos de inputs da tabela alterem o input interno do react-select. */
+.campo.campo input {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font: inherit;
+}
+
+.opcao {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  line-height: 1.45;
+}
+
+.opcao span {
+  overflow-wrap: anywhere;
+}
+
+.info,
+.campo .info {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
+  padding: 2px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  font-weight: 400;
+}
+
+.info:hover,
+.info:focus-visible {
+  color: #1e40af;
+  background: #eff6ff;
+  outline: 2px solid #bfdbfe;
+}
+
+.descricao {
+  z-index: 1200;
+  max-width: min(380px, calc(100vw - 24px));
+  max-height: min(420px, var(--radix-popover-content-available-height));
+  overflow-y: auto;
+  padding: 12px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  box-shadow: 0 8px 24px #0f172a26;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}

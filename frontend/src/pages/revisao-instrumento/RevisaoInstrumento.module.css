@@ -593,7 +593,7 @@
 }
 
 .addLocalidadeGrid {
-  grid-template-columns: minmax(220px, 1fr) minmax(140px, 180px) auto auto;
+  grid-template-columns: minmax(180px, 1fr) minmax(110px, 140px) minmax(180px, 1fr) auto auto;
 }
 
 .searchPanel button,
@@ -1250,8 +1250,53 @@ button:disabled {
 }
 
 .table.localidadesTable {
-  min-width: 620px;
+  min-width: 760px;
+  table-layout: fixed;
   font-size: 12.5px;
+}
+
+.localidadesTable th:nth-child(1) {
+  width: 23%;
+}
+
+.localidadesTable th:nth-child(2) {
+  width: 24%;
+}
+
+.localidadesTable th:nth-child(3) {
+  width: 16%;
+}
+
+.localidadesTable th:nth-child(4) {
+  width: 24%;
+}
+
+.localidadesTable th:nth-child(5) {
+  width: 13%;
+}
+
+.localidadesTable td {
+  overflow-wrap: anywhere;
+}
+
+.table.localidadesTable th {
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.tipoLocalidadeForm {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.localidadesTable .localidadeCell,
+.localidadesTable .familiasCell {
+  min-width: 0;
 }
 
 .table.obrasTable {
@@ -1803,7 +1848,7 @@ button:disabled {
 
 .addLocalidadeGrid {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(140px, 180px) auto auto;
+  grid-template-columns: minmax(180px, 1fr) minmax(110px, 140px) minmax(180px, 1fr) auto auto;
   gap: 10px;
   align-items: end;
 }

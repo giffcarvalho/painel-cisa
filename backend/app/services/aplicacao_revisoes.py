@@ -125,7 +125,9 @@ async def listar_pendentes(db: AsyncSession) -> RevisoesPendentesResponse:
                 (SELECT COUNT(*) FROM painel_dsr.tb_revisao_instrumento_municipio rm
                  WHERE rm.id_revisao = r.id_revisao AND rm.acao_sugerida <> 'manter') AS qtd_municipios,
                 (SELECT COUNT(*) FROM painel_dsr.tb_revisao_instrumento_localidade rl
-                 WHERE rl.id_revisao = r.id_revisao AND rl.acao_sugerida <> 'manter') AS qtd_localidades,
+                 LEFT JOIN territorio.tb_comunidade_rural cr ON cr.cod_comunidade_rural = rl.cod_comunidade_rural
+                 WHERE rl.id_revisao = r.id_revisao AND (rl.acao_sugerida <> 'manter'
+                   OR rl.tipo_localidade IS DISTINCT FROM cr.tipo_localidade)) AS qtd_localidades,
                 (SELECT COUNT(*) FROM painel_dsr.tb_revisao_instrumento_publico_alvo rpa
                  WHERE rpa.id_revisao = r.id_revisao) AS qtd_publico_alvo,
                 (SELECT COUNT(*) FROM painel_dsr.tb_revisao_obra_saneamento ro
@@ -195,6 +197,7 @@ async def _carregar_revisao(
                    rl.cod_comunidade_rural, rl.nome_localidade_informada,
                    COALESCE(cr.nome_comunidade_rural, rl.nome_localidade_informada) AS localidade,
                    rl.origem_registro, rl.acao_sugerida,
+                   rl.tipo_localidade, cr.tipo_localidade AS tipo_localidade_anterior,
                    rl.qtde_familias_ben_original, rl.qtde_familias_ben_sugerida,
                    rl.justificativa, m.nome_municipio AS municipio,
                    BTRIM(uf.sigla_uf) AS uf
@@ -574,6 +577,7 @@ async def _validar(
 
     if (
         not any(item["acao_sugerida"] != "manter" for item in municipios + localidades)
+        and not any(item.get("tipo_localidade") != item.get("tipo_localidade_anterior") for item in localidades)
         and not publico_alvo
         and not obras
     ):
@@ -602,6 +606,8 @@ def _alteracao_localidade(row: dict[str, Any]) -> AlteracaoRevisaoItem:
         cod_municipio=row["cod_municipio"], municipio=row.get("municipio"), uf=row.get("uf"),
         cod_comunidade_rural=row.get("cod_comunidade_rural"),
         localidade=row.get("localidade"), origem_registro=row.get("origem_registro"),
+        tipo_localidade=row.get("tipo_localidade"),
+        tipo_localidade_anterior=row.get("tipo_localidade_anterior"),
         valor_anterior=row.get("qtde_familias_ben_original"),
         valor_sugerido=row.get("qtde_familias_ben_sugerida"),
         justificativa=row.get("justificativa"),
@@ -641,7 +647,7 @@ async def obter_detalhe(db: AsyncSession, id_revisao: int) -> RevisaoAplicacaoDe
     row = {
         **revisao,
         "qtd_municipios": sum(item["acao_sugerida"] != "manter" for item in municipios),
-        "qtd_localidades": sum(item["acao_sugerida"] != "manter" for item in localidades),
+        "qtd_localidades": sum(item["acao_sugerida"] != "manter" or item.get("tipo_localidade") != item.get("tipo_localidade_anterior") for item in localidades),
         "qtd_publico_alvo": len(publico),
         "qtd_obras": len(obras),
     }
@@ -677,7 +683,7 @@ SECOES_CORRECAO = {
         "tabela": "painel_dsr.tb_revisao_instrumento_localidade",
         "id": "id_revisao_localidade",
         "campos": {
-            "acao_sugerida", "qtde_familias_ben_sugerida", "justificativa"
+            "acao_sugerida", "qtde_familias_ben_sugerida", "tipo_localidade", "justificativa"
         },
         "obrigatorios": {"acao_sugerida"},
     },
@@ -1261,6 +1267,10 @@ async def _aplicar_localidade(
                 if insert_result.scalar_one_or_none() is not None
                 else "ja_existente"
             )
+    elif acao == "manter":
+        if not presente:
+            raise ValueError(f"A localidade {codigo} não está vinculada ao instrumento.")
+        resultado = "corrigido"
     elif acao == "remover":
         if presente:
             await db.execute(
@@ -1287,6 +1297,27 @@ async def _aplicar_localidade(
                 {"codigo": codigo, "nr_proposta": proposta, "quantidade": sugerido},
             )
             resultado = "corrigido"
+    # Registra a classificação no mesmo histórico usado para cancelar a aplicação.
+    tipo_anterior = None
+    tipo_novo = None
+    if codigo is not None:
+        tipo_result = await db.execute(
+            text("SELECT tipo_localidade FROM territorio.tb_comunidade_rural "
+                 "WHERE cod_comunidade_rural = :codigo FOR UPDATE"),
+            {"codigo": codigo},
+        )
+        tipo_anterior = tipo_result.scalar_one_or_none()
+        tipo_novo = tipo_anterior
+        if acao != "remover" and "tipo_localidade" in item:
+            tipo_novo = item["tipo_localidade"]
+            if tipo_novo != tipo_anterior:
+                await db.execute(
+                    text("UPDATE territorio.tb_comunidade_rural SET tipo_localidade = :tipo "
+                         "WHERE cod_comunidade_rural = :codigo"),
+                    {"tipo": tipo_novo, "codigo": codigo},
+                )
+                if resultado in {"ja_atualizado", "ja_existente"}:
+                    resultado = "corrigido"
     return {
         "entidade": "localidade", "acao": acao, "resultado": resultado,
         "chave": {"nr_proposta": proposta, "cod_comunidade_rural": codigo,
@@ -1294,10 +1325,12 @@ async def _aplicar_localidade(
                   "nome_comunidade_rural": (
                       str(item.get("nome_localidade_informada") or "").strip() or None
                   )},
-        "valores_anteriores": {"vinculado": presente, "qtde_familias_ben": atual},
+        "valores_anteriores": {"vinculado": presente, "qtde_familias_ben": atual,
+                               "tipo_localidade": tipo_anterior},
         "valores_novos": {
             "vinculado": acao != "remover",
             "qtde_familias_ben": sugerido if acao in {"adicionar", "corrigir"} else atual,
+            "tipo_localidade": tipo_novo,
             "comunidade_criada": criada,
             "comunidade_reutilizada": (
                 item.get("cod_comunidade_rural") is None and codigo is not None and not criada
@@ -1523,6 +1556,14 @@ async def _conflitos_estado_atual(
                 conflitos.append(f"Localidade {nome}: o vínculo atual diverge do estado deixado pela aplicação.")
             elif atual_vinculado and atual_quantidade != esperado.get("qtde_familias_ben"):
                 conflitos.append(f"Localidade {nome}: a quantidade de famílias foi alterada após a aplicação.")
+            if "tipo_localidade" in esperado:
+                tipo_result = await db.execute(
+                    text("SELECT tipo_localidade FROM territorio.tb_comunidade_rural "
+                         "WHERE cod_comunidade_rural = :codigo" + sufixo_lock),
+                    {"codigo": chave.get("cod_comunidade_rural")},
+                )
+                if tipo_result.scalar_one_or_none() != esperado["tipo_localidade"]:
+                    conflitos.append(f"Localidade {nome}: a classificação foi alterada após a aplicação.")
     return conflitos
 
 
@@ -1636,6 +1677,14 @@ async def _reverter_detalhe(
                     f"WHERE {condicao}"
                 ),
                 {**params, "quantidade": anterior.get("qtde_familias_ben")},
+            )
+
+        # Históricos anteriores à inclusão do atributo não possuem esta chave.
+        if "tipo_localidade" in anterior and anterior.get("tipo_localidade") != novo.get("tipo_localidade"):
+            await db.execute(
+                text("UPDATE territorio.tb_comunidade_rural SET tipo_localidade = :tipo "
+                     "WHERE cod_comunidade_rural = :codigo"),
+                {"tipo": anterior["tipo_localidade"], "codigo": chave["cod_comunidade_rural"]},
             )
 
     acao_reversao = {
@@ -2090,7 +2139,8 @@ async def aplicar_revisao(
                 if item["acao_sugerida"] == "adicionar":
                     detalhes.append(await _aplicar_municipio(db, revisao, item))
             for item in localidades:
-                if item["acao_sugerida"] != "manter":
+                if (item["acao_sugerida"] != "manter"
+                    or item.get("tipo_localidade") != item.get("tipo_localidade_anterior")):
                     detalhes.append(await _aplicar_localidade(db, revisao, item))
             for item in municipios:
                 if item["acao_sugerida"] == "remover":

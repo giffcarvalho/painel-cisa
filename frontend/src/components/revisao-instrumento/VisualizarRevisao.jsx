@@ -293,6 +293,7 @@ export default function VisualizarRevisao() {
                         <p className={styles.metadata}>Origem: {localidade.origem_registro === 'adicionado_tecnico' ? 'Adicionada pelo técnico' : 'Base do instrumento'}</p>
                         <Comparacao label="Famílias beneficiadas" original={localidade.qtde_familias_ben_original} revisado={localidade.qtde_familias_ben_sugerida} />
                         {localidade.justificativa && <p className={styles.textBlock}><strong>Justificativa:</strong> {localidade.justificativa}</p>}
+                        <p className={styles.metadata}>Tipo de Localidade: {valor(localidade.tipo_localidade)}</p>
                         <Metadados item={localidade} />
                       </div>
                     ))}
