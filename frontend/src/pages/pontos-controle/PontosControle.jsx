@@ -146,7 +146,6 @@ function PontosControleContent() {
         <TabelaPontosControle
           data={instrumentosQuery.data}
           dataDados={dataDados}
-          //dadosAdicionais={dadosAdicionaisQuery.data}
           isLoading={instrumentosQuery.isLoading}
           isError={instrumentosQuery.isError}
           pagina={pagina}
