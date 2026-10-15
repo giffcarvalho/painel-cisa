@@ -45,6 +45,7 @@ CAMPOS_BUSCA_FILTROS = {
     "possui_aio": "possui_aio",
     "coordenacao": "coordenacao",
     "acao": "acao",
+    "nivel": "nivel",
     "monitor": "monitor",
     "prazo_clausulas_suspensivas": "prazo_clausulas_suspensivas",
     "prazo_emissao_lae": "prazo_emissao_lae",
@@ -82,6 +83,7 @@ class FiltrosPontosControle:
         possui_aio: list[str] | None = Query(None),
         coordenacao: list[str] | None = Query(None),
         acao: list[str] | None = Query(None),
+        nivel: list[str] | None = Query(None),
         monitor: list[str] | None = Query(None),
         prazo_clausulas_suspensivas: list[str] | None = Query(None),
         prazo_emissao_lae: list[str] | None = Query(None),
@@ -114,6 +116,7 @@ class FiltrosPontosControle:
         self.possui_aio = possui_aio
         self.coordenacao = coordenacao
         self.acao = acao
+        self.nivel = nivel
         self.monitor = monitor
         self.prazo_clausulas_suspensivas = prazo_clausulas_suspensivas
         self.prazo_emissao_lae = prazo_emissao_lae
@@ -358,6 +361,12 @@ def _build_where(
             "acao",
             filtros.acao,
             "acao",
+            None,
+        ),
+        (
+            "nivel",
+            filtros.nivel,
+            "nivel",
             None,
         ),
         (
@@ -724,6 +733,17 @@ async def get_filtros(
                 ),
                 ARRAY[]::text[]
             ) AS acao,
+
+            COALESCE(
+                array_agg(
+                    DISTINCT nivel
+                    ORDER BY nivel
+                )
+                FILTER (
+                    WHERE nivel IS NOT NULL
+                ),
+                ARRAY[]::text[]
+            ) AS nivel,
 
             COALESCE(
                 (
@@ -1170,6 +1190,7 @@ async def get_instrumentos(
             mv.possui_aio,
             mv.coordenacao,
             mv.acao,
+            mv.nivel,
             mv.monitor,
             EXISTS (SELECT 1 FROM painel_dsr.tb_ponto_controle_acao a WHERE a.nr_instrumento = mv.nr_instrumento) AS tem_acao,
             mv.prazo_clausulas_suspensivas,
