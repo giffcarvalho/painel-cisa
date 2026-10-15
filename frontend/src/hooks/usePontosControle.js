@@ -55,7 +55,7 @@ export function useBuscaFiltroPontosControleQuery(campo, termo, limit = 50) {
 export function useInstrumentosPontosControleQuery(filtros = {}, pagina = 1, tamanhoPagina = 50) {
   
   const filtrosNormalizados = normalizarFiltros(filtros);
-
+  
   return useQuery({
     queryKey: [
       'pontos-controle',
