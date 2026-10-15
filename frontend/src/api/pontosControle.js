@@ -10,6 +10,7 @@ const CAMPOS_FILTRO = [
   'possui_aio',
   'coordenacao',
   'acao',
+  'nivel',
   'monitor',
   'prazo_clausulas_suspensivas',
   'prazo_emissao_lae',

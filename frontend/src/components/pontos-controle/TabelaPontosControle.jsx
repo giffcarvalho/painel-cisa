@@ -384,6 +384,7 @@ export default function TabelaPontosControle({
                   <th className={styles.colMini}>Possui AIO</th>
                   <th className={styles.colMini}>Coordenação</th>
                   <th className={styles.colGigante}>Ação padronizada</th>
+                  <th className={styles.colPequena}>Nível</th>
                   <th className={styles.colGigante}>Monitores</th>
                   <th className={styles.colMini}>Ações</th>
                   <th className={styles.colGrande}><InformacaoColuna label="Vencimento Suspensivas" onClick={abrirInformacaoColuna} /></th>
@@ -420,6 +421,7 @@ export default function TabelaPontosControle({
                   <th><FiltroColuna campo="possui_aio" label="Possui AIO" /></th>
                   <th><FiltroColuna campo="coordenacao" label="Coordenação" /></th>
                   <th><FiltroColuna campo="acao" label="Ação" /></th>
+                  <th><FiltroColuna campo="nivel" label="Nível" /></th>
                   <th><FiltroColuna campo="monitor" label="Monitores" /></th>
                   <th></th>
                   <th><FiltroColuna campo="prazo_clausulas_suspensivas" label="Cláusulas Suspensivas" /></th>
@@ -521,6 +523,7 @@ export default function TabelaPontosControle({
                         <td className={styles.compactCell}>{emptyValue(instrumento.possui_aio)}</td>
                         <td className={styles.compactCell}>{emptyValue(instrumento.coordenacao)}</td>
                         <td className={styles.compactCell}>{emptyValue(instrumento.acao)}</td>
+                        <td className={styles.compactCell}>{emptyValue(instrumento.nivel)}</td>
                         <td className={styles.compactCell}>{emptyValue(instrumento.monitor)}</td>
                         <td className={styles.compactCell}>
                           <button
