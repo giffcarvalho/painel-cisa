@@ -153,6 +153,8 @@ export function SelectPesquisavel({
     setTermoBusca('');
   };
 
+  
+
   return (
     <div
       className={styles.searchableSelect}
@@ -312,6 +314,9 @@ export default function FiltroColuna({ campo, label }) {
       valorAtual
     );
   }, [opcoesBase, valorAtual]);
+
+
+ 
 
   return (
     <div
