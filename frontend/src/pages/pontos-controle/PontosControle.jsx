@@ -6,9 +6,10 @@ import TabelaPontosControle from '../../components/pontos-controle/TabelaPontosC
 import PlanoAcao from '@/components/pontos-controle/PlanoAcao';
 import ContatoRecebedor from '@/components/pontos-controle/ContatoRecebedor';
 import HistoricoAcao from '@/components/pontos-controle/HistoricoAcao';
+import ContatoMandataria from '@/components/pontos-controle/ContatoMandataria';
 import estilos from './PontosControle.module.css';
 import pontosControleApi from '../../api/pontosControle';
-
+import { useAuth } from "@/context/auth/useAuth";
 
 
 
@@ -28,6 +29,9 @@ function PontosControleContent() {
   const [planoAcaoContexto, setPlanoAcaoContexto] = useState(null);
   const [contatoRecebedorContexto, setContatoRecebedorContexto] = useState(null);
   const [historicoAcaoContexto, setHistoricoAcaoContexto] = useState(null);
+  const [contatoMandataria, setContatoMandataria] = useState(false);
+  const { isAuthenticated } = useAuth();
+  
 
   const { filtros } = useFiltrosPontosControle();
 
@@ -77,6 +81,9 @@ function PontosControleContent() {
       nrInstrumento
     });
   };
+
+
+
 
   //instrumentosQuery não é o array de instrumentos ainda. É o objeto de resultado gerenciado pelo useQuery
   //esse objeto é que é passado como props para a tabela
@@ -139,7 +146,6 @@ function PontosControleContent() {
         <TabelaPontosControle
           data={instrumentosQuery.data}
           dataDados={dataDados}
-          //dadosAdicionais={dadosAdicionaisQuery.data}
           isLoading={instrumentosQuery.isLoading}
           isError={instrumentosQuery.isError}
           pagina={pagina}
@@ -155,6 +161,7 @@ function PontosControleContent() {
           abrirJanelaPlanoAcao={abrirJanelaPlanoAcao}
           abrirJanelaContato={abrirJanelaContato}
           abrirJanelaHistoricoAcao={abrirJanelaHistoricoAcao}
+          setContatoMandataria={setContatoMandataria}
         />
       </section>}
 
@@ -186,6 +193,13 @@ function PontosControleContent() {
           key={`${historicoAcaoContexto.nrInstrumento}`}
           fecharJanelaHistoricoAcao={fecharJanelaHistoricoAcao}
           nrInstrumento={historicoAcaoContexto.nrInstrumento}
+        />
+      )}
+
+
+      {contatoMandataria && isAuthenticated && (
+        <ContatoMandataria
+          setContatoMandataria={setContatoMandataria}
         />
       )}
 

@@ -45,6 +45,7 @@ class PontosControleFiltrosResponse(BaseModel):
     possui_aio: list[str]
     coordenacao: list[str]
     acao: list[str]
+    nivel: list[str]
     monitor: list[str]
     prazo_clausulas_suspensivas: list[str]
     prazo_emissao_lae: list[str]
@@ -96,6 +97,7 @@ class PontosControleListaItem(PontosControleBase):
     possui_aio: str | None = None
     coordenacao: str | None = None
     acao: str | None = None
+    nivel: str | None = None
     monitor: str | None = None
     tem_acao: bool | None = False
     prazo_clausulas_suspensivas: str | None = None
@@ -157,11 +159,6 @@ class PontosControleDadosAdicionaisItem(PontosControleBase):
     percentual_fisico_aferido: float | None = None
     data_ultimo_bm: date | None = None
     
-
-# Acho que não há mais necessidade, pois agora os dados adicionais são puxados de um único instrumento de cada vez
-#class PontosControleDadosAdicionais(BaseModel):
-#    data: list[PontosControleDadosAdicionaisItem]
-
 
 
 
@@ -257,3 +254,21 @@ class PlanoAcaoHistoricoItem(BaseModel):
 
 class PlanoAcaoHistorico(BaseModel):
     data: list[PlanoAcaoHistoricoItem]
+
+
+
+class ContatoMandatariaBuscaItem(BaseModel):
+    cod_uf: int
+    usuario: str
+    nome: str
+    cargo: str | None = None
+    tipo_setor: str | None = None
+    setor: str | None = None
+    telefone: str | None = None
+    email: str | None = None
+    observacao: str | None = None
+    alterado_em: datetime
+
+
+class ContatoMandatariaBusca(BaseModel):
+    data: list[ContatoMandatariaBuscaItem]

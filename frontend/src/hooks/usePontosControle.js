@@ -55,7 +55,7 @@ export function useBuscaFiltroPontosControleQuery(campo, termo, limit = 50) {
 export function useInstrumentosPontosControleQuery(filtros = {}, pagina = 1, tamanhoPagina = 50) {
   
   const filtrosNormalizados = normalizarFiltros(filtros);
-
+  
   return useQuery({
     queryKey: [
       'pontos-controle',
@@ -135,5 +135,22 @@ export function useBuscaHistoricoAcaoQuery(nrInstrumento) {
     queryFn: () => pontosControleApi.getHistoricoAcao(nrInstrumento),
     enabled: Boolean(nrInstrumento),
     staleTime: 0,
+  });
+}
+
+
+
+
+export function useBuscaContatoMandatariaQuery(codUF) {
+
+  return useQuery({
+    queryKey: [
+      'pontos-controle',
+      'contato-mandataria',
+      codUF,
+    ],
+    queryFn: () => pontosControleApi.getContatoMandataria(codUF),
+    enabled: !!codUF,
+    placeholderData: keepPreviousData,
   });
 }

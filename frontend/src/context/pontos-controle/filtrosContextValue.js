@@ -8,6 +8,7 @@ export const FILTROS_INICIAIS_PONTOS_CONTROLE = {
   possui_aio: '',
   coordenacao: '',
   acao: '',
+  nivel: '',
   monitor: '',
   prazo_clausulas_suspensivas: '',
   prazo_emissao_lae: '',

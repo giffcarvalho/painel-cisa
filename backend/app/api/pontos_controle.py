@@ -24,6 +24,8 @@ from app.schemas.pontos_controle import (
     ContatoBuscaItem,
     PlanoAcaoHistorico,
     PlanoAcaoHistoricoItem,
+    ContatoMandatariaBuscaItem,
+    ContatoMandatariaBusca,
 )
 
 router = APIRouter()
@@ -43,6 +45,7 @@ CAMPOS_BUSCA_FILTROS = {
     "possui_aio": "possui_aio",
     "coordenacao": "coordenacao",
     "acao": "acao",
+    "nivel": "nivel",
     "monitor": "monitor",
     "prazo_clausulas_suspensivas": "prazo_clausulas_suspensivas",
     "prazo_emissao_lae": "prazo_emissao_lae",
@@ -80,6 +83,7 @@ class FiltrosPontosControle:
         possui_aio: list[str] | None = Query(None),
         coordenacao: list[str] | None = Query(None),
         acao: list[str] | None = Query(None),
+        nivel: list[str] | None = Query(None),
         monitor: list[str] | None = Query(None),
         prazo_clausulas_suspensivas: list[str] | None = Query(None),
         prazo_emissao_lae: list[str] | None = Query(None),
@@ -112,6 +116,7 @@ class FiltrosPontosControle:
         self.possui_aio = possui_aio
         self.coordenacao = coordenacao
         self.acao = acao
+        self.nivel = nivel
         self.monitor = monitor
         self.prazo_clausulas_suspensivas = prazo_clausulas_suspensivas
         self.prazo_emissao_lae = prazo_emissao_lae
@@ -356,6 +361,12 @@ def _build_where(
             "acao",
             filtros.acao,
             "acao",
+            None,
+        ),
+        (
+            "nivel",
+            filtros.nivel,
+            "nivel",
             None,
         ),
         (
@@ -722,6 +733,17 @@ async def get_filtros(
                 ),
                 ARRAY[]::text[]
             ) AS acao,
+
+            COALESCE(
+                array_agg(
+                    DISTINCT nivel
+                    ORDER BY nivel
+                )
+                FILTER (
+                    WHERE nivel IS NOT NULL
+                ),
+                ARRAY[]::text[]
+            ) AS nivel,
 
             COALESCE(
                 (
@@ -1168,6 +1190,7 @@ async def get_instrumentos(
             mv.possui_aio,
             mv.coordenacao,
             mv.acao,
+            mv.nivel,
             mv.monitor,
             EXISTS (SELECT 1 FROM painel_dsr.tb_ponto_controle_acao a WHERE a.nr_instrumento = mv.nr_instrumento) AS tem_acao,
             mv.prazo_clausulas_suspensivas,
@@ -1510,12 +1533,9 @@ async def get_contato(
     db: AsyncSession = Depends(get_db)
 ):
     
-    # Estou testando essa linha abaixo de no-cache, para ver se resolve o bug do plano de ação vir antigo quando o usuario salva e reabre logo em seguida
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     
-    # Para voltar com o cahe, descomente linha abaixo e apague a linha de cima
-    #response.headers["Cache-Control"] = ("private, max-age=300")
-
+    
     sql = text( """
         SELECT
             c.id_recebedor,
@@ -1583,4 +1603,46 @@ async def get_historico_acao_instrumento(
         data=[
             PlanoAcaoHistoricoItem(**r) for r in result.mappings().all()
         ]
+    )
+
+
+
+@router.get(
+    "/busca_contato_mandataria",
+    response_model=ContatoMandatariaBusca,
+    summary=("Busca os contatos da mandatária")
+)
+async def get_contato_mandataria(
+    cod_uf: int = Query(..., description="Código da UF da mandatária para filtrar"),
+    response: Response = None,
+    db: AsyncSession = Depends(get_db)
+):
+    
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    
+    
+    sql = text( """
+        SELECT
+            c.cod_uf,
+            u.nome as usuario,
+            c.nome,
+            c.cargo,
+            c.tipo_setor,
+            c.setor,
+            c.telefone,
+            c.email,
+            c.observacao,
+            c.alterado_em
+        FROM painel_dsr.tb_contato_mandataria c
+        LEFT JOIN painel_dsr.tb_usuario u ON u.id_usuario = c.id_usuario
+        WHERE c.cod_uf = :cod_uf
+        ORDER BY c.id_contato ASC
+    """)
+
+    result = await db.execute(sql, {"cod_uf": cod_uf})
+
+
+    
+    return ContatoMandatariaBusca(
+      data=[ContatoMandatariaBuscaItem(**r) for r in result.mappings().all()]
     )
