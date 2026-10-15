@@ -148,7 +148,9 @@ async def _calcular_pendencias(
     limit: int = 5,
     offset: int = 0,
 ) -> PendenciasUsuarioAdmin:
-    atribuicoes = await _buscar_meus_instrumentos(db, usuario)
+    atribuicoes = await _buscar_meus_instrumentos(
+        db, usuario, somente_prioridade_principal=True
+    )
     termo = (busca or "").strip().casefold()
     atribuicoes_filtradas = [
         item
@@ -684,7 +686,9 @@ async def detalhar_pendencias_instrumento(
     usuario = UsuarioAutenticado(
         id_usuario=id_usuario, nome=base["nome"], email=base["email"], perfil=base["perfil"]
     )
-    itens = await _listar_pendencias(db, usuario, identificador=identificador)
+    itens = await _listar_pendencias(
+        db, usuario, identificador=identificador, somente_prioridade_principal=True
+    )
     item = next(
         (x for x in itens if str(x.identificador_instrumento) == str(identificador)),
         None,

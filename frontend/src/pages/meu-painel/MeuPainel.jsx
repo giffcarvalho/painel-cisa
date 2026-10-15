@@ -40,8 +40,8 @@ function PendenciaCard({ item, onReview }) {
         <small>{item.tipo_instrumento_label}</small>
         <h3>Instrumento {item.identificador_instrumento}</h3>
         <strong className={styles.pendingCount}>{item.total_pendencias} {item.total_pendencias === 1 ? 'pendência' : 'pendências'}</strong>
-        <span className={styles.projectStatus} title={`${item.tipo_instrumento === 'ted' ? 'Status do TED' : 'Status do projeto'}: ${status}`}>
-          Status{item.tipo_instrumento === 'ted' ? ' do TED' : ''}: {statusLabel}
+        <span className={styles.projectStatus} title={`Situação do projeto: ${status}`}>
+          Situação do projeto:{'\u00a0'}{statusLabel}
         </span>
       </div>
       <dl className={styles.groups}>

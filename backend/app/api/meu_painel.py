@@ -247,9 +247,12 @@ async def _listar_pendencias(
     identificador: str | None = None,
     *,
     exigir_projeto_aprovado: bool = False,
+    somente_prioridade_principal: bool = False,
 ) -> list[InstrumentoPendenteItem]:
     """Reusa a completude; o filtro específico do Meu Painel é optativo para o admin."""
-    atribuicoes = await _buscar_meus_instrumentos(db, usuario)
+    atribuicoes = await _buscar_meus_instrumentos(
+        db, usuario, somente_prioridade_principal=somente_prioridade_principal
+    )
     if identificador is not None:
         alvo = identificador.strip()
         atribuicoes = [item for item in atribuicoes if _identificador(item) == alvo]
@@ -324,7 +327,9 @@ async def consultar_meu_painel(
         db, usuario.id_usuario, limite=rascunhos_limit, offset=rascunhos_offset
     )
     rascunhos_total = await _contar_rascunhos(db, usuario.id_usuario)
-    pendencias = await _listar_pendencias(db, usuario, exigir_projeto_aprovado=True)
+    pendencias = await _listar_pendencias(
+        db, usuario, exigir_projeto_aprovado=True, somente_prioridade_principal=True
+    )
     enviadas_result = await db.execute(
         text(
             """

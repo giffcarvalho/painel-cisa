@@ -1502,6 +1502,8 @@ async def _buscar_situacoes_revisao(
 async def _buscar_meus_instrumentos(
     db: AsyncSession,
     usuario: UsuarioAutenticado,
+    *,
+    somente_prioridade_principal: bool = False,
 ) -> list[MeuInstrumentoRevisaoItem]:
     result = await _execute_query(
         db,
@@ -1540,6 +1542,7 @@ async def _buscar_meus_instrumentos(
                 )
             WHERE ui.id_usuario = :id_usuario
               AND ui.ativo IS TRUE
+              AND (NOT :somente_prioridade_principal OR ui.ordem_prioridade = 1)
             ORDER BY v.nr_instrumento::text, v.nr_proposta::text
         )
         SELECT
@@ -1575,7 +1578,10 @@ async def _buscar_meus_instrumentos(
         WHERE c.tipo_normalizado IS NOT NULL
         ORDER BY c.nr_instrumento
         """,
-        {"id_usuario": usuario.id_usuario},
+        {
+            "id_usuario": usuario.id_usuario,
+            "somente_prioridade_principal": somente_prioridade_principal,
+        },
     )
 
     labels = {
@@ -3333,7 +3339,9 @@ async def listar_meus_instrumentos(
     db: AsyncSession = Depends(get_db),
 ):
     return MeusInstrumentosRevisaoResponse(
-        data=await _buscar_meus_instrumentos(db, usuario_atual)
+        data=await _buscar_meus_instrumentos(
+            db, usuario_atual, somente_prioridade_principal=True
+        )
     )
 
 

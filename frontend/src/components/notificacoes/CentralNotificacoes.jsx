@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Check, CheckCheck, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { notificacoesApi } from '@/api/notificacoes'
@@ -22,20 +22,28 @@ export default function CentralNotificacoes({ compact = false }) {
   const [dados, setDados] = useState(null)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
-  const [expandido, setExpandido] = useState(false)
-  const limiteAtual = compact && !expandido ? LIMITE_COMPACTO : LIMITE
+  const listagemRef = useRef(null)
+  const limiteAtual = compact ? LIMITE_COMPACTO : LIMITE
 
   useEffect(() => {
-    // Alterar entre compacto e expandido muda o limite da consulta e reinicia o
-    // conjunto exibido sem manter respostas de um limite anterior.
+    // Mantém a página anterior visível enquanto a próxima é consultada.
     let ativo = true
     Promise.resolve().then(() => { if (ativo) { setCarregando(true); setErro('') } })
     notificacoesApi.listar({ page: pagina, limit: limiteAtual })
-      .then((resultado) => { if (ativo) setDados(resultado) })
+      .then((resultado) => {
+        if (!ativo) return
+        setDados(resultado)
+        if (compact && listagemRef.current) listagemRef.current.scrollTop = 0
+      })
       .catch(() => { if (ativo) setErro('Não foi possível carregar as notificações.') })
       .finally(() => { if (ativo) setCarregando(false) })
     return () => { ativo = false }
-  }, [limiteAtual, pagina])
+  }, [compact, limiteAtual, pagina])
+
+  function mudarPagina(novaPagina) {
+    setCarregando(true)
+    setPagina(novaPagina)
+  }
 
   useEffect(() => {
     // Eventos emitidos pelo sino ou por outra instância atualizam leitura e
@@ -109,51 +117,46 @@ export default function CentralNotificacoes({ compact = false }) {
           </div>
           <p>Acompanhe os acontecimentos relacionados ao seu trabalho.</p>
         </div>
-        {dados?.nao_lidas > 0 && (
-          <button type="button" className={styles.secondary} onClick={marcarTodas}>
+        {(compact || dados?.nao_lidas > 0) && (
+          <button type="button" className={`${styles.secondary} ${compact && !dados?.nao_lidas ? styles.hiddenAction : ''}`} disabled={!dados?.nao_lidas} onClick={marcarTodas}>
             <CheckCheck /> Marcar todas como lidas
           </button>
         )}
       </header>
-      {carregando && <div className={styles.state}><Loader2 className={styles.spinner} /> Carregando notificações...</div>}
-      {!carregando && erro && <div className={styles.state} role="alert">{erro}</div>}
-      {!carregando && !erro && dados?.data.length === 0 && (
-        <div className={styles.state}>Você não possui novas notificações.</div>
-      )}
-      {!carregando && !erro && dados?.data.length > 0 && (
-        <div className={styles.list}>
-          {dados.data.map((item) => (
-            <article key={item.id_notificacao} className={`${styles.item} ${!item.lido_em ? styles.unread : ''}`}>
-              <div>
-                <p>{item.mensagem}</p>
-                <time dateTime={item.criado_em}>{formatarData(item.criado_em)}</time>
-              </div>
-              <div className={styles.actions}>
-                {!item.lido_em && (
-                  <button type="button" className={styles.linkButton} onClick={() => marcarLida(item)}>
-                    <Check /> Marcar como lida
-                  </button>
-                )}
-                {item.id_revisao && item.identificador_instrumento && (
-                  <button type="button" className={styles.primary} onClick={() => verRevisao(item)}>Ver revisão</button>
-                )}
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-      {!carregando && !erro && (!compact || expandido) && dados?.total_paginas > 1 && (
+      <div ref={listagemRef} className={compact ? styles.listViewport : undefined} aria-busy={carregando}>
+        {carregando && (!compact || !dados) && <div className={styles.state}><Loader2 className={styles.spinner} /> Carregando notificações...</div>}
+        {!carregando && erro && <div className={styles.state} role="alert">{erro}</div>}
+        {!carregando && !erro && dados?.data.length === 0 && (
+          <div className={styles.state}>Você não possui novas notificações.</div>
+        )}
+        {(compact || !carregando) && !erro && dados?.data.length > 0 && (
+          <div className={styles.list}>
+            {dados.data.map((item) => (
+              <article key={item.id_notificacao} className={`${styles.item} ${!item.lido_em ? styles.unread : ''}`}>
+                <div>
+                  <p>{item.mensagem}</p>
+                  <time dateTime={item.criado_em}>{formatarData(item.criado_em)}</time>
+                </div>
+                <div className={styles.actions}>
+                  {!item.lido_em && (
+                    <button type="button" className={styles.linkButton} onClick={() => marcarLida(item)}>
+                      <Check /> Marcar como lida
+                    </button>
+                  )}
+                  {item.id_revisao && item.identificador_instrumento && (
+                    <button type="button" className={styles.primary} onClick={() => verRevisao(item)}>Ver revisão</button>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+      {(compact || (!carregando && !erro && dados?.total_paginas > 1)) && (
         <nav className={styles.pagination} aria-label="Paginação das notificações">
-          <button type="button" disabled={pagina === 1} onClick={() => setPagina((valor) => valor - 1)}><ChevronLeft /> Anterior</button>
-          <span>Página {pagina} de {dados.total_paginas}</span>
-          <button type="button" disabled={pagina >= dados.total_paginas} onClick={() => setPagina((valor) => valor + 1)}>Próxima <ChevronRight /></button>
-        </nav>
-      )}
-      {compact && !carregando && !erro && (dados?.total ?? 0) > LIMITE_COMPACTO && (
-        <nav className={styles.pagination} aria-label="Controle da lista de notificações">
-          <button type="button" onClick={() => { setExpandido((valor) => !valor); setPagina(1) }}>
-            {expandido ? 'Mostrar menos' : 'Ver todas as notificações'}
-          </button>
+          <button type="button" disabled={carregando || pagina === 1} onClick={() => mudarPagina(pagina - 1)}><ChevronLeft /> Anterior</button>
+          <span>Página {pagina} de {Math.max(1, dados?.total_paginas ?? 1)}</span>
+          <button type="button" disabled={carregando || pagina >= (dados?.total_paginas ?? 1)} onClick={() => mudarPagina(pagina + 1)}>Próxima <ChevronRight /></button>
         </nav>
       )}
     </section>

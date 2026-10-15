@@ -82,16 +82,43 @@
   margin: 14px 19px 9px;
 }
 
-.compact .list {
+.compact.personalPage .list {
   gap: 0;
   border-radius: 0;
+  align-content: start;
+}
+
+.compact .listViewport {
+  height: 390px;
+  max-height: 390px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  overflow-anchor: none;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+
+.compact .listViewport::-webkit-scrollbar {
+  width: 8px;
+}
+
+.compact .listViewport::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.compact .listViewport::-webkit-scrollbar-thumb {
+  border: 2px solid #f1f5f9;
+  border-radius: 8px;
+  background: #94a3b8;
 }
 
 .compact .card, .compact.personalPage .card {
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   margin: 0;
-  padding: 15px 19px;
+  padding: 12px 19px;
   border: 0;
   border-top: 1px solid #eef2f6;
   border-radius: 0;
@@ -102,11 +129,31 @@
   border-top: 0;
 }
 
-.compact .cardActions {
+.compact.personalPage .cardActions {
   min-width: 0;
   flex-direction: row;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+}
+
+.compact .cardMain {
+  overflow-wrap: anywhere;
+}
+
+.compact .description, .compact .date {
+  margin-top: 6px;
+}
+
+.compact .status {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.compact .statusDetail {
+  text-align: left;
+  overflow-wrap: anywhere;
 }
 
 .compact .state {
@@ -121,6 +168,17 @@
   margin: 0;
   padding: 12px;
   border-top: 1px solid #eef2f6;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.compact .pagination button {
+  padding: 9px 10px;
+  gap: 4px;
+}
+
+.compact .pagination span {
+  white-space: nowrap;
 }
 
 /* ==========================================================================
