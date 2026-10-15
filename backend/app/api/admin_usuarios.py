@@ -14,6 +14,7 @@ from app.schemas.admin_usuarios import (
     RascunhosUsuarioAdminResponse, RevisoesUsuarioAdminResponse, SetorAdmin,
     UsuarioAdminDetalhe,
     UsuariosAdminResponse, VincularInstrumentoRequest,
+    MonitoresInstrumentoResponse, PrioridadesInstrumentoRequest,
 )
 from app.schemas.auth import UsuarioAutenticado
 from app.services.admin_usuarios import (
@@ -23,6 +24,7 @@ from app.services.admin_usuarios import (
     listar_setores_ativos, listar_usuarios,
     listar_instrumentos_usuario, listar_revisoes_usuario, obter_usuario,
     vincular_instrumento, _calcular_pendencias, _usuario_base,
+    consultar_monitores, salvar_prioridades,
 )
 from app.services.codigo_acesso import emitir_codigo_acesso
 
@@ -158,9 +160,22 @@ async def pesquisar_instrumentos(q: Annotated[str, Query(min_length=2, max_lengt
 
 @router.post("/usuarios/{id_usuario}/instrumentos", response_model=InstrumentoUsuarioAdmin)
 async def adicionar_instrumento(id_usuario: int, payload: VincularInstrumentoRequest, db: AsyncSession = Depends(get_db)):
-    return await vincular_instrumento(db, id_usuario, payload.nr_instrumento)
+    return await vincular_instrumento(db, id_usuario, payload.nr_instrumento, payload)
 
 
 @router.patch("/usuarios/{id_usuario}/instrumentos/{nr_instrumento}", response_model=InstrumentoUsuarioAdmin)
 async def atualizar_vinculo(id_usuario: int, nr_instrumento: str, payload: AlterarVinculoRequest, db: AsyncSession = Depends(get_db)):
-    return await alterar_vinculo(db, id_usuario, nr_instrumento, payload.ativo)
+    return await alterar_vinculo(db, id_usuario, nr_instrumento, payload.ativo, payload.prioridades)
+
+
+@router.get("/instrumentos/{nr_instrumento}/monitores", response_model=MonitoresInstrumentoResponse)
+async def listar_monitores_instrumento(nr_instrumento: str, db: AsyncSession = Depends(get_db)):
+    return await consultar_monitores(db, nr_instrumento)
+
+
+@router.put("/instrumentos/{nr_instrumento}/prioridades", response_model=MonitoresInstrumentoResponse)
+async def reorganizar_prioridades(
+    nr_instrumento: str, payload: PrioridadesInstrumentoRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    return await salvar_prioridades(db, nr_instrumento, payload)

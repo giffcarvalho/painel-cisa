@@ -1,5 +1,8 @@
 """Consultas e regras operacionais da administração de usuários."""
 
+import hashlib
+import json
+
 from fastapi import HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
@@ -18,6 +21,8 @@ from app.schemas.admin_usuarios import (
     InstrumentoBuscaAdmin,
     InstrumentoUsuarioAdmin,
     InstrumentosUsuarioAdminResponse,
+    MonitoresInstrumentoResponse,
+    PrioridadesInstrumentoRequest,
     PendenciasUsuarioAdmin,
     PendenciaInstrumentoDetalheAdmin,
     RascunhosUsuarioAdminResponse,
@@ -143,7 +148,9 @@ async def _calcular_pendencias(
     limit: int = 5,
     offset: int = 0,
 ) -> PendenciasUsuarioAdmin:
-    atribuicoes = await _buscar_meus_instrumentos(db, usuario)
+    atribuicoes = await _buscar_meus_instrumentos(
+        db, usuario, somente_prioridade_principal=True
+    )
     termo = (busca or "").strip().casefold()
     atribuicoes_filtradas = [
         item
@@ -176,7 +183,8 @@ async def _calcular_pendencias(
         c = resposta.completude
         coordenadas = resumo_coordenadas.get(identificador, {"total": 0, "pendentes": 0})
         total = int(c.get("municipios_total", 0)) + int(c.get("localidades_total", 0)) + int(c.get("obras_total", 0)) + int(bool(resposta.publico_alvo)) + coordenadas["total"]
-        feitos = int(c.get("municipios_revisados", 0)) + int(c.get("localidades_revisadas", 0)) + int(c.get("obras_revisadas", 0)) + int(bool(c.get("publico_alvo_revisado"))) + coordenadas["total"] - coordenadas["pendentes"]
+        localidades_concluidas = max(int(c.get("localidades_total", 0)) - int(c.get("localidades_pendentes", 0)), 0)
+        feitos = int(c.get("municipios_revisados", 0)) + localidades_concluidas + int(c.get("obras_revisadas", 0)) + int(bool(c.get("publico_alvo_revisado"))) + coordenadas["total"] - coordenadas["pendentes"]
         total_itens += total
         concluidos += feitos
         instrumentos.append({
@@ -213,7 +221,7 @@ async def listar_instrumentos_usuario(
         f"SELECT COUNT(*) FROM painel_dsr.tb_usuario_instrumento_monitoramento i WHERE i.id_usuario = :id_usuario {filtro}"
     ), params)).scalar_one() or 0)
     result = await db.execute(text(f"""
-        SELECT i.nr_instrumento, i.ativo
+        SELECT i.nr_instrumento, i.ativo, i.ordem_prioridade
         FROM painel_dsr.tb_usuario_instrumento_monitoramento i
         WHERE i.id_usuario = :id_usuario {filtro}
         ORDER BY i.ativo DESC, i.nr_instrumento
@@ -300,39 +308,177 @@ async def buscar_instrumentos(db: AsyncSession, q: str, limite: int = 20) -> lis
     return [InstrumentoBuscaAdmin(**dict(row)) for row in result.mappings().all()]
 
 
-async def vincular_instrumento(db: AsyncSession, id_usuario: int, nr_instrumento: str) -> InstrumentoUsuarioAdmin:
-    usuario = await _usuario_base(db, id_usuario)
-    if str(usuario["perfil"]).lower() != "tecnico":
-        raise HTTPException(status_code=400, detail="Administradores possuem acesso global e não usam vínculos.")
-    existe = await db.execute(text("SELECT 1 FROM instrumento.vw_carteira_dsr WHERE NULLIF(BTRIM(nr_instrumento::text), '') = NULLIF(BTRIM(:nr), '') LIMIT 1"), {"nr": nr_instrumento})
+async def _bloquear_instrumento(db: AsyncSession, nr: str) -> None:
+    # Inclui instrumentos ainda sem vínculos; todas as escritas usam a mesma chave.
+    await db.execute(
+        text("SELECT pg_advisory_xact_lock(hashtextextended('prioridades:' || :nr, 0))"),
+        {"nr": nr},
+    )
+
+
+async def _estado_monitores(db: AsyncSession, nr: str, *, bloquear=False):
+    result = await db.execute(text("""
+        SELECT i.id_usuario_instrumento, i.id_usuario, i.ativo, i.ordem_prioridade,
+               i.xmin::text AS revisao, u.nome, u.email, u.codigo_tecnico
+        FROM painel_dsr.tb_usuario_instrumento_monitoramento i
+        JOIN painel_dsr.tb_usuario u ON u.id_usuario = i.id_usuario
+        WHERE i.nr_instrumento = :nr
+        ORDER BY i.id_usuario
+    """ + (" FOR UPDATE OF i" if bloquear else "")), {"nr": nr})
+    rows = [dict(r) for r in result.mappings().all()]
+    # xmin também detecta uma edição desfeita depois que o modal foi aberto.
+    assinatura = [(r["id_usuario_instrumento"], r["id_usuario"], r["ativo"],
+                   r["ordem_prioridade"], r["revisao"]) for r in rows]
+    versao = hashlib.sha256(json.dumps([nr, assinatura]).encode()).hexdigest()
+    return rows, versao
+
+
+async def consultar_monitores(db: AsyncSession, nr: str) -> MonitoresInstrumentoResponse:
+    nr = nr.strip()
+    existe = await db.execute(text("""
+        SELECT 1 FROM instrumento.vw_carteira_dsr
+        WHERE nr_instrumento::text = :nr LIMIT 1
+    """), {"nr": nr})
     if existe.scalar_one_or_none() is None:
-        raise HTTPException(status_code=400, detail="Instrumento inexistente.")
-    result = await db.execute(
-        text(
-            """
-            INSERT INTO painel_dsr.tb_usuario_instrumento_monitoramento (id_usuario, nr_instrumento, ativo)
-            VALUES (:id_usuario, :nr, TRUE)
-            ON CONFLICT (id_usuario, nr_instrumento) DO UPDATE SET ativo = TRUE
-            RETURNING nr_instrumento, ativo
-            """
-        ),
-        {"id_usuario": id_usuario, "nr": nr_instrumento.strip()},
-    )
-    await db.commit()
-    return InstrumentoUsuarioAdmin(**dict(result.mappings().one()))
+        raise HTTPException(status_code=404, detail="Instrumento não encontrado.")
+    rows, versao = await _estado_monitores(db, nr)
+    ativos = sorted((r for r in rows if r["ativo"]),
+                    key=lambda r: (r["ordem_prioridade"] or 99, r["id_usuario"]))
+    return MonitoresInstrumentoResponse(nr_instrumento=nr, versao=versao, monitores=ativos)
 
 
-async def alterar_vinculo(db: AsyncSession, id_usuario: int, nr_instrumento: str, ativo: bool) -> InstrumentoUsuarioAdmin:
-    result = await db.execute(
-        text("UPDATE painel_dsr.tb_usuario_instrumento_monitoramento SET ativo = :ativo WHERE id_usuario = :id_usuario AND nr_instrumento = :nr RETURNING nr_instrumento, ativo"),
-        {"id_usuario": id_usuario, "nr": nr_instrumento, "ativo": ativo},
-    )
-    row = result.mappings().one_or_none()
-    if row is None:
-        await db.rollback()
-        raise HTTPException(status_code=404, detail="Vínculo não encontrado.")
-    await db.commit()
-    return InstrumentoUsuarioAdmin(**dict(row))
+async def salvar_prioridades(
+    db: AsyncSession, nr: str, payload: PrioridadesInstrumentoRequest,
+    *, adicionar_usuario: int | None = None, somente_reativar: bool = False,
+) -> MonitoresInstrumentoResponse:
+    nr = nr.strip()
+    await db.rollback()  # Encerra a leitura de autenticação antes da transação de escrita.
+    try:
+        async with db.begin():
+            await _bloquear_instrumento(db, nr)
+            atual = await consultar_monitores(db, nr)
+            rows, versao = await _estado_monitores(db, nr, bloquear=True)
+            if payload.versao != versao:
+                raise HTTPException(status_code=409, detail=(
+                    "Os vínculos foram alterados por outra operação. Atualize os dados "
+                    "e confira a ordem antes de salvar novamente."
+                ))
+            ativos = {r["id_usuario"] for r in rows if r["ativo"]}
+            solicitados = {m.id_usuario for m in payload.monitores}
+            esperados = ativos.copy()
+            if adicionar_usuario is not None:
+                if adicionar_usuario in ativos:
+                    raise HTTPException(status_code=409, detail="Monitor já vinculado. Use Gerenciar prioridades.")
+                if len(ativos) >= 3:
+                    raise HTTPException(status_code=409, detail=(
+                        "As três posições estão ocupadas. Desative explicitamente um vínculo "
+                        "antes de adicionar ou reativar outro monitor."
+                    ))
+                if somente_reativar and adicionar_usuario not in {r["id_usuario"] for r in rows}:
+                    raise HTTPException(status_code=404, detail="Vínculo não encontrado.")
+                esperados.add(adicionar_usuario)
+            if solicitados != esperados:
+                raise HTTPException(status_code=409, detail=(
+                    "Envie a ordem completa, preservando todos os monitores ativos "
+                    "e incluindo somente o usuário explicitamente adicionado."
+                ))
+            if len(esperados) > 3:
+                raise HTTPException(status_code=409, detail="O instrumento permite até três monitores ativos.")
+            usuarios = (await db.execute(text("""
+                SELECT id_usuario, perfil, ativo FROM painel_dsr.tb_usuario
+                WHERE id_usuario = ANY(CAST(:ids AS integer[]))
+                ORDER BY id_usuario FOR SHARE
+            """), {"ids": sorted(solicitados)})).mappings().all()
+            if {u["id_usuario"] for u in usuarios} != solicitados:
+                raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+            if adicionar_usuario is not None:
+                novo = next(u for u in usuarios if u["id_usuario"] == adicionar_usuario)
+                if not novo["ativo"] or str(novo["perfil"]).lower() != "tecnico":
+                    raise HTTPException(status_code=400, detail="O novo monitor deve ser um técnico ativo.")
+            instalada = (await db.execute(text("""
+                SELECT 1 FROM pg_constraint
+                WHERE conrelid = 'painel_dsr.tb_usuario_instrumento_monitoramento'::regclass
+                  AND conname = 'uq_instrumento_prioridade_ativa_diferivel'
+                  AND condeferrable
+            """))).scalar_one_or_none()
+            if instalada is None:
+                raise HTTPException(status_code=409, detail=(
+                    "Gerenciamento de prioridades indisponível: solicite a aplicação "
+                    "da migration de prioridades à equipe responsável."
+                ))
+            # A unicidade é validada no estado final, sem desativar nem apagar vínculos.
+            await db.execute(text(
+                "SET CONSTRAINTS painel_dsr.uq_instrumento_prioridade_ativa_diferivel DEFERRED"
+            ))
+            for monitor in payload.monitores:
+                params = {"id": monitor.id_usuario, "nr": nr, "ordem": monitor.ordem_prioridade}
+                if monitor.id_usuario == adicionar_usuario:
+                    await db.execute(text("""
+                        INSERT INTO painel_dsr.tb_usuario_instrumento_monitoramento
+                            (id_usuario, nr_instrumento, ativo, ordem_prioridade)
+                        VALUES (:id, :nr, TRUE, :ordem)
+                        ON CONFLICT ON CONSTRAINT uq_usuario_instrumento
+                        DO UPDATE SET ativo = TRUE, ordem_prioridade = EXCLUDED.ordem_prioridade
+                    """), params)
+                else:
+                    await db.execute(text("""
+                        UPDATE painel_dsr.tb_usuario_instrumento_monitoramento
+                        SET ordem_prioridade = :ordem
+                        WHERE id_usuario = :id AND nr_instrumento = :nr AND ativo IS TRUE
+                          AND ordem_prioridade IS DISTINCT FROM :ordem
+                    """), params)
+            await db.execute(text(
+                "SET CONSTRAINTS painel_dsr.uq_instrumento_prioridade_ativa_diferivel IMMEDIATE"
+            ))
+            atual = await consultar_monitores(db, nr)
+        return atual
+    except IntegrityError as exc:
+        raise HTTPException(status_code=409, detail=(
+            "Não foi possível salvar por conflito de integridade. Atualize os dados "
+            "e confira os monitores e suas prioridades."
+        )) from exc
+
+
+async def vincular_instrumento(
+    db: AsyncSession, id_usuario: int, nr_instrumento: str,
+    prioridades: PrioridadesInstrumentoRequest,
+) -> InstrumentoUsuarioAdmin:
+    resultado = await salvar_prioridades(db, nr_instrumento, prioridades, adicionar_usuario=id_usuario)
+    monitor = next(m for m in resultado.monitores if m.id_usuario == id_usuario)
+    return InstrumentoUsuarioAdmin(nr_instrumento=resultado.nr_instrumento, ativo=True,
+                                  ordem_prioridade=monitor.ordem_prioridade)
+
+
+async def alterar_vinculo(
+    db: AsyncSession, id_usuario: int, nr_instrumento: str, ativo: bool,
+    prioridades: PrioridadesInstrumentoRequest | None = None,
+) -> InstrumentoUsuarioAdmin:
+    if ativo:
+        if prioridades is None:
+            raise HTTPException(status_code=422, detail="Consulte os monitores e informe a ordem final para reativar.")
+        resultado = await salvar_prioridades(
+            db, nr_instrumento, prioridades, adicionar_usuario=id_usuario, somente_reativar=True,
+        )
+        monitor = next(m for m in resultado.monitores if m.id_usuario == id_usuario)
+        return InstrumentoUsuarioAdmin(nr_instrumento=resultado.nr_instrumento, ativo=True,
+                                      ordem_prioridade=monitor.ordem_prioridade)
+    nr = nr_instrumento.strip()
+    await db.rollback()
+    try:
+        async with db.begin():
+            await _bloquear_instrumento(db, nr)
+            # Preserva a prioridade histórica e as posições restantes; inativos não ocupam vagas.
+            result = await db.execute(text("""
+                UPDATE painel_dsr.tb_usuario_instrumento_monitoramento SET ativo = FALSE
+                WHERE id_usuario = :id_usuario AND nr_instrumento = :nr
+                RETURNING nr_instrumento, ativo, ordem_prioridade
+            """), {"id_usuario": id_usuario, "nr": nr})
+            row = result.mappings().one_or_none()
+            if row is None:
+                raise HTTPException(status_code=404, detail="Vínculo não encontrado.")
+        return InstrumentoUsuarioAdmin(**dict(row))
+    except IntegrityError as exc:
+        raise HTTPException(status_code=409, detail="Não foi possível desativar o vínculo por conflito de integridade.") from exc
 
 
 async def listar_setores_ativos(db: AsyncSession) -> list[SetorAdmin]:
@@ -540,7 +686,9 @@ async def detalhar_pendencias_instrumento(
     usuario = UsuarioAutenticado(
         id_usuario=id_usuario, nome=base["nome"], email=base["email"], perfil=base["perfil"]
     )
-    itens = await _listar_pendencias(db, usuario, identificador=identificador)
+    itens = await _listar_pendencias(
+        db, usuario, identificador=identificador, somente_prioridade_principal=True
+    )
     item = next(
         (x for x in itens if str(x.identificador_instrumento) == str(identificador)),
         None,

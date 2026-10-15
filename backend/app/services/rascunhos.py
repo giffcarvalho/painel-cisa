@@ -46,6 +46,24 @@ async def descartar_rascunho(
             detail="Somente uma revisão em rascunho pode ser cancelada.",
         )
 
+    devolutiva = await db.execute(
+        text(
+            """SELECT 1
+               FROM painel_dsr.tb_revisao_instrumento r
+               JOIN painel_dsr.tb_devolutiva_revisao d
+                 ON d.id_revisao_devolvida = r.id_revisao_anterior
+                AND d.status = 'aguardando_correcao'
+               WHERE r.id_revisao = :id_revisao
+               LIMIT 1"""
+        ),
+        {"id_revisao": id_revisao},
+    )
+    if devolutiva.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="O rascunho de uma revisão devolvida não pode ser cancelado.",
+        )
+
     for tabela in TABELAS_FILHAS_RASCUNHO:
         await db.execute(
             text(f"DELETE FROM {tabela} WHERE id_revisao = :id_revisao"),

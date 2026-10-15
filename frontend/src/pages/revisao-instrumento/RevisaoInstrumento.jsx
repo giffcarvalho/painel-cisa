@@ -4,6 +4,7 @@ import { Check, ChevronDown, Download, Plus, Save, Search, Send, X } from 'lucid
 import { useNavigate, useParams } from 'react-router-dom'
 import { revisaoInstrumentoApi } from '@/api/revisaoInstrumento'
 import Tooltip from '@/components/revisao-instrumento/Tooltip'
+import TipoLocalidadeSelect from '@/components/revisao-instrumento/TipoLocalidadeSelect'
 import { useAuth } from '@/context/auth/useAuth'
 import styles from './RevisaoInstrumento.module.css'
 import { formatPercentualPontos } from '../../utils/formatters'
@@ -62,6 +63,7 @@ const MUNICIPIO_NOVO_INICIAL = {
 const LOCALIDADE_NOVA_INICIAL = {
   cod_comunidade_rural: null,
   nome_localidade_informada: '',
+  tipo_localidade: null,
   qtde_familias_ben_sugerida: '',
 }
 
@@ -230,6 +232,10 @@ function dadosLocalidadePersistencia(localidade, codMunicipio) {
         : null),
     origem_registro: localidade.origem_registro,
     acao_sugerida: localidade.acao_sugerida,
+    // Uma propriedade omitida não representa a limpeza explícita da seleção.
+    ...(Object.hasOwn(localidade, 'tipo_localidade')
+      ? { tipo_localidade: localidade.tipo_localidade ?? null }
+      : {}),
     qtde_familias_ben_original: numeroOuNull(localidade.qtde_familias_ben_original),
     qtde_familias_ben_sugerida: numeroOuNull(localidade.qtde_familias_ben_sugerida),
     justificativa: limparTexto(localidade.justificativa),
@@ -844,6 +850,8 @@ export default function RevisaoInstrumento() {
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState('')
   const [confirmarEnvioParcial, setConfirmarEnvioParcial] = useState(false)
+  const [confirmarReenvio, setConfirmarReenvio] = useState(false)
+  const [comentarioCorrecao, setComentarioCorrecao] = useState('')
   const [meusInstrumentos, setMeusInstrumentos] = useState([])
   const [filtroMeusInstrumentos, setFiltroMeusInstrumentos] = useState('')
   const [carregandoMeusInstrumentos, setCarregandoMeusInstrumentos] = useState(true)
@@ -946,6 +954,8 @@ export default function RevisaoInstrumento() {
     setObservacaoEmEdicao(false)
     setRascunhoObservacaoGeral('')
     setHistoricoSessao([])
+    setConfirmarReenvio(false)
+    setComentarioCorrecao('')
 
     try {
       const data = await revisaoInstrumentoApi.buscarInstrumento(termo)
@@ -1110,6 +1120,8 @@ export default function RevisaoInstrumento() {
         cod_comunidade_rural: localidadeNovoMunicipio.cod_comunidade_rural,
         nome_localidade: nome,
         nome_localidade_informada: nome,
+        tipo_localidade: localidadeNovoMunicipio.tipo_localidade,
+        tipo_localidade_consolidado: localidadeNovoMunicipio.tipo_localidade_consolidado,
         qtde_familias_ben_sugerida:
           localidadeNovoMunicipio.qtde_familias_ben_sugerida,
       },
@@ -1233,6 +1245,8 @@ export default function RevisaoInstrumento() {
         origem_registro: 'adicionado_tecnico',
         acao_sugerida: 'adicionar',
         qtde_familias_ben_original: null,
+        tipo_localidade: localidade.tipo_localidade,
+        tipo_localidade_consolidado: localidade.tipo_localidade_consolidado,
         qtde_familias_ben_sugerida: localidade.qtde_familias_ben_sugerida,
         justificativa: '',
       })),
@@ -1516,6 +1530,7 @@ export default function RevisaoInstrumento() {
           origem_registro: 'adicionado_tecnico',
           acao_sugerida: 'adicionar',
           qtde_familias_ben_original: null,
+          tipo_localidade: form.tipo_localidade,
           qtde_familias_ben_sugerida: form.qtde_familias_ben_sugerida,
           justificativa: '',
         }
@@ -1736,6 +1751,9 @@ export default function RevisaoInstrumento() {
     id_revisao: idRevisaoAtual,
     status,
     observacao_geral: observacaoGeral.trim() || null,
+    comentario_correcao: status === 'enviado' && dadosBusca?.devolutiva
+      ? comentarioCorrecao.trim()
+      : null,
     instrumento,
     municipios: municipios
       .filter(municipioTemAlteracoes)
@@ -1902,6 +1920,7 @@ export default function RevisaoInstrumento() {
         })
       }
       setConfirmarEnvioParcial(false)
+      setConfirmarReenvio(false)
       registrarEventoHistorico(
         status === 'enviado' ? 'Revisão enviada' : 'Rascunho salvo',
         status === 'enviado'
@@ -1937,6 +1956,10 @@ export default function RevisaoInstrumento() {
   }
 
   const iniciarEnvio = () => {
+    if (dadosBusca?.devolutiva) {
+      setConfirmarReenvio(true)
+      return
+    }
     // O envio parcial é permitido, mas exige confirmação explícita quando ainda
     // existem campos de conferência sem decisão.
     if (existemItensNaoConferidos()) {
@@ -2246,6 +2269,21 @@ export default function RevisaoInstrumento() {
             </div>
           )}
 
+          {canEditRevision && confirmarReenvio && dadosBusca?.devolutiva && (
+            <div className={styles.confirmationBox} role="dialog" aria-modal="true" aria-labelledby="confirmar-reenvio-titulo">
+              <strong id="confirmar-reenvio-titulo">Reenviar revisão corrigida</strong>
+              {existemItensNaoConferidos() && <p>Há itens ainda não conferidos; somente o estado atual e as alterações registradas serão enviados.</p>}
+              <label className={styles.confirmationField}>
+                Comentário sobre as correções realizadas
+                <textarea rows="4" maxLength="4000" value={comentarioCorrecao} onChange={(event) => setComentarioCorrecao(event.target.value)} />
+              </label>
+              <div className={styles.confirmationActions}>
+                <button type="button" className={styles.secondaryButton} onClick={() => setConfirmarReenvio(false)}>Continuar revisando</button>
+                <button type="button" className={styles.primaryButton} disabled={!comentarioCorrecao.trim() || isSaving} onClick={() => salvarRevisao('enviado')}>Reenviar revisão</button>
+              </div>
+            </div>
+          )}
+
           {resumoEnvio && (
             <div className={styles.successModalBackdrop} role="presentation">
               <section className={styles.successModal} role="dialog" aria-modal="true" aria-labelledby="sucesso-envio-title">
@@ -2270,6 +2308,14 @@ export default function RevisaoInstrumento() {
           {instrumento && (
             <fieldset className={styles.reviewFieldset}>
               <div className={styles.reviewModule}>
+                {dadosBusca?.devolutiva && (
+                  <section className={styles.returnNotice} aria-labelledby="devolutiva-titulo">
+                    <h2 id="devolutiva-titulo">Revisão devolvida para correção</h2>
+                    <p>Devolvida em {formatarDataHora(dadosBusca.devolutiva.devolvido_em)} por {dadosBusca.devolutiva.administrador}.</p>
+                    <strong>Comentário do administrador</strong>
+                    <p>{dadosBusca.devolutiva.comentario_admin}</p>
+                  </section>
+                )}
                 <section className={styles.generalReviewIntro} aria-labelledby="revisao-geral-titulo">
                   <div>
                     <h2 id="revisao-geral-titulo">Revisão do instrumento</h2>
@@ -2411,6 +2457,8 @@ export default function RevisaoInstrumento() {
                                 ...current,
                                 cod_comunidade_rural: selecionada?.cod_comunidade_rural ?? null,
                                 nome_localidade_informada: nome,
+                                tipo_localidade: selecionada?.tipo_localidade ?? null,
+                                tipo_localidade_consolidado: selecionada?.tipo_localidade_consolidado ?? false,
                               }))
                             }}
                           />
@@ -2437,6 +2485,13 @@ export default function RevisaoInstrumento() {
                             }
                           />
                         </label>
+
+                        <div className={styles.tipoLocalidadeForm}>
+                          <span>Tipo de Localidade</span>
+                          <TipoLocalidadeSelect value={localidadeNovoMunicipio.tipo_localidade}
+                            podeLimpar={!localidadeNovoMunicipio.tipo_localidade_consolidado}
+                            onChange={(valor) => setLocalidadeNovoMunicipio((current) => ({ ...current, tipo_localidade: valor }))} />
+                        </div>
 
                         <button type="button" onClick={adicionarLocalidadeNovoMunicipio}>
                           <Plus size={16} />
@@ -2684,6 +2739,7 @@ export default function RevisaoInstrumento() {
                                       <th>Localidade</th>
                                       <th>Revisão da Localidade</th>
                                       <th>Famílias Beneficiadas</th>
+                                      <th>Tipo de Localidade</th>
                                       <th>Observação</th>
                                     </tr>
                                   </thead>
@@ -2691,7 +2747,7 @@ export default function RevisaoInstrumento() {
                                   <tbody>
                                     {municipio.localidades.length === 0 ? (
                                       <tr>
-                                        <td colSpan={4} className={styles.emptyCell}>
+                                        <td colSpan={5} className={styles.emptyCell}>
                                           Nenhuma localidade cadastrada.
                                         </td>
                                       </tr>
@@ -2830,6 +2886,19 @@ export default function RevisaoInstrumento() {
                                             </td>
 
                                             <td>
+                                              <TipoLocalidadeSelect
+                                                value={localidade.tipo_localidade}
+                                                podeLimpar={!localidade.tipo_localidade_consolidado}
+                                                disabled={!canEditRevision}
+                                                onChange={(valor) => atualizarLocalidade(
+                                                  municipio.cod_municipio,
+                                                  chaveJustificativaLocalidade,
+                                                  'tipo_localidade', valor,
+                                                )}
+                                              />
+                                            </td>
+
+                                            <td>
                                               {!canEditRevision ? (
                                                 valorOuTraco(localidade.justificativa)
                                               ) : mostrarJustificativa ? (
@@ -2927,6 +2996,12 @@ export default function RevisaoInstrumento() {
                                     />
                                   </label>
 
+                                  <div className={styles.tipoLocalidadeForm}>
+                                    <span>Tipo de Localidade</span>
+                                    <TipoLocalidadeSelect value={formLocalidade.tipo_localidade}
+                                      onChange={(valor) => atualizarNovaLocalidade(municipio.cod_municipio, 'tipo_localidade', valor)} />
+                                  </div>
+
                                   <button
                                     type="button"
                                     onClick={() => adicionarLocalidade(municipio.cod_municipio)}
@@ -3006,7 +3081,8 @@ export default function RevisaoInstrumento() {
                                         </tr>
                                       ) : (
                                         municipio.obras_saneamento.map((obra) => {
-                                          const chaveJustificativaObra = chaveObra(obra)
+                                          // Este estado é compartilhado entre todos os municípios da revisão.
+                                          const chaveJustificativaObra = `${municipio.cod_municipio}:${chaveObra(obra)}`
                                           const mostrarJustificativaObra = Boolean(
                                             justificativasObraAbertas[chaveJustificativaObra]
                                           )

@@ -9,6 +9,9 @@ from app.api.auth import obter_usuario_atual
 from app.core.database import get_db
 from app.schemas.aplicacao_revisoes import (
     CancelamentoAplicacaoRequest,
+    CorrecaoAdministrativaRevisao,
+    DevolverRevisaoRequest,
+    DevolutivaRevisaoResponse,
     ExecucaoAplicacaoResponse,
     HistoricoAplicacoesResponse,
     RevisaoAplicacaoDetalhe,
@@ -33,7 +36,9 @@ from app.services.aplicacao_revisoes import (
     aprovar_solicitacao_cancelamento,
     listar_solicitacoes_cancelamento,
     rejeitar_solicitacao_cancelamento,
+    corrigir_revisao_enviada,
 )
+from app.services.devolutivas_revisao import devolver_revisao
 
 
 router = APIRouter()
@@ -160,6 +165,28 @@ async def detalhar_revisao(
 ):
     exigir_admin(usuario)
     return await obter_detalhe(db, id_revisao)
+
+
+@router.patch("/{id_revisao}", response_model=RevisaoAplicacaoDetalhe)
+async def corrigir_revisao(
+    id_revisao: int,
+    payload: CorrecaoAdministrativaRevisao,
+    usuario: UsuarioAutenticado = Depends(obter_usuario_atual),
+    db: AsyncSession = Depends(get_db),
+):
+    exigir_admin(usuario)
+    return await corrigir_revisao_enviada(db, id_revisao, payload)
+
+
+@router.post("/{id_revisao}/devolver", response_model=DevolutivaRevisaoResponse)
+async def devolver_revisao_para_correcao(
+    id_revisao: int,
+    payload: DevolverRevisaoRequest,
+    usuario: UsuarioAutenticado = Depends(obter_usuario_atual),
+    db: AsyncSession = Depends(get_db),
+):
+    exigir_admin(usuario)
+    return await devolver_revisao(db, id_revisao, usuario, payload.comentario_admin)
 
 
 @router.post("/{id_revisao}/validar", response_model=ValidacaoAplicacao)

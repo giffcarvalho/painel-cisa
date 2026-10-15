@@ -16,7 +16,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.aplicacao_revisoes import (
     AlteracaoRevisaoItem,
+    CorrecaoAdministrativaRevisao,
     ContagemAlteracoes,
+    CoordenadaRevisaoItem,
     DetalheExecucao,
     ExecucaoAplicacaoResponse,
     ExecucaoHistoricoItem,
@@ -40,6 +42,7 @@ from app.services.notificacoes import (
     dados_revisao_para_notificacao,
     dados_revisao_para_notificacao_por_execucao,
 )
+from app.services.devolutivas_revisao import obter_tramitacao
 
 
 logger = logging.getLogger(__name__)
@@ -122,7 +125,9 @@ async def listar_pendentes(db: AsyncSession) -> RevisoesPendentesResponse:
                 (SELECT COUNT(*) FROM painel_dsr.tb_revisao_instrumento_municipio rm
                  WHERE rm.id_revisao = r.id_revisao AND rm.acao_sugerida <> 'manter') AS qtd_municipios,
                 (SELECT COUNT(*) FROM painel_dsr.tb_revisao_instrumento_localidade rl
-                 WHERE rl.id_revisao = r.id_revisao AND rl.acao_sugerida <> 'manter') AS qtd_localidades,
+                 LEFT JOIN territorio.tb_comunidade_rural cr ON cr.cod_comunidade_rural = rl.cod_comunidade_rural
+                 WHERE rl.id_revisao = r.id_revisao AND (rl.acao_sugerida <> 'manter'
+                   OR (rl.tipo_localidade IS NOT NULL AND rl.tipo_localidade IS DISTINCT FROM cr.tipo_localidade))) AS qtd_localidades,
                 (SELECT COUNT(*) FROM painel_dsr.tb_revisao_instrumento_publico_alvo rpa
                  WHERE rpa.id_revisao = r.id_revisao) AS qtd_publico_alvo,
                 (SELECT COUNT(*) FROM painel_dsr.tb_revisao_obra_saneamento ro
@@ -132,6 +137,10 @@ async def listar_pendentes(db: AsyncSession) -> RevisoesPendentesResponse:
             WHERE r.status = 'enviado'
               AND r.enviado_em IS NOT NULL
               AND r.aplicado_em IS NULL
+              AND NOT EXISTS (
+                  SELECT 1 FROM painel_dsr.tb_devolutiva_revisao d
+                  WHERE d.id_revisao_devolvida = r.id_revisao
+              )
             ORDER BY r.enviado_em ASC, r.id_revisao ASC
             """
         )
@@ -188,6 +197,8 @@ async def _carregar_revisao(
                    rl.cod_comunidade_rural, rl.nome_localidade_informada,
                    COALESCE(cr.nome_comunidade_rural, rl.nome_localidade_informada) AS localidade,
                    rl.origem_registro, rl.acao_sugerida,
+                   rl.tipo_localidade, cr.tipo_localidade AS tipo_localidade_anterior,
+                   rl.atualizado_em AS tipo_localidade_referencia_em,
                    rl.qtde_familias_ben_original, rl.qtde_familias_ben_sugerida,
                    rl.justificativa, m.nome_municipio AS municipio,
                    BTRIM(uf.sigla_uf) AS uf
@@ -241,6 +252,24 @@ async def _carregar_revisao(
     )
 
 
+async def _carregar_coordenadas(
+    db: AsyncSession, id_revisao: int
+) -> list[dict[str, Any]]:
+    result = await db.execute(
+        text(
+            """
+            SELECT id_revisao_coordenada AS id_item, id_coordenada, cod_tci,
+                   situacao_analise, situacao_correcao, observacao_coordenada
+            FROM painel_dsr.tb_revisao_instrumento_coordenada
+            WHERE id_revisao = :id_revisao
+            ORDER BY cod_tci, id_coordenada, id_revisao_coordenada
+            """
+        ),
+        {"id_revisao": id_revisao},
+    )
+    return [dict(row) for row in result.mappings().all()]
+
+
 async def _validar(
     db: AsyncSession,
     revisao: dict[str, Any],
@@ -261,6 +290,21 @@ async def _validar(
     if revisao.get("status") != "enviado" or revisao.get("enviado_em") is None:
         pendencias.append("A revisão precisa estar formalmente enviada antes da aplicação.")
 
+    devolvida = await db.execute(
+        text(
+            """SELECT status FROM painel_dsr.tb_devolutiva_revisao
+               WHERE id_revisao_devolvida = :id_revisao LIMIT 1"""
+        ),
+        {"id_revisao": revisao["id_revisao"]},
+    )
+    status_devolutiva = devolvida.scalar_one_or_none()
+    if status_devolutiva is not None:
+        pendencias.append(
+            "Esta revisão foi devolvida e foi substituída por uma versão corrigida."
+            if status_devolutiva == "reenviada"
+            else "Esta revisão foi devolvida e aguarda correção do monitor."
+        )
+
     tipo = revisao.get("tipo_instrumento")
     config = TIPOS.get(tipo)
     if config is None:
@@ -280,7 +324,11 @@ async def _validar(
                 pendencias.append(
                     "Inclusão de município em TED bloqueada: a revisão não informa a proporção exigida."
                 )
-            if any(item["acao_sugerida"] != "manter" for item in localidades):
+            if any(
+                item["acao_sugerida"] != "manter"
+                or _tipo_localidade_alterado(item)
+                for item in localidades
+            ):
                 pendencias.append(
                     "Localidades de TED não podem ser aplicadas: não existe tabela oficial de destino configurada."
                 )
@@ -309,6 +357,17 @@ async def _validar(
         anterior_aplicado = anterior_result.scalar_one_or_none()
         if anterior_aplicado is None:
             anterior_nao_aplicado = True
+            substituicao = await db.execute(
+                text(
+                    """SELECT 1 FROM painel_dsr.tb_devolutiva_revisao
+                       WHERE id_revisao_devolvida = :anterior
+                         AND id_revisao_reenvio = :atual
+                         AND status = 'reenviada' LIMIT 1"""
+                ),
+                {"anterior": anterior, "atual": revisao["id_revisao"]},
+            )
+            if substituicao.scalar_one_or_none() is not None:
+                anterior_nao_aplicado = False
 
     primeira_pendente = None
     if revisao.get("status") == "enviado" and revisao.get("aplicado_em") is None:
@@ -321,6 +380,10 @@ async def _validar(
                   AND status = 'enviado'
                   AND enviado_em IS NOT NULL
                   AND aplicado_em IS NULL
+                  AND NOT EXISTS (
+                      SELECT 1 FROM painel_dsr.tb_devolutiva_revisao d
+                      WHERE d.id_revisao_devolvida = tb_revisao_instrumento.id_revisao
+                  )
                   AND (
                         (:tipo_instrumento = 'ted' AND nr_ted = :nr_ted)
                      OR (:tipo_instrumento <> 'ted'
@@ -364,7 +427,15 @@ async def _validar(
 
     for item in localidades:
         acao = item["acao_sugerida"]
-        if acao == "manter":
+        if acao != "remover" and _tipo_localidade_alterado(item) and item.get("cod_comunidade_rural") is not None:
+            try:
+                await _validar_alteracao_territorial_posterior(
+                    db, revisao, item["cod_comunidade_rural"], item.get("tipo_localidade_referencia_em"),
+                )
+            except ValueError as exc:
+                pendencias.append(str(exc))
+        # Manter com alteração de classificação também chega à aplicação.
+        if acao == "manter" and not _tipo_localidade_alterado(item):
             continue
         codigo = item.get("cod_comunidade_rural")
         if codigo is not None:
@@ -519,6 +590,7 @@ async def _validar(
 
     if (
         not any(item["acao_sugerida"] != "manter" for item in municipios + localidades)
+        and not any(_tipo_localidade_alterado(item) for item in localidades)
         and not publico_alvo
         and not obras
     ):
@@ -547,6 +619,8 @@ def _alteracao_localidade(row: dict[str, Any]) -> AlteracaoRevisaoItem:
         cod_municipio=row["cod_municipio"], municipio=row.get("municipio"), uf=row.get("uf"),
         cod_comunidade_rural=row.get("cod_comunidade_rural"),
         localidade=row.get("localidade"), origem_registro=row.get("origem_registro"),
+        tipo_localidade=row.get("tipo_localidade"),
+        tipo_localidade_anterior=row.get("tipo_localidade_anterior"),
         valor_anterior=row.get("qtde_familias_ben_original"),
         valor_sugerido=row.get("qtde_familias_ben_sugerida"),
         justificativa=row.get("justificativa"),
@@ -574,25 +648,33 @@ def _avaliacao_obra(row: dict[str, Any]) -> ObraRevisaoItem:
     )
 
 
+def _avaliacao_coordenada(row: dict[str, Any]) -> CoordenadaRevisaoItem:
+    return CoordenadaRevisaoItem(**row)
+
+
 async def obter_detalhe(db: AsyncSession, id_revisao: int) -> RevisaoAplicacaoDetalhe:
     revisao, municipios, localidades, publico, obras = await _carregar_revisao(
         db, id_revisao
     )
+    coordenadas = await _carregar_coordenadas(db, id_revisao)
     row = {
         **revisao,
         "qtd_municipios": sum(item["acao_sugerida"] != "manter" for item in municipios),
-        "qtd_localidades": sum(item["acao_sugerida"] != "manter" for item in localidades),
+        "qtd_localidades": sum(item["acao_sugerida"] != "manter" or _tipo_localidade_alterado(item) for item in localidades),
         "qtd_publico_alvo": len(publico),
         "qtd_obras": len(obras),
     }
     validacao = await _validar(db, revisao, municipios, localidades, publico, obras)
+    devolutiva = await obter_tramitacao(db, id_revisao)
     return RevisaoAplicacaoDetalhe(
         revisao=_item_pendente(row),
         municipios=[_alteracao_municipio(item) for item in municipios],
         localidades=[_alteracao_localidade(item) for item in localidades],
         publico_alvo=[_avaliacao_publico_alvo(item) for item in publico],
         obras=[_avaliacao_obra(item) for item in obras],
+        coordenadas=[_avaliacao_coordenada(item) for item in coordenadas],
         validacao=validacao,
+        devolutiva=devolutiva,
     )
 
 
@@ -601,6 +683,229 @@ async def validar_aplicacao(db: AsyncSession, id_revisao: int) -> ValidacaoAplic
         db, id_revisao
     )
     return await _validar(db, revisao, municipios, localidades, publico, obras)
+
+
+SECOES_CORRECAO = {
+    "municipios": {
+        "tabela": "painel_dsr.tb_revisao_instrumento_municipio",
+        "id": "id_revisao_municipio",
+        "campos": {"acao_sugerida", "justificativa"},
+        "obrigatorios": {"acao_sugerida"},
+    },
+    "localidades": {
+        "tabela": "painel_dsr.tb_revisao_instrumento_localidade",
+        "id": "id_revisao_localidade",
+        "campos": {
+            "acao_sugerida", "qtde_familias_ben_sugerida", "tipo_localidade", "justificativa"
+        },
+        "obrigatorios": {"acao_sugerida"},
+    },
+    "publico_alvo": {
+        "tabela": "painel_dsr.tb_revisao_instrumento_publico_alvo",
+        "id": "id_revisao_publico_alvo",
+        "campos": {
+            "status_populacao_beneficiada",
+            "status_desc_populacao_beneficiada",
+            "status_correcao_solicitada",
+            "observacao_publico_alvo",
+        },
+        "obrigatorios": set(),
+    },
+    "obras": {
+        "tabela": "painel_dsr.tb_revisao_obra_saneamento",
+        "id": "id_revisao_obra",
+        "campos": {"relacao_instrumento", "confirmacao_status", "justificativa"},
+        "obrigatorios": {"relacao_instrumento", "confirmacao_status"},
+    },
+    "coordenadas": {
+        "tabela": "painel_dsr.tb_revisao_instrumento_coordenada",
+        "id": "id_revisao_coordenada",
+        "campos": {
+            "situacao_analise", "situacao_correcao", "observacao_coordenada"
+        },
+        "obrigatorios": {"situacao_analise"},
+    },
+}
+
+
+async def _habilitar_correcao_administrativa(
+    db: AsyncSession, id_revisao: int
+) -> None:
+    # set_config recebe texto no PostgreSQL; a conversão explícita em Python
+    # evita que o asyncpg tente codificar o identificador inteiro como varchar.
+    await db.execute(
+        text(
+            "SELECT set_config('painel_dsr.edicao_admin_revisao', "
+            ":id_revisao, true)"
+        ),
+        {"id_revisao": str(id_revisao)},
+    )
+
+
+async def _corrigir_itens_secao(
+    db: AsyncSession,
+    *,
+    id_revisao: int,
+    nome_secao: str,
+    itens: list[Any],
+) -> int:
+    config = SECOES_CORRECAO[nome_secao]
+    campos_ordenados = sorted(config["campos"])
+    quantidade = 0
+
+    for item in itens:
+        enviados = item.model_dump(exclude_unset=True, exclude={"id_item"})
+        if not enviados:
+            continue
+        if not set(enviados).issubset(config["campos"]):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=f"A seção {nome_secao} recebeu campos não autorizados.",
+            )
+        if any(enviados.get(campo) is None for campo in config["obrigatorios"] if campo in enviados):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=f"A seção {nome_secao} recebeu um valor obrigatório vazio.",
+            )
+
+        result = await db.execute(
+            text(
+                f"SELECT id_revisao, {', '.join(campos_ordenados)} "
+                f"FROM {config['tabela']} "
+                f"WHERE {config['id']} = :id_item FOR UPDATE"
+            ),
+            {"id_item": item.id_item},
+        )
+        atual = result.mappings().one_or_none()
+        if atual is None or atual["id_revisao"] != id_revisao:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Registro de revisão não encontrado nesta revisão.",
+            )
+
+        alterados = {
+            campo: valor
+            for campo, valor in enviados.items()
+            if atual[campo] != valor
+        }
+        if not alterados:
+            continue
+
+        atribuicoes = ", ".join(f"{campo} = :{campo}" for campo in alterados)
+        await db.execute(
+            text(
+                f"UPDATE {config['tabela']} SET {atribuicoes} "
+                f"WHERE {config['id']} = :id_item AND id_revisao = :id_revisao"
+            ),
+            {**alterados, "id_item": item.id_item, "id_revisao": id_revisao},
+        )
+        quantidade += 1
+
+    return quantidade
+
+
+async def corrigir_revisao_enviada(
+    db: AsyncSession,
+    id_revisao: int,
+    payload: CorrecaoAdministrativaRevisao,
+) -> RevisaoAplicacaoDetalhe:
+    """Corrige somente campos revisados existentes, preservando a revisão enviada."""
+    if db.in_transaction():
+        await db.rollback()
+
+    try:
+        async with db.begin():
+            result = await db.execute(
+                text(
+                    """
+                    SELECT id_revisao, status, enviado_em, aplicado_em, observacao_geral
+                    FROM painel_dsr.tb_revisao_instrumento
+                    WHERE id_revisao = :id_revisao
+                    FOR UPDATE
+                    """
+                ),
+                {"id_revisao": id_revisao},
+            )
+            revisao = result.mappings().one_or_none()
+            if revisao is None:
+                raise HTTPException(status_code=404, detail="Revisão não encontrada.")
+            if revisao["status"] != "enviado" or revisao["enviado_em"] is None:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Somente uma revisão formalmente enviada pode ser corrigida.",
+                )
+            if revisao["aplicado_em"] is not None:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Uma revisão já aplicada não pode ser corrigida.",
+                )
+            devolvida = await db.execute(text("""
+                SELECT 1 FROM painel_dsr.tb_devolutiva_revisao
+                WHERE id_revisao_devolvida = :id_revisao LIMIT 1
+            """), {"id_revisao": id_revisao})
+            if devolvida.scalar_one_or_none() is not None:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="A revisão foi devolvida e não pode ser editada administrativamente.",
+                )
+
+            await _habilitar_correcao_administrativa(db, id_revisao)
+
+            quantidade = 0
+            revisao_principal_atualizada = False
+            if "observacao_geral" in payload.model_fields_set:
+                nova_observacao = payload.observacao_geral
+                if revisao["observacao_geral"] != nova_observacao:
+                    await db.execute(
+                        text(
+                            """
+                            UPDATE painel_dsr.tb_revisao_instrumento
+                            SET observacao_geral = :observacao_geral, atualizado_em = NOW()
+                            WHERE id_revisao = :id_revisao
+                            """
+                        ),
+                        {"id_revisao": id_revisao, "observacao_geral": nova_observacao},
+                    )
+                    quantidade += 1
+                    revisao_principal_atualizada = True
+
+            for nome_secao in SECOES_CORRECAO:
+                quantidade += await _corrigir_itens_secao(
+                    db,
+                    id_revisao=id_revisao,
+                    nome_secao=nome_secao,
+                    itens=getattr(payload, nome_secao),
+                )
+
+            if quantidade and not revisao_principal_atualizada:
+                await db.execute(
+                    text(
+                        """
+                        UPDATE painel_dsr.tb_revisao_instrumento
+                        SET atualizado_em = NOW()
+                        WHERE id_revisao = :id_revisao
+                        """
+                    ),
+                    {"id_revisao": id_revisao},
+                )
+    except HTTPException:
+        await db.rollback()
+        raise
+    except IntegrityError as exc:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Os valores informados não respeitam as regras da revisão.",
+        ) from exc
+    except SQLAlchemyError as exc:
+        await db.rollback()
+        logger.exception("Falha ao corrigir administrativamente a revisão %s", id_revisao)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Não foi possível salvar a correção da revisão.",
+        ) from exc
+
+    return await obter_detalhe(db, id_revisao)
 
 
 STATUS_EXECUCAO_LABELS = {
@@ -924,6 +1229,37 @@ async def _aplicar_municipio(
     }
 
 
+def _tipo_localidade_alterado(item: dict[str, Any]) -> bool:
+    # NULL legado representa ausência de decisão, nunca uma ordem de limpeza.
+    return (item.get("tipo_localidade") is not None
+            and item["tipo_localidade"] != item.get("tipo_localidade_anterior"))
+
+
+async def _validar_alteracao_territorial_posterior(db, revisao, codigo, referencia=None):
+    referencia = referencia or revisao.get("base_referencia_em") or revisao.get("criado_em")
+    if referencia is None:
+        return
+    result = await db.execute(text("""
+        SELECT 1
+        FROM painel_dsr.tb_execucao_aplicacao_revisao_detalhe d
+        JOIN painel_dsr.tb_execucao_aplicacao_revisao e USING (id_execucao)
+        JOIN painel_dsr.tb_revisao_instrumento r ON r.id_revisao = e.id_revisao
+        WHERE d.entidade = 'localidade'
+          AND d.chave->>'cod_comunidade_rural' = :codigo
+          AND d.valores_anteriores ? 'tipo_localidade'
+          AND d.valores_novos ? 'tipo_localidade'
+          AND d.valores_anteriores->'tipo_localidade' IS DISTINCT FROM d.valores_novos->'tipo_localidade'
+          AND ((e.status = 'sucesso' AND e.concluido_em > :referencia)
+            OR (e.status = 'cancelado' AND e.cancelado_em > :referencia))
+          AND (r.tipo_instrumento IS DISTINCT FROM :tipo
+            OR r.nr_proposta IS DISTINCT FROM :proposta)
+        LIMIT 1
+    """), {"codigo": str(codigo), "referencia": referencia,
+             "tipo": revisao["tipo_instrumento"], "proposta": revisao.get("nr_proposta")})
+    if result.scalar_one_or_none() is not None:
+        raise ValueError("A classificação territorial foi alterada por outro instrumento após a abertura desta revisão. Confira a classificação pela edição administrativa ou devolutiva.")
+
+
 async def _aplicar_localidade(
     db: AsyncSession, revisao: dict[str, Any], item: dict[str, Any]
 ) -> dict[str, Any]:
@@ -940,7 +1276,7 @@ async def _aplicar_localidade(
         result = await db.execute(
             text(
                 f"SELECT qtde_familias_ben FROM {tabela} "
-                "WHERE nr_proposta = :nr_proposta AND cod_comunidade_rural = :codigo"
+                "WHERE nr_proposta = :nr_proposta AND cod_comunidade_rural = :codigo FOR UPDATE"
             ),
             {"nr_proposta": proposta, "codigo": codigo},
         )
@@ -975,6 +1311,10 @@ async def _aplicar_localidade(
                 if insert_result.scalar_one_or_none() is not None
                 else "ja_existente"
             )
+    elif acao == "manter":
+        if not presente:
+            raise ValueError(f"A localidade {codigo} não está vinculada ao instrumento.")
+        resultado = "corrigido"
     elif acao == "remover":
         if presente:
             await db.execute(
@@ -1001,6 +1341,34 @@ async def _aplicar_localidade(
                 {"codigo": codigo, "nr_proposta": proposta, "quantidade": sugerido},
             )
             resultado = "corrigido"
+    # Registra a classificação no mesmo histórico usado para cancelar a aplicação.
+    tipo_anterior = None
+    tipo_novo = None
+    if codigo is not None:
+        tipo_result = await db.execute(
+            text("SELECT tipo_localidade FROM territorio.tb_comunidade_rural "
+                 "WHERE cod_comunidade_rural = :codigo FOR UPDATE"),
+            {"codigo": codigo},
+        )
+        tipo_anterior = tipo_result.scalar_one_or_none()
+        tipo_novo = tipo_anterior
+        if (item.get("cod_comunidade_rural") is None and not criada
+                and acao != "remover" and item.get("tipo_localidade") is not None
+                and item["tipo_localidade"] != tipo_anterior):
+            raise ValueError("A localidade informada reutiliza um cadastro compartilhado com outra classificação. Selecione o cadastro existente para alterá-lo.")
+        if acao != "remover" and item.get("tipo_localidade") is not None:
+            tipo_novo = item["tipo_localidade"]
+            if tipo_novo != tipo_anterior:
+                if "tipo_localidade_anterior" in item and tipo_anterior != item["tipo_localidade_anterior"]:
+                    raise ValueError("A classificação territorial mudou durante a aplicação. Recarregue a revisão.")
+                await _validar_alteracao_territorial_posterior(db, revisao, codigo, item.get("tipo_localidade_referencia_em"))
+                await db.execute(
+                    text("UPDATE territorio.tb_comunidade_rural SET tipo_localidade = :tipo "
+                         "WHERE cod_comunidade_rural = :codigo"),
+                    {"tipo": tipo_novo, "codigo": codigo},
+                )
+                if resultado in {"ja_atualizado", "ja_existente"}:
+                    resultado = "corrigido"
     return {
         "entidade": "localidade", "acao": acao, "resultado": resultado,
         "chave": {"nr_proposta": proposta, "cod_comunidade_rural": codigo,
@@ -1008,10 +1376,15 @@ async def _aplicar_localidade(
                   "nome_comunidade_rural": (
                       str(item.get("nome_localidade_informada") or "").strip() or None
                   )},
-        "valores_anteriores": {"vinculado": presente, "qtde_familias_ben": atual},
+        "valores_anteriores": {"vinculado": presente, "qtde_familias_ben": atual,
+                               "tipo_localidade": tipo_anterior},
         "valores_novos": {
             "vinculado": acao != "remover",
-            "qtde_familias_ben": sugerido if acao in {"adicionar", "corrigir"} else atual,
+            # Adicionar um vínculo existente preserva suas famílias, mesmo se o tipo mudar.
+            "qtde_familias_ben": (
+                sugerido if acao == "corrigir" or (acao == "adicionar" and not presente) else atual
+            ),
+            "tipo_localidade": tipo_novo,
             "comunidade_criada": criada,
             "comunidade_reutilizada": (
                 item.get("cod_comunidade_rural") is None and codigo is not None and not criada
@@ -1237,6 +1610,16 @@ async def _conflitos_estado_atual(
                 conflitos.append(f"Localidade {nome}: o vínculo atual diverge do estado deixado pela aplicação.")
             elif atual_vinculado and atual_quantidade != esperado.get("qtde_familias_ben"):
                 conflitos.append(f"Localidade {nome}: a quantidade de famílias foi alterada após a aplicação.")
+            anterior = detalhe.get("valores_anteriores") or {}
+            if ("tipo_localidade" in esperado and "tipo_localidade" in anterior
+                    and anterior["tipo_localidade"] != esperado["tipo_localidade"]):
+                tipo_result = await db.execute(
+                    text("SELECT tipo_localidade FROM territorio.tb_comunidade_rural "
+                         "WHERE cod_comunidade_rural = :codigo" + sufixo_lock),
+                    {"codigo": chave.get("cod_comunidade_rural")},
+                )
+                if tipo_result.scalar_one_or_none() != esperado["tipo_localidade"]:
+                    conflitos.append(f"Localidade {nome}: a classificação foi alterada após a aplicação.")
     return conflitos
 
 
@@ -1350,6 +1733,14 @@ async def _reverter_detalhe(
                     f"WHERE {condicao}"
                 ),
                 {**params, "quantidade": anterior.get("qtde_familias_ben")},
+            )
+
+        # Históricos anteriores à inclusão do atributo não possuem esta chave.
+        if "tipo_localidade" in anterior and anterior.get("tipo_localidade") != novo.get("tipo_localidade"):
+            await db.execute(
+                text("UPDATE territorio.tb_comunidade_rural SET tipo_localidade = :tipo "
+                     "WHERE cod_comunidade_rural = :codigo"),
+                {"tipo": anterior["tipo_localidade"], "codigo": chave["cod_comunidade_rural"]},
             )
 
     acao_reversao = {
@@ -1804,7 +2195,8 @@ async def aplicar_revisao(
                 if item["acao_sugerida"] == "adicionar":
                     detalhes.append(await _aplicar_municipio(db, revisao, item))
             for item in localidades:
-                if item["acao_sugerida"] != "manter":
+                if (item["acao_sugerida"] != "manter"
+                    or _tipo_localidade_alterado(item)):
                     detalhes.append(await _aplicar_localidade(db, revisao, item))
             for item in municipios:
                 if item["acao_sugerida"] == "remover":

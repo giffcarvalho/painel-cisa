@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Pencil, RotateCcw } from 'lucide-react'
 import styles from '@/pages/admin/aplicacao-revisoes/AplicacaoRevisoes.module.css'
 import {
   CONFIRMACOES_OBRA,
@@ -24,6 +24,9 @@ function ItemAlteracao({ item }) {
         <strong>{nome}</strong>
         {item.acao === 'corrigir' && (
           <small>Famílias beneficiadas: {item.valor_anterior ?? '—'} → {item.valor_sugerido ?? '—'}</small>
+        )}
+        {item.entidade === 'localidade' && (
+          <small>Tipo de Localidade: {item.tipo_localidade_anterior || 'Não classificada'} → {item.tipo_localidade || 'Não classificada'}</small>
         )}
         {item.justificativa && <small>{item.justificativa}</small>}
       </span>
@@ -93,7 +96,27 @@ function GrupoObras({ itens }) {
   )
 }
 
-export default function DetalhesRevisao({ detalhe, onAplicar }) {
+function GrupoCoordenadas({ itens }) {
+  return (
+    <section className={styles.changeGroup}>
+      <h3>Coordenadas</h3>
+      {itens.length ? (
+        <ul>{itens.map((item) => (
+          <li className={`${styles.changeItem} ${styles.evaluationItem}`} key={`coordenada-${item.id_item}`}>
+            <span>
+              <strong>Coordenada {item.id_coordenada} — TCI {item.cod_tci}</strong>
+              <small>Análise: {item.situacao_analise}</small>
+              <small>Correção: {item.situacao_correcao || 'Não informada'}</small>
+              {item.observacao_coordenada && <small>Observação: {item.observacao_coordenada}</small>}
+            </span>
+          </li>
+        ))}</ul>
+      ) : <p>Nenhum registro nesta seção.</p>}
+    </section>
+  )
+}
+
+export default function DetalhesRevisao({ detalhe, onAplicar, onEditar, onDevolver }) {
   const { revisao, validacao } = detalhe
   return (
     <div className={styles.detailContent}>
@@ -103,14 +126,22 @@ export default function DetalhesRevisao({ detalhe, onAplicar }) {
           <h2>{revisao.tipo_instrumento_label} {revisao.identificador_principal}</h2>
           <p>Responsável técnico: {revisao.tecnico_responsavel}</p>
         </div>
-        <button
-          type="button"
-          className={styles.primaryButton}
-          disabled={!validacao.aplicavel}
-          onClick={onAplicar}
-        >
-          Aplicar revisão
-        </button>
+        <div className={styles.detailActions}>
+          <button type="button" className={styles.secondaryButton} onClick={onEditar}>
+            <Pencil aria-hidden="true" /> Editar revisão
+          </button>
+          <button type="button" className={styles.secondaryButton} onClick={onDevolver}>
+            <RotateCcw aria-hidden="true" /> Devolver para correção
+          </button>
+          <button
+            type="button"
+            className={styles.primaryButton}
+            disabled={!validacao.aplicavel}
+            onClick={onAplicar}
+          >
+            Aplicar revisão
+          </button>
+        </div>
       </div>
 
       <div className={`${styles.validation} ${validacao.aplicavel ? styles.validationOk : styles.validationBlocked}`}>
@@ -134,7 +165,17 @@ export default function DetalhesRevisao({ detalhe, onAplicar }) {
         <Grupo titulo="Localidades" itens={detalhe.localidades} />
         <GrupoPublicoAlvo itens={detalhe.publico_alvo} />
         <GrupoObras itens={detalhe.obras} />
+        {!!detalhe.coordenadas?.length && <GrupoCoordenadas itens={detalhe.coordenadas} />}
       </div>
+
+      {detalhe.devolutiva && (
+        <div className={styles.observation}>
+          <strong>Tramitação da devolutiva</strong>
+          <p>Comentário do administrador: {detalhe.devolutiva.comentario_admin}</p>
+          {detalhe.devolutiva.comentario_monitor && <p>Resposta do monitor: {detalhe.devolutiva.comentario_monitor}</p>}
+          {detalhe.devolutiva.id_revisao_devolvida !== revisao.id_revisao && <p>Versão anteriormente devolvida: revisão nº {detalhe.devolutiva.id_revisao_devolvida}</p>}
+        </div>
+      )}
     </div>
   )
 }

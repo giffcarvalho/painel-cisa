@@ -593,7 +593,7 @@
 }
 
 .addLocalidadeGrid {
-  grid-template-columns: minmax(220px, 1fr) minmax(140px, 180px) auto auto;
+  grid-template-columns: minmax(180px, 1fr) minmax(110px, 140px) minmax(180px, 1fr) auto auto;
 }
 
 .searchPanel button,
@@ -1198,6 +1198,49 @@ button:disabled {
   margin-top: 4px;
 }
 
+.confirmationField {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.confirmationField textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  padding: 10px;
+  color: #334155;
+  font: inherit;
+  line-height: 1.45;
+}
+
+.returnNotice {
+  margin-bottom: 18px;
+  border: 1px solid #93b4df;
+  border-left: 4px solid #1351b4;
+  border-radius: 8px;
+  background: #f3f7fc;
+  padding: 16px 18px;
+  color: #334155;
+}
+
+.returnNotice h2 {
+  margin: 0 0 7px;
+  color: #0c326f;
+  font-size: 17px;
+}
+
+.returnNotice p {
+  margin: 5px 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 /* ==========================================================================
    Tabelas de localidades e obras
    ========================================================================== */
@@ -1207,8 +1250,53 @@ button:disabled {
 }
 
 .table.localidadesTable {
-  min-width: 620px;
+  min-width: 760px;
+  table-layout: fixed;
   font-size: 12.5px;
+}
+
+.localidadesTable th:nth-child(1) {
+  width: 23%;
+}
+
+.localidadesTable th:nth-child(2) {
+  width: 24%;
+}
+
+.localidadesTable th:nth-child(3) {
+  width: 16%;
+}
+
+.localidadesTable th:nth-child(4) {
+  width: 24%;
+}
+
+.localidadesTable th:nth-child(5) {
+  width: 13%;
+}
+
+.localidadesTable td {
+  overflow-wrap: anywhere;
+}
+
+.table.localidadesTable th {
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.tipoLocalidadeForm {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.localidadesTable .localidadeCell,
+.localidadesTable .familiasCell {
+  min-width: 0;
 }
 
 .table.obrasTable {
@@ -1760,7 +1848,7 @@ button:disabled {
 
 .addLocalidadeGrid {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(140px, 180px) auto auto;
+  grid-template-columns: minmax(180px, 1fr) minmax(110px, 140px) minmax(180px, 1fr) auto auto;
   gap: 10px;
   align-items: end;
 }

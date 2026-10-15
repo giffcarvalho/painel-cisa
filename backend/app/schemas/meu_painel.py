@@ -21,6 +21,8 @@ class InstrumentoPendenteItem(MeuPainelBase):
     tipo_instrumento_label: str
     total_pendencias: int
     grupos: PendenciasPorGrupo
+    status_instrumento: str | None = None
+    analise_projeto_exigivel: bool = True
 
 
 class ResumoAlteracoesRascunho(MeuPainelBase):
@@ -40,6 +42,7 @@ class RascunhoMeuPainelItem(MeuPainelBase):
     criado_em: datetime
     atualizado_em: datetime
     alteracoes: ResumoAlteracoesRascunho
+    devolutiva: dict | None = None
 
 
 class ResumoMeuPainel(MeuPainelBase):

@@ -32,14 +32,23 @@ function resumoAlteracoes(alteracoes) {
 }
 
 function PendenciaCard({ item, onReview }) {
+  const status = item.status_instrumento?.trim() || 'Não informado'
+  const statusLabel = status === 'Homologado Automaticamente pelo Sistema' ? 'Homologado' : status
   return (
     <article className={styles.card}>
       <div className={styles.cardTop}>
-        <div><small>{item.tipo_instrumento_label}</small><h3>Instrumento {item.identificador_instrumento}</h3></div>
-        <strong>{item.total_pendencias} {item.total_pendencias === 1 ? 'item pendente' : 'itens pendentes'}</strong>
+        <small>{item.tipo_instrumento_label}</small>
+        <h3>Instrumento {item.identificador_instrumento}</h3>
+        <strong className={styles.pendingCount}>{item.total_pendencias} {item.total_pendencias === 1 ? 'pendência' : 'pendências'}</strong>
+        <span className={styles.projectStatus} title={`Situação do projeto: ${status}`}>
+          Situação do projeto:{'\u00a0'}{statusLabel}
+        </span>
       </div>
       <dl className={styles.groups}>
-        {Object.entries(GRUPOS).map(([chave, label]) => <div key={chave}><dt>{label}</dt><dd>{item.grupos[chave]}</dd></div>)}
+        {Object.entries(GRUPOS).filter(([chave]) => chave !== 'municipios').map(([chave, label]) => {
+          const naoExigivel = chave !== 'obras' && item.analise_projeto_exigivel === false
+          return <div key={chave}><dt>{label}</dt><dd title={naoExigivel ? 'Análise ainda não exigível em razão da situação do projeto.' : undefined} aria-label={naoExigivel ? 'Análise ainda não exigível em razão da situação do projeto.' : undefined}>{naoExigivel ? '—' : item.grupos[chave]}</dd></div>
+        })}
       </dl>
       <button type="button" className={styles.primary} onClick={() => onReview(item.identificador_instrumento)}>Revisar instrumento</button>
     </article>
@@ -128,7 +137,7 @@ function RascunhosSection({ items, total, expandido, ocupado, onContinue, onTogg
         <div className={styles.drafts}>
           {items.map((item) => (
             <article className={styles.draft} key={item.id_revisao}>
-              <div><small>{item.tipo_instrumento_label}</small><h3>Instrumento {item.identificador_instrumento}</h3><p><strong>Alterações salvas:</strong> {resumoAlteracoes(item.alteracoes)}</p><time>Criado em {formatarData(item.criado_em)} · Atualizado em {formatarData(item.atualizado_em)}</time></div>
+              <div><small>{item.tipo_instrumento_label}</small><h3>Instrumento {item.identificador_instrumento}</h3>{item.devolutiva && <p><strong>Revisão devolvida para correção:</strong> {item.devolutiva.comentario_admin}</p>}<p><strong>Alterações salvas:</strong> {resumoAlteracoes(item.alteracoes)}</p><time>Criado em {formatarData(item.criado_em)} · Atualizado em {formatarData(item.atualizado_em)}</time></div>
               <div className={styles.draftActions}>
                 <button type="button" className={styles.primary} onClick={() => onContinue(item.identificador_instrumento)}>Continuar revisão</button>
                 <button type="button" className={styles.dangerSecondary} disabled={ocupado === item.id_revisao} onClick={() => onCancel(item)}><Trash2 /> Cancelar rascunho</button>

@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class AplicacaoBase(BaseModel):
@@ -49,6 +49,8 @@ class AlteracaoRevisaoItem(AplicacaoBase):
     cod_comunidade_rural: int | None = None
     localidade: str | None = None
     origem_registro: str | None = None
+    tipo_localidade: str | None = None
+    tipo_localidade_anterior: str | None = None
     valor_anterior: int | None = None
     valor_sugerido: int | None = None
     justificativa: str | None = None
@@ -74,6 +76,22 @@ class ObraRevisaoItem(AplicacaoBase):
     justificativa: str | None = None
 
 
+class CoordenadaRevisaoItem(AplicacaoBase):
+    id_item: int
+    id_coordenada: int
+    cod_tci: str
+    situacao_analise: Literal[
+        "Correta",
+        "Município errado",
+        "Local genérico - sede",
+        "Local incoerente",
+        "Incoerência urbano/rural",
+        "Sem análise",
+    ]
+    situacao_correcao: Literal["Sim", "Não", "Sem necessidade"] | None = None
+    observacao_coordenada: str | None = None
+
+
 class ValidacaoAplicacao(AplicacaoBase):
     aplicavel: bool
     status: Literal["pronta", "possui_pendencias", "ja_aplicada"]
@@ -87,7 +105,118 @@ class RevisaoAplicacaoDetalhe(AplicacaoBase):
     localidades: list[AlteracaoRevisaoItem] = Field(default_factory=list)
     publico_alvo: list[PublicoAlvoRevisaoItem] = Field(default_factory=list)
     obras: list[ObraRevisaoItem] = Field(default_factory=list)
+    coordenadas: list[CoordenadaRevisaoItem] = Field(default_factory=list)
     validacao: ValidacaoAplicacao
+    devolutiva: dict[str, Any] | None = None
+
+
+class DevolverRevisaoRequest(AplicacaoBase):
+    comentario_admin: str = Field(..., min_length=1, max_length=4000)
+
+    @field_validator("comentario_admin")
+    @classmethod
+    def validar_comentario(cls, value: str) -> str:
+        comentario = value.strip()
+        if not comentario:
+            raise ValueError("O comentário para o monitor é obrigatório.")
+        return comentario
+
+
+class DevolutivaRevisaoResponse(AplicacaoBase):
+    id_devolutiva: int
+    id_revisao_devolvida: int
+    id_rascunho: int
+    comentario_admin: str
+    devolvido_em: datetime
+    status: str
+
+
+class EdicaoAdministrativaBase(AplicacaoBase):
+    model_config = {"extra": "forbid"}
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def normalizar_texto(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return value.strip() or None
+        return value
+
+    @model_validator(mode="after")
+    def validar_campos_do_item(self):
+        if "id_item" in type(self).model_fields and not (
+            self.model_fields_set - {"id_item"}
+        ):
+            raise ValueError("Informe ao menos um campo alterado para o registro.")
+        return self
+
+
+class EdicaoMunicipioItem(EdicaoAdministrativaBase):
+    id_item: int
+    acao_sugerida: Literal["manter", "remover", "adicionar"] | None = None
+    justificativa: str | None = Field(default=None, max_length=4000)
+
+
+class EdicaoLocalidadeItem(EdicaoAdministrativaBase):
+    id_item: int
+    acao_sugerida: Literal["manter", "remover", "adicionar", "corrigir"] | None = None
+    tipo_localidade: str | None = Field(default=None, max_length=100)
+    qtde_familias_ben_sugerida: int | None = Field(default=None, ge=0)
+    justificativa: str | None = Field(default=None, max_length=4000)
+
+
+class EdicaoPublicoAlvoItem(EdicaoAdministrativaBase):
+    id_item: int
+    status_populacao_beneficiada: Literal[
+        "ok", "informacao_incorreta", "sem_informacao"
+    ] | None = None
+    status_desc_populacao_beneficiada: Literal[
+        "ok", "informacao_incorreta", "sem_informacao"
+    ] | None = None
+    status_correcao_solicitada: Literal["sim", "nao", "nao_necessaria"] | None = None
+    observacao_publico_alvo: str | None = Field(default=None, max_length=4000)
+
+
+class EdicaoObraItem(EdicaoAdministrativaBase):
+    id_item: int
+    relacao_instrumento: Literal[
+        "nao_analisada", "sem_conflito_aparente", "possivel_sobreposicao"
+    ] | None = None
+    confirmacao_status: Literal[
+        "nao_confirmada", "sem_conflito", "sobreposicao_confirmada"
+    ] | None = None
+    justificativa: str | None = Field(default=None, max_length=4000)
+
+
+class EdicaoCoordenadaItem(EdicaoAdministrativaBase):
+    id_item: int
+    situacao_analise: Literal[
+        "Correta",
+        "Município errado",
+        "Local genérico - sede",
+        "Local incoerente",
+        "Incoerência urbano/rural",
+        "Sem análise",
+    ] | None = None
+    situacao_correcao: Literal["Sim", "Não", "Sem necessidade"] | None = None
+    observacao_coordenada: str | None = Field(default=None, max_length=4000)
+
+
+class CorrecaoAdministrativaRevisao(EdicaoAdministrativaBase):
+    observacao_geral: str | None = Field(default=None, max_length=4000)
+    municipios: list[EdicaoMunicipioItem] = Field(default_factory=list)
+    localidades: list[EdicaoLocalidadeItem] = Field(default_factory=list)
+    publico_alvo: list[EdicaoPublicoAlvoItem] = Field(default_factory=list)
+    obras: list[EdicaoObraItem] = Field(default_factory=list)
+    coordenadas: list[EdicaoCoordenadaItem] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validar_conteudo(self):
+        possui_observacao = "observacao_geral" in self.model_fields_set
+        if not possui_observacao and not any(
+            (self.municipios, self.localidades, self.publico_alvo, self.obras, self.coordenadas)
+        ):
+            raise ValueError("Informe ao menos uma alteração para a revisão.")
+        return self
 
 
 class DetalheExecucao(AplicacaoBase):

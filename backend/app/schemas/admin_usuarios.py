@@ -43,6 +43,7 @@ class UsuariosAdminResponse(AdminBase):
 class InstrumentoUsuarioAdmin(AdminBase):
     nr_instrumento: str
     ativo: bool
+    ordem_prioridade: int | None = None
 
 
 class RevisaoUsuarioAdmin(AdminBase):
@@ -95,7 +96,41 @@ class CodigoAcessoResponse(AdminBase):
     expira_em: datetime
 
 
-class VincularInstrumentoRequest(AdminBase):
+class PrioridadeMonitor(AdminBase):
+    id_usuario: int = Field(gt=0, strict=True)
+    ordem_prioridade: int = Field(ge=1, le=3, strict=True)
+
+
+class PrioridadesInstrumentoRequest(AdminBase):
+    versao: str = Field(min_length=64, max_length=64)
+    monitores: list[PrioridadeMonitor] = Field(min_length=1, max_length=3)
+
+    @model_validator(mode="after")
+    def validar_ordem(self):
+        ids = [m.id_usuario for m in self.monitores]
+        prioridades = [m.ordem_prioridade for m in self.monitores]
+        if len(set(ids)) != len(ids):
+            raise ValueError("Um monitor não pode aparecer duas vezes.")
+        if sorted(prioridades) != list(range(1, len(ids) + 1)):
+            raise ValueError("Informe prioridades exclusivas e sequenciais de 1 a 3.")
+        return self
+
+
+class MonitorInstrumentoAdmin(PrioridadeMonitor):
+    # Permite diagnosticar dados antigos sem esconder monitores da interface.
+    ordem_prioridade: int | None = None
+    nome: str
+    email: str
+    codigo_tecnico: int | None = None
+
+
+class MonitoresInstrumentoResponse(AdminBase):
+    nr_instrumento: str
+    versao: str
+    monitores: list[MonitorInstrumentoAdmin]
+
+
+class VincularInstrumentoRequest(PrioridadesInstrumentoRequest):
     nr_instrumento: str = Field(min_length=1, max_length=50)
 
     @field_validator("nr_instrumento")
@@ -109,6 +144,7 @@ class VincularInstrumentoRequest(AdminBase):
 
 class AlterarVinculoRequest(AdminBase):
     ativo: bool
+    prioridades: PrioridadesInstrumentoRequest | None = None
 
 
 class InstrumentoBuscaAdmin(AdminBase):

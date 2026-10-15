@@ -122,7 +122,11 @@ export default function VisualizarRevisao() {
 
   const instrumento = revisao.instrumento
   const numero = instrumento.nr_instrumento || instrumento.nr_ted || instrumento.nr_proposta
-  const status = revisao.execucao?.status === 'cancelado'
+  const status = revisao.devolutiva?.id_revisao_devolvida === revisao.id_revisao
+    ? revisao.devolutiva.status === 'reenviada'
+      ? `Devolvida — substituída pela revisão nº ${revisao.devolutiva.id_revisao_reenvio}`
+      : 'Devolvida — aguardando correção'
+    : revisao.execucao?.status === 'cancelado'
     ? 'Aplicação cancelada'
     : revisao.solicitacao_cancelamento?.status === 'pendente'
       ? 'Cancelamento solicitado'
@@ -207,6 +211,14 @@ export default function VisualizarRevisao() {
 
       {podeSolicitar && <div className={styles.cancellationAction}><button type="button" className={styles.requestCancelButton} onClick={() => setModalSolicitacao(true)}>Solicitar cancelamento da aplicação</button></div>}
 
+      {revisao.devolutiva && <section className={styles.section}>
+        <h2>Devolutiva da revisão</h2>
+        <p>Devolvida em {formatarData(revisao.devolutiva.devolvido_em)} por <strong>{revisao.devolutiva.administrador}</strong>.</p>
+        <p className={styles.textBlock}><strong>Comentário administrativo:</strong> {revisao.devolutiva.comentario_admin}</p>
+        {revisao.devolutiva.comentario_monitor && <p className={styles.textBlock}><strong>Resposta do monitor:</strong> {revisao.devolutiva.comentario_monitor}</p>}
+        {revisao.devolutiva.id_revisao_reenvio && <p>Versão corrigida: revisão nº {revisao.devolutiva.id_revisao_reenvio}.</p>}
+      </section>}
+
       {revisao.observacao_geral && (
         <section className={styles.section}>
           <h2>Observação geral</h2>
@@ -281,6 +293,7 @@ export default function VisualizarRevisao() {
                         <p className={styles.metadata}>Origem: {localidade.origem_registro === 'adicionado_tecnico' ? 'Adicionada pelo técnico' : 'Base do instrumento'}</p>
                         <Comparacao label="Famílias beneficiadas" original={localidade.qtde_familias_ben_original} revisado={localidade.qtde_familias_ben_sugerida} />
                         {localidade.justificativa && <p className={styles.textBlock}><strong>Justificativa:</strong> {localidade.justificativa}</p>}
+                        <p className={styles.metadata}>Tipo de Localidade: {valor(localidade.tipo_localidade)}</p>
                         <Metadados item={localidade} />
                       </div>
                     ))}

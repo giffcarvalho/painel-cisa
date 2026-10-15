@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, Search } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { revisaoInstrumentoApi } from '@/api/revisaoInstrumento'
@@ -33,8 +33,8 @@ export default function HistoricoRevisoes({ escopo, embedded = false, compact = 
   const [pagina, setPagina] = useState(1)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
-  const [expandido, setExpandido] = useState(false)
-  const limiteAtual = compact && !expandido ? LIMITE_COMPACTO : LIMITE
+  const listagemRef = useRef(null)
+  const limiteAtual = compact ? LIMITE_COMPACTO : LIMITE
 
   useEffect(() => {
     // O mesmo componente atende o histórico pessoal e o de um instrumento; a
@@ -54,18 +54,28 @@ export default function HistoricoRevisoes({ escopo, embedded = false, compact = 
       )
 
     requisicao
-      .then((data) => { if (ativo) setResultado(data) })
+      .then((data) => {
+        if (!ativo) return
+        setResultado(data)
+        if (compact && listagemRef.current) listagemRef.current.scrollTop = 0
+      })
       .catch((error) => {
         if (ativo) setErro(error?.response?.data?.detail || 'Não foi possível carregar o histórico de revisões.')
       })
       .finally(() => { if (ativo) setCarregando(false) })
 
     return () => { ativo = false }
-  }, [buscaAplicada, identificadorRota, limiteAtual, pagina, pessoal])
+  }, [buscaAplicada, compact, identificadorRota, limiteAtual, pagina, pessoal])
+
+  function mudarPagina(novaPagina) {
+    setCarregando(true)
+    setPagina(novaPagina)
+  }
 
   function pesquisar(event) {
     // Separa o texto digitado do filtro aplicado para não consultar a cada tecla.
     event.preventDefault()
+    if (pagina !== 1 || buscaAplicada !== busca.trim()) setCarregando(true)
     setPagina(1)
     setBuscaAplicada(busca.trim())
   }
@@ -128,68 +138,63 @@ export default function HistoricoRevisoes({ escopo, embedded = false, compact = 
         )}
       </header>
 
-      {carregando && (
-        <section className={styles.state} role="status">
-          <Loader2 className={styles.spinner} /> Carregando revisões...
-        </section>
-      )}
-
-      {!carregando && erro && <section className={styles.state} role="alert">{erro}</section>}
-      {vazio && <section className={styles.state}>{mensagemVazia}</section>}
-
-      {!carregando && !erro && resultado?.data?.length > 0 && (
-        <>
-          {pessoal && <h2 className={styles.resultsHeading}>Revisões encontradas</h2>}
-          <section className={styles.list} aria-label="Revisões enviadas">
-            {resultado.data.map((item) => (
-              <article className={styles.card} key={item.id_revisao}>
-                <div className={styles.cardMain}>
-                  <h2>Revisão nº {item.id_revisao}</h2>
-                  {pessoal && <p className={styles.instrument}>Instrumento nº {numeroInstrumento(item)}</p>}
-                  {pessoal && item.objeto && <p className={styles.description}>{item.objeto}</p>}
-                  {!pessoal && <p className={styles.author}>Enviada por <strong>{item.usuario.nome}</strong></p>}
-                  <p className={styles.date}>Enviada em {formatarData(item.enviado_em)}</p>
-                </div>
-                <div className={styles.cardActions}>
-                  <span className={`${styles.status} ${item.status_execucao === 'cancelado' ? styles.cancelled : item.solicitacao_cancelamento?.status === 'pendente' ? styles.requested : item.aplicado_em ? styles.applied : ''}`}>
-                    {item.status_label}
-                  </span>
-                  {item.status_execucao === 'cancelado' && <small className={styles.statusDetail}>
-                    {item.cancelado_em && <>Cancelada em {formatarData(item.cancelado_em)}</>}
-                    {item.usuario_cancelamento && <> · por {item.usuario_cancelamento}</>}
-                    {item.motivo_cancelamento && <> · Motivo: {item.motivo_cancelamento}</>}
-                  </small>}
-                  <button type="button" onClick={() => visualizar(item)}>
-                    Visualizar revisão
-                  </button>
-                </div>
-              </article>
-            ))}
+      <div ref={listagemRef} className={compact ? styles.listViewport : undefined} aria-busy={carregando}>
+        {carregando && (!compact || !resultado) && (
+          <section className={styles.state} role="status">
+            <Loader2 className={styles.spinner} /> Carregando revisões...
           </section>
-        </>
-      )}
+        )}
 
-      {!carregando && !erro && (!compact || expandido) && resultado?.total_paginas > 1 && (
+        {!carregando && erro && <section className={styles.state} role="alert">{erro}</section>}
+        {vazio && <section className={styles.state}>{mensagemVazia}</section>}
+
+        {(compact || !carregando) && !erro && resultado?.data?.length > 0 && (
+          <>
+            {pessoal && <h2 className={styles.resultsHeading}>Revisões encontradas</h2>}
+            <section className={styles.list} aria-label="Revisões enviadas">
+              {resultado.data.map((item) => (
+                <article className={styles.card} key={item.id_revisao}>
+                  <div className={styles.cardMain}>
+                    <h2>Revisão nº {item.id_revisao}</h2>
+                    {pessoal && <p className={styles.instrument}>Instrumento nº {numeroInstrumento(item)}</p>}
+                    {pessoal && item.objeto && <p className={styles.description}>{item.objeto}</p>}
+                    {!pessoal && <p className={styles.author}>Enviada por <strong>{item.usuario.nome}</strong></p>}
+                    <p className={styles.date}>Enviada em {formatarData(item.enviado_em)}</p>
+                  </div>
+                  <div className={styles.cardActions}>
+                    <span className={`${styles.status} ${item.status_execucao === 'cancelado' ? styles.cancelled : item.solicitacao_cancelamento?.status === 'pendente' ? styles.requested : item.aplicado_em ? styles.applied : ''}`}>
+                      {item.status_label}
+                    </span>
+                    {item.status_execucao === 'cancelado' && <small className={styles.statusDetail}>
+                      {item.cancelado_em && <>Cancelada em {formatarData(item.cancelado_em)}</>}
+                      {item.usuario_cancelamento && <> · por {item.usuario_cancelamento}</>}
+                      {item.motivo_cancelamento && <> · Motivo: {item.motivo_cancelamento}</>}
+                    </small>}
+                    <button type="button" onClick={() => visualizar(item)}>
+                      Visualizar revisão
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </section>
+          </>
+        )}
+      </div>
+
+      {(compact || (!carregando && !erro && resultado?.total_paginas > 1)) && (
         <nav className={styles.pagination} aria-label="Paginação do histórico">
-          <button type="button" disabled={pagina === 1} onClick={() => setPagina((atual) => atual - 1)}>
+          <button type="button" disabled={carregando || pagina === 1} onClick={() => mudarPagina(pagina - 1)}>
             <ChevronLeft size={17} /> Anterior
           </button>
-          <span>Página {pagina} de {resultado.total_paginas}</span>
+          <span>Página {pagina} de {Math.max(1, resultado?.total_paginas ?? 1)}</span>
           <button
             type="button"
-            disabled={pagina === resultado.total_paginas}
-            onClick={() => setPagina((atual) => atual + 1)}
+            disabled={carregando || pagina >= (resultado?.total_paginas ?? 1)}
+            onClick={() => mudarPagina(pagina + 1)}
           >
             Próxima <ChevronRight size={17} />
           </button>
         </nav>
-      )}
-      {compact && !carregando && !erro && (resultado?.total ?? 0) > LIMITE_COMPACTO && (
-        <div className={styles.pagination}>
-          <button type="button" onClick={() => { setExpandido((valor) => !valor); setPagina(1) }}>
-            {expandido ? 'Mostrar menos' : 'Ver todas as revisões'}
-          </button>
-        </div>
       )}
     </Root>
   )

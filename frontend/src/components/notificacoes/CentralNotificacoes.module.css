@@ -156,23 +156,60 @@
 
 .compact .header {
   align-items: flex-start;
+  flex-wrap: wrap;
   padding: 17px 19px;
 }
 
 .compact .header > div {
   min-width: 0;
-  flex: 1;
+  flex: 1 1 180px;
 }
 
 .compact .secondary {
   padding: 7px 9px;
 }
 
+.compact .list {
+  align-content: start;
+}
+
+.compact .listViewport {
+  height: 320px;
+  max-height: 320px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  overflow-anchor: none;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+
+.compact .listViewport::-webkit-scrollbar {
+  width: 8px;
+}
+
+.compact .listViewport::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.compact .listViewport::-webkit-scrollbar-thumb {
+  border: 2px solid #f1f5f9;
+  border-radius: 8px;
+  background: #94a3b8;
+}
+
 .compact .item {
   align-items: flex-start;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px 19px;
+  gap: 8px;
+  padding: 12px 19px;
+  overflow-wrap: anywhere;
+}
+
+.compact .item > div {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .compact .item.unread {
@@ -187,6 +224,20 @@
 .compact .state {
   min-height: 0;
   padding: 20px;
+}
+
+.compact .hiddenAction {
+  visibility: hidden;
+}
+
+.compact .pagination {
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+}
+
+.compact .pagination span {
+  white-space: nowrap;
 }
 
 .pagination {
@@ -221,6 +272,11 @@
    ========================================================================== */
 
 @media (max-width: 700px) {
+  .compact .header > div {
+    flex-basis: auto;
+    width: 100%;
+  }
+
   .header, .item {
     align-items: flex-start;
     flex-direction: column;

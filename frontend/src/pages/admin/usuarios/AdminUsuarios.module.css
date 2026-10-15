@@ -768,6 +768,66 @@
 
 .formModal {
   text-align: left;
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+}
+
+.linkActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.currentMonitors {
+  padding-left: 20px;
+  color: var(--cisa-text-secondary);
+  font-size: .85rem;
+  line-height: 1.7;
+}
+
+.priorityList {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.priorityList li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--cisa-border);
+  border-radius: 10px;
+  background: #f8fbff;
+  padding: 10px;
+}
+
+.priorityList li > div {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.priorityList strong,
+.priorityList small {
+  display: block;
+}
+
+.priorityList small {
+  margin-top: 4px;
+  color: var(--cisa-text-secondary);
+}
+
+.priorityList button {
+  min-height: 36px;
+  flex-shrink: 0;
+  padding: 0 6px;
+}
+
+.priorityNumber {
+  color: var(--cisa-primary);
+  font-weight: 800;
 }
 
 .formModal > h2 {
