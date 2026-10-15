@@ -127,7 +127,7 @@ async def listar_pendentes(db: AsyncSession) -> RevisoesPendentesResponse:
                 (SELECT COUNT(*) FROM painel_dsr.tb_revisao_instrumento_localidade rl
                  LEFT JOIN territorio.tb_comunidade_rural cr ON cr.cod_comunidade_rural = rl.cod_comunidade_rural
                  WHERE rl.id_revisao = r.id_revisao AND (rl.acao_sugerida <> 'manter'
-                   OR rl.tipo_localidade IS DISTINCT FROM cr.tipo_localidade)) AS qtd_localidades,
+                   OR (rl.tipo_localidade IS NOT NULL AND rl.tipo_localidade IS DISTINCT FROM cr.tipo_localidade))) AS qtd_localidades,
                 (SELECT COUNT(*) FROM painel_dsr.tb_revisao_instrumento_publico_alvo rpa
                  WHERE rpa.id_revisao = r.id_revisao) AS qtd_publico_alvo,
                 (SELECT COUNT(*) FROM painel_dsr.tb_revisao_obra_saneamento ro
@@ -198,6 +198,7 @@ async def _carregar_revisao(
                    COALESCE(cr.nome_comunidade_rural, rl.nome_localidade_informada) AS localidade,
                    rl.origem_registro, rl.acao_sugerida,
                    rl.tipo_localidade, cr.tipo_localidade AS tipo_localidade_anterior,
+                   rl.atualizado_em AS tipo_localidade_referencia_em,
                    rl.qtde_familias_ben_original, rl.qtde_familias_ben_sugerida,
                    rl.justificativa, m.nome_municipio AS municipio,
                    BTRIM(uf.sigla_uf) AS uf
@@ -323,7 +324,11 @@ async def _validar(
                 pendencias.append(
                     "Inclusão de município em TED bloqueada: a revisão não informa a proporção exigida."
                 )
-            if any(item["acao_sugerida"] != "manter" for item in localidades):
+            if any(
+                item["acao_sugerida"] != "manter"
+                or _tipo_localidade_alterado(item)
+                for item in localidades
+            ):
                 pendencias.append(
                     "Localidades de TED não podem ser aplicadas: não existe tabela oficial de destino configurada."
                 )
@@ -422,7 +427,15 @@ async def _validar(
 
     for item in localidades:
         acao = item["acao_sugerida"]
-        if acao == "manter":
+        if acao != "remover" and _tipo_localidade_alterado(item) and item.get("cod_comunidade_rural") is not None:
+            try:
+                await _validar_alteracao_territorial_posterior(
+                    db, revisao, item["cod_comunidade_rural"], item.get("tipo_localidade_referencia_em"),
+                )
+            except ValueError as exc:
+                pendencias.append(str(exc))
+        # Manter com alteração de classificação também chega à aplicação.
+        if acao == "manter" and not _tipo_localidade_alterado(item):
             continue
         codigo = item.get("cod_comunidade_rural")
         if codigo is not None:
@@ -577,7 +590,7 @@ async def _validar(
 
     if (
         not any(item["acao_sugerida"] != "manter" for item in municipios + localidades)
-        and not any(item.get("tipo_localidade") != item.get("tipo_localidade_anterior") for item in localidades)
+        and not any(_tipo_localidade_alterado(item) for item in localidades)
         and not publico_alvo
         and not obras
     ):
@@ -647,7 +660,7 @@ async def obter_detalhe(db: AsyncSession, id_revisao: int) -> RevisaoAplicacaoDe
     row = {
         **revisao,
         "qtd_municipios": sum(item["acao_sugerida"] != "manter" for item in municipios),
-        "qtd_localidades": sum(item["acao_sugerida"] != "manter" or item.get("tipo_localidade") != item.get("tipo_localidade_anterior") for item in localidades),
+        "qtd_localidades": sum(item["acao_sugerida"] != "manter" or _tipo_localidade_alterado(item) for item in localidades),
         "qtd_publico_alvo": len(publico),
         "qtd_obras": len(obras),
     }
@@ -1216,6 +1229,37 @@ async def _aplicar_municipio(
     }
 
 
+def _tipo_localidade_alterado(item: dict[str, Any]) -> bool:
+    # NULL legado representa ausência de decisão, nunca uma ordem de limpeza.
+    return (item.get("tipo_localidade") is not None
+            and item["tipo_localidade"] != item.get("tipo_localidade_anterior"))
+
+
+async def _validar_alteracao_territorial_posterior(db, revisao, codigo, referencia=None):
+    referencia = referencia or revisao.get("base_referencia_em") or revisao.get("criado_em")
+    if referencia is None:
+        return
+    result = await db.execute(text("""
+        SELECT 1
+        FROM painel_dsr.tb_execucao_aplicacao_revisao_detalhe d
+        JOIN painel_dsr.tb_execucao_aplicacao_revisao e USING (id_execucao)
+        JOIN painel_dsr.tb_revisao_instrumento r ON r.id_revisao = e.id_revisao
+        WHERE d.entidade = 'localidade'
+          AND d.chave->>'cod_comunidade_rural' = :codigo
+          AND d.valores_anteriores ? 'tipo_localidade'
+          AND d.valores_novos ? 'tipo_localidade'
+          AND d.valores_anteriores->'tipo_localidade' IS DISTINCT FROM d.valores_novos->'tipo_localidade'
+          AND ((e.status = 'sucesso' AND e.concluido_em > :referencia)
+            OR (e.status = 'cancelado' AND e.cancelado_em > :referencia))
+          AND (r.tipo_instrumento IS DISTINCT FROM :tipo
+            OR r.nr_proposta IS DISTINCT FROM :proposta)
+        LIMIT 1
+    """), {"codigo": str(codigo), "referencia": referencia,
+             "tipo": revisao["tipo_instrumento"], "proposta": revisao.get("nr_proposta")})
+    if result.scalar_one_or_none() is not None:
+        raise ValueError("A classificação territorial foi alterada por outro instrumento após a abertura desta revisão. Confira a classificação pela edição administrativa ou devolutiva.")
+
+
 async def _aplicar_localidade(
     db: AsyncSession, revisao: dict[str, Any], item: dict[str, Any]
 ) -> dict[str, Any]:
@@ -1232,7 +1276,7 @@ async def _aplicar_localidade(
         result = await db.execute(
             text(
                 f"SELECT qtde_familias_ben FROM {tabela} "
-                "WHERE nr_proposta = :nr_proposta AND cod_comunidade_rural = :codigo"
+                "WHERE nr_proposta = :nr_proposta AND cod_comunidade_rural = :codigo FOR UPDATE"
             ),
             {"nr_proposta": proposta, "codigo": codigo},
         )
@@ -1308,9 +1352,16 @@ async def _aplicar_localidade(
         )
         tipo_anterior = tipo_result.scalar_one_or_none()
         tipo_novo = tipo_anterior
-        if acao != "remover" and "tipo_localidade" in item:
+        if (item.get("cod_comunidade_rural") is None and not criada
+                and acao != "remover" and item.get("tipo_localidade") is not None
+                and item["tipo_localidade"] != tipo_anterior):
+            raise ValueError("A localidade informada reutiliza um cadastro compartilhado com outra classificação. Selecione o cadastro existente para alterá-lo.")
+        if acao != "remover" and item.get("tipo_localidade") is not None:
             tipo_novo = item["tipo_localidade"]
             if tipo_novo != tipo_anterior:
+                if "tipo_localidade_anterior" in item and tipo_anterior != item["tipo_localidade_anterior"]:
+                    raise ValueError("A classificação territorial mudou durante a aplicação. Recarregue a revisão.")
+                await _validar_alteracao_territorial_posterior(db, revisao, codigo, item.get("tipo_localidade_referencia_em"))
                 await db.execute(
                     text("UPDATE territorio.tb_comunidade_rural SET tipo_localidade = :tipo "
                          "WHERE cod_comunidade_rural = :codigo"),
@@ -1329,7 +1380,10 @@ async def _aplicar_localidade(
                                "tipo_localidade": tipo_anterior},
         "valores_novos": {
             "vinculado": acao != "remover",
-            "qtde_familias_ben": sugerido if acao in {"adicionar", "corrigir"} else atual,
+            # Adicionar um vínculo existente preserva suas famílias, mesmo se o tipo mudar.
+            "qtde_familias_ben": (
+                sugerido if acao == "corrigir" or (acao == "adicionar" and not presente) else atual
+            ),
             "tipo_localidade": tipo_novo,
             "comunidade_criada": criada,
             "comunidade_reutilizada": (
@@ -1556,7 +1610,9 @@ async def _conflitos_estado_atual(
                 conflitos.append(f"Localidade {nome}: o vínculo atual diverge do estado deixado pela aplicação.")
             elif atual_vinculado and atual_quantidade != esperado.get("qtde_familias_ben"):
                 conflitos.append(f"Localidade {nome}: a quantidade de famílias foi alterada após a aplicação.")
-            if "tipo_localidade" in esperado:
+            anterior = detalhe.get("valores_anteriores") or {}
+            if ("tipo_localidade" in esperado and "tipo_localidade" in anterior
+                    and anterior["tipo_localidade"] != esperado["tipo_localidade"]):
                 tipo_result = await db.execute(
                     text("SELECT tipo_localidade FROM territorio.tb_comunidade_rural "
                          "WHERE cod_comunidade_rural = :codigo" + sufixo_lock),
@@ -2140,7 +2196,7 @@ async def aplicar_revisao(
                     detalhes.append(await _aplicar_municipio(db, revisao, item))
             for item in localidades:
                 if (item["acao_sugerida"] != "manter"
-                    or item.get("tipo_localidade") != item.get("tipo_localidade_anterior")):
+                    or _tipo_localidade_alterado(item)):
                     detalhes.append(await _aplicar_localidade(db, revisao, item))
             for item in municipios:
                 if item["acao_sugerida"] == "remover":

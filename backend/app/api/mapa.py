@@ -1677,7 +1677,7 @@ async def get_dados_analise_coordenadas(
             geo.longitude,
             rc.situacao_analise,
             rc.situacao_correcao,
-            COALESCE(rc.observacao_coordenada, ri.observacao_geral) AS observacao_coordenada
+            rc.observacao_coordenada AS observacao_coordenada
         FROM instrumento.vw_geometrias_carteira_dsr geo
         LEFT JOIN ultimas_revisoes_coord rc ON rc.id_coordenada = geo.id_coordenada
         LEFT JOIN painel_dsr.tb_revisao_instrumento ri ON ri.id_revisao = rc.id_revisao
@@ -1792,58 +1792,33 @@ async def _criar_revisao_instrumento(
 #se houve alteração em observacao_coordenada (que está em tb_revisao_instrumento_coordenada)
 #então, se houve alteracao somente em situacao_analise, a função continua só retornando as coordenadas que sofreram essa alteração
 #mas se houve alteração em observacao_coordenada ou situacao_correcao todas as coordenadas devem ser consideradas alteradas, pois esses campos são comuns a todas as coordenadas
-async def _buscar_coordenadas_alteradas(
-    db: AsyncSession,
-    coordenadas: list[CoordenadaAnaliseCreate],
-    nova_observacao: str | None,
-    nova_situacao_correcao: str | None,
-) -> list[CoordenadaAnaliseCreate]:
-
-    if not coordenadas:
-        return []
-
-    ids_coordenadas = [c.id_coordenada for c in coordenadas]
-
-    sql = """
+async def _buscar_estados_coordenadas(db, coordenadas, instrumento):
+    result = await db.execute(text("""
         SELECT DISTINCT ON (rc.id_coordenada)
-            rc.id_coordenada,
-            rc.situacao_analise,
-            rc.situacao_correcao,
-            COALESCE(rc.observacao_coordenada, ri.observacao_geral) AS observacao_coordenada
+               rc.id_coordenada, rc.situacao_analise,
+               rc.situacao_correcao, rc.observacao_coordenada
         FROM painel_dsr.tb_revisao_instrumento_coordenada rc
-        INNER JOIN painel_dsr.tb_revisao_instrumento ri ON ri.id_revisao = rc.id_revisao
-        WHERE rc.id_coordenada = ANY(:ids_coordenadas)
+        JOIN painel_dsr.tb_revisao_instrumento ri ON ri.id_revisao = rc.id_revisao
+        WHERE rc.id_coordenada = ANY(:ids)
+          AND ri.tipo_instrumento = :tipo
+          AND ((:tipo = 'ted' AND ri.nr_ted = :ted)
+            OR (:tipo <> 'ted' AND ri.nr_instrumento = :instrumento))
         ORDER BY rc.id_coordenada, rc.criado_em DESC
-    """
+    """), {"ids": [c.id_coordenada for c in coordenadas],
+           "tipo": instrumento.tipo_instrumento, "ted": instrumento.nr_ted,
+           "instrumento": instrumento.nr_instrumento})
+    return {row["id_coordenada"]: dict(row) for row in result.mappings().all()}
 
-    result = await db.execute(text(sql), {"ids_coordenadas": ids_coordenadas})
-    linhas_banco = result.mappings().all()
-    
-    dados_atuais_banco = {row["id_coordenada"]: row for row in linhas_banco}
 
-    if not dados_atuais_banco:
-        return coordenadas
-
-    primeira_linha = linhas_banco[0]
-    obs_atual_banco = primeira_linha["observacao_coordenada"]
-    correcao_atual_banco = primeira_linha["situacao_correcao"]
-    
-    obs_mudou = (obs_atual_banco or None) != (nova_observacao or None)
-    correcao_mudou = (correcao_atual_banco or None) != (nova_situacao_correcao or None)
-    
-    if obs_mudou or correcao_mudou:
-        return coordenadas
-    
-    coordenadas_alteradas = []
-    for c in coordenadas:
-        dado_banco = dados_atuais_banco.get(c.id_coordenada)
-        
-        
-        if not dado_banco or dado_banco["situacao_analise"] != c.situacao_analise:
-            coordenadas_alteradas.append(c)
-
-    return coordenadas_alteradas
-
+def _coordenadas_modificadas(coordenadas, anteriores, observacao, correcao, campos):
+    alteradas = []
+    for coordenada in coordenadas:
+        anterior = anteriores.get(coordenada.id_coordenada)
+        if (anterior is None or anterior["situacao_analise"] != coordenada.situacao_analise
+            or ("observacao_coordenada" in campos and anterior["observacao_coordenada"] != observacao)
+            or ("situacao_correcao" in campos and anterior["situacao_correcao"] != correcao)):
+            alteradas.append(coordenada)
+    return alteradas
 
 
 # função que insere a analise das coordenadas no banco, fazendo insert em tb_revisao_instrumento_coordenada
@@ -1924,14 +1899,29 @@ async def salvar_analise_coordenadas(
             cod_tci=payload.cod_tci,
         )
 
-        # Passamos também os campos globais para testar alterações
-        coordenadas_alteradas = await _buscar_coordenadas_alteradas(
-            db, 
-            payload.coordenadas,
-            nova_observacao=payload.observacao_coordenada,
-            nova_situacao_correcao=payload.situacao_correcao
+        # Serializa as análises do mesmo instrumento e valida a identidade oficial.
+        from app.services.aplicacao_revisoes import _advisory_key
+        await db.execute(text("SELECT pg_advisory_xact_lock(:chave)"), {
+            "chave": _advisory_key(f"coordenadas:{instrumento.tipo_instrumento}:{instrumento.nr_ted or instrumento.nr_instrumento}")
+        })
+        oficiais = await db.execute(text("""
+            SELECT id_coordenada, cod_tci FROM instrumento.vw_geometrias_carteira_dsr
+            WHERE id_coordenada = ANY(:ids)
+              AND ((CAST(:instrumento AS text) IS NOT NULL AND nr_instrumento::text = CAST(:instrumento AS text))
+                OR (CAST(:proposta AS text) IS NOT NULL AND nr_proposta::text = CAST(:proposta AS text))
+                OR (CAST(:ted AS text) IS NOT NULL AND cod_tci::text = CAST(:ted AS text)))
+        """), {"ids": [c.id_coordenada for c in payload.coordenadas],
+               "instrumento": instrumento.nr_instrumento, "proposta": instrumento.nr_proposta,
+               "ted": str(instrumento.nr_ted) if instrumento.nr_ted else None})
+        permitidas = {(row["id_coordenada"], str(row["cod_tci"])) for row in oficiais.mappings().all()}
+        if any((c.id_coordenada, c.cod_tci) not in permitidas for c in payload.coordenadas):
+            raise HTTPException(status_code=409, detail="Uma coordenada não pertence ao instrumento ou seu TCI diverge da base oficial.")
+        anteriores = await _buscar_estados_coordenadas(db, payload.coordenadas, instrumento)
+        coordenadas_alteradas = _coordenadas_modificadas(
+            payload.coordenadas, anteriores, payload.observacao_coordenada,
+            payload.situacao_correcao, payload.model_fields_set,
         )
-        
+
         if not coordenadas_alteradas:
             return AnaliseCoordenadasSalvaResponse(
                 id_revisao=None,
@@ -1950,8 +1940,10 @@ async def salvar_analise_coordenadas(
             await _persistir_coordenada_revisao(
                 db,
                 id_revisao,
-                situacao_correcao=payload.situacao_correcao,
-                observacao_coordenada=payload.observacao_coordenada,
+                situacao_correcao=(payload.situacao_correcao if "situacao_correcao" in payload.model_fields_set
+                                   else anteriores.get(coordenada.id_coordenada, {}).get("situacao_correcao")),
+                observacao_coordenada=(payload.observacao_coordenada if "observacao_coordenada" in payload.model_fields_set
+                                      else anteriores.get(coordenada.id_coordenada, {}).get("observacao_coordenada")),
                 coordenada=coordenada,
             )
 

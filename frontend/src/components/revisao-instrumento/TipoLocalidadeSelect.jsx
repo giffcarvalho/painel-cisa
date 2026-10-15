@@ -77,14 +77,14 @@ const estilosSelect = {
   clearIndicator: (base) => ({ ...base, padding: 4 }),
 }
 
-export default function TipoLocalidadeSelect({ value, onChange, disabled = false }) {
+export default function TipoLocalidadeSelect({ value, onChange, disabled = false, podeLimpar = true }) {
   const id = useId()
   const selecionada = opcoes.find((opcao) => opcao.value === value) ?? null
   return (
     <div className={styles.campo}>
       <Select instanceId={id} inputId={id} aria-label="Tipo de Localidade"
         options={opcoes} value={selecionada} onChange={(opcao) => onChange(opcao?.value ?? null)}
-        isDisabled={disabled} isClearable isSearchable filterOption={filtrar}
+        isDisabled={disabled} isClearable={podeLimpar} isSearchable filterOption={filtrar}
         placeholder="Selecionar tipo" noOptionsMessage={() => 'Nenhuma classificação encontrada'}
         menuPortalTarget={document.body} menuPosition="fixed" menuPlacement="auto"
         maxMenuHeight={260} tabSelectsValue={false} styles={estilosSelect}

@@ -93,6 +93,7 @@ class LocalidadeRevisaoItem(RevisaoInstrumentoBase):
     acao_sugerida: AcaoLocalidade | None = None
 
     tipo_localidade: str | None = Field(default=None, max_length=100)
+    tipo_localidade_consolidado: bool = False
     qtde_familias_ben_original: int | None = None
     qtde_familias_ben_sugerida: int | None = None
 

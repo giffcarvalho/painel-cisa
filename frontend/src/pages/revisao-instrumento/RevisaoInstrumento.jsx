@@ -1121,6 +1121,7 @@ export default function RevisaoInstrumento() {
         nome_localidade: nome,
         nome_localidade_informada: nome,
         tipo_localidade: localidadeNovoMunicipio.tipo_localidade,
+        tipo_localidade_consolidado: localidadeNovoMunicipio.tipo_localidade_consolidado,
         qtde_familias_ben_sugerida:
           localidadeNovoMunicipio.qtde_familias_ben_sugerida,
       },
@@ -1245,6 +1246,7 @@ export default function RevisaoInstrumento() {
         acao_sugerida: 'adicionar',
         qtde_familias_ben_original: null,
         tipo_localidade: localidade.tipo_localidade,
+        tipo_localidade_consolidado: localidade.tipo_localidade_consolidado,
         qtde_familias_ben_sugerida: localidade.qtde_familias_ben_sugerida,
         justificativa: '',
       })),
@@ -2456,6 +2458,7 @@ export default function RevisaoInstrumento() {
                                 cod_comunidade_rural: selecionada?.cod_comunidade_rural ?? null,
                                 nome_localidade_informada: nome,
                                 tipo_localidade: selecionada?.tipo_localidade ?? null,
+                                tipo_localidade_consolidado: selecionada?.tipo_localidade_consolidado ?? false,
                               }))
                             }}
                           />
@@ -2486,6 +2489,7 @@ export default function RevisaoInstrumento() {
                         <div className={styles.tipoLocalidadeForm}>
                           <span>Tipo de Localidade</span>
                           <TipoLocalidadeSelect value={localidadeNovoMunicipio.tipo_localidade}
+                            podeLimpar={!localidadeNovoMunicipio.tipo_localidade_consolidado}
                             onChange={(valor) => setLocalidadeNovoMunicipio((current) => ({ ...current, tipo_localidade: valor }))} />
                         </div>
 
@@ -2884,6 +2888,7 @@ export default function RevisaoInstrumento() {
                                             <td>
                                               <TipoLocalidadeSelect
                                                 value={localidade.tipo_localidade}
+                                                podeLimpar={!localidade.tipo_localidade_consolidado}
                                                 disabled={!canEditRevision}
                                                 onChange={(valor) => atualizarLocalidade(
                                                   municipio.cod_municipio,
