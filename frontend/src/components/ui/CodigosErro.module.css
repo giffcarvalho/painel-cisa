@@ -1,0 +1,56 @@
+.painel {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 10000;
+  width: min(26rem, calc(100vw - 2rem));
+  max-height: 40vh;
+  overflow-y: auto;
+  padding: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  background: #fff;
+  color: #1e293b;
+  box-shadow: 0 4px 20px #0002;
+  font-size: 0.875rem;
+}
+
+.item {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.item code {
+  display: block;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.acoes {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.acoes button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  border: 1px solid #94a3b8;
+  border-radius: 0.375rem;
+  background: #f8fafc;
+  color: #1e293b;
+  cursor: pointer;
+}
+
+.acoes button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.item span {
+  display: block;
+  margin-top: 0.375rem;
+}

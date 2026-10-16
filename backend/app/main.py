@@ -15,6 +15,7 @@ from app.api import pontos_controle
 from app.api import meu_painel
 from app.api import notificacoes
 from app.api import admin_usuarios
+from app.core.erros import configurar_erros
  
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -32,6 +33,7 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+configurar_erros(app)
  
 
 app.add_middleware(

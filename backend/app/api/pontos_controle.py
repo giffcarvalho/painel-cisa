@@ -1400,12 +1400,12 @@ async def salvar_plano_acao(
             "mensagem": "Ação salva com sucesso!",
         }
 
-    except Exception as error:
+    except Exception:
         
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao salvar o plano de ação: {str(error)}",
+            detail="Erro interno ao salvar o plano de ação.",
         )
 
 
@@ -1511,11 +1511,11 @@ async def salvar_contato(
             "total_salvos": len(payload)
         }
 
-    except Exception as error:
+    except Exception:
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao salvar os contatos: {str(error)}",
+            detail="Erro interno ao salvar os contatos.",
         )
 
 

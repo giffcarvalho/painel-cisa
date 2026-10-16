@@ -357,6 +357,31 @@ VITE_API_URL=/api/v1
 
 Em produção HTTPS, use uma rota relativa ou uma URL HTTPS. Arquivos `.env` e `.env.local` não devem conter credenciais versionadas.
 
+## Códigos de erro e logs locais
+
+Falhas inesperadas retornam `codigo_erro` (por exemplo, `ERR-` seguido de um UUID).
+O frontend preserva a mensagem da operação e oferece **Copiar código**, inclusive
+em acesso HTTP pela rede interna. Erros de validação mantêm suas mensagens.
+
+O backend cria `backend/logs/erros.log`, com data/hora, método, template da rota,
+ID do usuário quando autenticado e traceback sanitizado. São preservados todos
+os frames, tipos e encadeamentos; mensagens de exceção, linhas de código, SQL,
+parâmetros, variáveis locais, headers e corpos não são gravados. A rotação usa
+10 MB e até cinco backups. A pasta permanece ignorada pelo Git e não é servida
+por HTTP. Falhas de escrita geram aviso seguro no terminal e não impedem a resposta.
+
+Para localizar um código, execute na raiz do projeto, no PowerShell:
+
+```powershell
+Select-String -Path 'backend/logs/erros.log*' -SimpleMatch 'ERR-COLE-O-CODIGO-AQUI' -Context 0,80
+```
+
+O `RotatingFileHandler` isolado não coordena múltiplos processos. Como o ambiente
+possui duas instâncias do backend, uma trava nativa em `erros.log.lock` coordena
+a escrita/rotação; o log é fechado após cada registro para permitir renomeação
+no Windows. Isso não altera a inicialização dos servidores. Uma falha após o início de
+um download/stream é registrada, mas HTTP não permite substituir a resposta já enviada.
+
 ## Ambiente institucional
 
 O Portal DSR é destinado ao uso interno do Ministério das Cidades. Seu funcionamento depende do acesso à infraestrutura institucional e a uma base PostgreSQL/PostGIS com views, materialized views e tabelas auxiliares previamente provisionadas. A publicação, o acesso à rede e as credenciais devem seguir os procedimentos internos do órgão e não são definidos neste repositório.
