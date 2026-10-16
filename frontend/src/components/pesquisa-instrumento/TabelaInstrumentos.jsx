@@ -39,6 +39,8 @@ export default function TabelaInstrumentos({
   const totalPaginas = Math.max(1, Math.ceil(total / tamanhoAtual));
 
   useEffect(() => {
+    // O resumo expandido pertence à página atual; recolhê-lo evita associar a
+    // mesma chave visual a outro conjunto após paginação ou mudança de tamanho.
     setResumoAberto(null);
   }, [paginaAtual, tamanhoAtual, total]);
 
@@ -87,6 +89,8 @@ export default function TabelaInstrumentos({
               <tbody>
                 {instrumentos.map((instrumento, index) => {
                   const nrInstrumento = instrumento.nr_instrumento;
+                  // Proposta e índice formam um fallback apenas para registros sem
+                  // número de instrumento, mantendo as linhas estáveis na página.
                   const rowKey = String(nrInstrumento ?? `${instrumento.nr_proposta ?? 'sem-id'}-${index}`);
                   const isSelected = String(nrInstrumentoSelecionado) === String(nrInstrumento);
                   const isResumoAberto = resumoAberto === rowKey;

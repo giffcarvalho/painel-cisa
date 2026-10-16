@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { identificarErro } from './erros'
 import {
   clearAuthSession,
   getAuthToken,
@@ -8,6 +9,8 @@ import {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
+// Impede que uma configuração local insegura provoque conteúdo misto quando o
+// frontend estiver sendo servido por HTTPS.
 if (window.location.protocol === 'https:' && API_BASE_URL.startsWith('http://')) {
   throw new Error('VITE_API_URL insegura em produção HTTPS. Use /api/v1 ou uma URL https://.')
 }
@@ -28,10 +31,12 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Interceptor de resposta: trata erros globalmente
+// Centraliza a expiração da sessão: qualquer 401 fora do login limpa as
+// credenciais e solicita o modal preservando a rota que deverá ser retomada.
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    await identificarErro(error)
     if (error.response?.status === 401 && !error.config?.url?.includes('/auth/login')) {
       clearAuthSession()
       notifyAuthLogout()
@@ -41,12 +46,6 @@ api.interceptors.response.use(
       requestAuthLogin(currentPath)
     }
 
-    // Futuramente, substituir os console.error por toasts da UI (ex: sonner / useToast)
-    if (error.response?.status === 500) {
-      console.error('[API] Erro interno do servidor:', error.response.data?.detail)
-      // toast.error("Erro interno ao consultar a base de dados.")
-    }
-    
     if (error.code === 'ECONNABORTED') {
       console.error('[API] Timeout: a consulta demorou mais de 30s')
       // toast.warning("A consulta demorou muito. Tente refinar seus filtros.")

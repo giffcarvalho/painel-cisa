@@ -22,6 +22,8 @@ const FILTROS_INICIAIS = {
 }
 
 function normalizarFiltros(filtros) {
+  // Garante o formato multivalorado de todos os campos e produz uma ordem
+  // determinística, importante para chaves de cache baseadas no objeto.
   return Object.fromEntries(
     Object.keys(FILTROS_INICIAIS).map((campo) => {
       const valor = filtros?.[campo]
@@ -52,6 +54,7 @@ export function FiltrosProvider({ children }) {
     setFiltros(normalizarFiltros(FILTROS_INICIAIS))
   }
 
+  // Conta campos preenchidos, não a quantidade de opções em cada campo.
   const qtdeFiltrosAtivos = Object.values(filtros).filter((v) =>
     Array.isArray(v) ? v.length > 0 : v !== null
   ).length

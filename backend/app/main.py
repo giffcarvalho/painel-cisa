@@ -10,6 +10,12 @@ from app.core.database import lifespan_db
 from app.api import extrator_dados
 from app.api import auth
 from app.api import revisao_instrumento
+from app.api import aplicacao_revisoes
+from app.api import pontos_controle
+from app.api import meu_painel
+from app.api import notificacoes
+from app.api import admin_usuarios
+from app.core.erros import configurar_erros
  
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -27,12 +33,12 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+configurar_erros(app)
  
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://SEU_DOMINIO_DE_PRODUCAO",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:4173",
@@ -78,6 +84,36 @@ app.include_router(
     revisao_instrumento.router,
     prefix="/api/v1/revisao-instrumento",
     tags=["Revisão Instrumento"],
+)
+
+app.include_router(
+    aplicacao_revisoes.router,
+    prefix="/api/v1/aplicacao-revisoes",
+    tags=["Aplicação de Revisões"],
+)
+
+app.include_router(
+    pontos_controle.router,
+    prefix="/api/v1/pontos-controle",
+    tags=["Pontos Controle"],
+)
+
+app.include_router(
+    meu_painel.router,
+    prefix="/api/v1/meu-painel",
+    tags=["Meu Painel"],
+)
+
+app.include_router(
+    notificacoes.router,
+    prefix="/api/v1/notificacoes",
+    tags=["Notificações"],
+)
+
+app.include_router(
+    admin_usuarios.router,
+    prefix="/api/v1/admin",
+    tags=["Administração de Usuários"],
 )
 
 @app.get("/health", tags=["Infra"])

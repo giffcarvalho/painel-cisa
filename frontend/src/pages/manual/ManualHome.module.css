@@ -1,3 +1,6 @@
+/* ==========================================================================
+   Introdução e demonstração de navegação
+   ========================================================================== */
 .homeStack {
   display: flex;
   flex-direction: column;
@@ -34,6 +37,7 @@
   line-height: 1.65;
 }
 
+/* Mídia demonstrativa e respectiva legenda. */
 .navigationDemo {
   margin-top: 18px;
   display: flex;

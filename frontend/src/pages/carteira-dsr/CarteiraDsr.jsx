@@ -13,6 +13,8 @@ export default function CarteiraDsr() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
   const { filtros, qtdeFiltrosAtivos } = useFiltros()
+  // Força a remontagem da tabela quando o recorte muda, reiniciando paginação e
+  // qualquer estado interno que não deve atravessar conjuntos de dados.
   const tabelaKey = JSON.stringify(filtros)
 
   return (

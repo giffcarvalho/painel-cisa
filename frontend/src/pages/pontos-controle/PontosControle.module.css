@@ -1,0 +1,15 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.contentGrid {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}

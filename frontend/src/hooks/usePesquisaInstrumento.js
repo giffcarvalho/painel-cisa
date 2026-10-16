@@ -1,6 +1,8 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import pesquisaInstrumentoApi from '../api/pesquisaInstrumento';
 
+// Mantém a chave de cache e a requisição livres de campos sem valor; isso evita
+// caches distintos para consultas que são semanticamente equivalentes.
 const normalizarFiltros = (filtros = {}) =>
   Object.fromEntries(
     Object.entries(filtros).filter(([, value]) => {
@@ -25,6 +27,7 @@ export function useBuscaFiltroPesquisaInstrumentoQuery(campo, termo, limit = 50)
   return useQuery({
     queryKey: ['pesquisa-instrumento', 'filtros', 'busca', campo, termoNormalizado, limit],
     queryFn: () => pesquisaInstrumentoApi.buscarFiltro(campo, termoNormalizado, limit),
+    // Evita buscas remotas amplas enquanto o usuário ainda está digitando.
     enabled: Boolean(campo) && termoNormalizado.length >= 2,
     staleTime: 60 * 1000,
   });
@@ -51,6 +54,8 @@ export function useInstrumentosPesquisaInstrumentoQuery(
         pagina,
         tamanhoPagina
       ),
+    // Conserva a página anterior durante a troca para evitar que a tabela
+    // desapareça enquanto a próxima página é carregada.
     placeholderData: keepPreviousData,
   });
 }

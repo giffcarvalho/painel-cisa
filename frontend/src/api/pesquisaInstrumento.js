@@ -8,6 +8,8 @@ const CAMPOS_FILTRO = [
   'operacao',
 ];
 
+// A API aceita múltiplos valores para o mesmo campo como parâmetros repetidos;
+// esta função também mantém compatibilidade com filtros ainda escalares.
 const appendFiltroParam = (params, key, value) => {
   const values = Array.isArray(value) ? value : value ? [value] : [];
 
@@ -28,6 +30,8 @@ const buildFiltrosParams = (filtros = {}) => {
   return params;
 };
 
+// Paginação é adicionada apenas à consulta de resultados; o endpoint de opções
+// recebe exatamente o mesmo conjunto normalizado de filtros encadeados.
 const buildInstrumentosParams = (filtros = {}, pagina = 1, tamanhoPagina = 50) => {
   const params = buildFiltrosParams(filtros);
 

@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { ChevronDown, LogIn, LogOut } from 'lucide-react'
+import { ChevronDown, LayoutDashboard, LogIn, LogOut, ShieldCheck, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/auth/useAuth'
 import styles from './AuthMenu.module.css'
@@ -59,8 +59,13 @@ export default function AuthMenu({ className = '', compactOnMobile = false }) {
     [displayName, usuario?.email],
   )
   const profile = useMemo(() => formatProfile(usuario?.perfil), [usuario?.perfil])
+  // A permissão administrativa controla somente a exposição das rotas restritas;
+  // a proteção efetiva continua sendo feita pela rota e pelo backend.
+  const isAdmin = String(usuario?.perfil || '').trim().toLocaleLowerCase('pt-BR') === 'admin'
 
   useEffect(() => {
+    // Enquanto aberto, o menu fecha por clique externo ou Escape; no teclado, o
+    // foco retorna ao acionador para preservar a navegação acessível.
     if (!isOpen) return undefined
 
     function handlePointerDown(event) {
@@ -89,6 +94,21 @@ export default function AuthMenu({ className = '', compactOnMobile = false }) {
     setIsOpen(false)
     logout()
     navigate('/', { replace: true })
+  }
+
+  function handleMeuPainel() {
+    setIsOpen(false)
+    navigate('/meu-painel')
+  }
+
+  function handleAplicacaoRevisoes() {
+    setIsOpen(false)
+    navigate('/admin/aplicacao-revisoes')
+  }
+
+  function handleGestaoUsuarios() {
+    setIsOpen(false)
+    navigate('/admin')
   }
 
   if (!isAuthenticated) {
@@ -132,6 +152,22 @@ export default function AuthMenu({ className = '', compactOnMobile = false }) {
             {profile && <span>{profile}</span>}
           </div>
           <div className={styles.divider} />
+          {isAdmin && (
+            <>
+              <button type="button" className={styles.menuButton} role="menuitem" onClick={handleGestaoUsuarios}>
+                <Users aria-hidden="true" />
+                Gestão de usuários
+              </button>
+              <button type="button" className={styles.menuButton} role="menuitem" onClick={handleAplicacaoRevisoes}>
+                <ShieldCheck aria-hidden="true" />
+                Aplicação de revisões
+              </button>
+            </>
+          )}
+          <button type="button" className={styles.menuButton} role="menuitem" onClick={handleMeuPainel}>
+            <LayoutDashboard aria-hidden="true" />
+            Meu Painel
+          </button>
           <button type="button" className={styles.logoutButton} role="menuitem" onClick={handleLogout}>
             <LogOut aria-hidden="true" />
             Sair

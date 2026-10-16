@@ -7,7 +7,9 @@ from app.core.config import settings
  
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=(settings.APP_ENV == "development"),
+    # Consultas e parâmetros podem conter senhas, tokens e dados pessoais.
+    echo=False,
+    hide_parameters=True,
     pool_size=5,
     max_overflow=10,
     pool_pre_ping=True,  

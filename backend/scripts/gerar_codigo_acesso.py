@@ -1,25 +1,17 @@
 """Gera um código temporário e seu hash para cadastro no banco."""
 
-import secrets
+import sys
+from pathlib import Path
 
-from pwdlib import PasswordHash
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-
-ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-password_hash = PasswordHash.recommended()
-
-
-def gerar_codigo() -> str:
-    blocos = [
-        "".join(secrets.choice(ALFABETO) for _ in range(4))
-        for _ in range(3)
-    ]
-    return f"DSR-{'-'.join(blocos)}"
+from app.core.seguranca import gerar_hash_codigo_acesso
+from app.services.codigo_acesso import gerar_codigo_acesso
 
 
 def main() -> None:
-    codigo = gerar_codigo()
-    codigo_hash = password_hash.hash(codigo)
+    codigo = gerar_codigo_acesso()
+    codigo_hash = gerar_hash_codigo_acesso(codigo)
 
     print("Código para enviar ao técnico:")
     print(codigo)

@@ -9,114 +9,622 @@ import FiltroPainel from "./FiltroPainel";
 import LegendaSection from "./LegendaSection";
 import DetalheSection from "./DetalheSection";
 import InputSection from "./InputSection";
+import AuthMenu from "../auth/AuthMenu";
+import AnaliseCoordenadaSection from "./AnaliseCoordenadaSection";
 import { useCriarMapa } from "@/hooks/mapa/useCriarMapa";
 import { useAdicionarLayers } from "@/hooks/mapa/useAdicionarLayers";
 import { useAplicarZoom } from "@/hooks/mapa/useAplicarZoom";
 import { useAtualizarSources } from "@/hooks/mapa/useAtualizarSources";
 import { useTrocarSimbologia } from "@/hooks/mapa/useTrocarSimbologia";
 import { useClicar } from "@/hooks/mapa/useClicar";
-
+import { useAuth } from "@/context/auth/useAuth";
+import { listarDadosAnaliseCoordenadas, enviarAnaliseCoordenadas, urlGeometriasCarteiraDsr } from "../../api/mapa";
+ 
 
 export default function MapaSection() { 
     
     //este estado armazena a visibilidade, simbologia e as variaveis das camadas
     const [layers, setLayers] = useState([
-        { id: "ufs", nome: "Limites Estaduais", visivel: true, minzoom: 3, simbologia: {tipo: "simples", simbolo: "linha", cor: "#acaaaa"}},
-        { id: "municipios_2022", nome: "Limites Municipais 2022", visivel: true, minzoom: 6, simbologia: {tipo: "simples", simbolo: "linha", cor: "#c9c9c9"}},
-        { id: "cidades", nome: "Cidades", visivel: true, minzoom: 8, simbologia: {tipo: "simples", simbolo: "ponto", cor: "#ffffff", strokeColor: "#000000", strokeWidth: 3}},
-        { id: "cidades_labels", nome: "Nome das Cidades", visivel: true, dependencias: ["cidades"], mostrarPainel: false },
-        { id: "distritos_2022", nome: "Distritos 2022", visivel: true, minzoom: 7, simbologia: {tipo: "simples", simbolo: "linha", cor: "#9608b3"}},
-        { id: "setores_censitarios_2022", nome: "Setores Censitários 2022", visivel: true, minzoom: 9, simbologia: {
-            tipo: "categorica", simbolo: "linhaPontilhada", atributo: "cod_sit", classes: [
-                {valor: 1, label: "Área urbana de alta densidade", cor: "#ff1e00"},
-                {valor: 2, label: "Área urbana de baixa densidade", cor: "#f87f6f"},
-                {valor: 3, label: "Núcleo urbano", cor: "#3b0303"},
-                {valor: 5, label: "Aglomerado rural - Povoado", cor: "#fdff74"},
-                {valor: 6, label: "Aglomerado rural - Núcleo rural", cor: "#b8905c"},
-                {valor: 7, label: "Aglomerado rural - Lugarejo", cor: "#365809"},
-                {valor: 8, label: "Área rural - exclusive aglomerados", cor: "#a6ca03"},
-                {valor: 9, label: "Massas de água", cor: "#3067ff"},
+        {
+            id: "ufs",
+            nome: "Limites Estaduais",
+            visivel: true,
+            minzoom: 3,
+            simbologia: {
+                tipo: "simples",
+                simbolo: "linha",
+                cor: "#acaaaa"
+            }
+        },
+        
+        {
+            id: "municipios_2022",
+            nome: "Limites Municipais 2022",
+            visivel: true,
+            minzoom: 6,
+            simbologia: {
+                tipo: "simples",
+                simbolo: "linha",
+                cor: "#c9c9c9",
+            }},
+        
+        {
+            id: "cidades",
+            nome: "Cidades",
+            visivel: true,
+            minzoom: 8,
+            simbologia: {
+                tipo: "simples",
+                simbolo: "ponto",
+                cor: "#ffffff",
+                strokeColor: "#000000",
+                strokeWidth: 3,
+            }
+        },
+        
+        {
+            id: "cidades_labels",
+            nome: "Nome das Cidades",
+            visivel: true,
+            dependencias: ["cidades"],
+            mostrarPainel: false,
+        },
+        
+        {
+            id: "distritos_2022",
+            nome: "Distritos 2022",
+            visivel: true,
+            minzoom: 7,
+            simbologia: {
+                tipo: "simples",
+                simbolo: "linha",
+                cor: "#9608b3",
+            }
+        },
+        
+        {
+            id: "setores_censitarios_2022",
+            nome: "Setores Censitários 2022",
+            visivel: true,
+            minzoom: 9,
+            simbologia: {
+                tipo: "categorica",
+                simbolo: "linhaPontilhada",
+                atributo: "cod_sit",
+                classes: [
+                    {valor: 1, label: "1 - Área urbana de alta densidade", cor: "#ff1e00"},
+                    {valor: 2, label: "2 - Área urbana de baixa densidade", cor: "#f87f6f"},
+                    {valor: 3, label: "3 - Núcleo urbano", cor: "#3b0303"},
+                    {valor: 5, label: "5 - Aglomerado rural - Povoado", cor: "#fdff74"},
+                    {valor: 6, label: "6 - Aglomerado rural - Núcleo rural", cor: "#b8905c"},
+                    {valor: 7, label: "7 - Aglomerado rural - Lugarejo", cor: "#27fa4b"},
+                    {valor: 8, label: "8 - Área rural - exclusive aglomerados", cor: "#a6ca03"},
+                    {valor: 9, label: "9 - Massas de água", cor: "#3067ff"},
+                ]
+            }
+        },
+
+        {
+            id: "enderecos_2022",
+            nome: "Endereços 2022",
+            visivel: true,
+            minzoom: 13,
+            simbologia: {
+                tipo: "categorica",
+                simbolo: "ponto",
+                atributo: "cod_especie",
+                classes: [
+                    {valor: 1, label: "Dom. particular", cor: "#fcff4f", strokeColor: "#bebebe", strokeWidth: 1.0},
+                    {valor: 2, label: "Dom. coletivo", cor: "#999b24", strokeColor: "#bebebe", strokeWidth: 1.0},
+                    {valor: 3, label: "Estab. agropecuário", cor: "#007566", strokeColor: "#bebebe", strokeWidth: 1.0},
+                    {valor: 4, label: "Estab. ensino", cor: "#1034ff", strokeColor: "#bebebe", strokeWidth: 1.0},
+                    {valor: 5, label: "Estab. saúde", cor: "#ff61ff", strokeColor: "#bebebe", strokeWidth: 1.0},
+                    {valor: 6, label: "Estab. outras finalidades", cor: "#e9e9e9", strokeColor: "#bebebe", strokeWidth: 1.0},
+                    {valor: 7, label: "Edificação em construção", cor: "#9e9e9e", strokeColor: "#bebebe", strokeWidth: 1.0},
+                    {valor: 8, label: "Estab. religioso", cor: "#fc0543", strokeColor: "#bebebe", strokeWidth: 1.0},
+                    
+                ] 
+            }
+        },
+        
+        {
+            id: "localidades_2022",
+            nome: "Localidades 2022",
+            visivel: true,
+            minzoom: 9,
+            simbologia: {
+                tipo: "categorica",
+                simbolo: "ponto",
+                atributo: "categoria_localidade",
+                classes: [
+                    {valor: "Vila", label: "Vila", cor: "#9608b3", strokeColor: "#000000", strokeWidth: 1},
+                    {valor: "Povoado", label: "Povoado", cor: "#fdff74", strokeColor: "#000000", strokeWidth: 1},
+                    {valor: "Lugarejo", label: "Lugarejo", cor: "#365809", strokeColor: "#000000", strokeWidth: 1},
+                    {valor: "Núcleo Rural", label: "Núcleo Rural", cor: "#b8905c", strokeColor: "#000000", strokeWidth: 1},
+                    {valor: "Núcleo Urbano", label: "Núcleo Urbano", cor: "#000000", strokeColor: "#000000", strokeWidth: 1},
+                    {valor: "Localidade Indígena", label: "Localidade Indígena", cor: "#880925", strokeColor: "#000000", strokeWidth: 1},
+                    {valor: "Localidade Quilombola", label: "Localidade Quilombola", cor: "#442d2f", strokeColor: "#000000", strokeWidth: 1},
+                    {valor: "Outras Localidades", label: "Outras Localidades", cor: "#ffffff", strokeColor: "#000000", strokeWidth: 1},
+                ] 
+            }
+        },
+
+        {
+            id: "localidades_2022_labels",
+            nome: "Nome das Localidades",
+            visivel: true,
+            dependencias: ["localidades_2022"],
+            mostrarPainel: false
+        },
+
+        {
+            id: "biomas",
+            nome: "Biomas",
+            visivel: false,
+            minzoom: 3,
+            simbologia: {
+                tipo: "categorica",
+                simbolo: "poligono",
+                atributo: "cod",
+                classes: [
+                    {valor: 1, label: "Amazônia", cor: "#a8fe00"},
+                    {valor: 2, label: "Caatinga", cor: "#b5b86b"},
+                    {valor: 3, label: "Cerrado", cor: "#fdb381"},
+                    {valor: 4, label: "Mata Atlântica", cor: "#b8f869"},
+                    {valor: 5, label: "Pampa", cor: "#ffdd9e"},
+                    {valor: 6, label: "Pantanal", cor: "#ff9dfc"},
+                    {valor: 7, label: "Ilhas Oceânicas", cor: "#0ca9b4"},
+                ]
+            }
+        },
+
+        {
+            id: "geometrias_carteira_drf",
+            nome: "Carteira ativa DRF",
+            visivel: false,
+            minzoom: 3,
+            simbologia: {
+                tipo: "categorica",
+                simbolo: "ponto",
+                atributo: "modalidade",
+                classes: [
+                    {valor: "Desenvolvimento Institucional", label: "Desenvolvimento Institucional", cor: "#f8cdcd", strokeColor: "#ff5cdc", strokeWidth: 2.0},
+                    {valor: "Redução e Controle de Perdas", label: "Redução e Controle de Perdas", cor: "#f5df4d", strokeColor: "#ff5cdc", strokeWidth: 2.0},
+                    {valor: "Estudos e Projetos", label: "Estudos e Projetos", cor: "#17e904", strokeColor: "#ff5cdc", strokeWidth: 2.0},
+                    {valor: "Esgotamento Sanitário", label: "Esgotamento Sanitário", cor: "#96710b", strokeColor: "#ff5cdc", strokeWidth: 2.0},
+                    {valor: "Saneamento Integrado", label: "Saneamento Integrado", cor: "#c800e2", strokeColor: "#ff5cdc", strokeWidth: 2.0},
+                    {valor: "Abastecimento de Água", label: "Abastecimento de Água", cor: "#0071bd", strokeColor: "#ff5cdc", strokeWidth: 2.0},
+                    {valor: "Manejo de Resíduos Sólidos", label: "Manejo de Resíduos Sólidos", cor: "#ee8712", strokeColor: "#ff5cdc", strokeWidth: 2.0},
+                    {valor: "Manejo de Águas Pluviais", label: "Manejo de Águas Pluviais", cor: "#7f7a80", strokeColor: "#ff5cdc", strokeWidth: 2.0},
+                ] 
+            }
+        },
+        
+        { 
+            id: "geometrias_carteira_dsr",
+            nome: "Carteira DSR",
+            visivel: false,
+            minzoom: 3,
+            variavelSel: "",
+            variaveis: [
+                {
+                    atributo: "modalidade",
+                    label: "Modalidade",
+                    tipo: "categorica",
+                    simbolo: "ponto",
+                    legenda: [
+                        {valor: "Saneamento Rural", label: "Saneamento Rural", cor: "#f8cdcd", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Capacitação - PMSB", label: "Capacitação - PMSB", cor: "#f5df4d", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Abastecimento de Água", label: "Abastecimento de Água", cor: "#0071bd", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Esgotamento Sanitário", label: "Esgotamento Sanitário", cor: "#96710b", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "MSD", label: "MSD", cor: "#c800e2", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Extinto", label: "Extinto", cor: "#000000", strokeColor: "#000000", strokeWidth: 1.0},
+                    ]
+                },
+                {
+                    atributo: "situacao_projeto",
+                    label: "Situação do Projeto",
+                    tipo: "categorica",
+                    simbolo: "ponto",
+                    legenda: [
+                        {valor: "Aguardando elaboração", label: "Aguardando elaboração", cor: "#fdff89", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Em elaboração", label: "Em elaboração", cor: "#fce23c", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Enviado para análise", label: "Enviado para análise", cor: "#90d0fa", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Em análise", label: "Em análise", cor: "#00c4c4", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Em complementação", label: "Em complementação", cor: "#e29300", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Aprovado", label: "Aprovado", cor: "#4aff62", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Rejeitado", label: "Rejeitado", cor: "#e2001e", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "verificar", label: "verificar", cor: "#9e9e9e", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Não se aplica", label: "Não se aplica", cor: "#ffffff", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Extinto", label: "Extinto", cor: "#000000", strokeColor: "#000000", strokeWidth: 1.0},
+                    ]
+                },
+                {
+                    atributo: "situacao_obra",
+                    label: "Situacao da obra",
+                    tipo: "categorica",
+                    simbolo: "ponto",
+                    legenda: [
+                        {valor: "cadastrada", label: "Não iniciada", cor: "#f5df4d", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "em execucao", label: "Em execução", cor: "#0071bd", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "concluida", label: "Concluída", cor: "#4aff62", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "paralisada", label: "Paralisada", cor: "#e2001e", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "não se aplica", label: "Não se aplica", cor: "#ffffff", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "cancelada", label: "Cancelada", cor: "#000000", strokeColor: "#000000", strokeWidth: 1.0},
+                    ]
+                },
+                {
+                    atributo: "situacao_analise",
+                    label: "Situacao da análise",
+                    tipo: "categorica",
+                    simbolo: "ponto",
+                    legenda: [
+                        {valor: "Correta", label: "Correta", cor: "#7fffd4", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Município errado", label: "Município errado", cor: "#ff7350", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Local genérico - sede", label: "Local genérico - sede", cor: "#ff7350", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Local incoerente", label: "Local incoerente", cor: "#ff7350", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Incoerência urbano/rural", label: "Incoerência urbano/rural", cor: "#ff7350", strokeColor: "#000000", strokeWidth: 1.0},
+                        {valor: "Instrumento extinto", label: "Instrumento extinto", cor: "#000000", strokeColor: "#000000", strokeWidth: 0.0},
+                        {valor: "Coordenada excluída", label: "Coordenada excluída", cor: "#acacac", strokeColor: "#acacac", strokeWidth: 0.0},
+                        {valor: "Coordenada nova/não analisada", label: "Coordenada nova/não analisada", cor: "#ffffff", strokeColor: "#969696", strokeWidth: 2.0},
+                    ]
+                },
             ]
-        }},
-        { id: "enderecos_2022", nome: "Endereços 2022", visivel: true, minzoom: 13, simbologia: {
-            tipo: "categorica", simbolo: "ponto", atributo: "cod_especie", classes: [
-                {valor: 1, label: "Dom. particular", cor: "#fcff4f"},
-                {valor: 2, label: "Dom. coletivo", cor: "#999b24"},
-                {valor: 3, label: "Estab. agropecuário", cor: "#007566"},
-                {valor: 4, label: "Estab. ensino", cor: "#1034ff"},
-                {valor: 5, label: "Estab. saúde", cor: "#ff61ff"},
-                {valor: 6, label: "Estab. outras finalidades", cor: "#e9e9e9"},
-                {valor: 7, label: "Edificação em construção", cor: "#9e9e9e"},
-                {valor: 8, label: "Estab. religioso", cor: "#fc0543"},
-                
-            ] 
-        }},
-        { id: "localidades_2022", nome: "Localidades 2022", visivel: true, minzoom: 9, simbologia: {
-            tipo: "categorica", simbolo: "ponto", atributo: "categoria_localidade", classes: [
-                {valor: "Vila", label: "Vila", cor: "#9608b3", strokeColor: "#000000", strokeWidth: 1},
-                {valor: "Povoado", label: "Povoado", cor: "#fdff74", strokeColor: "#000000", strokeWidth: 1},
-                {valor: "Lugarejo", label: "Lugarejo", cor: "#365809", strokeColor: "#000000", strokeWidth: 1},
-                {valor: "Núcleo Rural", label: "Núcleo Rural", cor: "#b8905c", strokeColor: "#000000", strokeWidth: 1},
-                {valor: "Localidade Indígena", label: "Localidade Indígena", cor: "#880925", strokeColor: "#000000", strokeWidth: 1},
-                {valor: "Localidade Quilombola", label: "Localidade Quilombola", cor: "#442d2f", strokeColor: "#000000", strokeWidth: 1},
-                {valor: "Outras Localidades", label: "Outras Localidades", cor: "#ffffff", strokeColor: "#000000", strokeWidth: 1},
-            ] 
-        }},
-        { id: "localidades_2022_labels", nome: "Nome das Localidades", visivel: true, dependencias: ["localidades_2022"], mostrarPainel: false },
-        { id: "geometrias_carteira_dsr", nome: "Carteira ativa DSR", visivel: false, minzoom: 3, simbologia: {
-            tipo: "categorica", simbolo: "ponto", atributo: "modalidade", classes: [
-                {valor: "Saneamento Rural", label: "Saneamento Rural", cor: "#f8cdcd", strokeColor: "#0092be", strokeWidth: 2.0},
-                {valor: "Capacitação - PMSB", label: "Capacitação - PMSB", cor: "#f5df4d", strokeColor: "#0092be", strokeWidth: 2.0},
-                {valor: "Abastecimento de Água", label: "Abastecimento de Água", cor: "#0071bd", strokeColor: "#0092be", strokeWidth: 2.0},
-                {valor: "Esgotamento Sanitário", label: "Esgotamento Sanitário", cor: "#96710b", strokeColor: "#0092be", strokeWidth: 2.0},
-                {valor: "MSD", label: "MSD", cor: "#c800e2", strokeColor: "#0092be", strokeWidth: 2.0},
-            ] 
-        }},
-        { id: "geometrias_carteira_drf", nome: "Carteira ativa DRF", visivel: false, minzoom: 3, simbologia: {
-            tipo: "categorica", simbolo: "ponto", atributo: "modalidade", classes: [
-                {valor: "Desenvolvimento Institucional", label: "Desenvolvimento Institucional", cor: "#f8cdcd", strokeColor: "#ff5cdc", strokeWidth: 2.0},
-                {valor: "Redução e Controle de Perdas", label: "Redução e Controle de Perdas", cor: "#f5df4d", strokeColor: "#ff5cdc", strokeWidth: 2.0},
-                {valor: "Estudos e Projetos", label: "Estudos e Projetos", cor: "#17e904", strokeColor: "#ff5cdc", strokeWidth: 2.0},
-                {valor: "Esgotamento Sanitário", label: "Esgotamento Sanitário", cor: "#96710b", strokeColor: "#ff5cdc", strokeWidth: 2.0},
-                {valor: "Saneamento Integrado", label: "Saneamento Integrado", cor: "#c800e2", strokeColor: "#ff5cdc", strokeWidth: 2.0},
-                {valor: "Abastecimento de Água", label: "Abastecimento de Água", cor: "#0071bd", strokeColor: "#ff5cdc", strokeWidth: 2.0},
-                {valor: "Manejo de Resíduos Sólidos", label: "Manejo de Resíduos Sólidos", cor: "#ee8712", strokeColor: "#ff5cdc", strokeWidth: 2.0},
-                {valor: "Manejo de Águas Pluviais", label: "Manejo de Águas Pluviais", cor: "#7f7a80", strokeColor: "#ff5cdc", strokeWidth: 2.0},
-            ] 
-        }},
-        { id: "informacoes_municipais", 
+        },
+               
+        {
+            id: "informacoes_municipais", 
             nome: "Informações Municipais",
             visivel: false,
             minzoom: 3,
             variavelSel: "",
             variaveis: [
-                {value: "jenks_deficit_agua_rural_ibge", label: "Déficit água rural - Municipal", tipo: "percentual_invertido", legenda: [{valor: 5, label: "72,68 - 100%", cor: "#d62828"}, {valor: 4, label: "47,54 - 72,68%", cor: "#f77f00"}, {valor: 3, label: "27,07 - 47,54%", cor: "#ffe066"}, {valor: 2, label: "10,21 - 27,07%", cor: "#95d5b2"}, {valor: 1, label: "0 - 10,21%", cor: "#2d6a4f"},]},
-                {value: "jenks_deficit_esgoto_rural_ibge", label: "Déficit esgoto rural - Municipal", tipo: "percentual_invertido", legenda: [{valor: 5, label: "86,61 - 100%", cor: "#d62828"}, {valor: 4, label: "68,81 - 86,61%", cor: "#f77f00"}, {valor: 3, label: "48,75 - 68,81%", cor: "#ffe066"}, {valor: 2, label: "25,45 - 48,75%", cor: "#95d5b2"}, {valor: 1, label: "0 - 25,45%", cor: "#2d6a4f"},]},
-                {value: "jenks_deficit_residuo_rural_ibge", label: "Déficit resíduos rural - Municipal", tipo: "percentual_invertido", legenda: [{valor: 5, label: "83,13 - 100%", cor: "#d62828"}, {valor: 4, label: "64,57 - 83,13%", cor: "#f77f00"}, {valor: 3, label: "45,11 - 64,57%", cor: "#ffe066"}, {valor: 2, label: "23,18 - 45,11%", cor: "#95d5b2"}, {valor: 1, label: "0 - 23,18%", cor: "#2d6a4f"},]},
-                {value: "jenks_deficit_banheiro_rural_ibge", label: "Déficit banheiro rural - Municipal", tipo: "percentual_invertido", legenda: [{valor: 5, label: "55,89 - 100%", cor: "#d62828"}, {valor: 4, label: "35,55 - 55,89%", cor: "#f77f00"}, {valor: 3, label: "17,57 - 35,55%", cor: "#ffe066"}, {valor: 2, label: "5,85 - 17,57%", cor: "#95d5b2"}, {valor: 1, label: "0 - 5,85%", cor: "#2d6a4f"},]},
-                {value: "jenks_deficit_agua_urbana_ibge", label: "Déficit água urbano - Municipal", tipo: "percentual_invertido", legenda: [{valor: 5, label: "66,26 - 100%", cor: "#d62828"}, {valor: 4, label: "33,52 - 66,26%", cor: "#f77f00"}, {valor: 3, label: "15,40 - 33,52%", cor: "#ffe066"}, {valor: 2, label: "4,66 - 15,40%", cor: "#95d5b2"}, {valor: 1, label: "0 - 4,66%", cor: "#2d6a4f"},]},
-                {value: "jenks_deficit_esgoto_urbana_ibge", label: "Déficit esgoto urbano - Municipal", tipo: "percentual_invertido", legenda: [{valor: 5, label: "79,52 - 100%", cor: "#d62828"}, {valor: 4, label: "54,66 - 79,52%", cor: "#f77f00"}, {valor: 3, label: "31,11 - 54,66%", cor: "#ffe066"}, {valor: 2, label: "12,16 - 31,11%", cor: "#95d5b2"}, {valor: 1, label: "0 - 12,16%", cor: "#2d6a4f"},]},
-                {value: "jenks_deficit_residuo_urbana_ibge", label: "Déficit resíduos urbano - Municipal", tipo: "percentual_invertido", legenda: [{valor: 5, label: "38,29 - 100%", cor: "#d62828"}, {valor: 4, label: "18,86 - 38,29%", cor: "#f77f00"}, {valor: 3, label: "7,84 - 18,86%", cor: "#ffe066"}, {valor: 2, label: "2,39 - 7,84%", cor: "#95d5b2"}, {valor: 1, label: "0 - 2,39%", cor: "#2d6a4f"},]},
-                {value: "jenks_deficit_banheiro_urbana_ibge", label: "Déficit banheiro urbano - Municipal", tipo: "percentual_invertido", legenda: [{valor: 5, label: "23,01 - 100%", cor: "#d62828"}, {valor: 4, label: "10,78 - 23,01%", cor: "#f77f00"}, {valor: 3, label: "4,64 - 10,78%", cor: "#ffe066"}, {valor: 2, label: "1,36 - 4,64%", cor: "#95d5b2"}, {valor: 1, label: "0 - 1,36%", cor: "#2d6a4f"},]},
-                {value: "subgrupo", label: "Subgrupo PAC", tipo: "categorica", legenda: [{valor: "G1", label: "G1", cor: "#d73027"}, {valor: "G2", label: "G2", cor: "#fc8d59"}, {valor: "G3", label: "G3", cor: "#049e91"}]},
-                {value: "tipo_catmetropol", label: "Categoria Metropolitana", tipo: "categorica", legenda: [{valor: "Não Possui", label: "Não Possui", cor: "#ffffff"}, {valor: "RM", label: "RM", cor: "#46f3df"}, {valor: "RIDE, RM", label: "RIDE, RM", cor: "#00515c"}, {valor: "RIDE", label: "RIDE", cor: "#0034df"}, {valor: "RAIDE", label: "RAIDE", cor: "#867d00"}, {valor: "Entorno Metropolitano", label: "Entorno Metropolitano", cor: "#f5b352"}, {valor: "Colar Metropolitano", label: "Colar Metropolitano", cor: "#fc2f8f"}, {valor: "Área de Expansão Metropolitana", label: "Área de Expansão Metropolitana", cor: "#d62828"}]},
-                {value: "populacao_total_censo_2022_maior_50000", label: "População 2022 >50 mil", tipo: "booleana", legenda: [{valor: false, label: "< 50 mil", cor: "#2a9d8f"}, {valor: true, label: "> 50 mil", cor: "#d62828"}]},
-                {value: "sinisa_adimplencia_gestao_municipal", label: "SINISA - Adimplência Gestão Municipal", tipo: "categorica", legenda: [{valor: "adimplente", label: "Adimplente", cor: "#2a9d8f"}, {valor: "inadimplente", label: "Inadimplente", cor: "#d62828"}]},
-                {value: "sinisa_adimplencia_agua", label: "SINISA - Adimplência Água", tipo: "categorica", legenda: [{valor: "adimplente", label: "Adimplente", cor: "#2a9d8f"}, {valor: "inadimplente", label: "Inadimplente", cor: "#d62828"}]},
-                {value: "sinisa_adimplencia_esgoto", label: "SINISA - Adimplência Esgoto", tipo: "categorica", legenda: [{valor: "adimplente", label: "Adimplente", cor: "#2a9d8f"}, {valor: "inadimplente", label: "Inadimplente", cor: "#d62828"}]},
-                {value: "sinisa_declarou_possuir_pmsb", label: "SINISA - Possui PMSB", tipo: "categorica", legenda: [{valor: "sim", label: "Sim", cor: "#2a9d8f"}, {valor: "em elaboração", label: "Em elaboração", cor: "#fc8d59"}, {valor: "sem resposta", label: "Sem resposta", cor: "#d62828"}]},
+                {
+                    atributo: "jenks_deficit_agua_rural_ibge",
+                    label: "Déficit água rural - Municipal",
+                    tipo: "percentual_invertido",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: 5, label: "72,68 - 100%", cor: "#d62828"},
+                        {valor: 4, label: "47,54 - 72,68%", cor: "#f77f00"},
+                        {valor: 3, label: "27,07 - 47,54%", cor: "#ffe066"},
+                        {valor: 2, label: "10,21 - 27,07%", cor: "#95d5b2"},
+                        {valor: 1, label: "0 - 10,21%", cor: "#2d6a4f"},
+                    ]
+                },
+                {
+                    atributo: "jenks_deficit_esgoto_rural_ibge",
+                    label: "Déficit esgoto rural - Municipal",
+                    tipo: "percentual_invertido",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: 5, label: "86,61 - 100%", cor: "#d62828"},
+                        {valor: 4, label: "68,81 - 86,61%", cor: "#f77f00"},
+                        {valor: 3, label: "48,75 - 68,81%", cor: "#ffe066"},
+                        {valor: 2, label: "25,45 - 48,75%", cor: "#95d5b2"},
+                        {valor: 1, label: "0 - 25,45%", cor: "#2d6a4f"},
+                    ]
+                },
+                {
+                    atributo: "jenks_deficit_residuo_rural_ibge",
+                    label: "Déficit resíduos rural - Municipal",
+                    tipo: "percentual_invertido",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: 5, label: "83,13 - 100%", cor: "#d62828"},
+                        {valor: 4, label: "64,57 - 83,13%", cor: "#f77f00"},
+                        {valor: 3, label: "45,11 - 64,57%", cor: "#ffe066"},
+                        {valor: 2, label: "23,18 - 45,11%", cor: "#95d5b2"},
+                        {valor: 1, label: "0 - 23,18%", cor: "#2d6a4f"},
+                    ]
+                },
+                {
+                    atributo: "jenks_deficit_banheiro_rural_ibge",
+                    label: "Déficit banheiro rural - Municipal",
+                    tipo: "percentual_invertido",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: 5, label: "55,89 - 100%", cor: "#d62828"},
+                        {valor: 4, label: "35,55 - 55,89%", cor: "#f77f00"},
+                        {valor: 3, label: "17,57 - 35,55%", cor: "#ffe066"},
+                        {valor: 2, label: "5,85 - 17,57%", cor: "#95d5b2"},
+                        {valor: 1, label: "0 - 5,85%", cor: "#2d6a4f"},
+                    ]
+                },
+                {
+                    atributo: "jenks_deficit_agua_urbana_ibge",
+                    label: "Déficit água urbano - Municipal",
+                    tipo: "percentual_invertido",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: 5, label: "66,26 - 100%", cor: "#d62828"},
+                        {valor: 4, label: "33,52 - 66,26%", cor: "#f77f00"},
+                        {valor: 3, label: "15,40 - 33,52%", cor: "#ffe066"},
+                        {valor: 2, label: "4,66 - 15,40%", cor: "#95d5b2"},
+                        {valor: 1, label: "0 - 4,66%", cor: "#2d6a4f"},
+                    ]
+                },
+                {
+                    atributo: "jenks_deficit_esgoto_urbana_ibge",
+                    label: "Déficit esgoto urbano - Municipal",
+                    tipo: "percentual_invertido",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: 5, label: "79,52 - 100%", cor: "#d62828"},
+                        {valor: 4, label: "54,66 - 79,52%", cor: "#f77f00"},
+                        {valor: 3, label: "31,11 - 54,66%", cor: "#ffe066"},
+                        {valor: 2, label: "12,16 - 31,11%", cor: "#95d5b2"},
+                        {valor: 1, label: "0 - 12,16%", cor: "#2d6a4f"},
+                    ]
+                },
+                {
+                    atributo: "jenks_deficit_residuo_urbana_ibge",
+                    label: "Déficit resíduos urbano - Municipal",
+                    tipo: "percentual_invertido",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: 5, label: "38,29 - 100%", cor: "#d62828"},
+                        {valor: 4, label: "18,86 - 38,29%", cor: "#f77f00"},
+                        {valor: 3, label: "7,84 - 18,86%", cor: "#ffe066"},
+                        {valor: 2, label: "2,39 - 7,84%", cor: "#95d5b2"},
+                        {valor: 1, label: "0 - 2,39%", cor: "#2d6a4f"},
+                    ]
+                },
+                {
+                    atributo: "jenks_deficit_banheiro_urbana_ibge",
+                    label: "Déficit banheiro urbano - Municipal",
+                    tipo: "percentual_invertido",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: 5, label: "23,01 - 100%", cor: "#d62828"},
+                        {valor: 4, label: "10,78 - 23,01%", cor: "#f77f00"},
+                        {valor: 3, label: "4,64 - 10,78%", cor: "#ffe066"},
+                        {valor: 2, label: "1,36 - 4,64%", cor: "#95d5b2"},
+                        {valor: 1, label: "0 - 1,36%", cor: "#2d6a4f"},
+                    ]
+                },
+                {
+                    atributo: "subgrupo",
+                    label: "Subgrupo PAC",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "G1", label: "G1", cor: "#d73027"},
+                        {valor: "G2", label: "G2", cor: "#fc8d59"},
+                        {valor: "G3", label: "G3", cor: "#049e91"}
+                    ]
+                },
+                {
+                    atributo: "tipo_catmetropol",
+                    label: "Categoria Metropolitana",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "Não Possui", label: "Não Possui", cor: "#ffffff"},
+                        {valor: "RM", label: "RM", cor: "#46f3df"},
+                        {valor: "RIDE, RM", label: "RIDE, RM", cor: "#00515c"},
+                        {valor: "RIDE", label: "RIDE", cor: "#0034df"},
+                        {valor: "RAIDE", label: "RAIDE", cor: "#867d00"},
+                        {valor: "Entorno Metropolitano", label: "Entorno Metropolitano", cor: "#f5b352"},
+                        {valor: "Colar Metropolitano", label: "Colar Metropolitano", cor: "#fc2f8f"},
+                        {valor: "Área de Expansão Metropolitana", label: "Área de Expansão Metropolitana", cor: "#d62828"},
+                    ]
+                },
+                {
+                    atributo: "populacao_total_censo_2022_maior_50000",
+                    label: "População 2022 >50 mil",
+                    tipo: "booleana",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: false, label: "< 50 mil", cor: "#2a9d8f"},
+                        {valor: true, label: "> 50 mil", cor: "#d62828"},
+                    ]
+                },
+                {
+                    atributo: "sinisa_adimplencia_gestao_municipal",
+                    label: "SINISA - Adimplência Gestão Municipal",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "adimplente", label: "Adimplente", cor: "#2a9d8f"},
+                        {valor: "inadimplente", label: "Inadimplente", cor: "#d62828"},
+                    ]
+                },
+                {
+                    atributo: "sinisa_adimplencia_agua",
+                    label: "SINISA - Adimplência Água",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "adimplente", label: "Adimplente", cor: "#2a9d8f"},
+                        {valor: "inadimplente", label: "Inadimplente", cor: "#d62828"},
+                    ]
+                },
+                {
+                    atributo: "sinisa_adimplencia_esgoto",
+                    label: "SINISA - Adimplência Esgoto",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "adimplente", label: "Adimplente", cor: "#2a9d8f"},
+                        {valor: "inadimplente", label: "Inadimplente", cor: "#d62828"},
+                    ]
+                },
+                {
+                    atributo: "sinisa_declarou_possuir_pmsb",
+                    label: "SINISA - Possui PMSB",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "sim", label: "Sim", cor: "#2a9d8f"},
+                        {valor: "em elaboração", label: "Em elaboração", cor: "#fc8d59"},
+                        {valor: "sem resposta", label: "Sem resposta", cor: "#d62828"},
+                    ]
+                },
+                {
+                    atributo: "seca_vigente",
+                    label: "Desastres - sit. vigente - Seca",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "SE_Estiagem", label: "Emergência - Estiagem", cor: "#f85104"},
+                        {valor: "SE_Seca", label: "Emergência - Seca", cor: "#e20000"},
+                        {valor: "SCP_Estiagem", label: "Calamidade - Estiagem", cor: "#fc008a"},
+                        {valor: "SCP_Seca", label: "Calamidade - Seca", cor: "#990054"},
+                        {valor: "Múltiplos", label: "Múltiplas situações", cor: "#000000"},
+                    ]
+                },
+                {
+                    atributo: "hidrologico_vigente",
+                    label: "Desastres - sit. vigente - Hidrológicos",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "SE_Inundações", label: "Emergência - Inundações", cor: "#f85104"},
+                        {valor: "SE_Alagamentos", label: "Emergência - Alagamentos", cor: "#e20000"},
+                        {valor: "SE_Enxurradas", label: "Emergência - Enxurradas", cor: "#fdad87"},
+                        {valor: "SCP_Inundações", label: "Calamidade - Inundações", cor: "#fc008a"},
+                        {valor: "SCP_Alagamentos", label: "Calamidade - Alagamentos", cor: "#990054"},
+                        {valor: "SCP_Enxurradas", label: "Calamidade - Enxurradas", cor: "#faa9d5"},
+                        {valor: "Múltiplos", label: "Múltiplas situações", cor: "#000000"},
+                    ]
+                },
+                {
+                    atributo: "tempestade_vigente",
+                    label: "Desastres - sit. vigente - Tempestades",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "SE_Tornados", label: "Emergência - Tornados", cor: "#f85104"},
+                        {valor: "SE_Tempestade de Raios", label: "Emergência - Raios", cor: "#fffb0e"},
+                        {valor: "SE_Granizo", label: "Emergência - Granizo", cor: "#01bdd6"},
+                        {valor: "SE_Chuvas intensas", label: "Emergência - Chuvas intensas", cor: "#4662ff"},
+                        {valor: "SE_Vendaval", label: "Emergência - Vendaval", cor: "#43ff52"},
+                        {valor: "SCP_Tornados", label: "Calamidade - Tornados", cor: "#e20000"},
+                        {valor: "SCP_Tempestade de Raios", label: "Calamidade - Raios", cor: "#aca900"},
+                        {valor: "SCP_Granizo", label: "Calamidade - Granizo", cor: "#006370"},
+                        {valor: "SCP_Chuvas intensas", label: "Calamidade - Chuvas intensas", cor: "#001799"},
+                        {valor: "SCP_Vendaval", label: "Calamidade - Vendaval", cor: "#00880b"},
+                        {valor: "Múltiplos", label: "Múltiplas situações", cor: "#000000"},
+                    ]
+                },
+                {
+                    atributo: "qtde_reconhecimento_seca",
+                    label: "Histórico de desastres - Seca",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "0", label: "0", cor: "#ffffff"},
+                        {valor: "1 a 2", label: "1 a 2", cor: "#f89393"},
+                        {valor: "3 a 5", label: "3 a 5", cor: "#ff3939"},
+                        {valor: "5 a 10", label: "5 a 10", cor: "#dd0000"},
+                        {valor: "> 10", label: "> 10", cor: "#860000"},
+                    ]
+                },
+                {
+                    atributo: "qtde_reconhecimento_hidrologico",
+                    label: "Histórico de desastres - Hidrológicos",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "0", label: "0", cor: "#ffffff"},
+                        {valor: "1 a 2", label: "1 a 2", cor: "#f89393"},
+                        {valor: "3 a 5", label: "3 a 5", cor: "#ff3939"},
+                        {valor: "5 a 10", label: "5 a 10", cor: "#dd0000"},
+                        {valor: "> 10", label: "> 10", cor: "#860000"},
+                    ]
+                },
+                {
+                    atributo: "qtde_reconhecimento_tempestade",
+                    label: "Histórico de desastres - Tempestades",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: "0", label: "0", cor: "#ffffff"},
+                        {valor: "1 a 2", label: "1 a 2", cor: "#f89393"},
+                        {valor: "3 a 5", label: "3 a 5", cor: "#ff3939"},
+                        {valor: "5 a 10", label: "5 a 10", cor: "#dd0000"},
+                        {valor: "> 10", label: "> 10", cor: "#860000"},
+                    ]
+                },
             ]
         },
-        { id: "informacoes_setores_censitarios", 
+
+        {
+            id: "informacoes_setores_censitarios", 
             nome: "Informações Setores Censitarios",
             visivel: false,
             minzoom: 8,
             variavelSel: "",
             variaveis: [
-                {value: "jenks_perc_agua_forma_nao_adequada", label: "Água - forma não adequada - Setores", tipo: "percentual_invertido", legenda: [{valor: 5, label: "81 - 100%", cor: "#d62828"}, {valor: 4, label: "51 - 81%", cor: "#f77f00"}, {valor: 3, label: "25 - 51%", cor: "#ffe066"}, {valor: 2, label: "7 - 25%", cor: "#95d5b2"}, {valor: 1, label: "0 - 7%", cor: "#2d6a4f"},]},
-                {value: "jenks_perc_esgoto_tipo_nao_adequado", label: "Esgoto - tipo não adequado - Setores", tipo: "percentual_invertido", legenda: [{valor: 5, label: "86 - 100%", cor: "#d62828"}, {valor: 4, label: "60 - 86%", cor: "#f77f00"}, {valor: 3, label: "36 - 60%", cor: "#ffe066"}, {valor: 2, label: "10 - 36%", cor: "#95d5b2"}, {valor: 1, label: "0 - 10%", cor: "#2d6a4f"},]},
-                {value: "jenks_perc_lixo_destino_nao_adequado", label: "Destino lixo não adequado - Setores", tipo: "percentual_invertido", legenda: [{valor: 5, label: "85 - 100%", cor: "#d62828"}, {valor: 4, label: "58 - 85%", cor: "#f77f00"}, {valor: 3, label: "31 - 58%", cor: "#ffe066"}, {valor: 2, label: "9 - 31%", cor: "#95d5b2"}, {valor: 1, label: "0 - 9%", cor: "#2d6a4f"},]},
-                {value: "jenks_perc_ban_sem_ban_exclusivo", label: "Sem banheiro exclusivo - Setores", tipo: "percentual_invertido", legenda: [{valor: 5, label: "78 - 100%", cor: "#d62828"}, {valor: 4, label: "47 - 78%", cor: "#f77f00"}, {valor: 3, label: "23 - 47%", cor: "#ffe066"}, {valor: 2, label: "6 - 23%", cor: "#95d5b2"}, {valor: 1, label: "0 - 6%", cor: "#2d6a4f"},]},
+                {
+                    atributo: "cod_sit",
+                    label: "Situação",
+                    tipo: "categorica",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: 1, label: "1 - Área urbana de alta densidade", cor: "#ff1e00"},
+                        {valor: 2, label: "2 - Área urbana de baixa densidade", cor: "#f87f6f"},
+                        {valor: 3, label: "3 - Núcleo urbano", cor: "#3b0303"},
+                        {valor: 5, label: "5 - Aglomerado rural - Povoado", cor: "#fbff11"},
+                        {valor: 6, label: "6 - Aglomerado rural - Núcleo rural", cor: "#b8905c"},
+                        {valor: 7, label: "7 - Aglomerado rural - Lugarejo", cor: "#27fa4b"},
+                        {valor: 8, label: "8 - Área rural - exclusive aglomerados", cor: "#758f00"},
+                        {valor: 9, label: "9 - Massas de água", cor: "#3067ff"},
+                    ]
+                },
+                {
+                    atributo: "jenks_perc_agua_forma_nao_adequada",
+                    label: "Água - forma não adequada - Setores",
+                    tipo: "percentual_invertido",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: 5, label: "81 - 100%", cor: "#d62828"},
+                        {valor: 4, label: "51 - 81%", cor: "#f77f00"},
+                        {valor: 3, label: "25 - 51%", cor: "#ffe066"},
+                        {valor: 2, label: "7 - 25%", cor: "#95d5b2"},
+                        {valor: 1, label: "0 - 7%", cor: "#2d6a4f"},
+                    ]
+                },
+                {
+                    atributo: "jenks_perc_esgoto_tipo_nao_adequado",
+                    label: "Esgoto - tipo não adequado - Setores",
+                    tipo: "percentual_invertido",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: 5, label: "86 - 100%", cor: "#d62828"},
+                        {valor: 4, label: "60 - 86%", cor: "#f77f00"},
+                        {valor: 3, label: "36 - 60%", cor: "#ffe066"},
+                        {valor: 2, label: "10 - 36%", cor: "#95d5b2"},
+                        {valor: 1, label: "0 - 10%", cor: "#2d6a4f"},
+                    ]
+                },
+                {
+                    atributo: "jenks_perc_lixo_destino_nao_adequado",
+                    label: "Destino lixo não adequado - Setores",
+                    tipo: "percentual_invertido",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: 5, label: "85 - 100%", cor: "#d62828"},
+                        {valor: 4, label: "58 - 85%", cor: "#f77f00"},
+                        {valor: 3, label: "31 - 58%", cor: "#ffe066"},
+                        {valor: 2, label: "9 - 31%", cor: "#95d5b2"},
+                        {valor: 1, label: "0 - 9%", cor: "#2d6a4f"},
+                    ]
+                },
+                {
+                    atributo: "jenks_perc_ban_sem_ban_exclusivo",
+                    label: "Sem banheiro exclusivo - Setores",
+                    tipo: "percentual_invertido",
+                    simbolo: "poligono",
+                    legenda: [
+                        {valor: 5, label: "78 - 100%", cor: "#d62828"},
+                        {valor: 4, label: "47 - 78%", cor: "#f77f00"},
+                        {valor: 3, label: "23 - 47%", cor: "#ffe066"},
+                        {valor: 2, label: "6 - 23%", cor: "#95d5b2"},
+                        {valor: 1, label: "0 - 6%", cor: "#2d6a4f"},
+                    ]
+                },
             ]
         },
         
@@ -129,18 +637,49 @@ export default function MapaSection() {
     const [painelDetalhe, setPainelDetalhe] = useState(false);
     const [zoomAtual, setZoomAtual] = useState(3);
     const [coord, setCoord] = useState({ lat: "", long: "" });
+    const [featureSelecionada, setFeatureSelecionada] = useState(null);
+    const [modoAnalise, setModoAnalise] = useState(false);
+    const [coordenadas, setCoordenadas] = useState([]);
+    const [situacaoCorrecao, setSituacaoCorrecao] = useState(null);
+    const [observacaoCoordenada, setObservacaoCoordenada] = useState("");
+    const { isAuthenticated, openLoginModal } = useAuth();
+    const [loading, setLoading] = useState(false);
+    const [, setMessage] = useState('')
+    const [messageType, setMessageType] = useState('')
     const mapContainer = useRef(null);
     const mapRef = useCriarMapa(mapContainer);
+    const [carregandoMapa, setCarregandoMapa] = useState(false);
     const coordRef = useRef(null);
+    const situacaoCorrecaoOriginalRef = useRef(null);
+    const observacaoCoordenadaOriginalRef = useRef("");
 
     //chamada das hooks com as funcionalidades principais
     useAdicionarLayers(mapRef, layers, filtros);
     useAplicarZoom(mapRef, filtros);
     useAtualizarSources(mapRef, filtros);
-    useClicar(mapRef, layers);
-    useTrocarSimbologia(mapRef, layers);  
+    const { selecionarCoordenada } = useClicar(mapRef, layers, modoAnalise, setFeatureSelecionada);
+    useTrocarSimbologia(mapRef, layers, modoAnalise);  
 
     
+
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map) return;
+
+        const IniciarCarregamento = () => setCarregandoMapa(true);
+        const FinalizarCarregamento = () => setCarregandoMapa(false);
+        map.on("movestart", IniciarCarregamento);
+        map.on("dataloading", IniciarCarregamento);
+        map.on("idle", FinalizarCarregamento);
+
+        return () => {
+            map.off("movestart", IniciarCarregamento);
+            map.off("dataloading", IniciarCarregamento);
+            map.off("idle", FinalizarCarregamento);
+        };
+    }, []);
+
+
     useEffect(() => {
         const map = mapRef.current;
         if (!map) return;
@@ -261,8 +800,380 @@ export default function MapaSection() {
     }
     //--------------------------------------------------------------------------------------------
 
+    //função que alterna o mapa para o modo de análise
+    const instrumentoSelecionado = !!(filtros.nr_instrumento || filtros.nr_proposta || filtros.cod_tci);
+    function toggleModoAnalise() {
+        if (!instrumentoSelecionado) {
+            alert("Ative a camada Carteira DSR e filtre um único instrumento para poder ativar a análise.");
+            return;
+        }
+        if (!isAuthenticated) {
+            openLoginModal();
+            return;
+        }
+        setModoAnalise(v => !v);
+    }
 
 
+    //useEffect que desliga o modo de análise caso o usuário deslique a camada carteira_dsr ou limpe o filtro de instrumento
+    useEffect(() => {
+        const carteira = layers.find(l => l.id === "geometrias_carteira_dsr");
+        if (modoAnalise && (!instrumentoSelecionado || !carteira?.visivel)) {
+            setModoAnalise(false);
+        }
+    }, [modoAnalise, instrumentoSelecionado, layers]);
+
+        
+    
+    //função para percorrer as coordenadas do instrumento selecionado
+    function navegarCoordenada(direcao) {
+        const map = mapRef.current;
+
+        if (!coordenadas.length) return;
+
+        const idAtual = featureSelecionada?.id_coordenada ?? featureSelecionada?.id;
+        
+        const indiceAtual = featureSelecionada 
+            ? coordenadas.findIndex(c => String(c.id_coordenada ?? c.id) === String(idAtual))
+            : -1;
+            
+        const indiceDestino = indiceAtual + direcao;
+
+        if (indiceDestino < 0 || indiceDestino >= coordenadas.length) return;
+
+        const coordenadaDestino = coordenadas[indiceDestino];
+
+        selecionarCoordenada(coordenadaDestino);
+
+        if (map) {
+            const lng = Number(coordenadaDestino.longitude ?? coordenadaDestino.lng);
+            const lat = Number(coordenadaDestino.latitude ?? coordenadaDestino.lat);
+
+            if (!isNaN(lng) && !isNaN(lat)) {
+                map.flyTo({
+                    center: [lng, lat],
+                    zoom: 15,
+                    essential: true
+                });
+            }
+        }
+    }
+    
+    
+    //chama a api pegando os dados das coordenadas do instrumento que estiver filtrado
+    //copia os dados vindos da api para dentro de _coordenadaOriginal (_coordenadaOriginal vira um objeto dentro do objeto Coordenadas)
+    //cria a flag _coordenadaAlterada
+    //salva isso dentro do estado Coordenadas
+    useEffect(() => {
+        async function buscarAnaliseCoordenadas() {
+            
+            setMessage("");
+            setMessageType("");
+            
+            if (!instrumentoSelecionado) {
+                setCoordenadas([]);
+                setSituacaoCorrecao(null);
+                setObservacaoCoordenada("");
+                situacaoCorrecaoOriginalRef.current = null;
+                observacaoCoordenadaOriginalRef.current = "";
+                return;
+            }
+
+            try {
+                setLoading(true);
+                const dadosAnaliseCoordenadas = 
+                    await listarDadosAnaliseCoordenadas({nr_proposta: filtros.nr_proposta, nr_instrumento: filtros.nr_instrumento, cod_tci: filtros.cod_tci});
+                
+                const listaApi = dadosAnaliseCoordenadas || [];
+                const situacaoCorrecaoInicial = listaApi[0]?.situacao_correcao ?? null;
+                const observacaoCoordenadaInicial = listaApi[0]?.observacao_coordenada || "";
+                
+                setSituacaoCorrecao(situacaoCorrecaoInicial);
+                setObservacaoCoordenada(observacaoCoordenadaInicial);
+                situacaoCorrecaoOriginalRef.current = situacaoCorrecaoInicial;
+                observacaoCoordenadaOriginalRef.current = observacaoCoordenadaInicial;
+
+                const coordenadasMapeadas = listaApi.map(coordenada => ({
+                    ...coordenada,
+                    _coordenadaOriginal: {
+                        id_coordenada: coordenada.id_coordenada,
+                        situacao_analise: coordenada.situacao_analise ?? null,
+                        cod_tci: coordenada.cod_tci,
+                    },
+                    _coordenadaAlterada: false,
+                }));
+
+                setCoordenadas(coordenadasMapeadas);
+
+            } catch (erro) {
+                console.error("Erro ao buscar dados da análise:", erro);
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        buscarAnaliseCoordenadas();
+
+    }, [filtros.nr_proposta, filtros.nr_instrumento, filtros.cod_tci, instrumentoSelecionado]);
+   
+      
+
+    //pega um objeto coordenada e limpa as colunas, deixando apenas as colunas que devem persisitir para envio ao backend
+    const dadosCoordenadaPersistencia = (coordenada) => {
+    
+        const situacaoAtual = coordenada.situacao_analise 
+            ?? coordenada._coordenadaOriginal?.situacao_analise;
+
+        return {
+            id_coordenada: coordenada.id_coordenada,
+            cod_tci: coordenada.cod_tci || filtros.cod_tci || "",
+            situacao_analise: situacaoAtual || "Sem análise"
+        };
+    };
+
+    //verifica se Houve Alteração Global (Rádio ou Observação)
+    const houveAlteracaoGlobal = () => {
+        const correcaoMudou = (situacaoCorrecao ?? null) !== (situacaoCorrecaoOriginalRef.current ?? null);
+        const obsMudou = (observacaoCoordenada || "").trim() !== (observacaoCoordenadaOriginalRef.current || "").trim();
+        return correcaoMudou || obsMudou;
+    };
+
+
+    // Reavalia a flag _coordenadaAlterada para todo o array de coordenadas
+    // Se algo global mudou -> TODAS viram true
+    // Se nada global mudou -> Apenas as que mudaram situacao_analise viram true
+    const recalcularAlteracoesCoordenadas = (
+        coordenadasAtuais, 
+        ehGlobalAlterado = houveAlteracaoGlobal()
+    ) => {
+        return coordenadasAtuais.map(c => {
+            // Substitua a comparação complexa por verificação de dados reais
+            const analiseAtual = c.situacao_analise ?? "";
+            const analiseOriginal = c._coordenadaOriginal?.situacao_analise ?? "";
+            
+            const itemAlteradoPontual = analiseAtual !== analiseOriginal;
+
+            return {
+                ...c,
+                _coordenadaAlterada: ehGlobalAlterado || itemAlteradoPontual,
+            };
+        });
+    };
+
+
+    //Handlers para atualização no React (Rádio e Observação)
+    const handleAlterarSituacaoCorrecao = (novaSituacao) => {
+        
+        setMessage("");
+        setMessageType("");
+        setSituacaoCorrecao(novaSituacao);
+        
+        const correcaoMudou = (novaSituacao ?? null) !== (situacaoCorrecaoOriginalRef.current ?? null);
+        const obsMudou = (observacaoCoordenada || "").trim() !== (observacaoCoordenadaOriginalRef.current || "").trim();
+        const globalAlterado = correcaoMudou || obsMudou;
+
+        setCoordenadas(current => recalcularAlteracoesCoordenadas(current, globalAlterado));
+    };
+
+
+    const handleAlterarObservacaoCoordenada = (novaObservacao) => {
+        setMessage("");
+        setMessageType("");
+        setObservacaoCoordenada(novaObservacao);
+
+        const correcaoMudou = (situacaoCorrecao ?? null) !== (situacaoCorrecaoOriginalRef.current ?? null);
+        const obsMudou = (novaObservacao || "").trim() !== (observacaoCoordenadaOriginalRef.current || "").trim();
+        const globalAlterado = correcaoMudou || obsMudou;
+
+        setCoordenadas(current => recalcularAlteracoesCoordenadas(current, globalAlterado));
+    };
+
+
+
+    //recebe uma coordenada específica e sua analise. Percorre o array de coordenadas do instrumento filtrado.
+    //procrura no array até encontrar a coordenada específica recebida. Pega a analise recebida e atualiza jogando o novo valor no array. 
+    //o estado Coordenadas vai ser atualizado, pois isso está dentro de um set
+    //gera um objeto coordenada atualizada com a nova análise
+    //compara se os dados a serem persistidos de coordendas atualizada são iguais a original, gerando a flag _coordenadaAlterada
+    //ou seja essa função atualiza o estado e gera uma flag pra indicar se a atualização efetivou uma alteração ou não
+    const atualizarAnaliseCoordenada = (idCoordenada, novaAnalise) => {
+
+        setMessage("");
+        setMessageType("");
+
+        const map = mapRef.current;
+        if (map) {
+            map.setFeatureState(
+                {
+                    source: "geometrias_carteira_dsr",
+                    sourceLayer: "pontos",
+                    id: idCoordenada
+                },
+                {
+                    situacaoAnalise: novaAnalise
+                }
+            );
+        }
+
+        setCoordenadas((current) => {
+            const atualizadas = current.map((coordenada) => {
+                if (coordenada.id_coordenada !== idCoordenada) return coordenada;
+                return {
+                    ...coordenada,
+                    situacao_analise: novaAnalise
+                };
+            });
+
+            return recalcularAlteracoesCoordenadas(atualizadas);
+        });
+    };
+
+    
+    //apenas testa se no estado coordenadas, tem alguma coordenada com alteração
+    const possuiCoordenadasAlteradas = () => {
+        return houveAlteracaoGlobal() || coordenadas.some(c => c._coordenadaAlterada);
+    };
+
+
+
+    //restaura o estado das coordenadas usando a propriedade _coordenadaOriginal
+    //chamada quando o usuário inicia a análise mas resolve cancelar
+    const restaurarEstadoOriginal = () => {
+        
+        setCoordenadas(current => 
+            current.map(coordenada => {
+                const situacaoOriginal = coordenada._coordenadaOriginal?.situacao_analise ?? "";
+                
+                
+                const map = mapRef.current;
+                if (map && coordenada.id_coordenada) {
+                    map.setFeatureState(
+                        {
+                            source: "geometrias_carteira_dsr",
+                            sourceLayer: "pontos",
+                            id: coordenada.id_coordenada
+                        },
+                        { situacaoAnalise: situacaoOriginal }
+                    );
+                }
+
+                return {
+                    ...coordenada,
+                    situacao_analise: situacaoOriginal,
+                    _coordenadaAlterada: false
+                };
+            })
+        );
+
+        
+        if (situacaoCorrecaoOriginalRef.current !== undefined) {
+            setSituacaoCorrecao(situacaoCorrecaoOriginalRef.current);
+        }
+        if (observacaoCoordenadaOriginalRef.current !== undefined) {
+            setObservacaoCoordenada(observacaoCoordenadaOriginalRef.current);
+        }
+
+    };
+
+
+
+    //prepara os dados para envio ao backend
+    const montarPayloadAnaliseCoordenadas = () => {
+        const ehGlobal = houveAlteracaoGlobal();
+
+        const codTciValido = filtros.cod_tci 
+            || coordenadas[0]?.cod_tci 
+            || coordenadas[0]?._coordenadaOriginal?.cod_tci 
+            || "";
+
+        const coordenadasParaEnvio = ehGlobal
+            ? coordenadas.map(dadosCoordenadaPersistencia)
+            : coordenadas
+                .filter(c => c._coordenadaAlterada)
+                .map(dadosCoordenadaPersistencia);
+
+        return {
+            nr_instrumento: filtros.nr_instrumento || "",
+            nr_proposta: filtros.nr_proposta || "",
+            cod_tci: codTciValido,
+            situacao_correcao: situacaoCorrecao ?? null,
+            observacao_coordenada: (observacaoCoordenada || "").trim(),
+            coordenadas: coordenadasParaEnvio
+        };
+    };
+
+    
+    //essa função é chamada quando o usuário clicar no botão de salvar
+    //chama montar payload e chama a função que envia os dados ao backend
+    const salvarAnaliseCoordenadas = async () => {
+        if (!possuiCoordenadasAlteradas()) return;
+
+        setLoading(true);
+        setMessage("");
+        setMessageType("");
+
+        try {
+            const payload = montarPayloadAnaliseCoordenadas();
+            
+            const data = await enviarAnaliseCoordenadas(payload);
+            
+            const map = mapRef.current;
+            if (map) {
+                const source = map.getSource("geometrias_carteira_dsr");
+                if (source) {
+                    const url = `${urlGeometriasCarteiraDsr(filtros)}&t=${Date.now()}`;
+                    source.setTiles([url]);
+                }
+
+                payload.coordenadas.forEach((coordenada) => {
+                    if (coordenada?.id_coordenada !== undefined && coordenada?.id_coordenada !== null) {
+                        const target = {
+                            source: "geometrias_carteira_dsr",
+                            sourceLayer: "pontos",
+                            id: coordenada.id_coordenada
+                        };
+
+                        try {
+                            const estadoAtual = map.getFeatureState(target);
+                            if (estadoAtual && Object.keys(estadoAtual).length > 0) {
+                                map.removeFeatureState(target, "situacaoAnalise");
+                            }
+                        } catch (erroMapbox) {
+                            console.warn(`Aviso ao limpar estado da coordenada ${coordenada.id_coordenada}:`, erroMapbox);
+                        }
+                    }
+                });
+            }
+
+            // Atualiza as referências originais com o novo estado salvo
+            situacaoCorrecaoOriginalRef.current = situacaoCorrecao;
+            observacaoCoordenadaOriginalRef.current = observacaoCoordenada;
+
+            setCoordenadas(current =>
+                current.map(coordenada => ({
+                    ...coordenada,
+                    _coordenadaOriginal: dadosCoordenadaPersistencia(coordenada),
+                    _coordenadaAlterada: false,
+                }))
+            );
+            
+            setMessage(data.mensagem);
+            setMessageType("success");
+
+        } catch (err) {
+            const msgErro = err?.response?.data?.detail ?? "Não foi possível salvar as alterações.";
+            setMessage(msgErro);
+            setMessageType("error");
+            throw new Error(msgErro); 
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    //console.log(coordenadas)
+    //console.log(payload);
+
+    const identificador = filtros?.cod_tci || filtros?.nr_instrumento || filtros?.nr_proposta || "";
 
     return ( 
         <div className={estilos.mapa_box}>
@@ -276,12 +1187,49 @@ export default function MapaSection() {
                 />
             }
             <button className={estilos.botaoCamadas} onClick={() => setPainelCamadas(!painelCamadas)}> <Layers className={estilos.Icon}/> <p className={estilos.IconTexto}> Camadas</p> </button>
-            <button className={estilos.botaoLegenda} onClick={() => setPainelLegenda(!painelLegenda)}> <List className={estilos.Icon}/> <p className={estilos.IconTexto}> Legenda</p> </button>  
+            <button className={estilos.botaoLegenda} onClick={() => setPainelLegenda(!painelLegenda)}> <List className={estilos.Icon}/> <p className={estilos.IconTexto}> Legenda</p> </button>
+            {isAuthenticated && (
+                <button 
+                    className={`${estilos.botaoAnalisarCoordenadas} ${modoAnalise ? estilos.ativo : ""} ${painelFiltros ? estilos.comPainelFiltros : ""}`} 
+                    onClick={toggleModoAnalise}
+                > 
+                    {modoAnalise ? `Análise ativa${identificador ? ` - ${identificador}` : ""}`: "Analisar Coordenadas"}
+                </button>
+                )}
             {painelCamadas && (<CamadasSection layers={layers} toggleLayer={toggleLayer} alterarVariavel={alterarVariavel} setPainelCamadas={setPainelCamadas}/>)}
             {painelLegenda && (<LegendaSection layers={layers} zoomAtual={zoomAtual} setPainelLegenda={setPainelLegenda} painelCamadas={painelCamadas}/>)}
+            {modoAnalise && (
+                <AnaliseCoordenadaSection 
+                    featureSelecionada={featureSelecionada}
+                    coordenadas={coordenadas}
+                    atualizarAnaliseCoordenada={atualizarAnaliseCoordenada}
+                    possuiCoordenadasAlteradas={possuiCoordenadasAlteradas()}
+                    salvarAnaliseCoordenadas={salvarAnaliseCoordenadas}
+                    navegarCoordenada={navegarCoordenada}
+                    loading={loading}
+                    sucessoEnviado={messageType === "success"}
+                    identificador={identificador}
+                    situacaoCorrecao={situacaoCorrecao}
+                    setSituacaoCorrecao={handleAlterarSituacaoCorrecao}
+                    observacaoCoordenada={observacaoCoordenada}
+                    setObservacaoCoordenada={handleAlterarObservacaoCoordenada}
+                    painelFiltros={painelFiltros}
+                    setModoAnalise={setModoAnalise}
+                    restaurarEstadoOriginal={restaurarEstadoOriginal}
+                />
+            )}
             <InputSection coord={coord} setCoord={setCoord} irParaCoordenada={irParaCoordenada} limparCoordenada={limparCoordenada}/>
             <div ref={coordRef} className={estilos.coordenadasMouse}> Lat: -- | Lon: -- </div>
             {(painelDetalhe && painelFiltros && filtros.cod_municipio) && (<DetalheSection setPainelDetalhe={setPainelDetalhe}/>)}
+            <div className={`${estilos.authMenuContainer} ${painelFiltros ? estilos.comPainelFiltros : ""}`}><AuthMenu /></div>
+
+            {carregandoMapa && (
+                <div className={estilos.caixa_carregando}>
+                    <span className={estilos.spinner}></span>
+                    Carregando camadas...
+                </div>
+            )}
+
             <div ref={mapContainer} className={estilos.mapContainer}/>
         </div>
     );

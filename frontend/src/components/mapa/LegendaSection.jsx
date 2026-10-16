@@ -65,6 +65,16 @@ export default function LegendaSection({layers, zoomAtual, setPainelLegenda, pai
                         ))}
 
 
+                        {layer.simbologia.tipo === "categorica" && layer.simbologia.simbolo === "poligono" && layer.simbologia.classes.map(classe => (
+                            <div className={estilos.itemLegenda} key={classe.valor}>
+                                <span className={estilos.poligono}
+                                        style={{ background: classe.cor }}
+                                />
+                                {classe.label}
+                            </div>
+                        ))}
+
+
 
                         {layer.simbologia.tipo === "simples" && layer.simbologia.simbolo === "linha" && (
                             <div className={estilos.itemLegenda}>
@@ -78,7 +88,7 @@ export default function LegendaSection({layers, zoomAtual, setPainelLegenda, pai
                     </div>
                 ))}
 
-                {camadasVariaveis.map(layer => {const variavelAtual = layer.variaveis.find(v => v.value === layer.variavelSel);
+                {camadasVariaveis.map(layer => {const variavelAtual = layer.variaveis.find(v => v.atributo === layer.variavelSel);
 
                     if (!variavelAtual?.legenda) return null;
 
@@ -88,14 +98,21 @@ export default function LegendaSection({layers, zoomAtual, setPainelLegenda, pai
 
                             {variavelAtual.legenda.map(item => (
                                 <div className={estilos.itemLegenda} key={String(item.label)}>
-                                    <span
-                                        className={estilos.poligono}
-                                        style={{ background: item.cor }}
-                                    />
+                                    {variavelAtual.simbolo === "ponto" ? (
+                                        <span
+                                            className={estilos.ponto}
+                                            style={{background: item.cor, borderColor: item.strokeColor, borderWidth: item.strokeWidth}}
+                                        />
+                                    ) : (
+                                        <span
+                                            className={estilos.poligono}
+                                            style={{ background: item.cor }}
+                                        />
+                                    )}
                                     {String(item.label)}
                                 </div>
                             ))}
-                        </div>
+                        </div> 
                     );
                 })}
             </div>

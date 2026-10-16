@@ -8,6 +8,8 @@ const MapaIntegradoChart = forwardRef(({ dadosCoropletico, dadosPontos, geoJson 
     const symbolSizeRef = useRef(6);
 
     if (geoJson && !echarts.getMap('BR')) {
+        // O registro é global no ECharts e deve ocorrer uma única vez, mesmo que
+        // o card remonte após alterações de filtros.
         echarts.registerMap('BR', geoJson)
     }
 
@@ -19,6 +21,8 @@ const MapaIntegradoChart = forwardRef(({ dadosCoropletico, dadosPontos, geoJson 
         )
     }
 
+    // Parte das geometrias para incluir também UFs sem registros na API e manter
+    // o mapa completo com valor zero nesses casos.
     const chartDataCoropletico = (geoJson?.features || []).map((feature) => {
         const props = feature.properties;
         const siglaGeo = props.SIGLA;
@@ -200,6 +204,8 @@ const MapaIntegradoChart = forwardRef(({ dadosCoropletico, dadosPontos, geoJson 
         },
 
         georoam: (params) => {
+            // Ajusta os pontos junto com o zoom e limita o tamanho para que não
+            // desapareçam nem encubram o mapa em escalas extremas.
             if (params.zoom && ref && ref.current) {
                 const chart = ref.current.getEchartsInstance();
                 let novoTamanho = symbolSizeRef.current * params.zoom;

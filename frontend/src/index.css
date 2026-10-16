@@ -1,32 +1,28 @@
 /* Importação da fonte no topo do arquivo */
+
 @import url('https://fonts.googleapis.com/css2?family=Rawline:wght@400;500;600;700&display=swap');
+
 @import "tailwindcss";
 
 @theme {
   --color-cisa-primary: var(--cisa-primary);
   --color-cisa-primary-dark: var(--cisa-primary-dark);
   --color-cisa-primary-light: var(--cisa-primary-light);
-  
   --color-cisa-bg: var(--cisa-bg);
   --color-cisa-surface: var(--cisa-surface);
   --color-cisa-border: var(--cisa-border);
-  
   --color-cisa-text-primary: var(--cisa-text-primary);
   --color-cisa-text-secondary: var(--cisa-text-secondary);
   --color-cisa-text-muted: var(--cisa-text-muted);
-
   --color-cisa-success: var(--cisa-success);
   --color-cisa-warning: var(--cisa-warning);
   --color-cisa-danger: var(--cisa-danger);
   --color-cisa-info: var(--cisa-info);
   --color-cisa-neutral: var(--cisa-neutral);
-
   --font-sans: 'Rawline', ui-sans-serif, system-ui, sans-serif;
-
   --shadow-surface: 0 1px 2px rgba(15, 23, 42, 0.02), 0 4px 8px rgba(15, 23, 42, 0.03);
   --shadow-elevated: 0 2px 4px rgba(15, 23, 42, 0.03), 0 12px 24px rgba(15, 23, 42, 0.06);
   --shadow-float: 0 4px 6px rgba(15, 23, 42, 0.04), 0 20px 40px rgba(15, 23, 42, 0.08);
-
   --color-cisa-border-soft: rgba(15, 23, 42, 0.06);
   --color-cisa-border-strong: rgba(15, 23, 42, 0.12);
 }
@@ -54,32 +50,26 @@
     --input: 240 5.9% 90%;
     --ring: 240 10% 3.9%;
     --radius: 0.5rem;
-
     /* ─── Tokens de Design — Painel */
     --cisa-primary: #1351B4;
     --cisa-primary-dark: #0C326F;
     --cisa-primary-light: #EDF4FF;
-
     --cisa-bg: #F4F6F9;
     --cisa-surface: #FFFFFF;
     --cisa-border: #DDE3EE;
-
     --cisa-text-primary: #1C1E26;
     --cisa-text-secondary: #5A6476;
     --cisa-text-muted: #9AA3B2;
-
     --cisa-success: #1A7F3C;
     --cisa-warning: #D97706;
     --cisa-danger: #C92D2D;
     --cisa-info: #0070A3;
     --cisa-neutral: #64748B;
-
     /* Gráficos */
     --chart-desembolsado: #1351B4;
     --chart-empenhado: #2684FF;
     --chart-a-empenhar: #8AB4F8;
     --chart-contrapartida: #E8EFF8;
-
     /* Layout */
     --sidebar-width: 240px;
     --header-height: 60px;
@@ -94,9 +84,23 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Scrollbar sutil*/
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--cisa-border); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--cisa-text-muted); }
+  /* Scrollbar sutil */
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--cisa-border);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--cisa-text-muted);
+  }
 }

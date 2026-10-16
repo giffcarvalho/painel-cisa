@@ -4,9 +4,9 @@ import { X } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/auth/useAuth'
 import LoginForm from './LoginForm'
-import FirstAccessForm from './FirstAccessForm'
-import ForgotPassword from './ForgotPassword'
-import PasswordResetForm from './PasswordResetForm'
+import PrimeiroAcessoForm from './PrimeiroAcessoForm'
+import RecuperarSenha from './RecuperarSenha'
+import RedefinirSenhaForm from './RedefinirSenhaForm'
 import styles from './LoginModal.module.css'
 
 const FOCUSABLE_SELECTOR = [
@@ -32,6 +32,8 @@ export default function LoginModal() {
   const location = useLocation()
 
   const handleClose = useCallback(() => {
+    // Operações de autenticação não podem ser interrompidas no meio; ao fechar a
+    // rota dedicada de login, retorna à home para não deixar uma tela vazia.
     if (isSubmitting) return
     const isLoginRoute = location.pathname === '/login'
     setView('login')
@@ -41,6 +43,8 @@ export default function LoginModal() {
   }, [closeLoginModal, isSubmitting, location.pathname, navigate])
 
   useEffect(() => {
+    // Bloqueia o scroll da página e mantém Tab dentro do diálogo enquanto o modal
+    // estiver aberto, restaurando ambos ao desmontar.
     if (!isLoginModalOpen) return undefined
 
     const previousOverflow = document.body.style.overflow
@@ -78,6 +82,8 @@ export default function LoginModal() {
   }, [handleClose, isLoginModalOpen, isSubmitting])
 
   function handleSuccess() {
+    // O destino foi previamente sanitizado pelo provider e substitui a rota atual
+    // para que Voltar não reabra o estado que exigiu autenticação.
     const destination = loginRedirectTo
     setView('login')
     setSuccessMessage('')
@@ -126,7 +132,7 @@ export default function LoginModal() {
           />
         )}
         {view === 'first-access' && (
-          <FirstAccessForm
+          <PrimeiroAcessoForm
             onBack={() => setView('login')}
             onSubmittingChange={setIsSubmitting}
             onSuccess={(message) => {
@@ -136,13 +142,13 @@ export default function LoginModal() {
           />
         )}
         {view === 'forgot-password' && (
-          <ForgotPassword
+          <RecuperarSenha
             onBack={() => setView('login')}
             onEnterCode={() => setView('password-reset')}
           />
         )}
         {view === 'password-reset' && (
-          <PasswordResetForm
+          <RedefinirSenhaForm
             onBack={() => setView('forgot-password')}
             onSubmittingChange={setIsSubmitting}
             onSuccess={(message) => {

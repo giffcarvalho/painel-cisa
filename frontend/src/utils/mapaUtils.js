@@ -1,33 +1,70 @@
 //função que associa as cores da camada
-export function gerarMatch(simbologia, propriedade, valorPadrao) {
-
-    if (!simbologia?.classes) {
-        return valorPadrao;
-    }
-
-    const match = ["match", ["get", simbologia.atributo]];
-    simbologia.classes.forEach(classe => {
-        match.push(classe.valor);
-        match.push(classe[propriedade]);
-    });
-
-    match.push(valorPadrao);
-    return match;
-}
-
-
-//função que associa as cores da legenda
-export function gerarMatchLegenda(atributo, legenda) {
+export function gerarMatch(atributo, legenda, propriedade, valorPadrao) {
 
     const match = ["match", ["get", atributo]];
 
     legenda.forEach(item => {
         match.push(item.valor);
-        match.push(item.cor);
+        match.push(item[propriedade]);
     });
 
-    match.push("#e7e1e1");
+    match.push(valorPadrao);
+
     return match;
 }
 
 
+
+export function gerarMatchComSituacaoTemporaria(atributo, legenda, propriedade, valorPadrao) {
+    
+    const matchFeature = ["match", ["get", atributo]];
+
+    legenda.forEach(item => {
+        matchFeature.push(item.valor);
+        matchFeature.push(item[propriedade]);
+    });
+
+    matchFeature.push(valorPadrao);
+
+    const matchFeatureState = ["match", ["feature-state", "situacaoAnalise"]];
+
+    legenda.forEach(item => {
+        matchFeatureState.push(item.valor);
+        matchFeatureState.push(item[propriedade]);
+    });
+
+    matchFeatureState.push(valorPadrao);
+
+    return [
+        "case",
+        ["has", "situacaoAnalise"],
+        matchFeatureState,
+        matchFeature
+    ];
+}
+
+
+export function gerarMatchSituacaoAnalise(
+    atributo,
+    legenda,
+    propriedade,
+    valorPadrao
+) {
+    const match = [
+        "match",
+        [
+            "coalesce",
+            ["feature-state", "situacaoAnalise"],
+            ["get", atributo]
+        ]
+    ];
+
+    legenda.forEach(item => {
+        match.push(item.valor);
+        match.push(item[propriedade]);
+    });
+
+    match.push(valorPadrao);
+
+    return match;
+}

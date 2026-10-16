@@ -1,0 +1,216 @@
+import { useEffect, useMemo, useState } from 'react';
+import { FiltrosPontosControleProvider } from '../../context/pontos-controle/filtrosContext';
+import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltrosPontosControle';
+import { useInstrumentosPontosControleQuery, useBuscaPlanoAcaoQuery } from '../../hooks/usePontosControle';
+import TabelaPontosControle from '../../components/pontos-controle/TabelaPontosControle';
+import PlanoAcao from '@/components/pontos-controle/PlanoAcao';
+import ContatoRecebedor from '@/components/pontos-controle/ContatoRecebedor';
+import HistoricoAcao from '@/components/pontos-controle/HistoricoAcao';
+import ContatoMandataria from '@/components/pontos-controle/ContatoMandataria';
+import estilos from './PontosControle.module.css';
+import pontosControleApi from '../../api/pontosControle';
+import { useAuth } from "@/context/auth/useAuth";
+
+
+
+//essa função extrai do objeto instrumentosQuery.data, o array com os instrumentos
+//primeiro isArray testa se o objeto já é um array, se for, já retorna o proprio array
+//se não for, procura por um array em várias propriedades possíveis, data, items, resultados, instrumentos, dados (aqui daria para especificar a propriedade, pois pelo schema sabe-se que ela é data)
+const getItens = (data) => {
+  if (Array.isArray(data)) return data;
+  return data?.data ?? data?.items ?? data?.resultados ?? data?.instrumentos ?? data?.dados ?? [];
+};
+
+function PontosControleContent() {
+  const [pagina, setPagina] = useState(1);
+  const [tamanhoPagina, setTamanhoPagina] = useState(80);
+  const [nrInstrumentoSelecionado, setNrInstrumentoSelecionado] = useState(null);
+  const [dataDados, setDataDados] = useState(null);
+  const [planoAcaoContexto, setPlanoAcaoContexto] = useState(null);
+  const [contatoRecebedorContexto, setContatoRecebedorContexto] = useState(null);
+  const [historicoAcaoContexto, setHistoricoAcaoContexto] = useState(null);
+  const [contatoMandataria, setContatoMandataria] = useState(false);
+  const { isAuthenticated } = useAuth();
+  
+
+  const { filtros } = useFiltrosPontosControle();
+
+  const fecharJanelaPlanoAcao = () => {
+    setPlanoAcaoContexto(null);
+  };
+
+  const { data: planoAcaoData } = useBuscaPlanoAcaoQuery();
+  
+
+
+  const abrirJanelaPlanoAcao = (nrInstrumento, campo, statusPontoControle) => {
+    
+    const historicoExistente = planoAcaoData?.data?.filter(
+      (item) => item.nr_instrumento === nrInstrumento && item.ponto_controle === campo
+    ) || [];
+    
+
+    setPlanoAcaoContexto({ 
+      nrInstrumento,
+      campo,
+      statusPontoControle,
+      historicoExistente,
+    });
+  };
+
+
+  const fecharJanelaContato = () => {
+    setContatoRecebedorContexto(null);
+  };
+
+  const abrirJanelaContato = (idRecebedor, recebedor) => {
+        
+    setContatoRecebedorContexto({
+      idRecebedor,
+      recebedor
+    });
+  };
+
+  const fecharJanelaHistoricoAcao = () => {
+    setHistoricoAcaoContexto(null);
+  };
+
+  const abrirJanelaHistoricoAcao = (nrInstrumento) => {
+        
+    setHistoricoAcaoContexto({
+      nrInstrumento
+    });
+  };
+
+
+
+
+  //instrumentosQuery não é o array de instrumentos ainda. É o objeto de resultado gerenciado pelo useQuery
+  //esse objeto é que é passado como props para a tabela
+  const instrumentosQuery = useInstrumentosPontosControleQuery(
+    filtros,
+    pagina,
+    tamanhoPagina
+  );
+
+
+  //dadosAdicionaisQuery não é o array de instrumentos ainda. É o objeto de resultado gerenciado pelo useQuery
+  //esse objeto é que é passado como props para a tabela
+  //const dadosAdicionaisQuery = useDadosAdicionaisPontosControleQuery();
+
+
+  useEffect(() => {
+    pontosControleApi.getDataDados()
+      .then((res) => setDataDados(res))
+      .catch((err) => console.error("Erro ao buscar data dos dados:", err));
+  }, []);
+
+  const instrumentos = useMemo(
+    () => getItens(instrumentosQuery.data),
+    [instrumentosQuery.data]
+  );
+  const total = instrumentosQuery.data?.total ?? instrumentos.length;
+
+  useEffect(() => {
+    setPagina(1);
+    setNrInstrumentoSelecionado(null);
+  }, [filtros]);
+
+  useEffect(() => {
+    if (instrumentosQuery.isLoading || instrumentosQuery.isFetching) return;
+    if(
+      nrInstrumentoSelecionado &&
+      !instrumentos.some(
+        (instrumento) => String(instrumento.nr_instrumento) === String(nrInstrumentoSelecionado)
+      )
+    ){
+      setNrInstrumentoSelecionado(null);
+    }
+  }, [
+    instrumentos,
+    instrumentosQuery.isFetching,
+    instrumentosQuery.isLoading,
+    nrInstrumentoSelecionado,
+  ]);
+
+  const handlePageChange = (novaPagina) => {
+    setPagina(novaPagina);
+    setNrInstrumentoSelecionado(null);
+  };
+
+  return (
+    <main className={estilos.page}>
+      
+            
+      {<section className={estilos.contentGrid}>
+        <TabelaPontosControle
+          data={instrumentosQuery.data}
+          dataDados={dataDados}
+          isLoading={instrumentosQuery.isLoading}
+          isError={instrumentosQuery.isError}
+          pagina={pagina}
+          tamanhoPagina={tamanhoPagina}
+          onPageChange={handlePageChange}
+          onPageSizeChange={(novoTamanho) => {
+            setTamanhoPagina(novoTamanho);
+            setPagina(1);
+            setNrInstrumentoSelecionado(null);
+          }}
+          nrInstrumentoSelecionado={nrInstrumentoSelecionado}
+          onSelectInstrumento={setNrInstrumentoSelecionado}
+          abrirJanelaPlanoAcao={abrirJanelaPlanoAcao}
+          abrirJanelaContato={abrirJanelaContato}
+          abrirJanelaHistoricoAcao={abrirJanelaHistoricoAcao}
+          setContatoMandataria={setContatoMandataria}
+        />
+      </section>}
+
+
+      {planoAcaoContexto && (
+        <PlanoAcao
+          key={`${planoAcaoContexto.nrInstrumento}-${planoAcaoContexto.campo}`}
+          fecharJanelaPlanoAcao={fecharJanelaPlanoAcao}
+          nrInstrumento={planoAcaoContexto.nrInstrumento}
+          campo={planoAcaoContexto.campo}
+          statusPontoControle={planoAcaoContexto.statusPontoControle}
+          historicoExistente={planoAcaoContexto.historicoExistente}
+        />
+      )}
+
+
+      {contatoRecebedorContexto && (
+        <ContatoRecebedor
+          key={`${contatoRecebedorContexto.idRecebedor}`}
+          fecharJanelaContato={fecharJanelaContato}
+          idRecebedor={contatoRecebedorContexto.idRecebedor}
+          recebedor={contatoRecebedorContexto.recebedor}
+        />
+      )}
+
+
+      {historicoAcaoContexto && (
+        <HistoricoAcao
+          key={`${historicoAcaoContexto.nrInstrumento}`}
+          fecharJanelaHistoricoAcao={fecharJanelaHistoricoAcao}
+          nrInstrumento={historicoAcaoContexto.nrInstrumento}
+        />
+      )}
+
+
+      {contatoMandataria && isAuthenticated && (
+        <ContatoMandataria
+          setContatoMandataria={setContatoMandataria}
+        />
+      )}
+
+    </main>
+  );
+}
+
+export default function PontosControle() {
+  return (
+    <FiltrosPontosControleProvider>
+      <PontosControleContent />
+    </FiltrosPontosControleProvider>
+  );
+}

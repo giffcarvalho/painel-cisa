@@ -3,7 +3,7 @@ import { X } from "lucide-react";
 
 
 export default function CamadasSection({ layers, toggleLayer, alterarVariavel, setPainelCamadas }) {
-
+    
     return(
         <div className={estilos.camadas}>
             <div className={estilos.camadaCabecalho}>
@@ -31,7 +31,8 @@ export default function CamadasSection({ layers, toggleLayer, alterarVariavel, s
                             {layer.nome}
                         </label>
 
-                        {layer.variaveis && (
+                                                
+                        {layer.variaveis?.length > 0 && (
                             <select className={estilos.seletorVariavel}
                                 value={layer.variavelSel}
                                 onChange={(e) => alterarVariavel(layer.id, e.target.value)}>
@@ -40,7 +41,7 @@ export default function CamadasSection({ layers, toggleLayer, alterarVariavel, s
                                 </option>
                                 {layer.variaveis.map(v => (
                                     <option 
-                                        key={v.value} value={v.value}>
+                                        key={v.atributo} value={v.atributo}>
                                             {v.label}
                                     </option>
                                 ))}

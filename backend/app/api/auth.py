@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.security import (
+from app.core.seguranca import (
     criar_token_acesso,
     decodificar_token_acesso,
     gerar_hash_senha,
@@ -52,6 +52,7 @@ def _jwt_secret_key() -> str:
 
 
 async def obter_usuario_atual(
+    request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     db: AsyncSession = Depends(get_db),
 ) -> UsuarioAutenticado:
@@ -102,7 +103,9 @@ async def obter_usuario_atual(
             detail="Usuário autenticado não encontrado ou inativo.",
         )
 
-    return UsuarioAutenticado(**dict(row))
+    usuario = UsuarioAutenticado(**dict(row))
+    request.state.id_usuario_log = usuario.id_usuario
+    return usuario
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -211,16 +214,17 @@ async def _buscar_usuario_elegivel_por_codigo(
     result = await db.execute(
         text(
             """
-            SELECT id_usuario, nome, email, setor, codigo_acesso_hash
-            FROM painel_dsr.tb_usuario
-            WHERE ativo IS TRUE
-              AND conta_ativada IS FALSE
-              AND senha_hash IS NULL
-              AND codigo_acesso_hash IS NOT NULL
-              AND codigo_acesso_usado_em IS NULL
+            SELECT u.id_usuario, u.nome, u.email, s.nome AS setor, u.codigo_acesso_hash
+            FROM painel_dsr.tb_usuario u
+            LEFT JOIN instrumento.tb_tecnico_setor s ON s.id_setor = u.id_setor
+            WHERE u.ativo IS TRUE
+              AND u.conta_ativada IS FALSE
+              AND u.senha_hash IS NULL
+              AND u.codigo_acesso_hash IS NOT NULL
+              AND u.codigo_acesso_usado_em IS NULL
               AND (
-                    codigo_acesso_expira_em IS NULL
-                    OR codigo_acesso_expira_em > NOW()
+                    u.codigo_acesso_expira_em IS NULL
+                    OR u.codigo_acesso_expira_em > NOW()
                   )
             """
         )

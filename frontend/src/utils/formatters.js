@@ -22,6 +22,17 @@ export function formatDate(dateString) {
   }
 }
 
+// "2026-06-29T15:00:00" → "29/06/2026 - 15:00"
+export function formatDatetime(dateString) {
+  if (!dateString) return '—';
+  try {
+    const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
+    return isValid(date) ? format(date, "dd/MM/yyyy - HH:mm", { locale: ptBR }) : '—';
+  } catch {
+    return '—';
+  }
+}
+
 // 0.7523 → "75,23%"
 export function formatPercent(value) {
   if (value == null || isNaN(value)) return '—'
@@ -45,3 +56,11 @@ export function formatPercentualPontos(value) {
     maximumFractionDigits: 2,
   })}%`
 }
+
+
+
+
+export const emptyValue = (value) => {
+  if (value === null || value === undefined || value === '') return '—';
+  return value;
+};

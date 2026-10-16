@@ -90,6 +90,8 @@ function ChartStateWrapper({ isLoading, isError, children }) {
 }
 
 const handlePngExport = (chartRef, fileName) => {
+  // Usa a instância já renderizada pelo ECharts para que o PNG reflita zoom,
+  // legenda e demais interações visíveis no momento da exportação.
   if (chartRef.current) {
     const instance = chartRef.current.getEchartsInstance()
     const url = instance.getDataURL({ type: 'png', backgroundColor: '#ffffff', pixelRatio: 2 })
@@ -141,6 +143,8 @@ function AsyncMapaIntegrado() {
   const queryGeoJson = useBrasilGeoJsonQuery()
   const chartRef = useRef(null)
 
+  // O mapa só pode ser composto quando geometria, agregados por UF e pontos
+  // municipais estiverem disponíveis; qualquer falha torna o card inconsistente.
   const isLoading = queryCoropletico.isLoading || queryPontos.isLoading || queryGeoJson.isLoading
   const isError = queryCoropletico.isError || queryPontos.isError || queryGeoJson.isError
 

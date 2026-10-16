@@ -19,6 +19,10 @@ export default defineConfig([
     },
   },
   {
+    files: ['tests/**/*.mjs'],
+    languageOptions: { globals: globals.node },
+  },
+  {
     files: ['src/router.jsx'],
     rules: {
       'react-refresh/only-export-components': 'off',

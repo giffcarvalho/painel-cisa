@@ -1,0 +1,169 @@
+.overlay_modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.4); 
+    backdrop-filter: blur(4px);            
+    -webkit-backdrop-filter: blur(4px);    
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;                         
+}
+
+.janela {
+    width: 1400px;                        
+    max-width: 95vw;                       
+    max-height: 90vh;
+    min-height: 50vh;
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    border-radius: 8px;
+    background: #ffffff;                  
+    border: 1px solid #e0e0e0;
+    box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.2);
+    animation: surgimentoSuave 0.2s ease-out;
+}
+
+.cabecalho {
+    display: flex;
+    justify-content: space-between;
+    padding-bottom: 4px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #aaaaaa;
+}
+
+.secao_esquerda {
+    display: flex;
+    font-size: 13px;
+    color: #374151;
+}
+
+.secao_esquerda h4{
+    font-size: 18px;
+    font-weight: 600;
+    color: #00529e;
+    margin: 0;
+}
+
+.secao_esquerda label {
+    margin-top: 5px;
+    margin-left: 30px;
+    margin-right: 6px;
+    font-weight: 600;
+}
+
+.secao_esquerda select {
+  padding: 6px 12px;
+  font-weight: 500;
+  background-color: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  position: relative; 
+}
+
+.selectUf:hover {
+  border-color: #9ca3af;
+}
+
+.selectUf:focus {
+  border-color: #00529e;
+  box-shadow: 0 0 0 2px rgba(0, 82, 158, 0.15);
+}
+
+.botaoX {
+    padding: 8px;
+    color: #6b7280;
+    border-radius: 9999px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.botaoX:hover {
+    background-color: #f6f3f3;
+}
+
+.XFechar {
+    width: 16px;
+    height: 16px;
+}
+
+.container_tabela {
+    max-height: 100%;
+    overflow-y: auto;
+    overflow-x: auto;
+    border: 1px solid #d1d5db;
+}
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  table-layout: auto;
+}
+
+.tabela td {
+  padding: 4px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.tabela th {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  vertical-align: middle;
+  background: #f9fafb;
+  color: #374151;
+  font-weight: 700;
+}
+
+.headerRow th {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #f9fafb;
+}
+
+.colMini {
+  width: 60px;
+  max-width: 60px;
+}
+
+.colPequena {
+  width: 90px;
+  max-width: 90px;
+}
+
+.colMedia {
+  width: 120px;
+  max-width: 120px;
+}
+
+.colGrande {
+  width: 180px;
+  max-width: 180px;
+}
+
+.colGigante {
+  width: 280px;
+  max-width: 280px;
+}
+
+.compactCell {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+

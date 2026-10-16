@@ -20,6 +20,8 @@ export function AuthProvider({ children }) {
   const [loginRedirectTo, setLoginRedirectTo] = useState(null)
   const loginModalOpenerRef = useRef(null)
 
+  // Guarda o elemento que abriu o modal para devolver o foco ao fechar e
+  // normaliza o redirecionamento antes de expô-lo ao fluxo de autenticação.
   const openLoginModal = useCallback((options = {}) => {
     const requestedRedirect = options.redirectTo
       ? getSafeAuthRedirect(options.redirectTo, null)
@@ -49,6 +51,8 @@ export function AuthProvider({ children }) {
   }, [])
 
   useEffect(() => {
+    // O interceptor HTTP e outras abas comunicam logout sem depender de uma
+    // referência direta ao provider.
     function handleExternalLogout() {
       setToken(null)
       setUsuario(null)
@@ -59,6 +63,8 @@ export function AuthProvider({ children }) {
   }, [])
 
   useEffect(() => {
+    // Requisições protegidas podem solicitar autenticação globalmente e indicar
+    // a rota segura a retomar depois do login.
     function handleLoginRequired(event) {
       openLoginModal({ redirectTo: event.detail?.redirectTo })
     }
@@ -68,6 +74,8 @@ export function AuthProvider({ children }) {
   }, [openLoginModal])
 
   useEffect(() => {
+    // Revalida o usuário persistido ao iniciar a aplicação. A flag impede que
+    // uma resposta tardia atualize o provider após seu desmontar.
     let cancelled = false
     const currentToken = getAuthToken()
 
@@ -118,6 +126,8 @@ export function AuthProvider({ children }) {
   }, [clearSessionState])
 
   const value = useMemo(
+    // A identidade estável evita renderizações de todos os consumidores quando
+    // nenhum estado ou callback de autenticação mudou.
     () => ({
       token,
       usuario,

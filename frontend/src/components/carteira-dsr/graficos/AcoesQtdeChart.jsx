@@ -1,7 +1,10 @@
 import { forwardRef } from 'react'
 import ReactECharts from 'echarts-for-react'
+import { useResponsiveCategoryAxis } from '@/hooks/useResponsiveCategoryAxis'
 
 const AcoesQtdeChart = forwardRef(({ dados }, ref) => {
+  const { containerRef, isCompact } = useResponsiveCategoryAxis()
+
   if (!dados || dados.length === 0) {
     return (
       <div className="flex h-full w-full items-center justify-center text-sm text-gray-500">
@@ -19,16 +22,16 @@ const AcoesQtdeChart = forwardRef(({ dados }, ref) => {
       axisPointer: { type: 'shadow' }
     },
     grid: {
-      left: '3%',
+      left: isCompact ? '8%' : '3%',
       right: '4%',
-      bottom: '25%',
+      bottom: isCompact ? '34%' : '25%',
       containLabel: true
     },
     xAxis: {
       type: 'category',
       data: categorias,
       axisLabel: {
-        rotate: 0,
+        rotate: isCompact ? 40 : 0,
         width: 100,
         overflow: 'break',
         hideOverlap: false,
@@ -56,12 +59,14 @@ const AcoesQtdeChart = forwardRef(({ dados }, ref) => {
   }
 
   return (
-    <ReactECharts 
-      ref={ref}
-      option={options} 
-      style={{ height: '100%', width: '100%', minHeight: '300px' }} 
-      notMerge={true}
-    />
+    <div ref={containerRef} style={{ height: '100%', width: '100%', minHeight: '300px' }}>
+      <ReactECharts
+        ref={ref}
+        option={options}
+        style={{ height: '100%', width: '100%', minHeight: '300px' }}
+        notMerge={true}
+      />
+    </div>
   )
 })
 

@@ -20,11 +20,15 @@ export default function LoginForm({
   const submittingRef = useRef(false)
 
   useEffect(() => {
+    // O foco inicial acelera o fluxo sem competir com a restauração de foco feita
+    // pelo modal quando ele é fechado.
     emailRef.current?.focus()
   }, [])
 
   async function handleSubmit(event) {
     event.preventDefault()
+    // A ref bloqueia duplo envio antes que a atualização de estado desabilite o
+    // botão na renderização seguinte.
     if (submittingRef.current) return
 
     submittingRef.current = true
