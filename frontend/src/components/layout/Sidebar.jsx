@@ -126,7 +126,7 @@ export function Sidebar({ openOnClick = false }) {
           }
         `}
       >
-        Painel DSR v1.0
+        Painel DSR v2.0
       </div>
     </aside>
   )
