@@ -160,6 +160,7 @@ export default function HistoricoRevisoes({ escopo, embedded = false, compact = 
                     {pessoal && item.objeto && <p className={styles.description}>{item.objeto}</p>}
                     {!pessoal && <p className={styles.author}>Enviada por <strong>{item.usuario.nome}</strong></p>}
                     <p className={styles.date}>Enviada em {formatarData(item.enviado_em)}</p>
+                    {item.nr_processo_sei && <p className={styles.description}>Número do processo SEI: {item.nr_processo_sei}</p>}
                   </div>
                   <div className={styles.cardActions}>
                     <span className={`${styles.status} ${item.status_execucao === 'cancelado' ? styles.cancelled : item.solicitacao_cancelamento?.status === 'pendente' ? styles.requested : item.aplicado_em ? styles.applied : ''}`}>
