@@ -1665,6 +1665,17 @@ button:disabled {
   resize: vertical;
 }
 
+.campoRevisaoInline .processoSeiInput {
+  width: 230px;
+  max-width: 100%;
+  justify-self: start;
+}
+
+.processoSeiInput::placeholder {
+  color: #9ca3af;
+  opacity: 1;
+}
+
 .localidadesTable th,
 .localidadesTable td {
   padding: 7px 8px;

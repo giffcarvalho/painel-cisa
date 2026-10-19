@@ -71,6 +71,37 @@ const LOCALIDADE_NOVA_INICIAL = {
 // Normalização e regras de domínio
 // ============================================================================
 
+function formatarNumeroProcessoSei(value) {
+  const digitos = String(value ?? '').replace(/[^0-9]/g, '').slice(0, 17)
+  return digitos.replace(/^([0-9]{5})([0-9])/, '$1.$2')
+    .replace(/^([0-9]{5}\.[0-9]{6})([0-9])/, '$1/$2')
+    .replace(/^([0-9]{5}\.[0-9]{6}\/[0-9]{4})([0-9])/, '$1-$2')
+}
+
+function numeroProcessoSeiValido(value) {
+  return !value || /^[0-9]{5}\.[0-9]{6}\/[0-9]{4}-[0-9]{2}$/.test(value)
+}
+
+function atualizarNumeroProcessoSei(input, valorAnterior, tipoEntrada) {
+  let digitos = input.value.replace(/[^0-9]/g, '')
+  let posicao = input.value.slice(0, input.selectionStart).replace(/[^0-9]/g, '').length
+
+  // Ao apagar só um separador, remove também o dígito adjacente para que a
+  // pontuação automática não prenda Backspace ou Delete na mesma posição.
+  if (formatarNumeroProcessoSei(input.value) === valorAnterior &&
+      input.value.length < valorAnterior.length && tipoEntrada?.startsWith('deleteContent')) {
+    const indice = tipoEntrada === 'deleteContentBackward' ? posicao - 1 : posicao
+    digitos = digitos.slice(0, indice) + digitos.slice(indice + 1)
+    posicao = Math.max(0, indice)
+  }
+
+  const formatado = formatarNumeroProcessoSei(digitos)
+  const cursor = formatarNumeroProcessoSei(digitos.slice(0, posicao)).length
+  input.value = formatado
+  input.setSelectionRange(cursor, cursor)
+  return formatado
+}
+
 function normalizarBusca(value) {
   return String(value ?? '')
     .normalize('NFD')
@@ -823,6 +854,8 @@ export default function RevisaoInstrumento() {
   const conferenciaPublicoAlvoAncoraRef = useRef(null)
   const [municipioAberto, setMunicipioAberto] = useState(null)
   const [observacaoGeral, setObservacaoGeral] = useState('')
+  const [nrProcessoSei, setNrProcessoSei] = useState('')
+  const [exibirErroProcessoSei, setExibirErroProcessoSei] = useState(false)
   const [novoMunicipio, setNovoMunicipio] = useState(MUNICIPIO_NOVO_INICIAL)
   const [buscaMunicipioOficial, setBuscaMunicipioOficial] = useState('')
   const [municipiosOficiais, setMunicipiosOficiais] = useState([])
@@ -870,6 +903,7 @@ export default function RevisaoInstrumento() {
   const bloqueadoPorRascunhoAlheio = temRascunhoAberto && !ehAutorRascunho
   const modoSomenteLeitura = dadosBusca?.status === 'enviado' || somenteLeituraPorAtribuicao || bloqueadoPorRascunhoAlheio
   const canEditRevision = dadosBusca?.pode_editar_revisao === true && dadosBusca?.status !== 'enviado'
+  const erroProcessoSei = exibirErroProcessoSei && !numeroProcessoSeiValido(nrProcessoSei)
   const usuarioAtualNome = nomeUsuario(usuario)
   const contextoAtual = contextoRevisao(dadosBusca, usuarioAtualNome)
   const registrarEventoHistorico = (titulo, descricao) => {
@@ -935,6 +969,8 @@ export default function RevisaoInstrumento() {
     setPublicoAlvo([])
     setMunicipioAberto(null)
     setObservacaoGeral('')
+    setNrProcessoSei('')
+    setExibirErroProcessoSei(false)
     setNovoMunicipio(MUNICIPIO_NOVO_INICIAL)
     setBuscaMunicipioOficial('')
     setMunicipiosOficiais([])
@@ -962,6 +998,7 @@ export default function RevisaoInstrumento() {
       setDadosBusca(data)
       setIdRevisao(data.id_revisao ?? null)
       setObservacaoGeral(data.observacao_geral ?? '')
+      setNrProcessoSei(formatarNumeroProcessoSei(data.nr_processo_sei))
       setRascunhoObservacaoGeral(data.observacao_geral ?? '')
       setMunicipios(copiarMunicipios(data.municipios))
       setPublicoAlvo(copiarPublicoAlvo(data.publico_alvo))
@@ -1751,6 +1788,8 @@ export default function RevisaoInstrumento() {
     id_revisao: idRevisaoAtual,
     status,
     observacao_geral: observacaoGeral.trim() || null,
+    // Um número parcial fica apenas na tela; omitir preserva o valor já salvo.
+    ...(numeroProcessoSeiValido(nrProcessoSei) ? { nr_processo_sei: nrProcessoSei || null } : {}),
     comentario_correcao: status === 'enviado' && dadosBusca?.devolutiva
       ? comentarioCorrecao.trim()
       : null,
@@ -1793,6 +1832,11 @@ export default function RevisaoInstrumento() {
 
   const salvarRevisao = async (status) => {
     if (!instrumento) return
+    if (status === 'enviado' && !numeroProcessoSeiValido(nrProcessoSei)) {
+      document.getElementById('nr-processo-sei')?.focus()
+      setExibirErroProcessoSei(true)
+      return
+    }
 
     const eraRascunhoExistente = Boolean(idRevisao)
     setIsSaving(true)
@@ -1956,6 +2000,11 @@ export default function RevisaoInstrumento() {
   }
 
   const iniciarEnvio = () => {
+    if (!numeroProcessoSeiValido(nrProcessoSei)) {
+      document.getElementById('nr-processo-sei')?.focus()
+      setExibirErroProcessoSei(true)
+      return
+    }
     if (dadosBusca?.devolutiva) {
       setConfirmarReenvio(true)
       return
@@ -1972,6 +2021,7 @@ export default function RevisaoInstrumento() {
   const iniciarNovaRevisao = async () => {
     if (!instrumento) return
     setIsLoading(true)
+    setExibirErroProcessoSei(false)
     try {
       const data = await revisaoInstrumentoApi.buscarInstrumento(
         instrumento.identificador_busca,
@@ -1979,6 +2029,7 @@ export default function RevisaoInstrumento() {
       setDadosBusca(data)
       setIdRevisao(data.id_revisao ?? null)
       setObservacaoGeral(data.observacao_geral ?? '')
+      setNrProcessoSei(formatarNumeroProcessoSei(data.nr_processo_sei))
       setRascunhoObservacaoGeral(data.observacao_geral ?? '')
       setMunicipios(copiarMunicipios(data.municipios ?? []))
       setPublicoAlvo(copiarPublicoAlvo(data.publico_alvo ?? []))
@@ -2319,6 +2370,36 @@ export default function RevisaoInstrumento() {
                 <section className={styles.generalReviewIntro} aria-labelledby="revisao-geral-titulo">
                   <div>
                     <h2 id="revisao-geral-titulo">Revisão do instrumento</h2>
+                  </div>
+
+                  <div className={`${styles.generalObservation} ${styles.campoRevisaoInline}`}>
+                    <div className={styles.generalFieldHeading}>
+                      <h3><label htmlFor="nr-processo-sei">Número do processo SEI</label></h3>
+                    </div>
+                    <input
+                      id="nr-processo-sei"
+                      className={styles.processoSeiInput}
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="00000.000000/0000-00"
+                      value={nrProcessoSei}
+                      disabled={!canEditRevision || isSaving}
+                      aria-invalid={erroProcessoSei}
+                      aria-describedby={erroProcessoSei ? 'erro-processo-sei' : undefined}
+                      onFocus={() => setExibirErroProcessoSei(false)}
+                      onBlur={() => setExibirErroProcessoSei(true)}
+                      onChange={(event) => {
+                        setExibirErroProcessoSei(false)
+                        setNrProcessoSei(atualizarNumeroProcessoSei(
+                          event.target, nrProcessoSei, event.nativeEvent.inputType,
+                        ))
+                      }}
+                    />
+                    {erroProcessoSei && (
+                      <p id="erro-processo-sei" className={styles.municipioOficialErro} role="alert">
+                        Informe os 17 dígitos do processo SEI ou deixe o campo vazio.
+                      </p>
+                    )}
                   </div>
 
                   <div className={styles.generalObservation}>

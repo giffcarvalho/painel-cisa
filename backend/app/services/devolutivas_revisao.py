@@ -102,10 +102,10 @@ async def devolver_revisao(
             novo = await db.execute(text("""
                 INSERT INTO painel_dsr.tb_revisao_instrumento
                     (identificador_busca, tipo_instrumento, nr_instrumento, nr_proposta,
-                     nr_ted, id_usuario, status, observacao_geral, id_revisao_anterior,
+                     nr_ted, id_usuario, status, observacao_geral, nr_processo_sei, id_revisao_anterior,
                      base_referencia_em, validade_dias)
                 SELECT identificador_busca, tipo_instrumento, nr_instrumento, nr_proposta,
-                       nr_ted, id_usuario, 'rascunho', observacao_geral, id_revisao,
+                       nr_ted, id_usuario, 'rascunho', observacao_geral, nr_processo_sei, id_revisao,
                        base_referencia_em, validade_dias
                 FROM painel_dsr.tb_revisao_instrumento WHERE id_revisao = :id_revisao
                 RETURNING id_revisao

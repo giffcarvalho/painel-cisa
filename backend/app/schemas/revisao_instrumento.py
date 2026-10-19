@@ -238,6 +238,7 @@ class RevisaoInstrumentoBuscaResponse(RevisaoInstrumentoBase):
     status_revisao_geral: str = "pendente"
     status_revisao_geral_label: str = "Revisão pendente"
     observacao_geral: str | None = None
+    nr_processo_sei: str | None = None
     municipios: list[MunicipioRevisaoItem]
     publico_alvo: list[PublicoAlvoRevisaoItem] = Field(default_factory=list)
     dados_oficiais: dict[str, Any] | None = None
@@ -263,6 +264,7 @@ class RevisaoInstrumentoDetalheResponse(RevisaoInstrumentoBase):
     id_revisao_anterior: int | None = None
     status: str
     observacao_geral: str | None = None
+    nr_processo_sei: str | None = None
     criado_em: datetime
     atualizado_em: datetime
     enviado_em: datetime | None = None
@@ -281,6 +283,7 @@ class RevisaoInstrumentoDetalheResponse(RevisaoInstrumentoBase):
 class RevisaoHistoricoItem(RevisaoInstrumentoBase):
     id_revisao: int
     id_revisao_anterior: int | None = None
+    nr_processo_sei: str | None = None
     identificador_busca: str
     tipo_instrumento: TipoInstrumento
     nr_instrumento: str | None = None
@@ -335,6 +338,9 @@ class RevisaoInstrumentoCreate(RevisaoInstrumentoBase):
     id_revisao: int | None = None
     status: StatusRevisao = "rascunho"
     observacao_geral: str | None = None
+    nr_processo_sei: str | None = Field(
+        default=None, max_length=20, pattern=r"^[0-9]{5}\.[0-9]{6}/[0-9]{4}-[0-9]{2}$"
+    )
     comentario_correcao: str | None = Field(default=None, max_length=4000)
 
     instrumento: InstrumentoRevisaoInfo
@@ -370,6 +376,7 @@ class RevisaoInstrumentoMunicipioSave(RevisaoInstrumentoBase):
 class RevisaoInstrumentoSalvoResponse(RevisaoInstrumentoBase):
     id_revisao: int
     status: str
+    nr_processo_sei: str | None = None
     status_revisao_geral: str = "pendente"
     status_revisao_geral_label: str = "Revisão pendente"
     mensagem: str
