@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { identificarErro } from './erros'
 import {
   clearAuthSession,
   getAuthToken,
@@ -34,7 +35,8 @@ api.interceptors.request.use((config) => {
 // credenciais e solicita o modal preservando a rota que deverá ser retomada.
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    await identificarErro(error)
     if (error.response?.status === 401 && !error.config?.url?.includes('/auth/login')) {
       clearAuthSession()
       notifyAuthLogout()
@@ -44,12 +46,6 @@ api.interceptors.response.use(
       requestAuthLogin(currentPath)
     }
 
-    // Futuramente, substituir os console.error por toasts da UI (ex: sonner / useToast)
-    if (error.response?.status === 500) {
-      console.error('[API] Erro interno do servidor:', error.response.data?.detail)
-      // toast.error("Erro interno ao consultar a base de dados.")
-    }
-    
     if (error.code === 'ECONNABORTED') {
       console.error('[API] Timeout: a consulta demorou mais de 30s')
       // toast.warning("A consulta demorou muito. Tente refinar seus filtros.")

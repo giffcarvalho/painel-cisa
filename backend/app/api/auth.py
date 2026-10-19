@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
@@ -52,6 +52,7 @@ def _jwt_secret_key() -> str:
 
 
 async def obter_usuario_atual(
+    request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     db: AsyncSession = Depends(get_db),
 ) -> UsuarioAutenticado:
@@ -102,7 +103,9 @@ async def obter_usuario_atual(
             detail="Usuário autenticado não encontrado ou inativo.",
         )
 
-    return UsuarioAutenticado(**dict(row))
+    usuario = UsuarioAutenticado(**dict(row))
+    request.state.id_usuario_log = usuario.id_usuario
+    return usuario
 
 
 @router.post("/login", response_model=TokenResponse)

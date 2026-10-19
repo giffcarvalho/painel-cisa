@@ -6,6 +6,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { router } from './router'
 import { FiltrosProvider } from './context/carteira-Dsr/filtrosContext'
 import { AuthProvider } from './context/auth/AuthProvider'
+import CodigosErro from './components/ui/CodigosErro'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -30,6 +31,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <AuthProvider>
         <FiltrosProvider>
           <RouterProvider router={router} />
+          <CodigosErro />
         </FiltrosProvider>
       </AuthProvider>
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}

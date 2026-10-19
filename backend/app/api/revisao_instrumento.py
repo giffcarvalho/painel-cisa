@@ -905,6 +905,7 @@ async def _buscar_rascunho_global(
             u.nome AS responsavel_nome,
             r.status,
             r.observacao_geral,
+            r.nr_processo_sei,
             r.criado_em,
             r.atualizado_em,
             r.enviado_em
@@ -1184,6 +1185,7 @@ async def _obter_revisao_por_id(
             nr_ted,
             status,
             observacao_geral,
+            nr_processo_sei,
             criado_em,
             atualizado_em,
             enviado_em
@@ -1243,6 +1245,8 @@ async def _obter_ou_criar_revisao(
     status_revisao: str | None = "rascunho",
     observacao_geral: str | None = None,
     observacao_informada: bool = False,
+    nr_processo_sei: str | None = None,
+    processo_sei_informado: bool = False,
 ) -> dict:
     if id_revisao is not None:
         revisao = await _obter_revisao_por_id(
@@ -1261,6 +1265,8 @@ async def _obter_ou_criar_revisao(
                     status = CASE WHEN :status = 'enviado' THEN 'enviado' ELSE status END,
                     observacao_geral = CASE WHEN :observacao_informada
                         THEN CAST(:observacao_geral AS text) ELSE observacao_geral END,
+                    nr_processo_sei = CASE WHEN :processo_sei_informado
+                        THEN CAST(:nr_processo_sei AS varchar) ELSE nr_processo_sei END,
                     atualizado_em = NOW(),
                     enviado_em = CASE
                         WHEN :status = 'enviado' THEN COALESCE(enviado_em, NOW())
@@ -1272,6 +1278,7 @@ async def _obter_ou_criar_revisao(
                     id_revisao,
                     status,
                     observacao_geral,
+                    nr_processo_sei,
                     criado_em,
                     atualizado_em,
                     enviado_em
@@ -1283,6 +1290,8 @@ async def _obter_ou_criar_revisao(
                 "status": status_revisao,
                 "observacao_geral": observacao_geral,
                 "observacao_informada": observacao_informada,
+                "nr_processo_sei": nr_processo_sei,
+                "processo_sei_informado": processo_sei_informado,
             },
         )
         return dict(result.mappings().one())
@@ -1297,13 +1306,15 @@ async def _obter_ou_criar_revisao(
                     _rascunho_para_contrato(revisao_existente, id_usuario)
                 ),
             )
-        if status_revisao == "enviado" or observacao_informada:
+        if status_revisao == "enviado" or observacao_informada or processo_sei_informado:
             return await _obter_ou_criar_revisao(
                 db, instrumento, id_usuario,
                 id_revisao=revisao_existente["id_revisao"],
                 status_revisao=status_revisao,
                 observacao_geral=observacao_geral,
                 observacao_informada=observacao_informada,
+                nr_processo_sei=nr_processo_sei,
+                processo_sei_informado=processo_sei_informado,
             )
         return revisao_existente
 
@@ -1319,6 +1330,7 @@ async def _obter_ou_criar_revisao(
                 id_usuario,
                 status,
                 observacao_geral,
+                nr_processo_sei,
                 enviado_em,
                 id_revisao_anterior,
                 base_referencia_em
@@ -1332,6 +1344,7 @@ async def _obter_ou_criar_revisao(
                 :id_usuario,
                 COALESCE(:status, 'rascunho'),
                 :observacao_geral,
+                :nr_processo_sei,
                 CASE WHEN :status = 'enviado' THEN NOW() ELSE NULL END,
                 (
                     SELECT id_revisao
@@ -1349,6 +1362,7 @@ async def _obter_ou_criar_revisao(
                 id_revisao,
                 status,
                 observacao_geral,
+                nr_processo_sei,
                 criado_em,
                 atualizado_em,
                 enviado_em
@@ -1363,6 +1377,7 @@ async def _obter_ou_criar_revisao(
             "id_usuario": id_usuario,
             "status": status_revisao,
             "observacao_geral": observacao_geral,
+            "nr_processo_sei": nr_processo_sei,
         },
     )
     return dict(result.mappings().one())
@@ -1861,6 +1876,7 @@ async def _buscar_detalhe_revisao_enviada(
             r.nr_ted,
             r.status,
             r.observacao_geral,
+            r.nr_processo_sei,
             r.criado_em,
             r.atualizado_em,
             r.enviado_em,
@@ -2064,6 +2080,7 @@ async def _buscar_detalhe_revisao_enviada(
                 "id_revisao_anterior",
                 "status",
                 "observacao_geral",
+                "nr_processo_sei",
                 "criado_em",
                 "atualizado_em",
                 "enviado_em",
@@ -2152,6 +2169,7 @@ async def _listar_historico_revisoes(
         SELECT
             r.id_revisao,
             r.id_revisao_anterior,
+            r.nr_processo_sei,
             r.identificador_busca,
             r.tipo_instrumento,
             r.nr_instrumento,
@@ -2232,6 +2250,7 @@ async def _listar_historico_revisoes(
                     for campo in (
                         "id_revisao",
                         "id_revisao_anterior",
+                        "nr_processo_sei",
                         "identificador_busca",
                         "tipo_instrumento",
                         "nr_instrumento",
@@ -3309,6 +3328,7 @@ async def _montar_resposta_busca(
         status=revisao["status"] if revisao else None,
         status_revisao_geral=status_revisao_geral,
         status_revisao_geral_label=status_revisao_geral_label,
+        nr_processo_sei=revisao.get("nr_processo_sei") if revisao else None,
         observacao_geral=_observacao_geral_atual(
             revisao, ultima_revisao_aplicada
         ),
@@ -3518,6 +3538,8 @@ async def salvar_revisao_instrumento(
             status_revisao="rascunho",
             observacao_geral=payload.observacao_geral,
             observacao_informada="observacao_geral" in payload.model_fields_set,
+            nr_processo_sei=payload.nr_processo_sei,
+            processo_sei_informado="nr_processo_sei" in payload.model_fields_set,
         )
         id_revisao = revisao["id_revisao"]
         municipios_salvos = []
@@ -3634,6 +3656,7 @@ async def salvar_revisao_instrumento(
         return RevisaoInstrumentoSalvoResponse(
             id_revisao=id_revisao,
             status=status_retorno,
+            nr_processo_sei=revisao.get("nr_processo_sei"),
             status_revisao_geral=resposta_atualizada.status_revisao_geral,
             status_revisao_geral_label=resposta_atualizada.status_revisao_geral_label,
             mensagem="Revisão salva com sucesso.",
