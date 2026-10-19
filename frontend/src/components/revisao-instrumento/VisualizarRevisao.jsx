@@ -219,6 +219,13 @@ export default function VisualizarRevisao() {
         {revisao.devolutiva.id_revisao_reenvio && <p>Versão corrigida: revisão nº {revisao.devolutiva.id_revisao_reenvio}.</p>}
       </section>}
 
+      {revisao.nr_processo_sei && (
+        <section className={styles.section}>
+          <h2>Número do processo SEI</h2>
+          <p className={styles.textBlock}>{revisao.nr_processo_sei}</p>
+        </section>
+      )}
+
       {revisao.observacao_geral && (
         <section className={styles.section}>
           <h2>Observação geral</h2>
@@ -321,7 +328,7 @@ export default function VisualizarRevisao() {
         </section>
       )}
 
-      {!revisao.observacao_geral && revisao.publico_alvo.length === 0 && revisao.municipios.length === 0 && (
+      {!revisao.nr_processo_sei && !revisao.observacao_geral && revisao.publico_alvo.length === 0 && revisao.municipios.length === 0 && (
         <section className={styles.empty}>Nenhuma alteração foi registrada nesta revisão.</section>
       )}
       {modalSolicitacao && <ModalSolicitacaoCancelamento motivo={motivoSolicitacao} processando={solicitando} onMotivo={setMotivoSolicitacao} onFechar={() => setModalSolicitacao(false)} onEnviar={enviarSolicitacao} />}
