@@ -1753,7 +1753,7 @@ async def _criar_revisao_instrumento(
                 :nr_ted,
                 :id_usuario,
                 'rascunho',
-                NOW(),
+                NULL,
                 (
                     SELECT id_revisao
                     FROM painel_dsr.tb_revisao_instrumento anterior
