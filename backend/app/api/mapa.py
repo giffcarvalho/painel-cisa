@@ -1730,6 +1730,7 @@ async def _criar_revisao_instrumento(
     instrumento: InstrumentoRevisaoInfo,
     id_usuario: int,
 ) -> dict:
+    """Cria um rascunho para receber as coordenadas antes do envio."""
     result = await db.execute(
         text(
             """
@@ -1751,7 +1752,7 @@ async def _criar_revisao_instrumento(
                 :nr_proposta,
                 :nr_ted,
                 :id_usuario,
-                'enviado',
+                'rascunho',
                 NOW(),
                 (
                     SELECT id_revisao
@@ -1947,6 +1948,27 @@ async def salvar_analise_coordenadas(
                 coordenada=coordenada,
             )
 
+        # como na Revisão do Instrumento, só finaliza o envio após os filhos.
+        # a trigger passa a protegê-los a partir desta mudança de status.
+        enviado_result = await db.execute(
+            text(
+                """
+                UPDATE painel_dsr.tb_revisao_instrumento
+                SET status = 'enviado', enviado_em = NOW(), atualizado_em = NOW()
+                WHERE id_revisao = :id_revisao
+                  AND id_usuario = :id_usuario
+                  AND status = 'rascunho'
+                RETURNING id_revisao
+                """
+            ),
+            {"id_revisao": id_revisao, "id_usuario": usuario_atual.id_usuario},
+        )
+        if enviado_result.mappings().one_or_none() is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A revisão já foi enviada e é somente leitura.",
+            )
+
         await criar_notificacoes_administradores(
             db,
             tipo="admin_revisao_enviada",
@@ -1967,6 +1989,11 @@ async def salvar_analise_coordenadas(
 
     except SQLAlchemyError as exc:
         await db.rollback()
+        if "uq_revisao_rascunho_instrumento" in str(exc):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Já existe um rascunho em andamento para este instrumento.",
+            ) from exc
         logger.exception(
             "Erro ao salvar análise das coordenadas: "
             "tipo_excecao=%s grupo=%s",
