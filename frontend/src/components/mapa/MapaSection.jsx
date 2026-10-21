@@ -188,14 +188,14 @@ export default function MapaSection() {
                 simbolo: "ponto",
                 atributo: "modalidade",
                 classes: [
-                    {valor: "Desenvolvimento Institucional", label: "Desenvolvimento Institucional", cor: "#f8cdcd", strokeColor: "#ff5cdc", strokeWidth: 2.0},
-                    {valor: "Redução e Controle de Perdas", label: "Redução e Controle de Perdas", cor: "#f5df4d", strokeColor: "#ff5cdc", strokeWidth: 2.0},
-                    {valor: "Estudos e Projetos", label: "Estudos e Projetos", cor: "#17e904", strokeColor: "#ff5cdc", strokeWidth: 2.0},
-                    {valor: "Esgotamento Sanitário", label: "Esgotamento Sanitário", cor: "#96710b", strokeColor: "#ff5cdc", strokeWidth: 2.0},
-                    {valor: "Saneamento Integrado", label: "Saneamento Integrado", cor: "#c800e2", strokeColor: "#ff5cdc", strokeWidth: 2.0},
-                    {valor: "Abastecimento de Água", label: "Abastecimento de Água", cor: "#0071bd", strokeColor: "#ff5cdc", strokeWidth: 2.0},
-                    {valor: "Manejo de Resíduos Sólidos", label: "Manejo de Resíduos Sólidos", cor: "#ee8712", strokeColor: "#ff5cdc", strokeWidth: 2.0},
-                    {valor: "Manejo de Águas Pluviais", label: "Manejo de Águas Pluviais", cor: "#7f7a80", strokeColor: "#ff5cdc", strokeWidth: 2.0},
+                    {valor: "Desenvolvimento Institucional", label: "Desenvolvimento Institucional", cor: "#f8cdcd", strokeColor: "#000000", strokeWidth: 1.0},
+                    {valor: "Redução e Controle de Perdas", label: "Redução e Controle de Perdas", cor: "#f5df4d", strokeColor: "#000000", strokeWidth: 1.0},
+                    {valor: "Estudos e Projetos", label: "Estudos e Projetos", cor: "#17e904", strokeColor: "#000000", strokeWidth: 1.0},
+                    {valor: "Esgotamento Sanitário", label: "Esgotamento Sanitário", cor: "#96710b", strokeColor: "#000000", strokeWidth: 1.0},
+                    {valor: "Saneamento Integrado", label: "Saneamento Integrado", cor: "#c800e2", strokeColor: "#000000", strokeWidth: 1.0},
+                    {valor: "Abastecimento de Água", label: "Abastecimento de Água", cor: "#0071bd", strokeColor: "#000000", strokeWidth: 1.0},
+                    {valor: "Manejo de Resíduos Sólidos", label: "Manejo de Resíduos Sólidos", cor: "#ee8712", strokeColor: "#000000", strokeWidth: 1.0},
+                    {valor: "Manejo de Águas Pluviais", label: "Manejo de Águas Pluviais", cor: "#7f7a80", strokeColor: "#000000", strokeWidth: 1.0},
                 ] 
             }
         },
