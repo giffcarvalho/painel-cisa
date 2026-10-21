@@ -2371,7 +2371,7 @@ export default function RevisaoInstrumento() {
                   <div>
                     <h2 id="revisao-geral-titulo">Revisão do instrumento</h2>
                   </div>
-
+                  {/* Funcionalidade temporariamente suspensa até definição das regras de utilização dos processos SEI.
                   <div className={`${styles.generalObservation} ${styles.campoRevisaoInline}`}>
                     <div className={styles.generalFieldHeading}>
                       <h3><label htmlFor="nr-processo-sei">Número do processo SEI</label></h3>
@@ -2401,6 +2401,7 @@ export default function RevisaoInstrumento() {
                       </p>
                     )}
                   </div>
+                  */}
 
                   <div className={styles.generalObservation}>
                     <div className={styles.generalFieldHeading}>
