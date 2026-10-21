@@ -140,6 +140,7 @@ export default function TabelaPontosControle({
   
   const [resumoAberto, setResumoAberto] = useState(null);
   const [informacaoColunaAberta, setInformacaoColunaAberta] = useState(null);
+  const [linhaDestacadaKey, setLinhaDestacadaKey] = useState(null);
   const { limparTodosFiltros, totalFiltrosAtivos } = useFiltrosPontosControle();
   const tableWrapperRef = useRef(null);
   const instrumentos = getItens(data);
@@ -453,13 +454,16 @@ export default function TabelaPontosControle({
                 {instrumentos.map((instrumento, index) => {
                   const nrInstrumento = instrumento.nr_instrumento;
                   const rowKey = String(nrInstrumento ?? `${instrumento.nr_proposta ?? 'sem-id'}-${index}`);
-                  const isSelected = String(nrInstrumentoSelecionado) === String(nrInstrumento);
+                  const isSelected = linhaDestacadaKey === rowKey || String(nrInstrumentoSelecionado) === String(nrInstrumento);
                   const isResumoAberto = resumoAberto === rowKey;
                   
 
                   return (
                     <Fragment key={rowKey}>
-                      <tr className={`${styles.tableRow} ${isSelected ? styles.tableRowSelected : ''}`}>
+                      <tr 
+                        className={`${styles.tableRow} ${isSelected ? styles.tableRowSelected : ''}`}
+                        onClick={() => setLinhaDestacadaKey(atual => (atual === rowKey ? null : rowKey))}
+                      >
                         <td className={styles.compactCell}>
                           {instrumento.nr_instrumento ? (instrumento.link_transferegov ? (
                               <a
