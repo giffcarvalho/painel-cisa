@@ -246,7 +246,7 @@ class PlanoAcaoHistoricoItem(BaseModel):
     confirmacao: Optional[str] = None
     coordenacao: Optional[str] = None
     mandataria: Optional[str] = None
-    recebedor: str
+    recebedor: Optional[str] = None
     descricao_acao: Optional[str] = None
     prazo_pactuado: Optional[date] = None
     criado_em: Optional[datetime] = None
