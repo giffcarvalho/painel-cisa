@@ -18,7 +18,6 @@ export default function ContatoMandataria({ setContatoMandataria }) {
             <div className={estilos.janela}>
 
                 <div className={estilos.cabecalho}>
-                    
                     <div className={estilos.secao_esquerda}>    
                         <h4>Contatos Mandatária</h4>
                         <label>Selecione uma UF:</label>
@@ -55,14 +54,14 @@ export default function ContatoMandataria({ setContatoMandataria }) {
                             <option value="28">SE</option>
                         </select>
                     </div>
+                    
                     <button 
                         type="button"
                         className={estilos.botaoX}
                         onClick={() => setContatoMandataria(false)}
                     >
                         <X className={estilos.XFechar} />
-                    </button>
-                    
+                    </button>  
                 </div>
 
                 <div className={estilos.container_tabela}>
