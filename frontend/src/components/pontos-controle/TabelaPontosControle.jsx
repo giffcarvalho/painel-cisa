@@ -5,9 +5,10 @@ import styles from './TabelaPontosControle.module.css';
 import FiltroColuna from './FiltrosPontosControle';
 import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltrosPontosControle';
 import { useBuscaPlanoAcaoQuery } from "../../hooks/usePontosControle";
-import { Ellipsis, SquarePen, Phone, ListChecks } from "lucide-react";
+import { Ellipsis, SquarePen, Phone, ListChecks, TriangleAlert } from "lucide-react";
 import { LinhaResumoInstrumento } from './LinhaResumoInstrumento';
 import { useAuth } from "@/context/auth/useAuth";
+import { parseISO, isValid, differenceInCalendarDays } from 'date-fns';
 
 
 
@@ -63,18 +64,39 @@ const classeStatusPontoControle = (valor) => {
 
 //-----------------COMPONENTES AUXILIARES-------------------//
 
-//Pequeno componente da célula dos pontos de controle
 const CelulaStatusPontoControle = ({ valor, abrirJanelaPlanoAcao, nrInstrumento, campo }) => {
   
-  //Define os status que devem possui o botão para preencher o plano de ação
-  const status_com_plano_acao = ['Atenção', 'Alerta', 'Crítico', 'Vencido', 'Atrasada', 'OK', '-'];
+  const statusComPlanoAcao = ['Atenção', 'Alerta', 'Crítico', 'Vencido', 'Atrasada', 'OK', '-'];
   const { data: planoAcaoData } = useBuscaPlanoAcaoQuery();
   
-  const temPlanoAcao = planoAcaoData?.data?.some(
+  const ultimoPlanoAcao = planoAcaoData?.data?.find(
     (item) => item.nr_instrumento === nrInstrumento && item.ponto_controle === campo
   );
-  
-  const exibeBotaoPlanoAcao = status_com_plano_acao.includes(valor) || temPlanoAcao;
+
+  const temPlanoAcao = Boolean(ultimoPlanoAcao);
+  const exibeAlertaPrazo = Boolean(ultimoPlanoAcao?.prazo_pactuado);
+  const exibeBotaoPlanoAcao = statusComPlanoAcao.includes(valor) || temPlanoAcao;
+
+  let classeCorAlerta = styles.alertaVerde;
+
+  if (exibeAlertaPrazo) {
+    const dataPrazo = parseISO(ultimoPlanoAcao.prazo_pactuado);
+
+    if (isValid(dataPrazo)) {
+      const hoje = new Date();
+      
+      const diffEmDias = differenceInCalendarDays(dataPrazo, hoje);
+
+      if (diffEmDias < 0) {
+        classeCorAlerta = styles.alertaVermelho;
+      } else if (diffEmDias <= 5) {
+        classeCorAlerta = styles.alertaAmarelo;
+      } else {
+        classeCorAlerta = styles.alertaVerde;
+      }
+    }
+  }
+
 
   return (
     <td className={`${styles.compactCell} ${classeStatusPontoControle(valor)}`}>
@@ -82,17 +104,29 @@ const CelulaStatusPontoControle = ({ valor, abrirJanelaPlanoAcao, nrInstrumento,
         <span>{emptyValue(valor)}</span>
         
         {exibeBotaoPlanoAcao && (
-          <button
-            type="button"
-            className={styles.botao_plano_acao}
-            title={temPlanoAcao ? "Visualizar/Registrar Ação" : "Registrar Ação"}
-            onClick={(event) => {
-              event.stopPropagation();
-              abrirJanelaPlanoAcao?.(nrInstrumento, campo, valor);
-            }}
-          >
-            {temPlanoAcao ? <SquarePen size={20} /> : <Ellipsis size={15} />}
-          </button>
+          <div className={styles.botoesContainer}>
+            
+            {exibeAlertaPrazo && (
+              <span title={`Prazo pactuado: ${formatDate(ultimoPlanoAcao.prazo_pactuado)}`} className={styles.wrapperAlerta}>
+                <TriangleAlert 
+                  size={20} 
+                  className={`${styles.iconeAlertaPrazo} ${classeCorAlerta}`}
+                />
+              </span>
+            )}
+
+            <button
+              type="button"
+              className={styles.botaoPlanoAcao}
+              title={temPlanoAcao ? "Visualizar/Registrar Ação" : "Registrar Ação"}
+              onClick={(event) => {
+                event.stopPropagation();
+                abrirJanelaPlanoAcao?.(nrInstrumento, campo, valor);
+              }}
+            >
+              {temPlanoAcao ? <SquarePen size={20} /> : <Ellipsis size={15} />}
+            </button>
+          </div>
         )}
       </div>
     </td>
@@ -536,7 +570,7 @@ export default function TabelaPontosControle({
                             title="Ver ações realizadas"
                             onClick={(event) => {
                               event.stopPropagation();
-                              abrirJanelaHistoricoAcao?.(instrumento?.nr_instrumento);
+                              abrirJanelaHistoricoAcao?.(String(instrumento?.nr_instrumento));
                             }}
                           >
                             <ListChecks size={18}/>

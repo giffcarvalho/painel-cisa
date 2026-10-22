@@ -463,8 +463,32 @@
   color: #8b8b8b;
 }
 
+/* Container dos botões do Plano de Ação */
+.botoesContainer {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Botão alerta prazo pactuado no Plano de Ação */
+.iconeAlertaPrazo {
+  flex-shrink: 0;
+}
+
+.alertaVermelho {
+  color: #ef4444;
+}
+
+.alertaAmarelo {
+  color: #f59e0b;
+}
+
+.alertaVerde {
+  color: #009664;
+}
+
 /* Botão para criar/editar Plano de Ação */
-.botao_plano_acao {
+.botaoPlanoAcao {
   background: transparent;
   border: none;
   cursor: pointer;
@@ -474,6 +498,10 @@
   line-height: 1;
   transition: background-color 0.2s ease;
 }
+
+
+
+
 
 /* Container do rodapé de paginação */
 .pagination {
