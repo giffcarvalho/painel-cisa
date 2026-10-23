@@ -1395,13 +1395,6 @@ async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMa
     params.update(params_filtro)
 
     sql = f"""
-        WITH ultima_analise AS (
-            SELECT
-                id_coordenada,
-                situacao_analise,
-                ROW_NUMBER() OVER (PARTITION BY id_coordenada ORDER BY criado_em DESC) AS n_linha
-            FROM painel_dsr.tb_revisao_instrumento_coordenada
-        )
         SELECT ST_AsMVT(tile, 'pontos', 4096, 'geom', 'id_coordenada') AS mvt
         FROM (
             SELECT
@@ -1426,9 +1419,9 @@ async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMa
                     THEN 'Instrumento extinto'
                     WHEN ct.ativo IS FALSE THEN 'Coordenada excluída'
                     WHEN
-                        ua.situacao_analise IS NULL OR
-                        ua.situacao_analise ILIKE 'Sem análise' THEN 'Coordenada nova/não analisada'
-                    ELSE ua.situacao_analise
+                        ct.situacao_analise IS NULL OR
+                        ct.situacao_analise ILIKE 'Sem análise' THEN 'Coordenada nova/não analisada'
+                    ELSE ct.situacao_analise
                 END AS situacao_analise,
                 ct.ativo,
                 ct.link_transferegov,
@@ -1441,7 +1434,6 @@ async def get_geometrias_carteira_dsr(z: int, x: int, y: int, filtros: FiltrosMa
                     true
                 ) AS geom
             FROM instrumento.vw_geometrias_carteira_dsr ct
-            LEFT JOIN ultima_analise ua ON ua.id_coordenada = ct.id_coordenada AND ua.n_linha = 1
             WHERE {base_where}
         ) AS tile;
     """
@@ -1642,7 +1634,7 @@ async def get_dados_analise_coordenadas(
 
     response.headers["Cache-Control"] = "public, max-age=600"
     
-    clauses = []
+    clauses = ["geo.ativo = TRUE"]
     params = {}
 
     if filtros.nr_instrumento:
@@ -1680,7 +1672,6 @@ async def get_dados_analise_coordenadas(
             rc.observacao_coordenada AS observacao_coordenada
         FROM instrumento.vw_geometrias_carteira_dsr geo
         LEFT JOIN ultimas_revisoes_coord rc ON rc.id_coordenada = geo.id_coordenada
-        LEFT JOIN painel_dsr.tb_revisao_instrumento ri ON ri.id_revisao = rc.id_revisao
     """
     
     if clauses:

@@ -115,20 +115,15 @@ export function SelectPesquisavel({
   placeholder = 'Selecione...',
   onChange,
 }) {
+  
   const [aberto, setAberto] = useState(false);
   const [termoBusca, setTermoBusca] = useState('');
   const containerRef = useRef(null);
-
-  const opcaoSelecionada = options.find(
-    (opcao) => String(opcao.value) === String(value)
-  );
-
-  const opcoesFiltradas = useMemo(
-    () => filtrarOpcoesPorPrefixo(options, termoBusca),
-    [options, termoBusca]
-  );
+  const opcaoSelecionada = options.find((opcao) => String(opcao.value) === String(value));
+  const opcoesFiltradas = useMemo(() => filtrarOpcoesPorPrefixo(options, termoBusca), [options, termoBusca]);
 
   useEffect(() => {
+    
     if (!aberto) return;
 
     const fecharAoClicarFora = (event) => {
@@ -162,11 +157,7 @@ export function SelectPesquisavel({
     >
       <button
         type="button"
-        className={`${styles.searchableSelectTrigger} ${
-          aberto
-            ? styles.searchableSelectTriggerOpen
-            : ''
-        }`}
+        className={`${styles.searchableSelectTrigger} ${aberto? styles.searchableSelectTriggerOpen: ''}`}
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={aberto}
@@ -176,22 +167,13 @@ export function SelectPesquisavel({
         }}
       >
         <span
-          className={`${styles.searchableSelectValue} ${
-            !opcaoSelecionada
-              ? styles.searchableSelectPlaceholder
-              : ''
-          }`}
-        >
+          className={`${styles.searchableSelectValue} ${!opcaoSelecionada? styles.searchableSelectPlaceholder: ''}`}>
           {opcaoSelecionada?.label || placeholder}
         </span>
 
         <ChevronDown
           size={14}
-          className={`${styles.searchableSelectChevron} ${
-            aberto
-              ? styles.searchableSelectChevronOpen
-              : ''
-          }`}
+          className={`${styles.searchableSelectChevron} ${aberto? styles.searchableSelectChevronOpen: ''}`}
         />
       </button>
 
@@ -204,9 +186,7 @@ export function SelectPesquisavel({
               autoFocus
               autoComplete="off"
               placeholder="Buscar..."
-              onChange={(e) =>
-                setTermoBusca(e.target.value)
-              }
+              onChange={(e) => setTermoBusca(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Escape') {
                   setAberto(false);
@@ -222,8 +202,7 @@ export function SelectPesquisavel({
           >
             {opcoesFiltradas.length > 0 ? (
               opcoesFiltradas.map((opcao) => {
-                const selecionada =
-                  String(opcao.value) === String(value);
+                const selecionada = String(opcao.value) === String(value);
 
                 return (
                   <button
@@ -231,33 +210,14 @@ export function SelectPesquisavel({
                     key={opcao.value}
                     role="option"
                     aria-selected={selecionada}
-                    className={`${
-                      styles.searchableSelectOption
-                    } ${
-                      selecionada
-                        ? styles.searchableSelectOptionSelected
-                        : ''
-                    }`}
-                    onMouseDown={(e) =>
-                      e.preventDefault()
-                    }
-                    onClick={() =>
-                      selecionarOpcao(opcao.value)
-                    }
+                    className={`${styles.searchableSelectOption} ${selecionada? styles.searchableSelectOptionSelected: ''}`}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => selecionarOpcao(opcao.value)}
                   >
                     {selecionada ? (
-                      <Check
-                        size={14}
-                        className={
-                          styles.searchableSelectCheck
-                        }
-                      />
+                      <Check size={14} className={styles.searchableSelectCheck}/>
                     ) : (
-                      <span
-                        className={
-                          styles.searchableSelectCheckPlaceholder
-                        }
-                      />
+                      <span className={styles.searchableSelectCheckPlaceholder}/>
                     )}
 
                     <span>{opcao.label}</span>
@@ -265,11 +225,7 @@ export function SelectPesquisavel({
                 );
               })
             ) : (
-              <div
-                className={
-                  styles.searchableSelectEmpty
-                }
-              >
+              <div className={styles.searchableSelectEmpty}>
                 Nenhuma opção encontrada.
               </div>
             )}
@@ -283,17 +239,9 @@ export function SelectPesquisavel({
 // --- Componente Inteligente para uso em Linhas da Tabela ---
 
 export default function FiltroColuna({ campo, label }) {
-  const {
-    filtros,
-    setFiltro,
-    limparFiltro,
-  } = useFiltrosPontosControle();
-
-  const {
-    data,
-    isLoading,
-  } = useOpcoesPontosControleQuery(filtros);
-
+  
+  const { filtros, setFiltro, limparFiltro } = useFiltrosPontosControle();
+  const { data, isLoading } = useOpcoesPontosControleQuery(filtros);
   const valorAtual = filtros[campo];
 
   const opcoesBase = useMemo(() => {
@@ -306,6 +254,7 @@ export default function FiltroColuna({ campo, label }) {
     }
 
     return normalizarOpcoes(data?.[campo]);
+    
   }, [campo, data]);
 
   const opcoes = useMemo(() => {
@@ -315,8 +264,6 @@ export default function FiltroColuna({ campo, label }) {
     );
   }, [opcoesBase, valorAtual]);
 
-
- 
 
   return (
     <div
@@ -329,23 +276,15 @@ export default function FiltroColuna({ campo, label }) {
         value={valorAtual}
         options={opcoes}
         disabled={isLoading}
-        placeholder={
-          isLoading ? '...' : 'Todos'
-        }
-        onChange={(valor) =>
-          setFiltro(campo, valor)
-        }
+        placeholder={isLoading ? '...' : 'Todos'}
+        onChange={(valor) => setFiltro(campo, valor)}
       />
 
       {valorAtual && (
         <button
           type="button"
-          className={
-            styles.clearHeaderFilterButton
-          }
-          onClick={() =>
-            limparFiltro(campo)
-          }
+          className={styles.clearHeaderFilterButton}
+          onClick={() => limparFiltro(campo)}
           title={`Limpar filtro ${label}`}
         >
           <X size={12} />
