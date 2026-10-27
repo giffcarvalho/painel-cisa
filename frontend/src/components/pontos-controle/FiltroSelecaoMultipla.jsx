@@ -1,6 +1,7 @@
 import styles from './FiltroSelecaoMultipla.module.css';
-import { ChevronDown, CircleX, X } from 'lucide-react'
-import { useState } from 'react';
+import { ChevronDown, X } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react';
+import { normalizarTexto } from '@/utils/normalizer';
 
 
 
@@ -9,14 +10,33 @@ export default function FiltroSelecaoMultipla() {
     const [aberto, setAberto] = useState(false);
     const [termoBusca, setTermoBusca] = useState('');
     const [opcoes, setOpcoes] = useState([
-        { valor: "teste_1", rotulo: "Teste 1", selecionado: false },
-        { valor: "teste_2", rotulo: "Teste 2", selecionado: false },
-        { valor: "teste_3", rotulo: "Teste 3", selecionado: false },
-        { valor: "teste_4", rotulo: "Teste 4", selecionado: false },
-        { valor: "teste_5", rotulo: "Teste 5", selecionado: false },
-        { valor: "teste_6", rotulo: "Teste 6", selecionado: false },
+        { valor: 21, rotulo: "Olho D'Água do Piauí", selecionado: false },
+        { valor: 23, rotulo: "Olhos-d'Água", selecionado: false },
+        { valor: 24, rotulo: "Mãe d'Água", selecionado: false },
+        { valor: 25, rotulo: "Olho d'Água das Flores", selecionado: false },
+        { valor: 26, rotulo: "Não-Me-Toque", selecionado: false },
+        { valor: 27, rotulo: "Apicum-Açu", selecionado: false },
     ]);
     
+
+    const filtroRef = useRef(null);
+    useEffect(() => {
+        const gerenciamentoClicarFora = (event) => {
+            
+            if (filtroRef.current && !filtroRef.current.contains(event.target)) {
+                setAberto(false);
+                setTermoBusca('');
+            }
+        };
+
+        document.addEventListener('mousedown', gerenciamentoClicarFora);
+
+        return () => {
+            document.removeEventListener('mousedown', gerenciamentoClicarFora);
+        };
+
+    }, []);
+
 
     const alternarSelecaoOpcao = (valorSelecionado) => {
         const novasOpcoes = opcoes.map((opcao) => {
@@ -38,8 +58,35 @@ export default function FiltroSelecaoMultipla() {
     };
 
 
+    const opcoesSelecionadas = opcoes.filter((opcao) => opcao.selecionado === true);
+    
+
+    const textoPlaceholder = (() => {
+        
+        if (opcoesSelecionadas.length === 0) return "Todos";
+
+        const primeiraOpcao = opcoesSelecionadas[0].rotulo;
+        const quantidadeOutrasOpcoes = opcoesSelecionadas.length -1;
+
+        return quantidadeOutrasOpcoes > 0 ? `${primeiraOpcao} +${quantidadeOutrasOpcoes}` : primeiraOpcao
+    })();
+
+
+    const termoBuscaNormalizado = normalizarTexto(termoBusca);
+    
+    
+    const opcoesFiltradasTermoBusca = termoBusca.trim().length < 2 
+        ? opcoes 
+        : opcoes.filter((opcao) => 
+            normalizarTexto(opcao.rotulo).includes(termoBuscaNormalizado)
+        );
+
+
     return (
-        <div className={styles.wrapper}>
+        <div 
+            className={styles.wrapper}
+            ref={filtroRef}
+        >
             
             <div className={styles.headerWrapper}>    
                 <button 
@@ -50,7 +97,7 @@ export default function FiltroSelecaoMultipla() {
                         setTermoBusca('')
                     }}
                 >
-                    <span className={styles.placeholder}>Todos</span>
+                    <span className={`${styles.placeholder} ${opcoesSelecionadas.length > 0 ? styles.placeholderComSelecao: ''}`}>{textoPlaceholder}</span>
                     <ChevronDown className={`${styles.chevron} ${aberto? styles.chevronOpen: ''}`}/>
                 </button>
 
@@ -63,7 +110,7 @@ export default function FiltroSelecaoMultipla() {
                         desmarcarTodasOpcoes();
                     }}
                 >
-                    <CircleX className={styles.clearButton}/> 
+                    <X className={styles.clearButton}/> 
                 </button>
             </div>
 
@@ -109,7 +156,7 @@ export default function FiltroSelecaoMultipla() {
                     </div>
 
                     <div className={styles.optionsWrapper}>
-                        {opcoes.map((opcao) => {
+                        {opcoesFiltradasTermoBusca.map((opcao) => {
                             return (
                                 <label 
                                     className={styles.options}

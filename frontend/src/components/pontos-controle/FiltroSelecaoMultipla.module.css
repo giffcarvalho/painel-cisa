@@ -34,11 +34,22 @@
     color: #9ca3af;
 }
 
+.placeholderComSelecao {
+    color: #2563eb;
+}
+
 .clearButton {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
+    padding: 2px;
     margin-left: 4px;
-    color: rgb(255, 144, 144);
+    color: #9ca3af
+}
+
+.clearButton:hover {
+    border-radius: 50%;
+    color: #ef4444;
+    background-color: rgb(252, 210, 210);
 }
 
 .chevron {
@@ -98,7 +109,7 @@
 .selectedOption {
     display: flex;
     justify-content: space-between;
-    padding: 4px;
+    padding: 2px;
     margin-bottom: 4px;
     margin-right: 4px;
     font-size: 11px;
