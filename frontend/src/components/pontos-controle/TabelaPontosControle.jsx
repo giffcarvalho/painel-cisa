@@ -3,6 +3,7 @@ import { emptyValue, formatDate } from '../../utils/formatters';
 import { textosExplicativos } from '../../utils/pontoControleUtils';
 import styles from './TabelaPontosControle.module.css';
 import FiltroColuna from './FiltrosPontosControle';
+import FiltroSelecaoMultipla from './FiltroSelecaoMultipla';
 import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltrosPontosControle';
 import { useBuscaPlanoAcaoQuery } from "../../hooks/usePontosControle";
 import { Ellipsis, SquarePen, Phone, ListChecks, TriangleAlert } from "lucide-react";
@@ -447,7 +448,7 @@ export default function TabelaPontosControle({
 
                 <tr className={styles.filterRow}>
                   <th><FiltroColuna campo="nr_instrumento" label="Nº Instrumento" /></th>
-                  <th></th>
+                  <th><FiltroSelecaoMultipla /></th>
                   <th><FiltroColuna campo="proponente" label="proponente" /></th>
                   <th><FiltroColuna campo="municipios_beneficiados" label="Municípios beneficiados" /></th>
                   <th><FiltroColuna campo="uf" label="UF" /></th>
