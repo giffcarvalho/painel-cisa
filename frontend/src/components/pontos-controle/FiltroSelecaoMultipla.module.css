@@ -1,0 +1,141 @@
+.wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.headerWrapper {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.trigger {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    background: #ffffff;
+    color: #374151;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.placeholder {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+    color: #9ca3af;
+}
+
+.clearButton {
+    width: 14px;
+    height: 14px;
+    margin-left: 4px;
+    color: rgb(255, 144, 144);
+}
+
+.chevron {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    margin-left: 2px;
+    color: #6b7280;
+    transition: transform 0.3s ease;
+}
+
+.chevronOpen {
+    transform: rotate(180deg);
+}
+
+.menuWrapper {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 50;
+    width: 250%;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: #ffffff;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+.searchWrapper {
+    padding: 6px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.searchField {
+    width: 100%;
+    padding: 4px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 12px;
+    outline: none;
+}
+
+.searchField:focus {
+    border-color: #2563eb;
+}
+
+.selectedWrapper {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    padding: 4px 8px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.selectedOption {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px;
+    margin-bottom: 4px;
+    margin-right: 4px;
+    font-size: 11px;
+    color: #2563eb;
+    background-color: #eff6ff;
+    border: 1px solid #f3f4f6;
+    border-radius: 5px;
+}
+
+.clearSelectedButton {
+    width: 12px;
+    height: 12px;
+    margin-left: 4px;
+}
+
+.optionsWrapper {
+    display: flex;
+    flex-direction: column;
+    max-height: 180px;
+    overflow-y: auto;
+    padding: 4px 0;
+}
+
+.options {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 6px 8px;
+    border: none;
+    background: transparent;
+    color: #374151;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.options:hover {
+    background: #f3f4f6;
+}
