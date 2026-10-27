@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, StrictBool, model_validator
 
 
 TipoInstrumento = Literal["contrato_repasse", "termo_compromisso", "ted"]
@@ -197,6 +197,32 @@ class PublicoAlvoRevisaoAlteracao(RevisaoInstrumentoBase):
     status_correcao_solicitada: CorrecaoSolicitadaPublicoAlvo | None = None
 
 
+class ConcessaoRevisaoAlteracao(RevisaoInstrumentoBase):
+    responsabilidade_privada: Literal["sim", "nao"] | None = None
+    observacao_concessao: str | None = None
+    anexo_i_entregue: StrictBool | None = None
+    anexo_ii_entregue: StrictBool | None = None
+    anexo_iii_entregue: StrictBool | None = None
+    anexo_iv_entregue: StrictBool | None = None
+    observacao_anexos: str | None = None
+
+
+class ConcessaoRevisaoItem(ConcessaoRevisaoAlteracao):
+    id_revisao_concessao: int | None = None
+    conferido_em: datetime | None = None
+    valido_ate: datetime | None = None
+    criado_em: datetime | None = None
+    atualizado_em: datetime | None = None
+
+
+class ConcessaoMunicipioInfo(RevisaoInstrumentoBase):
+    tipo_operacao: str | None = None
+    situacao_concessao: str | None = None
+    servico_delegado: str | None = None
+    abrangencia: str | None = None
+    nome_prestador: str | None = None
+
+
 class MunicipioRevisaoItem(RevisaoInstrumentoBase):
     cod_municipio: int
     nome: str | None = None
@@ -213,6 +239,7 @@ class MunicipioRevisaoItem(RevisaoInstrumentoBase):
 
     localidades: list[LocalidadeRevisaoItem] = Field(default_factory=list)
     obras_saneamento: list[ObraSaneamentoRevisaoItem] = Field(default_factory=list)
+    concessao_cgml: ConcessaoMunicipioInfo | None = None
 
 
 class MunicipioOficialItem(RevisaoInstrumentoBase):
@@ -224,11 +251,13 @@ class MunicipioOficialItem(RevisaoInstrumentoBase):
 
 
 class DadosMunicipioRevisaoResponse(RevisaoInstrumentoBase):
+    concessao_cgml: ConcessaoMunicipioInfo | None = None
     localidades: list[LocalidadeRevisaoItem] = Field(default_factory=list)
     obras_saneamento: list[ObraSaneamentoRevisaoItem] = Field(default_factory=list)
 
 
 class RevisaoInstrumentoBuscaResponse(RevisaoInstrumentoBase):
+    concessao: ConcessaoRevisaoItem | None = None
     id_revisao: int | None = None
     identificador_busca: str
     instrumento: InstrumentoRevisaoInfo
@@ -260,6 +289,7 @@ class UsuarioRevisaoInfo(RevisaoInstrumentoBase):
 
 
 class RevisaoInstrumentoDetalheResponse(RevisaoInstrumentoBase):
+    concessao: ConcessaoRevisaoItem | None = None
     id_revisao: int
     id_revisao_anterior: int | None = None
     status: str
@@ -335,6 +365,7 @@ class MeusInstrumentosRevisaoResponse(RevisaoInstrumentoBase):
 
 
 class RevisaoInstrumentoCreate(RevisaoInstrumentoBase):
+    concessao: ConcessaoRevisaoAlteracao | None = None
     id_revisao: int | None = None
     status: StatusRevisao = "rascunho"
     observacao_geral: str | None = None
@@ -374,6 +405,7 @@ class RevisaoInstrumentoMunicipioSave(RevisaoInstrumentoBase):
 
 
 class RevisaoInstrumentoSalvoResponse(RevisaoInstrumentoBase):
+    concessao: ConcessaoRevisaoItem | None = None
     id_revisao: int
     status: str
     nr_processo_sei: str | None = None

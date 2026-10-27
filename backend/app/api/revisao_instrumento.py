@@ -17,6 +17,9 @@ from app.schemas.aplicacao_revisoes import (
     SolicitacaoCancelamentoResponse,
 )
 from app.schemas.revisao_instrumento import (
+    ConcessaoMunicipioInfo,
+    ConcessaoRevisaoAlteracao,
+    ConcessaoRevisaoItem,
     DadosMunicipioRevisaoResponse,
     InstrumentoRevisaoInfo,
     HistoricoRevisoesResponse,
@@ -281,6 +284,7 @@ def _calcular_status_revisao_municipios(
 def calcular_completude(
     municipios: list[MunicipioRevisaoItem],
     publico_alvo: list[PublicoAlvoRevisaoItem],
+    concessao: ConcessaoRevisaoItem | None = None,
 ) -> dict:
     municipios_total = len(municipios)
     localidades_total = sum(len(municipio.localidades) for municipio in municipios)
@@ -324,12 +328,20 @@ def calcular_completude(
     )
     obras_pendentes = max(obras_total - obras_revisadas, 0)
     publico_alvo_pendente = bool(publico_alvo) and not publico_alvo_revisado
-    total = municipios_pendentes + localidades_pendentes + obras_pendentes + int(publico_alvo_pendente)
+    pendencias_concessao = _pendencias_concessao(concessao)
+    total = (
+        municipios_pendentes + localidades_pendentes + obras_pendentes
+        + int(publico_alvo_pendente) + len(pendencias_concessao)
+    )
     possui_manifestacao = bool(
         municipios_revisados
         or localidades_revisadas
         or obras_revisadas
         or publico_alvo_revisado
+        or (concessao is not None and (
+            concessao.responsabilidade_privada is not None
+            or bool(concessao.observacao_concessao)
+        ))
     )
     return {
         "completa": total == 0,
@@ -347,6 +359,8 @@ def calcular_completude(
         "localidades_sem_classificacao": localidades_sem_classificacao,
         "obras_pendentes": obras_pendentes,
         "publico_alvo_pendente": publico_alvo_pendente,
+        "concessao_pendente": bool(pendencias_concessao),
+        "pendencias_concessao": pendencias_concessao,
     }
 
 
@@ -1380,7 +1394,26 @@ async def _obter_ou_criar_revisao(
             "nr_processo_sei": nr_processo_sei,
         },
     )
-    return dict(result.mappings().one())
+    revisao = dict(result.mappings().one())
+    # Assim como as demais seções, novas revisões partem da base aplicada.
+    # A cópia mantém as datas originais até uma nova conferência do monitor.
+    aplicada = await _buscar_ultima_revisao_aplicada(db, instrumento)
+    if aplicada is not None:
+        await db.execute(text("""
+            INSERT INTO painel_dsr.tb_revisao_instrumento_concessao (
+                id_revisao, responsabilidade_privada, observacao_concessao,
+                anexo_i_entregue, anexo_ii_entregue, anexo_iii_entregue,
+                anexo_iv_entregue, observacao_anexos, conferido_em, valido_ate,
+                criado_em, atualizado_em
+            )
+            SELECT :destino, responsabilidade_privada, observacao_concessao,
+                   anexo_i_entregue, anexo_ii_entregue, anexo_iii_entregue,
+                   anexo_iv_entregue, observacao_anexos, conferido_em, valido_ate,
+                   NOW(), NOW()
+            FROM painel_dsr.tb_revisao_instrumento_concessao
+            WHERE id_revisao = :origem
+        """), {"destino": revisao["id_revisao"], "origem": aplicada["id_revisao"]})
+    return revisao
 
 
 async def _buscar_datas_agregadas(
@@ -2072,7 +2105,9 @@ async def _buscar_detalhe_revisao_enviada(
             "motivo_bloqueio_cancelamento": motivo_bloqueio,
         }
 
+    await _carregar_concessoes_municipios(db, municipios)
     return RevisaoInstrumentoDetalheResponse(
+        concessao=await _buscar_concessao(db, id_revisao),
         **{
             campo: revisao[campo]
             for campo in (
@@ -2959,6 +2994,111 @@ async def _persistir_municipio_revisao(
     )
 
 
+ANEXOS_CONCESSAO = (
+    "anexo_i_entregue", "anexo_ii_entregue",
+    "anexo_iii_entregue", "anexo_iv_entregue",
+)
+
+
+def _pendencias_concessao(item: ConcessaoRevisaoItem | None) -> list[str]:
+    if item is None or item.responsabilidade_privada is None:
+        return ["Responda se o escopo do instrumento é de responsabilidade privada."]
+    if item.responsabilidade_privada == "sim":
+        return [
+            f"Informe a situação de entrega do Anexo {numero}."
+            for campo, numero in zip(ANEXOS_CONCESSAO, ("I", "II", "III", "IV"))
+            if getattr(item, campo) is None
+        ]
+    return []
+
+
+async def _buscar_concessao(
+    db: AsyncSession, id_revisao: int | None,
+) -> ConcessaoRevisaoItem | None:
+    if id_revisao is None:
+        return None
+    result = await _execute_query(db, """
+        SELECT id_revisao_concessao, responsabilidade_privada, observacao_concessao,
+               anexo_i_entregue, anexo_ii_entregue, anexo_iii_entregue,
+               anexo_iv_entregue, observacao_anexos, conferido_em, valido_ate,
+               criado_em, atualizado_em
+        FROM painel_dsr.tb_revisao_instrumento_concessao
+        WHERE id_revisao = :id_revisao
+    """, {"id_revisao": id_revisao})
+    row = result.mappings().one_or_none()
+    return ConcessaoRevisaoItem(**dict(row)) if row is not None else None
+
+
+async def _persistir_concessao(
+    db: AsyncSession, id_revisao: int, item: ConcessaoRevisaoAlteracao | None,
+) -> ConcessaoRevisaoItem | None:
+    atual = await _buscar_concessao(db, id_revisao)
+    if item is None:
+        return atual
+    db.info["grupo_salvamento_revisao"] = "concessao"
+    campos = tuple(ConcessaoRevisaoAlteracao.model_fields)
+    item = _herdar_omitidos(item, atual.model_dump() if atual else {}, campos)
+    dados = item.model_dump()
+    if item.responsabilidade_privada != "sim":
+        for campo in (*ANEXOS_CONCESSAO, "observacao_anexos"):
+            dados[campo] = None
+    # A validade segue os mesmos metadados e intervalo do público-alvo.
+    await db.execute(text("""
+        INSERT INTO painel_dsr.tb_revisao_instrumento_concessao (
+            id_revisao, responsabilidade_privada, observacao_concessao,
+            anexo_i_entregue, anexo_ii_entregue, anexo_iii_entregue,
+            anexo_iv_entregue, observacao_anexos, conferido_em, valido_ate,
+            criado_em, atualizado_em
+        )
+        SELECT id_revisao, :responsabilidade_privada, :observacao_concessao,
+               :anexo_i_entregue, :anexo_ii_entregue, :anexo_iii_entregue,
+               :anexo_iv_entregue, :observacao_anexos,
+               CASE WHEN CAST(:responsabilidade_privada AS varchar) IS NOT NULL THEN NOW() END,
+               CASE WHEN CAST(:responsabilidade_privada AS varchar) IS NOT NULL
+                    THEN NOW() + make_interval(days => COALESCE(validade_dias, 0)) END,
+               NOW(), NOW()
+        FROM painel_dsr.tb_revisao_instrumento
+        WHERE id_revisao = :id_revisao AND status = 'rascunho'
+        ON CONFLICT (id_revisao) DO UPDATE SET
+            responsabilidade_privada = EXCLUDED.responsabilidade_privada,
+            observacao_concessao = EXCLUDED.observacao_concessao,
+            anexo_i_entregue = EXCLUDED.anexo_i_entregue,
+            anexo_ii_entregue = EXCLUDED.anexo_ii_entregue,
+            anexo_iii_entregue = EXCLUDED.anexo_iii_entregue,
+            anexo_iv_entregue = EXCLUDED.anexo_iv_entregue,
+            observacao_anexos = EXCLUDED.observacao_anexos,
+            conferido_em = EXCLUDED.conferido_em,
+            valido_ate = EXCLUDED.valido_ate,
+            atualizado_em = NOW()
+    """), {"id_revisao": id_revisao, **dados})
+    return await _buscar_concessao(db, id_revisao)
+
+
+async def _buscar_concessoes_cgml(
+    db: AsyncSession, codigos: list[int],
+) -> dict[int, ConcessaoMunicipioInfo]:
+    if not codigos:
+        return {}
+    result = await _execute_query(db, """
+        SELECT cod_municipio, tipo_operacao, situacao_concessao,
+               servico_delegado, abrangencia, nome_prestador
+        FROM saneamento.tb_concessao
+        WHERE cod_municipio = ANY(CAST(:codigos AS integer[]))
+    """, {"codigos": codigos})
+    return {
+        row["cod_municipio"]: ConcessaoMunicipioInfo(**dict(row))
+        for row in result.mappings().all()
+    }
+
+
+async def _carregar_concessoes_municipios(
+    db: AsyncSession, municipios: list[MunicipioRevisaoItem],
+) -> None:
+    concessoes = await _buscar_concessoes_cgml(db, [m.cod_municipio for m in municipios])
+    for municipio in municipios:
+        municipio.concessao_cgml = concessoes.get(municipio.cod_municipio)
+
+
 async def _persistir_publico_alvo(
     db: AsyncSession,
     id_revisao: int,
@@ -3317,9 +3457,16 @@ async def _montar_resposta_busca(
         db, localidades_exibidas, instrumento=instrumento,
     )
     _marcar_tipos_localidade_consolidados(localidades_exibidas, tipos_consolidados)
-    completude = calcular_completude(municipios, publico_alvo)
+    concessao = await _buscar_concessao(
+        db, id_revisao if id_revisao is not None else (
+            ultima_revisao_aplicada["id_revisao"] if ultima_revisao_aplicada else None
+        ),
+    )
+    await _carregar_concessoes_municipios(db, municipios)
+    completude = calcular_completude(municipios, publico_alvo, concessao)
 
     return RevisaoInstrumentoBuscaResponse(
+        concessao=concessao,
         id_revisao=id_revisao,
         identificador_busca=instrumento.identificador_busca,
         instrumento=instrumento,
@@ -3407,6 +3554,7 @@ async def consultar_dados_municipio(
     _marcar_tipos_localidade_consolidados(localidades, tipos_consolidados)
     obras = await _buscar_obras_saneamento(db, [cod_municipio], instrumento)
     return DadosMunicipioRevisaoResponse(
+        concessao_cgml=(await _buscar_concessoes_cgml(db, [cod_municipio])).get(cod_municipio),
         localidades=localidades,
         obras_saneamento=obras,
     )
@@ -3574,6 +3722,7 @@ async def salvar_revisao_instrumento(
             instrumento,
             payload.publico_alvo,
         )
+        concessao_salva = await _persistir_concessao(db, id_revisao, payload.concessao)
         resposta_atualizada = await _montar_resposta_busca(
             db,
             instrumento,
@@ -3588,6 +3737,16 @@ async def salvar_revisao_instrumento(
                         "possui_manifestacao": True,
                     }
                 }
+            )
+
+        pendencias_concessao = resposta_atualizada.completude["pendencias_concessao"]
+        if payload.status == "enviado" and pendencias_concessao:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "mensagem": " ".join(pendencias_concessao),
+                    "completude": resposta_atualizada.completude,
+                },
             )
 
         if payload.status == "enviado" and not resposta_atualizada.completude["possui_manifestacao"] and not payload.observacao_geral:
@@ -3654,6 +3813,7 @@ async def salvar_revisao_instrumento(
         await db.commit()
 
         return RevisaoInstrumentoSalvoResponse(
+            concessao=concessao_salva,
             id_revisao=id_revisao,
             status=status_retorno,
             nr_processo_sei=revisao.get("nr_processo_sei"),
