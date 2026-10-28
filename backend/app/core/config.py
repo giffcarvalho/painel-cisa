@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     AUTH_SECRET_KEY: str | None = None
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    # Liberação explícita por ambiente; nunca habilitar apenas pelo frontend.
+    DISTRIBUICAO_INSTRUMENTOS_HABILITADA: bool = False
 
     @computed_field
     @property

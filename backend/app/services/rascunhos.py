@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 TABELAS_FILHAS_RASCUNHO = (
+    "painel_dsr.tb_revisao_instrumento_concessao",
     "painel_dsr.tb_revisao_instrumento_coordenada",
     "painel_dsr.tb_revisao_instrumento_publico_alvo",
     "painel_dsr.tb_revisao_obra_saneamento",

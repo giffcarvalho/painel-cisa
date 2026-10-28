@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, Pencil, RotateCcw } from 'lucide-react'
 import styles from '@/pages/admin/aplicacao-revisoes/AplicacaoRevisoes.module.css'
+import { ConcessaoResumo } from '@/components/revisao-instrumento/Concessao'
 import {
   CONFIRMACOES_OBRA,
   CORRECAO_SOLICITADA_PUBLICO_ALVO,
@@ -164,6 +165,10 @@ export default function DetalhesRevisao({ detalhe, onAplicar, onEditar, onDevolv
         <Grupo titulo="Municípios" itens={detalhe.municipios} />
         <Grupo titulo="Localidades" itens={detalhe.localidades} />
         <GrupoPublicoAlvo itens={detalhe.publico_alvo} />
+        <section className={styles.changeGroup}>
+          <h3>Concessão</h3>
+          <ConcessaoResumo dados={detalhe.concessao} />
+        </section>
         <GrupoObras itens={detalhe.obras} />
         {!!detalhe.coordenadas?.length && <GrupoCoordenadas itens={detalhe.coordenadas} />}
       </div>
