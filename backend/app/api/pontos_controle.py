@@ -35,110 +35,116 @@ MV_MUNICIPIOS = "instrumento.vw_instrumento_municipio"
 
 
 
-COLUNAS_COM_FILTRO = {
-    "nr_instrumento",
-    "proponente",
-    "municipios_beneficiados",
-    "uf",
-    "carteira_ativa",
-    "possui_aio",
-    "projeto_aprovado",
-    "acao",
-    "nivel",
-    "coordenacao",
-    "monitor",
-    "prazo_clausulas_suspensivas",
-    "prazo_emissao_lae",
-    "prazo_inicio_licitacao",
-    "prazo_conclusao_licitacao",
-    "prazo_vrpl",
-    "prazo_contratacao",
-    "prazo_solicitacao_aio",
-    "prazo_analise_tecnica_aio",
-    "prazo_analise_executiva_aio",
-    "prazo_registro_aio",
-    "prazo_emissao_os",
-    "prazo_inicio_execucao_fisica",
-    "prazo_progresso_fisico",
-    "prazo_indicio_paralisacao",
-    "status_paralisacao_obra",
-    "vistoria_in_loco_parciais",
-    "prazo_vistoria_final",
-    "obras_proximas_conclusao",
-    "registro_conclusao",
-    "vigencia",
-    "status_de_execucao_da_obra",
+CONFIGURACAO_FILTROS = {
+    "nr_instrumento": {"tipo": "text",},
+    "proponente": {"tipo": None},
+    "municipios_beneficiados": {"especial": "municipios_beneficiados"},
+    "uf": {"especial": "uf"},
+    "carteira_ativa": {"tipo": None},
+    "possui_aio": {"tipo": None},
+    "projeto_aprovado": {"tipo": None},
+    "acao": {"tipo": None},
+    "nivel": {"tipo": None},
+    "coordenacao": {"tipo": None},
+    "monitor": {"especial": "monitor"},
+    "prazo_clausulas_suspensivas": {"tipo": None},
+    "prazo_emissao_lae": {"tipo": None},
+    "prazo_inicio_licitacao": {"tipo": None},
+    "prazo_conclusao_licitacao": {"tipo": None},
+    "prazo_vrpl": {"tipo": None},
+    "prazo_contratacao": {"tipo": None},
+    "prazo_solicitacao_aio": {"tipo": None},
+    "prazo_analise_tecnica_aio": {"tipo": None},
+    "prazo_analise_executiva_aio": {"tipo": None},
+    "prazo_registro_aio": {"tipo": None},
+    "prazo_emissao_os": {"tipo": None},
+    "prazo_inicio_execucao_fisica": {"tipo": None},
+    "prazo_progresso_fisico": {"tipo": None},
+    "prazo_indicio_paralisacao": {"tipo": None},
+    "status_paralisacao_obra": {"tipo": None},
+    "vistoria_in_loco_parciais": {"tipo": None},
+    "prazo_vistoria_final": {"tipo": None},
+    "obras_proximas_conclusao": {"tipo": None},
+    "registro_conclusao": {"tipo": None},
+    "vigencia": {"tipo": None},
+    "status_de_execucao_da_obra": {"tipo": None},
 }
 
 
 class FiltrosPontosControle:
     def __init__(
         self,
-        nr_instrumento: list[str] | None = Query(None),
-        proponente: list[str] | None = Query(None),
-        municipios_beneficiados: list[str] | None = Query(None),
-        uf: list[str] | None = Query(None),
-        carteira_ativa: list[str] | None = Query(None),
-        projeto_aprovado: list[str] | None = Query(None),
-        possui_aio: list[str] | None = Query(None),
-        coordenacao: list[str] | None = Query(None),
-        acao: list[str] | None = Query(None),
-        nivel: list[str] | None = Query(None),
-        monitor: list[str] | None = Query(None),
-        prazo_clausulas_suspensivas: list[str] | None = Query(None),
-        prazo_emissao_lae: list[str] | None = Query(None),
-        prazo_inicio_licitacao: list[str] | None = Query(None),
-        prazo_conclusao_licitacao: list[str] | None = Query(None),
-        prazo_vrpl: list[str] | None = Query(None),
-        prazo_contratacao: list[str] | None = Query(None),
-        prazo_solicitacao_aio: list[str] | None = Query(None),
-        prazo_analise_tecnica_aio: list[str] | None = Query(None),
-        prazo_analise_executiva_aio: list[str] | None = Query(None),
-        prazo_registro_aio: list[str] | None = Query(None),
-        prazo_emissao_os: list[str] | None = Query(None),
-        prazo_inicio_execucao_fisica: list[str] | None = Query(None),
-        prazo_progresso_fisico: list[str] | None = Query(None),
-        prazo_indicio_paralisacao: list[str] | None = Query(None),
-        status_paralisacao_obra: list[str] | None = Query(None),
-        vistoria_in_loco_parciais: list[str] | None = Query(None),
-        prazo_vistoria_final: list[str] | None = Query(None),
-        obras_proximas_conclusao: list[str] | None = Query(None),
-        registro_conclusao: list[str] | None = Query(None),
-        vigencia: list[str] | None = Query(None),
-        status_de_execucao_da_obra: list[str] | None = Query(None),
+        nr_instrumento: str | None = Query(None),
+        proponente: str | None = Query(None),
+        municipios_beneficiados: str | None = Query(None),
+        uf: str | None = Query(None),
+        carteira_ativa: str | None = Query(None),
+        projeto_aprovado: str | None = Query(None),
+        possui_aio: str | None = Query(None),
+        coordenacao: str | None = Query(None),
+        acao: str | None = Query(None),
+        nivel: str | None = Query(None),
+        monitor: str | None = Query(None),
+        prazo_clausulas_suspensivas: str | None = Query(None),
+        prazo_emissao_lae: str | None = Query(None),
+        prazo_inicio_licitacao: str | None = Query(None),
+        prazo_conclusao_licitacao: str | None = Query(None),
+        prazo_vrpl: str | None = Query(None),
+        prazo_contratacao: str | None = Query(None),
+        prazo_solicitacao_aio: str | None = Query(None),
+        prazo_analise_tecnica_aio: str | None = Query(None),
+        prazo_analise_executiva_aio: str | None = Query(None),
+        prazo_registro_aio: str | None = Query(None),
+        prazo_emissao_os: str | None = Query(None),
+        prazo_inicio_execucao_fisica: str | None = Query(None),
+        prazo_progresso_fisico: str | None = Query(None),
+        prazo_indicio_paralisacao: str | None = Query(None),
+        status_paralisacao_obra: str | None = Query(None),
+        vistoria_in_loco_parciais: str | None = Query(None),
+        prazo_vistoria_final: str | None = Query(None),
+        obras_proximas_conclusao: str | None = Query(None),
+        registro_conclusao: str | None = Query(None),
+        vigencia: str | None = Query(None),
+        status_de_execucao_da_obra: str | None = Query(None),
     ):
-        self.nr_instrumento = nr_instrumento
-        self.proponente = proponente
-        self.municipios_beneficiados = municipios_beneficiados
-        self.uf = uf
-        self.carteira_ativa = carteira_ativa
-        self.projeto_aprovado = projeto_aprovado
-        self.possui_aio = possui_aio
-        self.coordenacao = coordenacao
-        self.acao = acao
-        self.nivel = nivel
-        self.monitor = monitor
-        self.prazo_clausulas_suspensivas = prazo_clausulas_suspensivas
-        self.prazo_emissao_lae = prazo_emissao_lae
-        self.prazo_inicio_licitacao = prazo_inicio_licitacao
-        self.prazo_conclusao_licitacao = prazo_conclusao_licitacao
-        self.prazo_vrpl = prazo_vrpl
-        self.prazo_contratacao = prazo_contratacao
-        self.prazo_solicitacao_aio = prazo_solicitacao_aio
-        self.prazo_analise_tecnica_aio = prazo_analise_tecnica_aio
-        self.prazo_analise_executiva_aio = prazo_analise_executiva_aio
-        self.prazo_registro_aio = prazo_registro_aio
-        self.prazo_emissao_os = prazo_emissao_os
-        self.prazo_inicio_execucao_fisica = prazo_inicio_execucao_fisica
-        self.prazo_progresso_fisico = prazo_progresso_fisico
-        self.prazo_indicio_paralisacao = prazo_indicio_paralisacao
-        self.status_paralisacao_obra = status_paralisacao_obra
-        self.vistoria_in_loco_parciais = vistoria_in_loco_parciais
-        self.prazo_vistoria_final = prazo_vistoria_final
-        self.obras_proximas_conclusao = obras_proximas_conclusao
-        self.registro_conclusao = registro_conclusao
-        self.vigencia = vigencia
-        self.status_de_execucao_da_obra = status_de_execucao_da_obra
+        
+        def _parse(val: str | None) -> list[str]:
+            if not val:
+                return []
+            return [v.strip() for v in str(val).split(",") if v.strip()]
+
+        self.nr_instrumento = _parse(nr_instrumento)
+        self.proponente = _parse(proponente)
+        self.municipios_beneficiados = _parse(municipios_beneficiados)
+        self.uf = _parse(uf)
+        self.carteira_ativa = _parse(carteira_ativa)
+        self.projeto_aprovado = _parse(projeto_aprovado)
+        self.possui_aio = _parse(possui_aio)
+        self.coordenacao = _parse(coordenacao)
+        self.acao = _parse(acao)
+        self.nivel = _parse(nivel)
+        self.monitor = _parse(monitor)
+        self.prazo_clausulas_suspensivas = _parse(prazo_clausulas_suspensivas)
+        self.prazo_emissao_lae = _parse(prazo_emissao_lae)
+        self.prazo_inicio_licitacao = _parse(prazo_inicio_licitacao)
+        self.prazo_conclusao_licitacao = _parse(prazo_conclusao_licitacao)
+        self.prazo_vrpl = _parse(prazo_vrpl)
+        self.prazo_contratacao = _parse(prazo_contratacao)
+        self.prazo_solicitacao_aio = _parse(prazo_solicitacao_aio)
+        self.prazo_analise_tecnica_aio = _parse(prazo_analise_tecnica_aio)
+        self.prazo_analise_executiva_aio = _parse(prazo_analise_executiva_aio)
+        self.prazo_registro_aio = _parse(prazo_registro_aio)
+        self.prazo_emissao_os = _parse(prazo_emissao_os)
+        self.prazo_inicio_execucao_fisica = _parse(prazo_inicio_execucao_fisica)
+        self.prazo_progresso_fisico = _parse(prazo_progresso_fisico)
+        self.prazo_indicio_paralisacao = _parse(prazo_indicio_paralisacao)
+        self.status_paralisacao_obra = _parse(status_paralisacao_obra)
+        self.vistoria_in_loco_parciais = _parse(vistoria_in_loco_parciais)
+        self.prazo_vistoria_final = _parse(prazo_vistoria_final)
+        self.obras_proximas_conclusao = _parse(obras_proximas_conclusao)
+        self.registro_conclusao = _parse(registro_conclusao)
+        self.vigencia = _parse(vigencia)
+        self.status_de_execucao_da_obra = _parse(status_de_execucao_da_obra)
 
 
 async def _execute_query(
@@ -235,8 +241,12 @@ def _build_where(
             value = str(value).strip()
             if not value:
                 continue
+            try:
+                id_usuario = int(value)
+            except ValueError:
+                raise HTTPException(status_code=400, detail=f"ID de Monitor inválido: {value}")
 
-            key = f"monitor_{i}"
+            key = f"id_usuario_{i}"
             monitor_clauses.append(f"""
                 EXISTS (
                     SELECT 1
@@ -245,64 +255,47 @@ def _build_where(
                     WHERE ui_f.nr_instrumento = mv.nr_instrumento
                     AND ui_f.ordem_prioridade = 1
                     AND ui_f.ativo IS TRUE
-                    AND u_f.nome ILIKE :{key}
+                    AND u_f.id_usuario = :{key}
                 )
             """)
-            params[key] = f"%{value}%"
+            params[key] = id_usuario
 
         if monitor_clauses:
             clauses.append("(" + " OR ".join(monitor_clauses) + ")")
 
-    
-    list_filters = [
-        ("nr_instrumento", filtros.nr_instrumento, "nr_instrumento", "text"),
-        ("proponente", filtros.proponente, "proponente", None),
-        ("carteira_ativa", filtros.carteira_ativa, "carteira_ativa", None),
-        ("projeto_aprovado", filtros.projeto_aprovado, "projeto_aprovado", None),
-        ("possui_aio", filtros.possui_aio, "possui_aio", None),
-        ("coordenacao", filtros.coordenacao, "coordenacao", None),
-        ("acao", filtros.acao, "acao", None),
-        ("nivel", filtros.nivel, "nivel", None),
-        ("prazo_clausulas_suspensivas", filtros.prazo_clausulas_suspensivas, "prazo_clausulas_suspensivas", None),
-        ("prazo_emissao_lae", filtros.prazo_emissao_lae, "prazo_emissao_lae", None),
-        ("prazo_inicio_licitacao", filtros.prazo_inicio_licitacao, "prazo_inicio_licitacao", None),
-        ("prazo_conclusao_licitacao", filtros.prazo_conclusao_licitacao, "prazo_conclusao_licitacao", None),
-        ("prazo_vrpl", filtros.prazo_vrpl, "prazo_vrpl", None),
-        ("prazo_contratacao", filtros.prazo_contratacao, "prazo_contratacao", None),
-        ("prazo_solicitacao_aio", filtros.prazo_solicitacao_aio, "prazo_solicitacao_aio", None),
-        ("prazo_analise_tecnica_aio", filtros.prazo_analise_tecnica_aio, "prazo_analise_tecnica_aio", None),
-        ("prazo_analise_executiva_aio", filtros.prazo_analise_executiva_aio, "prazo_analise_executiva_aio", None),
-        ("prazo_registro_aio", filtros.prazo_registro_aio, "prazo_registro_aio", None),
-        ("prazo_emissao_os", filtros.prazo_emissao_os, "prazo_emissao_os", None),
-        ("prazo_inicio_execucao_fisica", filtros.prazo_inicio_execucao_fisica, "prazo_inicio_execucao_fisica", None),
-        ("prazo_progresso_fisico", filtros.prazo_progresso_fisico, "prazo_progresso_fisico", None),
-        ("prazo_indicio_paralisacao", filtros.prazo_indicio_paralisacao, "prazo_indicio_paralisacao", None),
-        ("status_paralisacao_obra", filtros.status_paralisacao_obra, "status_paralisacao_obra", None),
-        ("vistoria_in_loco_parciais", filtros.vistoria_in_loco_parciais, "vistoria_in_loco_parciais", None),
-        ("prazo_vistoria_final", filtros.prazo_vistoria_final, "prazo_vistoria_final", None),
-        ("obras_proximas_conclusao", filtros.obras_proximas_conclusao, "obras_proximas_conclusao", None),
-        ("registro_conclusao", filtros.registro_conclusao, "registro_conclusao", None),
-        ("vigencia", filtros.vigencia, "vigencia", None),
-        ("status_de_execucao_da_obra", filtros.status_de_execucao_da_obra, "status_de_execucao_da_obra", None),
-    ]
 
-    for col, values, param_key, cast_type in list_filters:
+    for coluna, configuracao in CONFIGURACAO_FILTROS.items():
         
-        if not values or col == coluna_atual:
+        if configuracao.get("especial"):
+            continue
+
+        if coluna == coluna_atual:
+            continue
+
+        values = getattr(filtros, coluna, None)
+
+        if not values:
             continue
 
         clean_values = [str(v).strip() for v in values if str(v).strip()]
+
         if not clean_values:
             continue
 
         placeholder_parts = []
+
         for i, val in enumerate(clean_values):
-            key = f"{param_key}_{i}"
+            key = f"{coluna}_{i}"
             placeholder_parts.append(f":{key}")
             params[key] = val
 
         placeholder = ", ".join(placeholder_parts)
-        sql_col = f"{col}::{cast_type}" if cast_type else col
+        
+        sql_col = (
+            f"mv.{coluna}::{configuracao['tipo']}"
+            if configuracao.get("tipo")
+            else f"mv.{coluna}"
+        )
 
         clauses.append(f"{sql_col} IN ({placeholder})")
 
@@ -323,12 +316,22 @@ async def buscar_opcoes_filtro(
     filtros: FiltrosPontosControle = Depends(),
     db: AsyncSession = Depends(get_db),
 ):
-    
+
+    configuracao = CONFIGURACAO_FILTROS.get(nome_coluna)
+    if configuracao is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Coluna '{nome_coluna}' inválida ou não suportada.",
+        )
+
+
     where, params = _build_where(filtros, coluna_atual=nome_coluna)
 
     response.headers["Cache-Control"] = ("private, max-age=300" if params else "public, max-age=3600")
 
-    if nome_coluna == "municipios_beneficiados":
+    especial = configuracao.get("especial")
+
+    if especial == "municipios_beneficiados":
         sql = f"""
             SELECT DISTINCT
                 mu.cod_municipio::text AS valor,
@@ -339,7 +342,7 @@ async def buscar_opcoes_filtro(
             ORDER BY mu.nome
         """
 
-    elif nome_coluna == "uf":
+    elif especial == "uf":
         sql = f"""
             SELECT DISTINCT
                 mu.cod_uf::text AS valor, 
@@ -350,7 +353,7 @@ async def buscar_opcoes_filtro(
             ORDER BY mu.sigla_uf
         """
 
-    elif nome_coluna == "monitor":
+    elif especial == "monitor":
         sql = f"""
             SELECT DISTINCT 
                 u.id_usuario::text AS valor,
@@ -362,22 +365,26 @@ async def buscar_opcoes_filtro(
             ORDER BY u.nome
         """
 
-    elif nome_coluna in COLUNAS_COM_FILTRO:
+    else:
+        tipo = configuracao.get("tipo")
+        
+        sql_coluna = (
+            f"mv.{nome_coluna}::{tipo}"
+            if tipo
+            else f"mv.{nome_coluna}"
+        )
+
         sql = f"""
-            SELECT DISTINCT 
-                {nome_coluna}::text AS valor, 
-                {nome_coluna}::text AS rotulo
+            SELECT DISTINCT
+                {sql_coluna}::text AS valor,
+                {sql_coluna}::text AS rotulo
             FROM {MV} mv
-            {where} AND {nome_coluna} IS NOT NULL
+            {where}
+            AND {sql_coluna} IS NOT NULL
             ORDER BY rotulo
         """
     
-    else:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"Coluna '{nome_coluna}' inválida ou não suportada."
-        )
-
+    
     result = await _execute_query(db, sql, params)
 
     lista_opcoes = [
