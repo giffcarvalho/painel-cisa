@@ -16,36 +16,36 @@ export function FiltrosPontosControleProvider({ children }) {
   const [filtros, setFiltros] = useState(clonarFiltrosIniciais);
   const [filtroPrincipal, setFiltroPrincipal] = useState(null);
 
-  const setFiltro = useCallback((campo, valor) => {
+  const setFiltro = useCallback((nome_coluna, valor) => {
     const valorLimpo = limparValor(valor);
 
-    if (!valorLimpo && campo === filtroPrincipal) {
+    if (!valorLimpo && nome_coluna === filtroPrincipal) {
       setFiltroPrincipal(null);
       setFiltros(clonarFiltrosIniciais());
       return;
     }
 
     if (valorLimpo && !filtroPrincipal) {
-      setFiltroPrincipal(campo);
+      setFiltroPrincipal(nome_coluna);
     }
 
     setFiltros((filtrosAtuais) => {
       if (!valorLimpo) {
         return {
           ...filtrosAtuais,
-          [campo]: '',
+          [nome_coluna]: '',
         };
       }
 
       return {
         ...filtrosAtuais,
-        [campo]: valorLimpo,
+        [nome_coluna]: valorLimpo,
       };
     });
   }, [filtroPrincipal]);
 
-  const limparFiltro = useCallback((campo) => {
-    if (campo === filtroPrincipal) {
+  const limparFiltro = useCallback((nome_coluna) => {
+    if (nome_coluna === filtroPrincipal) {
       setFiltroPrincipal(null);
       setFiltros(clonarFiltrosIniciais());
       return;
@@ -54,7 +54,7 @@ export function FiltrosPontosControleProvider({ children }) {
     setFiltros((filtrosAtuais) => {
       return {
         ...filtrosAtuais,
-        [campo]: '',
+        [nome_coluna]: '',
       };
     });
   }, [filtroPrincipal]);
