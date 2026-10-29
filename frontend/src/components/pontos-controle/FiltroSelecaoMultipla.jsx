@@ -2,24 +2,35 @@ import styles from './FiltroSelecaoMultipla.module.css';
 import { ChevronDown, X } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react';
 import { normalizarTexto } from '@/utils/normalizer';
+import { useBuscaOpcoesPontosControleQuery } from '@/hooks/usePontosControle';
+import { useFiltrosPontosControle } from '@/context/pontos-controle/useFiltrosPontosControle';
 
 
 
-export default function FiltroSelecaoMultipla() {
+export default function FiltroSelecaoMultipla({ nome_coluna }) {
 
     const [aberto, setAberto] = useState(false);
     const [termoBusca, setTermoBusca] = useState('');
-    const [opcoes, setOpcoes] = useState([
-        { valor: 21, rotulo: "Olho D'Água do Piauí", selecionado: false },
-        { valor: 23, rotulo: "Olhos-d'Água", selecionado: false },
-        { valor: 24, rotulo: "Mãe d'Água", selecionado: false },
-        { valor: 25, rotulo: "Olho d'Água das Flores", selecionado: false },
-        { valor: 26, rotulo: "Não-Me-Toque", selecionado: false },
-        { valor: 27, rotulo: "Apicum-Açu", selecionado: false },
-    ]);
-    
-
+    const [opcoes, setOpcoes] = useState([]);
     const filtroRef = useRef(null);
+    const { filtros, setFiltro, limparFiltro } = useFiltrosPontosControle();
+    const { data, isLoading } = useBuscaOpcoesPontosControleQuery(filtros, nome_coluna);
+    
+        
+    useEffect(() => {
+        if (data && data.lista) {
+            
+            const opcoesFormatadas = data.lista.map(item => ({
+                valor: item.valor,
+                rotulo: item.rotulo,
+                selecionado: false
+            }));
+            
+            setOpcoes(opcoesFormatadas);
+        }
+    }, [data]);
+
+
     useEffect(() => {
         const gerenciamentoClicarFora = (event) => {
             
@@ -38,29 +49,15 @@ export default function FiltroSelecaoMultipla() {
     }, []);
 
 
-    const alternarSelecaoOpcao = (valorSelecionado) => {
-        const novasOpcoes = opcoes.map((opcao) => {
-            if (opcao.valor === valorSelecionado) {
-                return { ...opcao, selecionado: !opcao.selecionado };
-            }
-            return opcao;
-        });
-        setOpcoes(novasOpcoes);
-    };
-
-
-    const desmarcarTodasOpcoes = () => {
-        const novasOpcoes = opcoes.map((opcao) => ({
-            ...opcao,
-            selecionado: false
-        }));
-        setOpcoes(novasOpcoes);
-    };
-
-
     const opcoesSelecionadas = opcoes.filter((opcao) => opcao.selecionado === true);
+    const termoBuscaNormalizado = normalizarTexto(termoBusca);
     
-
+    const opcoesFiltradasTermoBusca = termoBusca.trim().length < 2 
+        ? opcoes 
+        : opcoes.filter((opcao) => 
+            normalizarTexto(opcao.rotulo).includes(termoBuscaNormalizado)
+        );
+    
     const textoPlaceholder = (() => {
         
         if (opcoesSelecionadas.length === 0) return "Todos";
@@ -72,14 +69,34 @@ export default function FiltroSelecaoMultipla() {
     })();
 
 
-    const termoBuscaNormalizado = normalizarTexto(termoBusca);
+    const alternarSelecaoOpcao = (valorSelecionado) => {
+        const novasOpcoes = opcoes.map((opcao) => {
+            if (opcao.valor === valorSelecionado) {
+                return { ...opcao, selecionado: !opcao.selecionado };
+            }
+            return opcao;
+        });
+        setOpcoes(novasOpcoes);
+
+        const valoresSelecionados = novasOpcoes.filter((opcao) => opcao.selecionado).map((opcao) => opcao.valor);
+        const valorParaContexto = valoresSelecionados.length > 0 ? valoresSelecionados.join(',') : '';
+        
+        console.log(valorParaContexto);
+        setFiltro(nome_coluna, valorParaContexto);
+    };
+
     
-    
-    const opcoesFiltradasTermoBusca = termoBusca.trim().length < 2 
-        ? opcoes 
-        : opcoes.filter((opcao) => 
-            normalizarTexto(opcao.rotulo).includes(termoBuscaNormalizado)
-        );
+
+    const desmarcarTodasOpcoes = () => {
+        const novasOpcoes = opcoes.map((opcao) => ({
+            ...opcao,
+            selecionado: false
+        }));
+        setOpcoes(novasOpcoes);
+
+        limparFiltro(nome_coluna);
+    };
+
 
 
     return (
