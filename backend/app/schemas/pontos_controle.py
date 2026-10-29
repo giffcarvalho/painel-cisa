@@ -26,61 +26,17 @@ class PontosControleBase(BaseModel):
             }
         return data
 
-class MunicipioBeneficiadoFiltroItem(BaseModel):
-    cod_municipio: str
-    municipio: str
-
-class UfFiltroItem(BaseModel):
-    cod_uf: str
-    uf: str
 
 
-class PontosControleFiltrosResponse(BaseModel):
-    nr_instrumento: list[str]
-    proponente: list[str]
-    municipios_beneficiados: list[MunicipioBeneficiadoFiltroItem]
-    uf: list[UfFiltroItem]
-    carteira_ativa: list[str]
-    projeto_aprovado: list[str]
-    possui_aio: list[str]
-    coordenacao: list[str]
-    acao: list[str]
-    nivel: list[str]
-    monitor: list[str]
-    prazo_clausulas_suspensivas: list[str]
-    prazo_emissao_lae: list[str]
-    prazo_inicio_licitacao: list[str]
-    prazo_conclusao_licitacao: list[str]
-    prazo_vrpl: list[str]
-    prazo_contratacao: list[str]
-    prazo_solicitacao_aio: list[str]
-    prazo_analise_tecnica_aio: list[str]
-    prazo_analise_executiva_aio: list[str]
-    prazo_registro_aio: list[str]
-    prazo_emissao_os: list[str]
-    prazo_inicio_execucao_fisica: list[str]
-    prazo_progresso_fisico: list[str]
-    prazo_indicio_paralisacao: list[str]
-    status_paralisacao_obra: list[str]
-    vistoria_in_loco_parciais: list[str]
-    prazo_vistoria_final: list[str]
-    obras_proximas_conclusao: list[str]
-    registro_conclusao: list[str]
-    vigencia: list[str]
-    status_de_execucao_da_obra: list[str]
-    
-    model_config = {"from_attributes": True}
 
-
-class PontosControleBuscaFiltroItem(BaseModel):
+class PontosControleOpcoesFiltroItem(BaseModel):
     valor: str
-    label: str
+    rotulo: str
 
-
-class PontosControleBuscaFiltroResponse(BaseModel):
-    campo: str
-    termo: str
-    data: list[PontosControleBuscaFiltroItem]
+class PontosControleOpcoesFiltroResponse(BaseModel):
+    lista: list[PontosControleOpcoesFiltroItem]
+       
+    model_config = {"from_attributes": True}
 
 
 class PontosControleListaItem(PontosControleBase):
