@@ -14,21 +14,26 @@ export default function FiltroSelecaoMultipla({ nome_coluna }) {
     const [opcoes, setOpcoes] = useState([]);
     const filtroRef = useRef(null);
     const { filtros, setFiltro, limparFiltro } = useFiltrosPontosControle();
-    const { data, isLoading } = useBuscaOpcoesPontosControleQuery(filtros, nome_coluna);
+    const { data, isLoading } = useBuscaOpcoesPontosControleQuery(filtros, nome_coluna, aberto);
     
         
     useEffect(() => {
         if (data && data.lista) {
             
+            const valoresSelecionadosContexto = filtros[nome_coluna] 
+                ? String(filtros[nome_coluna]).split(',') 
+                : [];
+
             const opcoesFormatadas = data.lista.map(item => ({
                 valor: item.valor,
                 rotulo: item.rotulo,
-                selecionado: false
+                
+                selecionado: valoresSelecionadosContexto.includes(String(item.valor))
             }));
             
             setOpcoes(opcoesFormatadas);
         }
-    }, [data]);
+    }, [data, filtros, nome_coluna]);
 
 
     useEffect(() => {
@@ -81,7 +86,7 @@ export default function FiltroSelecaoMultipla({ nome_coluna }) {
         const valoresSelecionados = novasOpcoes.filter((opcao) => opcao.selecionado).map((opcao) => opcao.valor);
         const valorParaContexto = valoresSelecionados.length > 0 ? valoresSelecionados.join(',') : '';
         
-        console.log(valorParaContexto);
+        
         setFiltro(nome_coluna, valorParaContexto);
     };
 
@@ -118,17 +123,19 @@ export default function FiltroSelecaoMultipla({ nome_coluna }) {
                     <ChevronDown className={`${styles.chevron} ${aberto? styles.chevronOpen: ''}`}/>
                 </button>
 
-                <button 
-                    type="button"
-                    title="Limpar filtro"
-                    onClick={() => {
-                        setAberto(false);
-                        setTermoBusca('');
-                        desmarcarTodasOpcoes();
-                    }}
-                >
-                    <X className={styles.clearButton}/> 
-                </button>
+                {opcoesSelecionadas.length > 0 && (    
+                    <button 
+                        type="button"
+                        title="Limpar filtro"
+                        onClick={() => {
+                            setAberto(false);
+                            setTermoBusca('');
+                            desmarcarTodasOpcoes();
+                        }}
+                    >
+                        <X className={styles.clearButton}/> 
+                    </button>
+                )}
             </div>
 
             {aberto && (
@@ -173,6 +180,9 @@ export default function FiltroSelecaoMultipla({ nome_coluna }) {
                     </div>
 
                     <div className={styles.optionsWrapper}>
+                        {isLoading && (
+                            <span className={styles.options}>Carregando opções</span>
+                        )}
                         {opcoesFiltradasTermoBusca.map((opcao) => {
                             return (
                                 <label 
