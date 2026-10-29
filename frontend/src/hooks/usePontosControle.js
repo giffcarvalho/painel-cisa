@@ -22,6 +22,19 @@ export function useOpcoesPontosControleQuery(filtros = {}) {
   });
 }
 
+
+export function useBuscaOpcoesPontosControleQuery(filtros = {}, nome_coluna) {
+  const filtrosNormalizados = normalizarFiltros(filtros);
+
+  return useQuery({
+    queryKey: ['pontos-controle', 'filtros', filtrosNormalizados, nome_coluna],
+    queryFn: () => pontosControleApi.buscarOpcoesFiltros(filtrosNormalizados, nome_coluna),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!nome_coluna,
+  });
+}
+
+
 export function useBuscaFiltroPontosControleQuery(campo, termo, limit = 50) {
   const termoNormalizado = termo?.trim() ?? '';
 
