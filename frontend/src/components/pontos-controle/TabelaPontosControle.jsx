@@ -2,7 +2,6 @@ import { Fragment, useEffect, useState, useRef } from 'react';
 import { emptyValue, formatDate } from '../../utils/formatters';
 import { textosExplicativos } from '../../utils/pontoControleUtils';
 import styles from './TabelaPontosControle.module.css';
-import FiltroColuna from './FiltrosPontosControle';
 import FiltroSelecaoMultipla from './FiltroSelecaoMultipla';
 import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltrosPontosControle';
 import { useBuscaPlanoAcaoQuery } from "../../hooks/usePontosControle";
@@ -447,40 +446,40 @@ export default function TabelaPontosControle({
                 </tr>
 
                 <tr className={styles.filterRow}>
-                  <th><FiltroColuna campo="nr_instrumento" label="Nº Instrumento" /></th>
-                  <th><FiltroSelecaoMultipla /></th>
-                  <th><FiltroColuna campo="proponente" label="proponente" /></th>
-                  <th><FiltroColuna campo="municipios_beneficiados" label="Municípios beneficiados" /></th>
-                  <th><FiltroColuna campo="uf" label="UF" /></th>
-                  <th><FiltroColuna campo="carteira_ativa" label="Carteira ativa" /></th>
-                  <th><FiltroColuna campo="projeto_aprovado" label="Projeto aprovado" /></th>
-                  <th><FiltroColuna campo="possui_aio" label="Possui AIO" /></th>
-                  <th><FiltroColuna campo="coordenacao" label="Coordenação" /></th>
-                  <th><FiltroColuna campo="acao" label="Ação" /></th>
-                  <th><FiltroColuna campo="nivel" label="Nível" /></th>
-                  <th><FiltroColuna campo="monitor" label="Monitores" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="nr_instrumento" label="Nº Instrumento" /></th>
                   <th></th>
-                  <th><FiltroColuna campo="prazo_clausulas_suspensivas" label="Cláusulas Suspensivas" /></th>
-                  <th><FiltroColuna campo="prazo_emissao_lae" label="Emissão LAE" /></th>
-                  <th><FiltroColuna campo="prazo_inicio_licitacao" label="Início Processo Licitatório" /></th>
-                  <th><FiltroColuna campo="prazo_conclusao_licitacao" label="Conclusão Processo Licitatório" /></th>
-                  <th><FiltroColuna campo="prazo_vrpl" label="VRPL" /></th>
-                  <th><FiltroColuna campo="prazo_contratacao" label="Contratação" /></th>
-                  <th><FiltroColuna campo="prazo_solicitacao_aio" label="Solicitação AIO" /></th>
-                  <th><FiltroColuna campo="prazo_analise_tecnica_aio" label="Análise técnica AIO" /></th>
-                  <th><FiltroColuna campo="prazo_analise_executiva_aio" label="Análise GAB/SE AIO" /></th>
-                  <th><FiltroColuna campo="prazo_registro_aio" label="Registro AIO" /></th>
-                  <th><FiltroColuna campo="prazo_emissao_os" label="Emissão OS" /></th>
-                  <th><FiltroColuna campo="prazo_inicio_execucao_fisica" label="Início execução física" /></th>
-                  <th><FiltroColuna campo="prazo_progresso_fisico" label="Progresso físico" /></th>
-                  <th><FiltroColuna campo="prazo_indicio_paralisacao" label="Indício de paralisação" /></th>
-                  <th><FiltroColuna campo="status_paralisacao_obra" label="Obras paralisadas" /></th>
-                  <th><FiltroColuna campo="vistoria_in_loco_parciais" label="Vistorias parciais" /></th>
-                  <th><FiltroColuna campo="prazo_vistoria_final" label="Vistoria final" /></th>
-                  <th><FiltroColuna campo="obras_proximas_conclusao" label="Obras próximas conclusão" /></th>
-                  <th><FiltroColuna campo="registro_conclusao" label="Registro conclusão" /></th>
-                  <th><FiltroColuna campo="vigencia" label="Vigência" /></th>
-                  <th><FiltroColuna campo="status_de_execucao_da_obra" label="Inconsistências" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="proponente" label="proponente" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="municipios_beneficiados" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="uf" label="UF" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="carteira_ativa" label="Carteira ativa" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="projeto_aprovado" label="Projeto aprovado" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="possui_aio" label="Possui AIO" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="coordenacao" label="Coordenação" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="acao" label="Ação" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="nivel" label="Nível" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="monitor" label="Monitores" /></th>
+                  <th></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="prazo_clausulas_suspensivas" label="Cláusulas Suspensivas" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="prazo_emissao_lae" label="Emissão LAE" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="prazo_inicio_licitacao" label="Início Processo Licitatório" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="prazo_conclusao_licitacao" label="Conclusão Processo Licitatório" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="prazo_vrpl" label="VRPL" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="prazo_contratacao" label="Contratação" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="prazo_solicitacao_aio" label="Solicitação AIO" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="prazo_analise_tecnica_aio" label="Análise técnica AIO" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="prazo_analise_executiva_aio" label="Análise GAB/SE AIO" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="prazo_registro_aio" label="Registro AIO" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="prazo_emissao_os" label="Emissão OS" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="prazo_inicio_execucao_fisica" label="Início execução física" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="prazo_progresso_fisico" label="Progresso físico" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="prazo_indicio_paralisacao" label="Indício de paralisação" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="status_paralisacao_obra" label="Obras paralisadas" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="vistoria_in_loco_parciais" label="Vistorias parciais" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="prazo_vistoria_final" label="Vistoria final" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="obras_proximas_conclusao" label="Obras próximas conclusão" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="registro_conclusao" label="Registro conclusão" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="vigencia" label="Vigência" /></th>
+                  <th><FiltroSelecaoMultipla nome_coluna="status_de_execucao_da_obra" label="Inconsistências" /></th>
                 </tr>
 
               </thead>
