@@ -64,14 +64,6 @@ const buildInstrumentosParams = (filtros = {}, pagina = 1, tamanhoPagina = 50) =
   return params;
 };
 
-export const getFiltros = async (filtros = {}) => {
-  const { data } = await api.get('/pontos-controle/filtros', {
-    params: buildFiltrosParams(filtros),
-  });
-
-  return data;
-};
-
 
 export const buscarOpcoesFiltros = async (filtros = {}, nome_coluna) => {
   const { data } = await api.get(`/pontos-controle/opcoes_filtros/${nome_coluna}`, {
@@ -81,18 +73,6 @@ export const buscarOpcoesFiltros = async (filtros = {}, nome_coluna) => {
   return data;
 };
 
-
-export const buscarFiltro = async (campo, q, limit = 50) => {
-  const { data } = await api.get('/pontos-controle/filtros/busca', {
-    params: {
-      campo,
-      q,
-      limit,
-    },
-  });
-
-  return data;
-};
 
 export const getInstrumentos = async (filtros = {}, pagina = 1, tamanhoPagina = 50) => {
   const params = buildInstrumentosParams(filtros, pagina, tamanhoPagina);
@@ -186,8 +166,6 @@ export async function getContatoMandataria(codUF) {
 
 
 const pontosControleApi = {
-  getFiltros,
-  buscarFiltro,
   buscarOpcoesFiltros,
   getInstrumentos,
   getDataDados,
