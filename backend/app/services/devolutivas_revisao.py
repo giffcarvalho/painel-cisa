@@ -15,12 +15,10 @@ async def _clonar_filhos(db: AsyncSession, origem: int, destino: int) -> None:
     comandos = (
         """INSERT INTO painel_dsr.tb_revisao_instrumento_concessao
            (id_revisao, responsabilidade_privada, observacao_concessao,
-            anexo_i_entregue, anexo_ii_entregue, anexo_iii_entregue,
-            anexo_iv_entregue, observacao_anexos, conferido_em, valido_ate,
+            anexos_entregues, observacao_anexos, conferido_em, valido_ate,
             criado_em, atualizado_em)
            SELECT :destino, responsabilidade_privada, observacao_concessao,
-                  anexo_i_entregue, anexo_ii_entregue, anexo_iii_entregue,
-                  anexo_iv_entregue, observacao_anexos, conferido_em, valido_ate,
+                  anexos_entregues, observacao_anexos, conferido_em, valido_ate,
                   NOW(), NOW()
            FROM painel_dsr.tb_revisao_instrumento_concessao WHERE id_revisao = :origem""",
         """INSERT INTO painel_dsr.tb_revisao_instrumento_municipio

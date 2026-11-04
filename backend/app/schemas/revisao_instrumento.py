@@ -200,10 +200,7 @@ class PublicoAlvoRevisaoAlteracao(RevisaoInstrumentoBase):
 class ConcessaoRevisaoAlteracao(RevisaoInstrumentoBase):
     responsabilidade_privada: Literal["sim", "nao"] | None = None
     observacao_concessao: str | None = None
-    anexo_i_entregue: StrictBool | None = None
-    anexo_ii_entregue: StrictBool | None = None
-    anexo_iii_entregue: StrictBool | None = None
-    anexo_iv_entregue: StrictBool | None = None
+    anexos_entregues: StrictBool | None = None
     observacao_anexos: str | None = None
 
 
