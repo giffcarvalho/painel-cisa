@@ -17,6 +17,7 @@ function mensagemErro(error) {
   const detail = error?.response?.data?.detail
   if (typeof detail === 'string') return detail
   if (detail?.pendencias?.length) return detail.pendencias.join(' ')
+
   return detail?.mensagem || 'Não foi possível concluir a operação.'
 }
 
@@ -39,13 +40,25 @@ export default function AplicacaoRevisoes() {
   const [resultado, setResultado] = useState(null)
   const [aba, setAba] = useState('pendentes')
   const [contextoResultado, setContextoResultado] = useState('pendentes')
-  const [historico, setHistorico] = useState({ data: [], page: 1, page_size: 10, total: 0, total_pages: 0 })
+  const [historico, setHistorico] = useState({
+    data: [],
+    page: 1,
+    page_size: 10,
+    total: 0,
+    total_pages: 0,
+  })
   const [filtrosHistorico, setFiltrosHistorico] = useState({ busca: '', status: '' })
   const [carregandoHistorico, setCarregandoHistorico] = useState(false)
   const [validacaoCancelamento, setValidacaoCancelamento] = useState(null)
   const [confirmandoCancelamento, setConfirmandoCancelamento] = useState(false)
   const [processandoCancelamento, setProcessandoCancelamento] = useState(false)
-  const [solicitacoes, setSolicitacoes] = useState({ data: [], page: 1, page_size: 20, total: 0, total_pages: 0 })
+  const [solicitacoes, setSolicitacoes] = useState({
+    data: [],
+    page: 1,
+    page_size: 20,
+    total: 0,
+    total_pages: 0,
+  })
   const [carregandoSolicitacoes, setCarregandoSolicitacoes] = useState(false)
 
   const carregarPendentes = useCallback(async () => {
@@ -77,7 +90,9 @@ export default function AplicacaoRevisoes() {
     setCarregandoSolicitacoes(true)
     setErro('')
     try {
-      setSolicitacoes(await aplicacaoRevisoesApi.listarSolicitacoesCancelamento({ page, pageSize: 20, status }))
+      setSolicitacoes(
+        await aplicacaoRevisoesApi.listarSolicitacoesCancelamento({ page, pageSize: 20, status }),
+      )
     } catch (error) {
       setErro(mensagemErro(error))
     } finally {
@@ -88,12 +103,17 @@ export default function AplicacaoRevisoes() {
   useEffect(() => {
     // Agenda a primeira carga após a montagem para manter o efeito cancelável.
     const timeoutId = window.setTimeout(carregarPendentes, 0)
+
     return () => window.clearTimeout(timeoutId)
   }, [carregarPendentes])
 
   useEffect(() => {
     const idRevisao = Number(searchParams.get('revisao'))
-    if (!idRevisao || selecionada === idRevisao || !revisoes.some((item) => item.id_revisao === idRevisao)) return
+    if (
+      !idRevisao || selecionada === idRevisao
+        || !revisoes.some((item) => item.id_revisao === idRevisao)
+    )
+      return
     selecionar(idRevisao)
   }, [revisoes, searchParams, selecionada])
 
@@ -102,19 +122,22 @@ export default function AplicacaoRevisoes() {
     // substituir a execução que o administrador está inspecionando.
     if (aba !== 'historico' || resultado) return undefined
     const timeoutId = window.setTimeout(() => carregarHistorico(1), 0)
+
     return () => window.clearTimeout(timeoutId)
   }, [aba, carregarHistorico, resultado])
 
   useEffect(() => {
     if (aba !== 'solicitacoes') return undefined
     const timeoutId = window.setTimeout(() => carregarSolicitacoes(1, 'pendente'), 0)
+
     return () => window.clearTimeout(timeoutId)
   }, [aba, carregarSolicitacoes])
 
   async function responderSolicitacao(item, acao, observacao) {
     setErro('')
     try {
-      if (acao === 'aprovar') await aplicacaoRevisoesApi.aprovarSolicitacaoCancelamento(item.id_solicitacao, observacao)
+      if (acao === 'aprovar')
+        await aplicacaoRevisoesApi.aprovarSolicitacaoCancelamento(item.id_solicitacao, observacao)
       else await aplicacaoRevisoesApi.rejeitarSolicitacaoCancelamento(item.id_solicitacao, observacao)
       await carregarSolicitacoes(1, 'pendente')
     } catch (error) {
@@ -150,6 +173,7 @@ export default function AplicacaoRevisoes() {
         setDetalhe((atual) => ({ ...atual, validacao }))
         setConfirmando(false)
         setErro(validacao.pendencias.join(' ') || 'A revisão não está pronta para aplicação.')
+
         return
       }
       const data = await aplicacaoRevisoesApi.aplicar(detalhe.revisao.id_revisao)
@@ -174,16 +198,13 @@ export default function AplicacaoRevisoes() {
     setSalvandoEdicao(true)
     setErroEdicao('')
     try {
-      const atualizado = await aplicacaoRevisoesApi.corrigir(
-        detalhe.revisao.id_revisao,
-        payload,
-      )
+      const atualizado = await aplicacaoRevisoesApi.corrigir(detalhe.revisao.id_revisao, payload)
       setDetalhe(atualizado)
-      setRevisoes((atuais) => atuais.map((item) => (
-        item.id_revisao === atualizado.revisao.id_revisao
-          ? atualizado.revisao
-          : item
-      )))
+      setRevisoes((atuais) => (
+        atuais.map(
+          (item) => (item.id_revisao === atualizado.revisao.id_revisao ? atualizado.revisao : item),
+        )
+      ))
       setEditando(false)
     } catch (error) {
       setErroEdicao(mensagemErro(error))
@@ -247,7 +268,9 @@ export default function AplicacaoRevisoes() {
       // Uma falha pode refletir mudança concorrente; revalida para atualizar a
       // justificativa e a disponibilidade do cancelamento exibidas ao usuário.
       try {
-        setValidacaoCancelamento(await aplicacaoRevisoesApi.validarCancelamento(resultado.id_execucao))
+        setValidacaoCancelamento(
+          await aplicacaoRevisoesApi.validarCancelamento(resultado.id_execucao),
+        )
       } catch {
         setValidacaoCancelamento(null)
       }
@@ -271,28 +294,64 @@ export default function AplicacaoRevisoes() {
       <header className={styles.pageHeader}>
         <div>
           <h1>Aplicação de Revisões</h1>
-          <p>Confira e aplique, individualmente, as revisões enviadas e suas avaliações consolidadas.</p>
+          <p>
+            Confira e aplique, individualmente, as revisões enviadas e suas avaliações consolidadas.
+          </p>
         </div>
-        <button type="button" className={styles.secondaryButton} disabled={carregando || carregandoHistorico || carregandoSolicitacoes} onClick={() => aba === 'historico' ? carregarHistorico(historico.page) : aba === 'solicitacoes' ? carregarSolicitacoes(1, 'pendente') : carregarPendentes()}>
+        <button
+          type="button"
+          className={styles.secondaryButton}
+          disabled={carregando || carregandoHistorico || carregandoSolicitacoes}
+          onClick={() => (
+            aba === 'historico'
+              ? carregarHistorico(historico.page)
+              : aba === 'solicitacoes'
+                ? carregarSolicitacoes(1, 'pendente')
+                : carregarPendentes()
+          )}
+        >
           <RefreshCw aria-hidden="true" /> Atualizar
         </button>
       </header>
-
       <nav className={styles.tabs} aria-label="Visualizações da aplicação de revisões">
-        <button type="button" className={aba === 'pendentes' ? styles.tabActive : ''} aria-current={aba === 'pendentes' ? 'page' : undefined} onClick={() => trocarAba('pendentes')}>Pendentes</button>
-        <button type="button" className={aba === 'solicitacoes' ? styles.tabActive : ''} aria-current={aba === 'solicitacoes' ? 'page' : undefined} onClick={() => trocarAba('solicitacoes')}>Solicitações de cancelamento</button>
-        <button type="button" className={aba === 'historico' ? styles.tabActive : ''} aria-current={aba === 'historico' ? 'page' : undefined} onClick={() => trocarAba('historico')}>Histórico</button>
+        <button
+          type="button"
+          className={aba === 'pendentes' ? styles.tabActive : ''}
+          aria-current={aba === 'pendentes' ? 'page' : undefined}
+          onClick={() => trocarAba('pendentes')}
+        >
+          Pendentes
+        </button>
+        <button
+          type="button"
+          className={aba === 'solicitacoes' ? styles.tabActive : ''}
+          aria-current={aba === 'solicitacoes' ? 'page' : undefined}
+          onClick={() => trocarAba('solicitacoes')}
+        >
+          Solicitações de cancelamento
+        </button>
+        <button
+          type="button"
+          className={aba === 'historico' ? styles.tabActive : ''}
+          aria-current={aba === 'historico' ? 'page' : undefined}
+          onClick={() => trocarAba('historico')}
+        >
+          Histórico
+        </button>
       </nav>
-
       {erro && <div className={styles.errorMessage} role="alert">{erro}</div>}
-
-      {resultado ? <ResultadoAplicacao
-        resultado={resultado}
-        contexto={contextoResultado}
-        validacaoCancelamento={validacaoCancelamento}
-        onCancelarAplicacao={() => setConfirmandoCancelamento(true)}
-        onFechar={() => { setResultado(null); setValidacaoCancelamento(null) }}
-      /> : aba === 'solicitacoes' ? (
+      {resultado ? (
+        <ResultadoAplicacao
+          resultado={resultado}
+          contexto={contextoResultado}
+          validacaoCancelamento={validacaoCancelamento}
+          onCancelarAplicacao={() => setConfirmandoCancelamento(true)}
+          onFechar={() => {
+            setResultado(null)
+            setValidacaoCancelamento(null)
+          }}
+        />
+      ) : aba === 'solicitacoes' ? (
         <SolicitacoesCancelamento
           resultado={solicitacoes}
           carregando={carregandoSolicitacoes}
@@ -316,22 +375,45 @@ export default function AplicacaoRevisoes() {
               <span>{revisoes.length}</span>
             </div>
             {carregando ? (
-              <div className={styles.loading}><Loader2 className={styles.spinner} /> Carregando revisões...</div>
+              <div className={styles.loading}>
+                <Loader2 className={styles.spinner} /> Carregando revisões...
+              </div>
             ) : (
-              <ListaRevisoesPendentes revisoes={revisoes} selecionada={selecionada} onSelecionar={selecionar} />
+              <ListaRevisoesPendentes
+                revisoes={revisoes}
+                selecionada={selecionada}
+                onSelecionar={selecionar}
+              />
             )}
           </section>
-
           <section className={styles.detailPanel} aria-live="polite">
-            {carregandoDetalhe && <div className={styles.loading}><Loader2 className={styles.spinner} /> Validando revisão...</div>}
-            {!carregandoDetalhe && detalhe && <DetalhesRevisao detalhe={detalhe} onAplicar={() => setConfirmando(true)} onEditar={() => { setErroEdicao(''); setEditando(true) }} onDevolver={() => { setErroDevolucao(''); setDevolvendo(true) }} />}
+            {carregandoDetalhe && (
+              <div className={styles.loading}>
+                <Loader2 className={styles.spinner} /> Validando revisão...
+              </div>
+            )}
+            {!carregandoDetalhe && detalhe && (
+              <DetalhesRevisao
+                detalhe={detalhe}
+                onAplicar={() => setConfirmando(true)}
+                onEditar={() => {
+                  setErroEdicao('')
+                  setEditando(true)
+                }}
+                onDevolver={() => {
+                  setErroDevolucao('')
+                  setDevolvendo(true)
+                }}
+              />
+            )}
             {!carregandoDetalhe && !detalhe && (
-              <div className={styles.detailEmpty}>Selecione uma revisão para conferir as alterações e sua validação.</div>
+              <div className={styles.detailEmpty}>
+                Selecione uma revisão para conferir as alterações e sua validação.
+              </div>
             )}
           </section>
         </div>
       )}
-
       {confirmando && detalhe && (
         <ModalConfirmacaoAplicacao
           revisao={detalhe.revisao}
@@ -345,7 +427,10 @@ export default function AplicacaoRevisoes() {
           detalhe={detalhe}
           salvando={salvandoEdicao}
           erro={erroEdicao}
-          onFechar={() => { setEditando(false); setErroEdicao('') }}
+          onFechar={() => {
+            setEditando(false)
+            setErroEdicao('')
+          }}
           onSalvar={salvarEdicao}
         />
       )}
@@ -354,7 +439,10 @@ export default function AplicacaoRevisoes() {
           revisao={detalhe.revisao}
           processando={processandoDevolucao}
           erro={erroDevolucao}
-          onFechar={() => { setDevolvendo(false); setErroDevolucao('') }}
+          onFechar={() => {
+            setDevolvendo(false)
+            setErroDevolucao('')
+          }}
           onConfirmar={confirmarDevolucao}
         />
       )}

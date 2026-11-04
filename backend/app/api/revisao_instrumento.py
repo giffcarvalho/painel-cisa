@@ -1402,13 +1402,11 @@ async def _obter_ou_criar_revisao(
         await db.execute(text("""
             INSERT INTO painel_dsr.tb_revisao_instrumento_concessao (
                 id_revisao, responsabilidade_privada, observacao_concessao,
-                anexo_i_entregue, anexo_ii_entregue, anexo_iii_entregue,
-                anexo_iv_entregue, observacao_anexos, conferido_em, valido_ate,
+                anexos_entregues, observacao_anexos, conferido_em, valido_ate,
                 criado_em, atualizado_em
             )
             SELECT :destino, responsabilidade_privada, observacao_concessao,
-                   anexo_i_entregue, anexo_ii_entregue, anexo_iii_entregue,
-                   anexo_iv_entregue, observacao_anexos, conferido_em, valido_ate,
+                   anexos_entregues, observacao_anexos, conferido_em, valido_ate,
                    NOW(), NOW()
             FROM painel_dsr.tb_revisao_instrumento_concessao
             WHERE id_revisao = :origem
@@ -2994,21 +2992,11 @@ async def _persistir_municipio_revisao(
     )
 
 
-ANEXOS_CONCESSAO = (
-    "anexo_i_entregue", "anexo_ii_entregue",
-    "anexo_iii_entregue", "anexo_iv_entregue",
-)
-
-
 def _pendencias_concessao(item: ConcessaoRevisaoItem | None) -> list[str]:
     if item is None or item.responsabilidade_privada is None:
         return ["Responda se o escopo do instrumento é de responsabilidade privada."]
-    if item.responsabilidade_privada == "sim":
-        return [
-            f"Informe a situação de entrega do Anexo {numero}."
-            for campo, numero in zip(ANEXOS_CONCESSAO, ("I", "II", "III", "IV"))
-            if getattr(item, campo) is None
-        ]
+    if item.responsabilidade_privada == "sim" and item.anexos_entregues is None:
+        return ["Informe se os anexos referentes à concessão foram entregues."]
     return []
 
 
@@ -3019,8 +3007,7 @@ async def _buscar_concessao(
         return None
     result = await _execute_query(db, """
         SELECT id_revisao_concessao, responsabilidade_privada, observacao_concessao,
-               anexo_i_entregue, anexo_ii_entregue, anexo_iii_entregue,
-               anexo_iv_entregue, observacao_anexos, conferido_em, valido_ate,
+               anexos_entregues, observacao_anexos, conferido_em, valido_ate,
                criado_em, atualizado_em
         FROM painel_dsr.tb_revisao_instrumento_concessao
         WHERE id_revisao = :id_revisao
@@ -3040,19 +3027,17 @@ async def _persistir_concessao(
     item = _herdar_omitidos(item, atual.model_dump() if atual else {}, campos)
     dados = item.model_dump()
     if item.responsabilidade_privada != "sim":
-        for campo in (*ANEXOS_CONCESSAO, "observacao_anexos"):
+        for campo in ("anexos_entregues", "observacao_anexos"):
             dados[campo] = None
     # A validade segue os mesmos metadados e intervalo do público-alvo.
     await db.execute(text("""
         INSERT INTO painel_dsr.tb_revisao_instrumento_concessao (
             id_revisao, responsabilidade_privada, observacao_concessao,
-            anexo_i_entregue, anexo_ii_entregue, anexo_iii_entregue,
-            anexo_iv_entregue, observacao_anexos, conferido_em, valido_ate,
+            anexos_entregues, observacao_anexos, conferido_em, valido_ate,
             criado_em, atualizado_em
         )
         SELECT id_revisao, :responsabilidade_privada, :observacao_concessao,
-               :anexo_i_entregue, :anexo_ii_entregue, :anexo_iii_entregue,
-               :anexo_iv_entregue, :observacao_anexos,
+               :anexos_entregues, :observacao_anexos,
                CASE WHEN CAST(:responsabilidade_privada AS varchar) IS NOT NULL THEN NOW() END,
                CASE WHEN CAST(:responsabilidade_privada AS varchar) IS NOT NULL
                     THEN NOW() + make_interval(days => COALESCE(validade_dias, 0)) END,
@@ -3062,10 +3047,7 @@ async def _persistir_concessao(
         ON CONFLICT (id_revisao) DO UPDATE SET
             responsabilidade_privada = EXCLUDED.responsabilidade_privada,
             observacao_concessao = EXCLUDED.observacao_concessao,
-            anexo_i_entregue = EXCLUDED.anexo_i_entregue,
-            anexo_ii_entregue = EXCLUDED.anexo_ii_entregue,
-            anexo_iii_entregue = EXCLUDED.anexo_iii_entregue,
-            anexo_iv_entregue = EXCLUDED.anexo_iv_entregue,
+            anexos_entregues = EXCLUDED.anexos_entregues,
             observacao_anexos = EXCLUDED.observacao_anexos,
             conferido_em = EXCLUDED.conferido_em,
             valido_ate = EXCLUDED.valido_ate,

@@ -3,9 +3,14 @@ import styles from '@/pages/admin/aplicacao-revisoes/AplicacaoRevisoes.module.cs
 
 function formatarData(value) {
   if (!value) return '—'
-  return new Intl.DateTimeFormat('pt-BR', {
-    dateStyle: 'short', timeStyle: 'short',
-  }).format(new Date(value))
+
+  return new Intl.DateTimeFormat(
+    'pt-BR',
+    {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    },
+  ).format(new Date(value))
 }
 
 export default function ListaRevisoesPendentes({ revisoes, selecionada, onSelecionar }) {
@@ -33,7 +38,8 @@ export default function ListaRevisoesPendentes({ revisoes, selecionada, onSeleci
               <span className={styles.statusBadge}>Aguardando aplicação</span>
             </span>
             <span className={styles.pendingMeta}>
-              Revisão nº {item.id_revisao} · {item.tecnico_responsavel}
+              Revisão nº {item.id_revisao}
+              {' '}· {item.tecnico_responsavel}
             </span>
             <span className={styles.pendingMeta}>
               <Clock3 aria-hidden="true" /> Enviada em {formatarData(item.enviado_em)}
