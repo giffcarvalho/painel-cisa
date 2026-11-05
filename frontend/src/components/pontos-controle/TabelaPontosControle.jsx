@@ -5,7 +5,7 @@ import styles from './TabelaPontosControle.module.css';
 import FiltroSelecaoMultipla from './FiltroSelecaoMultipla';
 import { useFiltrosPontosControle } from '../../context/pontos-controle/useFiltrosPontosControle';
 import { useBuscaPlanoAcaoQuery } from "../../hooks/usePontosControle";
-import { Ellipsis, SquarePen, Phone, ListChecks, TriangleAlert } from "lucide-react";
+import { Ellipsis, SquarePen, Phone, ListChecks, TriangleAlert, Check } from "lucide-react";
 import { LinhaResumoInstrumento } from './LinhaResumoInstrumento';
 import { useAuth } from "@/context/auth/useAuth";
 import { parseISO, isValid, differenceInCalendarDays } from 'date-fns';
@@ -101,7 +101,7 @@ const CelulaStatusPontoControle = ({ valor, abrirJanelaPlanoAcao, nrInstrumento,
   return (
     <td className={`${styles.compactCell} ${classeStatusPontoControle(valor)}`}>
       <div className={styles.statusCellContainer}>
-        <span>{emptyValue(valor)}</span>
+        <span>{valor === 'OK' ? <Check size={12} /> : emptyValue(valor)}</span>
         
         {exibeBotaoPlanoAcao && (
           <div className={styles.botoesContainer}>
