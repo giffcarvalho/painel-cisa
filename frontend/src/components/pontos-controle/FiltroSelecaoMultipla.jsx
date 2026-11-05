@@ -1,6 +1,6 @@
 import styles from './FiltroSelecaoMultipla.module.css';
 import { ChevronDown, X } from 'lucide-react'
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { normalizarTexto } from '@/utils/normalizer';
 import { useBuscaOpcoesPontosControleQuery } from '@/hooks/usePontosControle';
 import { useFiltrosPontosControle } from '@/context/pontos-controle/useFiltrosPontosControle';
@@ -11,29 +11,36 @@ export default function FiltroSelecaoMultipla({ nome_coluna }) {
 
     const [aberto, setAberto] = useState(false);
     const [termoBusca, setTermoBusca] = useState('');
-    const [opcoes, setOpcoes] = useState([]);
     const filtroRef = useRef(null);
+    const mapaRotulosRef = useRef({});
     const { filtros, setFiltro, limparFiltro } = useFiltrosPontosControle();
     const { data, isLoading } = useBuscaOpcoesPontosControleQuery(filtros, nome_coluna, aberto);
     
-        
-    useEffect(() => {
-        if (data && data.lista) {
-            
-            const valoresSelecionadosContexto = filtros[nome_coluna] 
-                ? String(filtros[nome_coluna]).split(',') 
-                : [];
+    const valoresSelecionadosContexto = useMemo(() => {
+        const valorAtual = filtros[nome_coluna];
+        if (!valorAtual) return [];
+        return String(valorAtual).split(',').map(v => v.trim());
+    }, [filtros, nome_coluna]);
 
-            const opcoesFormatadas = data.lista.map(item => ({
-                valor: item.valor,
-                rotulo: item.rotulo,
-                
-                selecionado: valoresSelecionadosContexto.includes(String(item.valor))
-            }));
-            
-            setOpcoes(opcoesFormatadas);
-        }
-    }, [data, filtros, nome_coluna]);
+
+    const opcoes = useMemo(() => {
+        if (!data || !data.lista) return [];
+
+        const listaFormatada = data.lista.map(item => {
+            const valorStr = String(item.valor);
+            const rotuloStr = item.rotulo;
+
+            mapaRotulosRef.current[valorStr] = rotuloStr;
+
+            return {
+                valor: valorStr,
+                rotulo: rotuloStr,
+                selecionado: valoresSelecionadosContexto.includes(valorStr)
+            };
+        });
+
+        return listaFormatada;
+    }, [data, valoresSelecionadosContexto]);
 
 
     useEffect(() => {
@@ -54,15 +61,34 @@ export default function FiltroSelecaoMultipla({ nome_coluna }) {
     }, []);
 
 
-    const opcoesSelecionadas = opcoes.filter((opcao) => opcao.selecionado === true);
+    const opcoesSelecionadas = useMemo(() => {
+        
+        return valoresSelecionadosContexto.map(valor => {
+            const opcaoNaLista = opcoes.find(o => o.valor === valor);
+            if (opcaoNaLista) {
+                return opcaoNaLista;
+            }
+            
+            const rotuloConhecido = mapaRotulosRef.current[valor] || valor;
+            return {
+                valor,
+                rotulo: rotuloConhecido,
+                selecionado: true
+            };
+        });
+    }, [opcoes, valoresSelecionadosContexto]);
+
+
     const termoBuscaNormalizado = normalizarTexto(termoBusca);
     
+
     const opcoesFiltradasTermoBusca = termoBusca.trim().length < 2 
         ? opcoes 
         : opcoes.filter((opcao) => 
             normalizarTexto(opcao.rotulo).includes(termoBuscaNormalizado)
         );
     
+
     const textoPlaceholder = (() => {
         
         if (opcoesSelecionadas.length === 0) return "Todos";
@@ -75,30 +101,21 @@ export default function FiltroSelecaoMultipla({ nome_coluna }) {
 
 
     const alternarSelecaoOpcao = (valorSelecionado) => {
-        const novasOpcoes = opcoes.map((opcao) => {
-            if (opcao.valor === valorSelecionado) {
-                return { ...opcao, selecionado: !opcao.selecionado };
-            }
-            return opcao;
-        });
-        setOpcoes(novasOpcoes);
+        const valorStr = String(valorSelecionado);
+        let novosValores;
 
-        const valoresSelecionados = novasOpcoes.filter((opcao) => opcao.selecionado).map((opcao) => opcao.valor);
-        const valorParaContexto = valoresSelecionados.length > 0 ? valoresSelecionados.join(',') : '';
-        
-        
+        if (valoresSelecionadosContexto.includes(valorStr)) {
+            novosValores = valoresSelecionadosContexto.filter(v => v !== valorStr);
+        } else {
+            novosValores = [...valoresSelecionadosContexto, valorStr];
+        }
+
+        const valorParaContexto = novosValores.length > 0 ? novosValores.join(',') : '';
         setFiltro(nome_coluna, valorParaContexto);
     };
 
     
-
     const desmarcarTodasOpcoes = () => {
-        const novasOpcoes = opcoes.map((opcao) => ({
-            ...opcao,
-            selecionado: false
-        }));
-        setOpcoes(novasOpcoes);
-
         limparFiltro(nome_coluna);
     };
 
