@@ -429,13 +429,13 @@
 
 /* Estilo de status Atenção */
 .statusAtencao {
-  background-color: #dcfce7;
-  color: #166534;
+  background-color: #fcfdca;
+  color: #778005;
 }
 
 /* Estilo de status Alerta */
 .statusAlerta {
-  background-color: #fef3c7;
+  background-color: #fddabc;
   color: #92400e;
 }
 
