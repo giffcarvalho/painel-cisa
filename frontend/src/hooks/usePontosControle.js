@@ -12,36 +12,14 @@ const normalizarFiltros = (filtros = {}) =>
     })
   );
 
-export function useOpcoesPontosControleQuery(filtros = {}) {
+export function useBuscaOpcoesPontosControleQuery(filtros = {}, nome_coluna, aberto) {
   const filtrosNormalizados = normalizarFiltros(filtros);
 
   return useQuery({
-    queryKey: ['pontos-controle', 'filtros', filtrosNormalizados],
-    queryFn: () => pontosControleApi.getFiltros(filtrosNormalizados),
+    queryKey: ['pontos-controle', 'filtros', filtrosNormalizados, nome_coluna],
+    queryFn: () => pontosControleApi.buscarOpcoesFiltros(filtrosNormalizados, nome_coluna),
     staleTime: 5 * 60 * 1000,
-  });
-}
-
-export function useBuscaFiltroPontosControleQuery(campo, termo, limit = 50) {
-  const termoNormalizado = termo?.trim() ?? '';
-
-  return useQuery({
-    queryKey: [
-      'pontos-controle',
-      'filtros',
-      'busca',
-      campo,
-      termoNormalizado,
-      limit
-    ],
-    queryFn: () => 
-      pontosControleApi.buscarFiltro(
-        campo,
-        termoNormalizado,
-        limit
-      ),
-    enabled: Boolean(campo) && termoNormalizado.length >= 2,
-    staleTime: 60 * 1000,
+    enabled: !!nome_coluna && aberto,
   });
 }
 
