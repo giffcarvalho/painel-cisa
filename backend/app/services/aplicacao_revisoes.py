@@ -666,7 +666,13 @@ async def obter_detalhe(db: AsyncSession, id_revisao: int) -> RevisaoAplicacaoDe
     }
     validacao = await _validar(db, revisao, municipios, localidades, publico, obras)
     devolutiva = await obter_tramitacao(db, id_revisao)
+    concessao = await db.execute(text("""
+        SELECT * FROM painel_dsr.tb_revisao_instrumento_concessao
+        WHERE id_revisao = :id_revisao
+    """), {"id_revisao": id_revisao})
+    concessao = concessao.mappings().one_or_none()
     return RevisaoAplicacaoDetalhe(
+        concessao=dict(concessao) if concessao is not None else None,
         revisao=_item_pendente(row),
         municipios=[_alteracao_municipio(item) for item in municipios],
         localidades=[_alteracao_localidade(item) for item in localidades],

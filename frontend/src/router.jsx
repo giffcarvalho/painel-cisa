@@ -19,6 +19,7 @@ import HistoricoRevisoes from './pages/revisao-instrumento/HistoricoRevisoes'
 import VisualizarRevisao from './pages/revisao-instrumento/VisualizarRevisao'
 import AplicacaoRevisoes from './pages/admin/aplicacao-revisoes/AplicacaoRevisoes'
 import AdminUsuarios from './pages/admin/usuarios/AdminUsuarios'
+import DistribuicaoInstrumentos from './pages/admin/distribuicao-instrumentos/DistribuicaoInstrumentos'
 import Login from './pages/login/Login'
 import PontosControle from './pages/pontos-controle/PontosControle'
 import MeuPainel from './pages/meu-painel/MeuPainel'
@@ -104,6 +105,14 @@ export const router = createBrowserRouter([
             element: (
               <RotaProtegida requiredProfile="admin">
                 <AdminUsuarios />
+              </RotaProtegida>
+            ),
+          },
+          {
+            path: 'admin/distribuicao-instrumentos',
+            element: (
+              <RotaProtegida requiredProfile="admin">
+                <DistribuicaoInstrumentos />
               </RotaProtegida>
             ),
           },

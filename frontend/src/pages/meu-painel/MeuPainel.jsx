@@ -18,6 +18,7 @@ const GRUPOS = {
 function formatarData(value) {
   const data = new Date(value)
   if (Number.isNaN(data.getTime())) return 'Não informada'
+
   return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(data)
 }
 
@@ -28,29 +29,58 @@ function resumoAlteracoes(alteracoes) {
     .filter(([chave]) => alteracoes?.[chave] > 0)
     .map(([chave]) => `${alteracoes[chave]} ${GRUPOS[chave].toLocaleLowerCase('pt-BR')}`)
   if (alteracoes?.observacao_geral) partes.push('observação geral')
+
   return partes.length ? partes.join(' · ') : 'Nenhuma modificação efetiva registrada.'
 }
 
 function PendenciaCard({ item, onReview }) {
   const status = item.status_instrumento?.trim() || 'Não informado'
   const statusLabel = status === 'Homologado Automaticamente pelo Sistema' ? 'Homologado' : status
+
   return (
     <article className={styles.card}>
       <div className={styles.cardTop}>
         <small>{item.tipo_instrumento_label}</small>
         <h3>Instrumento {item.identificador_instrumento}</h3>
-        <strong className={styles.pendingCount}>{item.total_pendencias} {item.total_pendencias === 1 ? 'pendência' : 'pendências'}</strong>
+        <strong className={styles.pendingCount}>
+          {item.total_pendencias}
+          {' '}
+          {item.total_pendencias === 1 ? 'pendência' : 'pendências'}
+        </strong>
         <span className={styles.projectStatus} title={`Situação do projeto: ${status}`}>
-          Situação do projeto:{'\u00a0'}{statusLabel}
+          Situação do projeto:
+          {'\u00a0'}
+          {statusLabel}
         </span>
       </div>
       <dl className={styles.groups}>
         {Object.entries(GRUPOS).filter(([chave]) => chave !== 'municipios').map(([chave, label]) => {
           const naoExigivel = chave !== 'obras' && item.analise_projeto_exigivel === false
-          return <div key={chave}><dt>{label}</dt><dd title={naoExigivel ? 'Análise ainda não exigível em razão da situação do projeto.' : undefined} aria-label={naoExigivel ? 'Análise ainda não exigível em razão da situação do projeto.' : undefined}>{naoExigivel ? '—' : item.grupos[chave]}</dd></div>
+
+          return (
+            <div key={chave}>
+              <dt>{label}</dt>
+              <dd
+                title={naoExigivel
+                  ? 'Análise ainda não exigível em razão da situação do projeto.'
+                  : undefined}
+                aria-label={naoExigivel
+                  ? 'Análise ainda não exigível em razão da situação do projeto.'
+                  : undefined}
+              >
+                {naoExigivel ? '—' : item.grupos[chave]}
+              </dd>
+            </div>
+          )
         })}
       </dl>
-      <button type="button" className={styles.primary} onClick={() => onReview(item.identificador_instrumento)}>Revisar instrumento</button>
+      <button
+        type="button"
+        className={styles.primary}
+        onClick={() => onReview(item.identificador_instrumento)}
+      >
+        Revisar instrumento
+      </button>
     </article>
   )
 }
@@ -73,13 +103,16 @@ function PendenciasSection({ items, onReview }) {
   useEffect(() => {
     atualizarControles()
     window.addEventListener('resize', atualizarControles)
+
     return () => window.removeEventListener('resize', atualizarControles)
   }, [atualizarControles, items.length])
 
   function navegar(direcao) {
     const carousel = carouselRef.current
     if (!carousel) return
-    carousel.scrollBy({ left: direcao * Math.max(carousel.clientWidth * 0.82, 260), behavior: 'smooth' })
+    carousel.scrollBy(
+      { left: direcao * Math.max(carousel.clientWidth * 0.82, 260), behavior: 'smooth' },
+    )
   }
 
   function alternarExpansao() {
@@ -88,12 +121,22 @@ function PendenciasSection({ items, onReview }) {
   }
 
   return (
-    <section className={`${styles.panel} ${styles.pendingPanel}`} aria-labelledby="pendencias-title">
+    <section
+      className={`${styles.panel} ${styles.pendingPanel}`}
+      aria-labelledby="pendencias-title"
+    >
       <div className={styles.sectionHeading}>
-        <div><h2 id="pendencias-title">Pendências</h2><p>O que ainda precisa ser revisado nos instrumentos sob sua responsabilidade.</p></div>
+        <div>
+          <h2 id="pendencias-title">Pendências</h2>
+          <p>O que ainda precisa ser revisado nos instrumentos sob sua responsabilidade.</p>
+        </div>
         <span>{items.length}</span>
       </div>
-      {items.length === 0 ? <div className={styles.empty}>Você não possui instrumentos com pendências de revisão.</div> : (
+      {items.length === 0 ? (
+        <div className={styles.empty}>
+          Você não possui instrumentos com pendências de revisão.
+        </div>
+      ) : (
         <>
           <div
             ref={carouselRef}
@@ -112,11 +155,29 @@ function PendenciasSection({ items, onReview }) {
           <div className={styles.pendingFooter}>
             {!expandido && (podeVoltar || podeAvancar) && (
               <div className={styles.carouselControls} aria-label="Navegação das pendências">
-                <button type="button" aria-label="Pendências anteriores" disabled={!podeVoltar} onClick={() => navegar(-1)}><ChevronLeft /></button>
-                <button type="button" aria-label="Próximas pendências" disabled={!podeAvancar} onClick={() => navegar(1)}><ChevronRight /></button>
+                <button
+                  type="button"
+                  aria-label="Pendências anteriores"
+                  disabled={!podeVoltar}
+                  onClick={() => navegar(-1)}
+                >
+                  <ChevronLeft />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Próximas pendências"
+                  disabled={!podeAvancar}
+                  onClick={() => navegar(1)}
+                >
+                  <ChevronRight />
+                </button>
               </div>
             )}
-            <button type="button" className={styles.expandButton} onClick={alternarExpansao}>
+            <button
+              type="button"
+              className={styles.expandButton}
+              onClick={alternarExpansao}
+            >
               {expandido ? 'Recolher pendências' : 'Ver todas as pendências'}
             </button>
           </div>
@@ -130,23 +191,65 @@ function RascunhosSection({ items, total, expandido, ocupado, onContinue, onTogg
   return (
     <section className={styles.panel} aria-labelledby="rascunhos-title">
       <div className={styles.sectionHeading}>
-        <div><h2 id="rascunhos-title">Rascunhos em aberto</h2><p>Continue de onde parou sem criar uma nova revisão.</p></div>
+        <div>
+          <h2 id="rascunhos-title">Rascunhos em aberto</h2>
+          <p>Continue de onde parou sem criar uma nova revisão.</p>
+        </div>
         <span>{total}</span>
       </div>
       {items.length === 0 ? <div className={styles.empty}>Você não possui rascunhos em aberto.</div> : (
         <div className={styles.drafts}>
           {items.map((item) => (
             <article className={styles.draft} key={item.id_revisao}>
-              <div><small>{item.tipo_instrumento_label}</small><h3>Instrumento {item.identificador_instrumento}</h3>{item.devolutiva && <p><strong>Revisão devolvida para correção:</strong> {item.devolutiva.comentario_admin}</p>}<p><strong>Alterações salvas:</strong> {resumoAlteracoes(item.alteracoes)}</p><time>Criado em {formatarData(item.criado_em)} · Atualizado em {formatarData(item.atualizado_em)}</time></div>
+              <div>
+                <small>{item.tipo_instrumento_label}</small>
+                <h3>Instrumento {item.identificador_instrumento}</h3>
+                {item.devolutiva && (
+                  <p>
+                    <strong>Revisão devolvida para correção:</strong>{' '}
+                    {item.devolutiva.comentario_admin}
+                  </p>
+                )}
+                <p>
+                  <strong>Alterações salvas:</strong> {resumoAlteracoes(item.alteracoes)}
+                </p>
+                <time>
+                  Criado em {formatarData(item.criado_em)}
+                  {' '}· Atualizado em {formatarData(item.atualizado_em)}
+                </time>
+              </div>
               <div className={styles.draftActions}>
-                <button type="button" className={styles.primary} onClick={() => onContinue(item.identificador_instrumento)}>Continuar revisão</button>
-                <button type="button" className={styles.dangerSecondary} disabled={ocupado === item.id_revisao} onClick={() => onCancel(item)}><Trash2 /> Cancelar rascunho</button>
+                <button
+                  type="button"
+                  className={styles.primary}
+                  onClick={() => onContinue(item.identificador_instrumento)}
+                >
+                  Continuar revisão
+                </button>
+                <button
+                  type="button"
+                  className={styles.dangerSecondary}
+                  disabled={ocupado === item.id_revisao}
+                  onClick={() => onCancel(item)}
+                >
+                  <Trash2 /> Cancelar rascunho
+                </button>
               </div>
             </article>
           ))}
         </div>
       )}
-      {total > 5 && <div className={styles.listFooter}><button type="button" className={styles.expandButton} onClick={onToggle}>{expandido ? 'Mostrar menos' : 'Ver todos os rascunhos'}</button></div>}
+      {total > 5 && (
+        <div className={styles.listFooter}>
+          <button
+            type="button"
+            className={styles.expandButton}
+            onClick={onToggle}
+          >
+            {expandido ? 'Mostrar menos' : 'Ver todos os rascunhos'}
+          </button>
+        </div>
+      )}
     </section>
   )
 }
@@ -175,8 +278,15 @@ export default function MeuPainel() {
     // Agenda a carga fora do corpo síncrono do efeito e ignora a continuação se
     // o painel for desmontado antes dela começar.
     let ativo = true
-    Promise.resolve().then(() => { if (ativo) carregar() })
-    return () => { ativo = false }
+    Promise.resolve().then(() => {
+      if (ativo) carregar()
+    })
+
+    return (
+      () => {
+        ativo = false
+      }
+    )
   }, [carregar])
 
   const abrirRevisao = useCallback((identificador) => {
@@ -190,7 +300,12 @@ export default function MeuPainel() {
   async function cancelarRascunho(item) {
     // O cancelamento descarta alterações ainda não enviadas; a confirmação é
     // deliberadamente anterior a qualquer mudança de estado ou chamada à API.
-    if (!window.confirm('Cancelar este rascunho? As alterações ainda não enviadas serão descartadas e o instrumento voltará ao estado anterior.')) return
+    if (
+      !window.confirm(
+        'Cancelar este rascunho? As alterações ainda não enviadas serão descartadas e o instrumento voltará ao estado anterior.',
+      )
+    )
+      return
     setCancelando(item.id_revisao)
     setErro('')
     try {
@@ -208,22 +323,46 @@ export default function MeuPainel() {
       <header className={styles.hero}>
         <div>
           <h1>Meu Painel</h1>
-          <p>Sua área de trabalho para acompanhar pendências, rascunhos, revisões e notificações.</p>
+          <p>
+            Sua área de trabalho para acompanhar pendências, rascunhos, revisões e notificações.
+          </p>
         </div>
-        <button type="button" className={styles.refresh} disabled={carregando} onClick={carregar}>
+        <button
+          type="button"
+          className={styles.refresh}
+          disabled={carregando}
+          onClick={carregar}
+        >
           <RefreshCw className={carregando ? styles.spinner : ''} /> Atualizar
         </button>
       </header>
-
       <div className={styles.dashboard}>
         <div className={styles.mainColumn}>
-          {carregando && !dados && <section className={styles.state}><Loader2 className={styles.spinner} /> Carregando seu painel...</section>}
+          {carregando && !dados && (
+            <section className={styles.state}>
+              <Loader2 className={styles.spinner} /> Carregando seu painel...
+            </section>
+          )}
           {!carregando && erro && <section className={styles.state} role="alert">{erro}</section>}
           {dados && <PendenciasSection items={dados.pendencias} onReview={abrirRevisao} />}
         </div>
         <aside className={styles.sidebar} aria-label="Acompanhamento do Meu Painel">
-          <HistoricoRevisoes escopo="pessoal" embedded compact />
-          {dados && <RascunhosSection items={dados.rascunhos} total={dados.rascunhos_total ?? dados.resumo.rascunhos} expandido={rascunhosExpandidos} ocupado={cancelando} onContinue={abrirRevisao} onToggle={alternarRascunhos} onCancel={cancelarRascunho} />}
+          <HistoricoRevisoes
+            escopo="pessoal"
+            embedded
+            compact
+          />
+          {dados && (
+            <RascunhosSection
+              items={dados.rascunhos}
+              total={dados.rascunhos_total ?? dados.resumo.rascunhos}
+              expandido={rascunhosExpandidos}
+              ocupado={cancelando}
+              onContinue={abrirRevisao}
+              onToggle={alternarRascunhos}
+              onCancel={cancelarRascunho}
+            />
+          )}
           <CentralNotificacoes compact />
         </aside>
       </div>

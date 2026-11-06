@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, Pencil, RotateCcw } from 'lucide-react'
 import styles from '@/pages/admin/aplicacao-revisoes/AplicacaoRevisoes.module.css'
+import { ConcessaoResumo } from '@/components/revisao-instrumento/Concessao'
 import {
   CONFIRMACOES_OBRA,
   CORRECAO_SOLICITADA_PUBLICO_ALVO,
@@ -8,13 +9,17 @@ import {
 } from '@/utils/revisaoInstrumentoLabels'
 
 const ACTION_LABELS = {
-  adicionar: 'Adicionar', remover: 'Remover', corrigir: 'Corrigir', manter: 'Manter',
+  adicionar: 'Adicionar',
+  remover: 'Remover',
+  corrigir: 'Corrigir',
+  manter: 'Manter',
 }
 
 function ItemAlteracao({ item }) {
   const nome = item.entidade === 'municipio'
     ? `${item.municipio || item.cod_municipio}${item.uf ? ` — ${item.uf}` : ''}`
     : `${item.localidade || `Comunidade ${item.cod_comunidade_rural || ''}`} — ${item.municipio || item.cod_municipio}`
+
   return (
     <li className={styles.changeItem}>
       <span className={`${styles.actionBadge} ${styles[`action_${item.acao}`]}`}>
@@ -23,10 +28,16 @@ function ItemAlteracao({ item }) {
       <span>
         <strong>{nome}</strong>
         {item.acao === 'corrigir' && (
-          <small>Famílias beneficiadas: {item.valor_anterior ?? '—'} → {item.valor_sugerido ?? '—'}</small>
+          <small>
+            Famílias beneficiadas: {item.valor_anterior ?? '—'}
+            {' '}→ {item.valor_sugerido ?? '—'}
+          </small>
         )}
         {item.entidade === 'localidade' && (
-          <small>Tipo de Localidade: {item.tipo_localidade_anterior || 'Não classificada'} → {item.tipo_localidade || 'Não classificada'}</small>
+          <small>
+            Tipo de Localidade: {item.tipo_localidade_anterior || 'Não classificada'}
+            {' '}→ {item.tipo_localidade || 'Não classificada'}
+          </small>
         )}
         {item.justificativa && <small>{item.justificativa}</small>}
       </span>
@@ -39,7 +50,11 @@ function Grupo({ titulo, itens }) {
     <section className={styles.changeGroup}>
       <h3>{titulo}</h3>
       {itens.length ? (
-        <ul>{itens.map((item) => <ItemAlteracao key={`${item.entidade}-${item.id_item}`} item={item} />)}</ul>
+        <ul>
+          {itens.map((item) => (
+            <ItemAlteracao key={`${item.entidade}-${item.id_item}`} item={item} />
+          ))}
+        </ul>
       ) : <p>Nenhum registro nesta seção.</p>}
     </section>
   )
@@ -54,17 +69,35 @@ function GrupoPublicoAlvo({ itens }) {
     <section className={styles.changeGroup}>
       <h3>Público-alvo</h3>
       {itens.length ? (
-        <ul>{itens.map((item) => (
-          <li className={`${styles.changeItem} ${styles.evaluationItem}`} key={`publico-${item.id_item}`}>
-            <span>
-              <strong>Projeto {item.id_projeto_investimento}</strong>
-              <small>População: {labelOuPendente(STATUS_PUBLICO_ALVO, item.status_populacao_beneficiada)}</small>
-              <small>Descrição: {labelOuPendente(STATUS_PUBLICO_ALVO, item.status_desc_populacao_beneficiada)}</small>
-              <small>Correção: {labelOuPendente(CORRECAO_SOLICITADA_PUBLICO_ALVO, item.status_correcao_solicitada)}</small>
-              {item.observacao_publico_alvo && <small>Observação: {item.observacao_publico_alvo}</small>}
-            </span>
-          </li>
-        ))}</ul>
+        <ul>
+          {itens.map((item) => (
+            <li
+              className={`${styles.changeItem} ${styles.evaluationItem}`}
+              key={`publico-${item.id_item}`}
+            >
+              <span>
+                <strong>Projeto {item.id_projeto_investimento}</strong>
+                <small>
+                  População:{' '}
+                  {labelOuPendente(STATUS_PUBLICO_ALVO, item.status_populacao_beneficiada)}
+                </small>
+                <small>
+                  Descrição:{' '}
+                  {labelOuPendente(STATUS_PUBLICO_ALVO, item.status_desc_populacao_beneficiada)}
+                </small>
+                <small>
+                  Correção:{' '}
+                  {labelOuPendente(CORRECAO_SOLICITADA_PUBLICO_ALVO, item.status_correcao_solicitada)}
+                </small>
+                {item.observacao_publico_alvo && (
+                  <small>
+                    Observação: {item.observacao_publico_alvo}
+                  </small>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
       ) : <p>Nenhum registro nesta seção.</p>}
     </section>
   )
@@ -77,20 +110,31 @@ function GrupoObras({ itens }) {
     <section className={styles.changeGroup}>
       <h3>Obras</h3>
       {itens.length ? (
-        <ul>{itens.map((item) => {
-          const municipio = item.municipio || item.cod_municipio
-          return (
-            <li className={`${styles.changeItem} ${styles.evaluationItem}`} key={`obra-${item.id_item}`}>
-              <span>
-                <strong>Obra {item.id_obra}</strong>
-                <small>Município: {municipio}{item.uf ? `/${item.uf}` : ''}</small>
-                <small>Relação: {RELACOES_OBRA[item.relacao_instrumento] || item.relacao_instrumento}</small>
-                <small>Confirmação: {CONFIRMACOES_OBRA[item.confirmacao_status] || item.confirmacao_status}</small>
-                {item.justificativa && <small>Justificativa: {item.justificativa}</small>}
-              </span>
-            </li>
-          )
-        })}</ul>
+        <ul>
+          {itens.map((item) => {
+            const municipio = item.municipio || item.cod_municipio
+
+            return (
+              <li
+                className={`${styles.changeItem} ${styles.evaluationItem}`}
+                key={`obra-${item.id_item}`}
+              >
+                <span>
+                  <strong>Obra {item.id_obra}</strong>
+                  <small>Município: {municipio}{item.uf ? `/${item.uf}` : ''}</small>
+                  <small>
+                    Relação: {RELACOES_OBRA[item.relacao_instrumento] || item.relacao_instrumento}
+                  </small>
+                  <small>
+                    Confirmação:{' '}
+                    {CONFIRMACOES_OBRA[item.confirmacao_status] || item.confirmacao_status}
+                  </small>
+                  {item.justificativa && <small>Justificativa: {item.justificativa}</small>}
+                </span>
+              </li>
+            )
+          })}
+        </ul>
       ) : <p>Nenhum registro nesta seção.</p>}
     </section>
   )
@@ -101,16 +145,25 @@ function GrupoCoordenadas({ itens }) {
     <section className={styles.changeGroup}>
       <h3>Coordenadas</h3>
       {itens.length ? (
-        <ul>{itens.map((item) => (
-          <li className={`${styles.changeItem} ${styles.evaluationItem}`} key={`coordenada-${item.id_item}`}>
-            <span>
-              <strong>Coordenada {item.id_coordenada} — TCI {item.cod_tci}</strong>
-              <small>Análise: {item.situacao_analise}</small>
-              <small>Correção: {item.situacao_correcao || 'Não informada'}</small>
-              {item.observacao_coordenada && <small>Observação: {item.observacao_coordenada}</small>}
-            </span>
-          </li>
-        ))}</ul>
+        <ul>
+          {itens.map((item) => (
+            <li
+              className={`${styles.changeItem} ${styles.evaluationItem}`}
+              key={`coordenada-${item.id_item}`}
+            >
+              <span>
+                <strong>Coordenada {item.id_coordenada} — TCI {item.cod_tci}</strong>
+                <small>Análise: {item.situacao_analise}</small>
+                <small>Correção: {item.situacao_correcao || 'Não informada'}</small>
+                {item.observacao_coordenada && (
+                  <small>
+                    Observação: {item.observacao_coordenada}
+                  </small>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
       ) : <p>Nenhum registro nesta seção.</p>}
     </section>
   )
@@ -118,6 +171,7 @@ function GrupoCoordenadas({ itens }) {
 
 export default function DetalhesRevisao({ detalhe, onAplicar, onEditar, onDevolver }) {
   const { revisao, validacao } = detalhe
+
   return (
     <div className={styles.detailContent}>
       <div className={styles.detailHeader}>
@@ -127,10 +181,18 @@ export default function DetalhesRevisao({ detalhe, onAplicar, onEditar, onDevolv
           <p>Responsável técnico: {revisao.tecnico_responsavel}</p>
         </div>
         <div className={styles.detailActions}>
-          <button type="button" className={styles.secondaryButton} onClick={onEditar}>
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            onClick={onEditar}
+          >
             <Pencil aria-hidden="true" /> Editar revisão
           </button>
-          <button type="button" className={styles.secondaryButton} onClick={onDevolver}>
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            onClick={onDevolver}
+          >
             <RotateCcw aria-hidden="true" /> Devolver para correção
           </button>
           <button
@@ -143,37 +205,51 @@ export default function DetalhesRevisao({ detalhe, onAplicar, onEditar, onDevolv
           </button>
         </div>
       </div>
-
-      <div className={`${styles.validation} ${validacao.aplicavel ? styles.validationOk : styles.validationBlocked}`}>
+      <div
+        className={`${styles.validation} ${validacao.aplicavel ? styles.validationOk : styles.validationBlocked}`}
+      >
         {validacao.aplicavel ? <CheckCircle2 aria-hidden="true" /> : <AlertTriangle aria-hidden="true" />}
         <div>
           <strong>{validacao.aplicavel ? 'Pronta para aplicação' : 'Não pode ser aplicada'}</strong>
-          {validacao.pendencias.map((item) => <p key={item}>{item}</p>)}
-          {validacao.avisos.map((item) => <p key={item}>{item}</p>)}
+          {validacao.pendencias.map((item) => (
+            <p key={item}>{item}</p>
+          ))}
+          {validacao.avisos.map((item) => (
+            <p key={item}>{item}</p>
+          ))}
         </div>
       </div>
-
       {revisao.observacao_geral && (
         <div className={styles.observation}>
           <strong>Observação geral</strong>
           <p>{revisao.observacao_geral}</p>
         </div>
       )}
-
       <div className={styles.changeColumns}>
         <Grupo titulo="Municípios" itens={detalhe.municipios} />
         <Grupo titulo="Localidades" itens={detalhe.localidades} />
         <GrupoPublicoAlvo itens={detalhe.publico_alvo} />
+        <section className={styles.changeGroup}>
+          <h3>Concessão</h3>
+          <ConcessaoResumo dados={detalhe.concessao} />
+        </section>
         <GrupoObras itens={detalhe.obras} />
         {!!detalhe.coordenadas?.length && <GrupoCoordenadas itens={detalhe.coordenadas} />}
       </div>
-
       {detalhe.devolutiva && (
         <div className={styles.observation}>
           <strong>Tramitação da devolutiva</strong>
           <p>Comentário do administrador: {detalhe.devolutiva.comentario_admin}</p>
-          {detalhe.devolutiva.comentario_monitor && <p>Resposta do monitor: {detalhe.devolutiva.comentario_monitor}</p>}
-          {detalhe.devolutiva.id_revisao_devolvida !== revisao.id_revisao && <p>Versão anteriormente devolvida: revisão nº {detalhe.devolutiva.id_revisao_devolvida}</p>}
+          {detalhe.devolutiva.comentario_monitor && (
+            <p>
+              Resposta do monitor: {detalhe.devolutiva.comentario_monitor}
+            </p>
+          )}
+          {detalhe.devolutiva.id_revisao_devolvida !== revisao.id_revisao && (
+            <p>
+              Versão anteriormente devolvida: revisão nº {detalhe.devolutiva.id_revisao_devolvida}
+            </p>
+          )}
         </div>
       )}
     </div>

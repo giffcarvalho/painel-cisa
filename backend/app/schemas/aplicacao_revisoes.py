@@ -5,6 +5,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.schemas.revisao_instrumento import ConcessaoRevisaoItem
+
 
 class AplicacaoBase(BaseModel):
     model_config = {"from_attributes": True}
@@ -100,6 +102,7 @@ class ValidacaoAplicacao(AplicacaoBase):
 
 
 class RevisaoAplicacaoDetalhe(AplicacaoBase):
+    concessao: ConcessaoRevisaoItem | None = None
     revisao: RevisaoPendenteItem
     municipios: list[AlteracaoRevisaoItem] = Field(default_factory=list)
     localidades: list[AlteracaoRevisaoItem] = Field(default_factory=list)

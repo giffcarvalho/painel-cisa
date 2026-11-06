@@ -1,0 +1,52 @@
+.municipio {
+  padding-bottom: 18px;
+}
+
+.municipio h3, .resumo h3 {
+  margin: 0 0 8px;
+  color: #334155;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.auxiliar, .dadosCgml dt {
+  margin: 0 0 8px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.dadosCgml {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: 12px 20px;
+  margin: 14px 0 0;
+}
+
+.dadosCgml div, .anexos div {
+  min-width: 0;
+}
+
+.dadosCgml dd, .anexos dd {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.resumo p, .anexos dt {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.anexos {
+  display: grid;
+  gap: 14px;
+}
+
+.anexos dd {
+  margin-top: 4px;
+  color: #64748b;
+}

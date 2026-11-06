@@ -3225,7 +3225,7 @@ button:disabled {
 }
 
 .pageDetail .municipalReview {
-  order: 3;
+  order: 4;
   border-top: 1px solid #e5e7eb;
   background: #ffffff;
 }
@@ -3359,6 +3359,47 @@ button:disabled {
   display: grid;
   gap: 14px;
   padding-top: 2px;
+}
+
+.pageDetail .concessaoSection {
+  order: 3;
+}
+
+.concessaoCampos, .concessaoDocumentacao {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+}
+
+.concessaoDocumentacao .sectionHeader {
+  margin: 0;
+}
+
+.concessaoAuxiliar {
+  margin: -8px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.concessaoAnexo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 18px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.concessaoAnexo > span {
+  flex: 1 1 460px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.concessaoAnexo .acaoTextualInline {
+  flex-wrap: wrap;
+  white-space: normal;
 }
 
 .publicoAlvoObservacao {

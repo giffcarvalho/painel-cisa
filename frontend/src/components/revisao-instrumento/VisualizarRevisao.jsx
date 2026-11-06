@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { revisaoInstrumentoApi } from '@/api/revisaoInstrumento'
 import styles from './VisualizarRevisao.module.css'
 import { baixarFichaPublicoAlvo } from './FichaPublicoAlvoPdf'
+import { ConcessaoMunicipio, ConcessaoResumo } from './Concessao'
 import { useAuth } from '@/context/auth/useAuth'
 import ModalSolicitacaoCancelamento from './ModalSolicitacaoCancelamento'
 import {
@@ -275,6 +276,12 @@ export default function VisualizarRevisao() {
         </section>
       )}
 
+      <section className={styles.section}>
+        <h2>Concessão</h2>
+        <ConcessaoResumo dados={revisao.concessao} />
+        {revisao.concessao && <Metadados item={revisao.concessao} />}
+      </section>
+
       {revisao.municipios.length > 0 && (
         <section className={styles.section}>
           <h2>Municípios, localidades e obras</h2>
@@ -285,6 +292,8 @@ export default function VisualizarRevisao() {
                   <h3>{valor(municipio.nome)}{municipio.uf ? `/${municipio.uf}` : ''}</h3>
                   {municipio.acao_sugerida && <span className={styles.action}>Ação proposta: {ACOES[municipio.acao_sugerida]}</span>}
                 </div>
+                <p className={styles.metadata}>Código IBGE: {municipio.cod_municipio}</p>
+                <ConcessaoMunicipio dados={municipio.concessao_cgml} />
                 {municipio.justificativa && <p className={styles.textBlock}><strong>Justificativa:</strong> {municipio.justificativa}</p>}
                 <Metadados item={municipio} />
 
@@ -328,7 +337,7 @@ export default function VisualizarRevisao() {
         </section>
       )}
 
-      {!revisao.nr_processo_sei && !revisao.observacao_geral && revisao.publico_alvo.length === 0 && revisao.municipios.length === 0 && (
+      {!revisao.concessao && !revisao.nr_processo_sei && !revisao.observacao_geral && revisao.publico_alvo.length === 0 && revisao.municipios.length === 0 && (
         <section className={styles.empty}>Nenhuma alteração foi registrada nesta revisão.</section>
       )}
       {modalSolicitacao && <ModalSolicitacaoCancelamento motivo={motivoSolicitacao} processando={solicitando} onMotivo={setMotivoSolicitacao} onFechar={() => setModalSolicitacao(false)} onEnviar={enviarSolicitacao} />}

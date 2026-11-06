@@ -9,7 +9,18 @@ export default function ResumoAdminCards({ resumo }) {
     ['Aguardando ativação', resumo.contas_aguardando_ativacao, KeyRound],
     ['Revisões nos últimos 7 dias', resumo.revisoes_recentes, ClipboardCheck],
   ]
-  return <section className={styles.summary}>{cards.map(([label, value, Icon]) => (
-    <article key={label} className={styles.summaryCard}><Icon /><div><strong>{value}</strong><span>{label}</span></div></article>
-  ))}</section>
+
+  return (
+    <section className={styles.summary}>
+      {cards.map(([label, value, Icon]) => (
+        <article key={label} className={styles.summaryCard}>
+          <Icon />
+          <div>
+            <strong>{value}</strong>
+            <span>{label}</span>
+          </div>
+        </article>
+      ))}
+    </section>
+  )
 }
