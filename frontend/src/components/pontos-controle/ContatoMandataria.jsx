@@ -1,6 +1,7 @@
 import estilos from "./ContatoMandataria.module.css";
-import { X } from "lucide-react";
-import { Fragment, useState } from "react";
+import { X, Trash } from "lucide-react";
+import { Fragment, useState, useEffect } from "react";
+import { IMaskInput } from "react-imask";
 import { useBuscaContatoMandatariaQuery } from '../../hooks/usePontosControle';
 import { emptyValue } from '../../utils/formatters';
 
@@ -9,9 +10,61 @@ import { emptyValue } from '../../utils/formatters';
 export default function ContatoMandataria({ setContatoMandataria }) {
 
     const [codUf, setCodUf] = useState('12');
-    const { data, isLoading, isError, refetch } = useBuscaContatoMandatariaQuery(codUf);
+    const { data, isLoading, isError } = useBuscaContatoMandatariaQuery(codUf);
+    const [contatos, setContatos] = useState([]);
+
     const listaContatosMandataria = data?.data || [];
     
+    
+    useEffect(() => {
+        
+        if (listaContatosMandataria.length > 0) {
+        
+            const novoEstado = listaContatosMandataria.map((item) => ({
+                nome: item.nome || "",
+                cargo: item.cargo || "",
+                tipo_setor: item.tipo_setor || "",
+                setor: item.setor || "",
+                telefone: item.telefone || "",
+                email: item.email || "",
+                observacao: item.observacao || "",
+            }));
+
+            setContatos(novoEstado);
+
+        } else {
+            
+            setContatos([{
+                nome: "", cargo: "", tipo_setor: "", setor: "", telefone: "", email: "", observacao: ""
+            }]);
+        }
+    }, [data]);
+
+
+    const atualizarContato = (index, campo, valor) => {
+        setContatos((prev) => {
+            const novos = [...prev];
+            novos[index][campo] = valor;
+            return novos;
+        });
+    };
+
+
+    const adicionarLinha = () => {
+        setContatos((prev) => [
+            ...prev,
+            { nome: "", cargo: "", tipo_setor: "", setor: "", telefone: "", email: "", observacao: "" }
+        ]);
+    };
+
+    const removerLinha = (index) => {
+        setContatos((prev) => {
+            const novos = prev.filter((_, i) => i !== index);
+            
+            return novos.length > 0 ? novos : [{ nome: "", cargo: "", tipo_setor: "", setor: "", telefone: "", email: "", observacao: "" }];
+        });
+    };
+
 
     return (
         <div className={estilos.overlay_modal}>
@@ -19,8 +72,7 @@ export default function ContatoMandataria({ setContatoMandataria }) {
 
                 <div className={estilos.cabecalho}>
                     <div className={estilos.secao_esquerda}>    
-                        <h4>Contatos Mandatária</h4>
-                        <label>Selecione uma UF:</label>
+                        <h4>Contatos Mandatária - UF:</h4>
                         <select 
                             value={codUf}
                             onChange={(e) => setCodUf(e.target.value)}
@@ -63,44 +115,110 @@ export default function ContatoMandataria({ setContatoMandataria }) {
                         <X className={estilos.XFechar} />
                     </button>  
                 </div>
+                
+                
+                <div className={estilos.contactContainer}>
+                    <div className={estilos.columnHeader}>
+                        <span className={estilos.nameColumn}>Nome</span>
+                        <span className={estilos.positionColumn}>Cargo</span>
+                        <span className={estilos.sectorTypeColumn}>Tipo Setor</span>
+                        <span className={estilos.sectorColumn}>Setor</span>
+                        <span className={estilos.phoneColumn}>Telefone</span>
+                        <span className={estilos.emailColumn}>E-mail</span>
+                        <span className={estilos.observationColumn}>Observação</span>
+                    </div>
 
-                <div className={estilos.container_tabela}>
-                    <table className={estilos.tabela}>
-                        
-                        <thead>
-                            <tr className={estilos.headerRow}>
-                                <th className={estilos.colMedia}>Nome</th>
-                                <th className={estilos.colPequena}>Cargo</th>
-                                <th className={estilos.colPequena}>Tipo Setor</th>
-                                <th className={estilos.colPequena}>Setor</th>
-                                <th className={estilos.colPequena}>Telefone</th>
-                                <th className={estilos.colMedia}>Email</th>
-                                <th className={estilos.colGigante}>Observação</th>
-                            </tr>
-                        </thead>
+                    {contatos.map((contato, idx) => (
+                        <div key={idx} className={estilos.contactLine}>
+                                                        
+                            <input
+                                type="text"
+                                className={estilos.nameColumn}
+                                placeholder="Nome do contato"
+                                value={contato.nome}
+                                onChange={(e) => atualizarContato(idx, "nome", e.target.value)}
+                            />
+                            
+                            <input
+                                type="text"
+                                className={estilos.positionColumn}
+                                placeholder="Cargo"
+                                value={contato.cargo}
+                                onChange={(e) => atualizarContato(idx, "cargo", e.target.value)}
+                            />
 
-                        <tbody>
-                            {listaContatosMandataria.map((contato, index) => {
-                                const idContato = listaContatosMandataria.id_contato;
-                                const rowKey = String(idContato ?? `${contato.id_contato ?? 'sem-id'}-${index}`);
+                            <input
+                                type="text"
+                                className={estilos.sectorTypeColumn}
+                                placeholder="Tipo Setor"
+                                value={contato.tipo_setor}
+                                onChange={(e) => atualizarContato(idx, "tipo_setor", e.target.value)}
+                            />
 
-                                return (
-                                    <Fragment key={rowKey}>
-                                        <tr>
-                                            <td className={estilos.compactCell}>{emptyValue(contato.nome)}</td>
-                                            <td className={estilos.compactCell}>{emptyValue(contato.cargo)}</td>
-                                            <td className={estilos.compactCell}>{emptyValue(contato.tipo_setor)}</td>
-                                            <td className={estilos.compactCell}>{emptyValue(contato.setor)}</td>
-                                            <td className={estilos.compactCell}>{emptyValue(contato.telefone)}</td>
-                                            <td className={estilos.compactCell}>{emptyValue(contato.email)}</td>
-                                            <td className={estilos.compactCell}>{emptyValue(contato.observacao)}</td>
-                                        </tr>
-                                    </Fragment>
-                                );
-                            })}
-                        </tbody>
+                            <input
+                                type="text"
+                                className={estilos.sectorColumn}
+                                placeholder="Setor"
+                                value={contato.setor}
+                                onChange={(e) => atualizarContato(idx, "setor", e.target.value)}
+                            />
+                            
+                            <IMaskInput
+                                mask="(00) 00000-0000"
+                                className={`${estilos.phoneColumn} ${estilos.phoneInput}`}
+                                placeholder="(00) 00000-0000"
+                                value={contato.telefone}
+                                onAccept={(valor) => atualizarContato(idx, "telefone", valor)}
+                            />
+                            
+                            <input
+                                type="email"
+                                className={estilos.emailColumn}
+                                placeholder="E-mail"
+                                value={contato.email}
+                                onChange={(e) => atualizarContato(idx, "email", e.target.value)}
+                            />
+                            
+                            <textarea
+                                className={`${estilos.observationColumn} ${estilos.observationInput}`}
+                                rows="1"
+                                maxLength={100}
+                                placeholder="Observação"
+                                value={contato.observacao}
+                                onChange={(e) => atualizarContato(idx, "observacao", e.target.value)}
+                            />
 
-                    </table>
+                            <button 
+                                type="button"
+                                className={estilos.deleteButton}
+                                title = "Excluir contato"
+                                onClick={() => removerLinha(idx)}
+                            >
+                                <Trash size={15}/>
+                            </button> 
+                        </div>
+                    ))}
+
+                </div>
+
+                <div className={estilos.actionForm}>
+                    <button 
+                        type="submit"
+                        className={estilos.actionButton}
+                        title="Adicionar contato"
+                        disabled={isLoading}
+                        onClick={adicionarLinha}
+                    >
+                        Adicionar contato
+                    </button>
+                    <button 
+                        type="submit"
+                        className={estilos.actionButton}
+                        title="Salvar"
+                        disabled={isLoading}
+                    >
+                        Salvar
+                    </button>
                 </div>
 
             </div>

@@ -31,37 +31,34 @@
 .cabecalho {
     display: flex;
     justify-content: space-between;
-    padding-bottom: 4px;
-    margin-bottom: 8px;
+    padding-bottom: 12px;
+    margin-bottom: 6px;
     border-bottom: 1px solid #aaaaaa;
+    position: sticky;
+    top: 0;
+    background-color: #ffffff;
+    z-index: 10;
 }
 
 .secao_esquerda {
     display: flex;
     font-size: 13px;
-    color: #374151;
+    color: #00529e;;
 }
 
 .secao_esquerda h4{
     font-size: 18px;
     font-weight: 600;
-    color: #00529e;
     margin: 0;
 }
 
-.secao_esquerda label {
-    margin-top: 5px;
-    margin-left: 30px;
-    margin-right: 6px;
-    font-weight: 600;
-}
-
 .secao_esquerda select {
-  padding: 6px 12px;
+  padding: 4px 6px;
   font-weight: 500;
   background-color: #ffffff;
   border: 1px solid #d1d5db;
   border-radius: 6px;
+  margin-left: 12px;
   cursor: pointer;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -98,72 +95,121 @@
     height: 16px;
 }
 
-.container_tabela {
-    max-height: 100%;
+.contactContainer {
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
-    overflow-x: auto;
-    border: 1px solid #d1d5db;
+    max-height: calc(90vh - 100px);
+    padding-right: 4px;
 }
 
-.tabela {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12.5px;
-  table-layout: auto;
+.columnHeader {
+    display: flex;
+    align-items: center;
+    gap: 6px;   
+    margin-bottom: 6px;
+    padding: 6px 0;
+    position: sticky;
+    top: 0px;
+    background-color: #ffffff;
+    z-index: 9;
+    border-bottom: 1px solid #eeeeee;
 }
 
-.tabela td {
-  padding: 4px 12px;
-  border-bottom: 1px solid #e5e7eb;
-  text-align: left;
-  vertical-align: middle;
+.columnHeader span {
+    font-size: 12px;
+    font-weight: 600;
+    color: #00529e;
+    box-sizing: border-box;
+    padding: 0 10px;
 }
 
-.tabela th {
-  padding: 10px 12px;
-  border-bottom: 1px solid #e5e7eb;
-  text-align: left;
-  vertical-align: middle;
-  background: #f9fafb;
-  color: #374151;
-  font-weight: 700;
+.nameColumn {
+    flex: 2.0;
 }
 
-.headerRow th {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background: #f9fafb;
+.positionColumn {
+    flex: 1.5;
 }
 
-.colMini {
-  width: 60px;
-  max-width: 60px;
+.sectorTypeColumn {
+    flex: 1.0;
 }
 
-.colPequena {
-  width: 90px;
-  max-width: 90px;
+.sectorColumn {
+    flex: 1.4;
 }
 
-.colMedia {
-  width: 120px;
-  max-width: 120px;
+.phoneColumn {
+    flex: 1.2;
 }
 
-.colGrande {
-  width: 180px;
-  max-width: 180px;
+.emailColumn {
+    flex: 2.4;
 }
 
-.colGigante {
-  width: 280px;
-  max-width: 280px;
+.observationColumn {
+    flex: 5.0;
 }
 
-.compactCell {
-  overflow-wrap: anywhere;
-  word-break: break-word;
+.contactLine {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    width: 100%;
 }
+
+.contactContainer input,
+.contactContainer textarea,
+.phoneInput {
+    box-sizing: border-box;
+    padding: 6px 6px;
+    border: 1px solid #d0d0d0;
+    border-radius: 5px;
+    background-color: #ffffff;
+    color: #333333;
+    font-size: 12.5px;
+    font-family: inherit;
+    outline: none;
+    height: 45px;
+    min-width: 0;
+}
+
+.contactContainer input:focus,
+.contactContainer textarea:focus,
+.phoneInput:focus {
+    border-color: #00529e;
+}
+
+.observationInput {
+    resize: none;
+    outline: none;
+}
+
+.deleteButton {
+  color: #d14d4d
+}
+
+.actionForm {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 10px;
+    margin-right: 40px;
+    padding-top: 4px;
+}
+
+.actionButton {
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    border: none;
+    background-color: #0066cc;
+    color: white;
+}
+
 
 
