@@ -1,9 +1,11 @@
 import estilos from "./ContatoMandataria.module.css";
 import { X, Trash } from "lucide-react";
-import { Fragment, useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { IMaskInput } from "react-imask";
+import { useAuth } from "@/context/auth/useAuth";
+import { enviarContatoMandataria } from "../../api/pontosControle";
 import { useBuscaContatoMandatariaQuery } from '../../hooks/usePontosControle';
-import { emptyValue } from '../../utils/formatters';
+import { useQueryClient } from "@tanstack/react-query";
 
 
 
@@ -12,7 +14,9 @@ export default function ContatoMandataria({ setContatoMandataria }) {
     const [codUf, setCodUf] = useState('12');
     const { data, isLoading, isError } = useBuscaContatoMandatariaQuery(codUf);
     const [contatos, setContatos] = useState([]);
-
+    const containerRef = useRef(null);
+    const { isAuthenticated, openLoginModal } = useAuth();
+    const queryClient = useQueryClient();
     const listaContatosMandataria = data?.data || [];
     
     
@@ -55,6 +59,15 @@ export default function ContatoMandataria({ setContatoMandataria }) {
             ...prev,
             { nome: "", cargo: "", tipo_setor: "", setor: "", telefone: "", email: "", observacao: "" }
         ]);
+
+        setTimeout(() => {
+            if (containerRef.current) {
+                containerRef.current.scrollTo({
+                    top: containerRef.current.scrollHeight,
+                    behavior: "smooth"
+                });
+            }
+        }, 100);
     };
 
     const removerLinha = (index) => {
@@ -65,6 +78,122 @@ export default function ContatoMandataria({ setContatoMandataria }) {
         });
     };
 
+    
+    //verificações para checar se o formulário deve ser salvo, e qual contato deve ser salvo
+    // Pega os contatos originais
+    
+
+    // Mapeia e filtra apenas os contatos alterados
+    const contatosAlterados = contatos
+        .map((contatoAtual, idContato) => {
+                        
+            const contatoOriginal = listaContatosMandataria.find(
+                (item) => item.id_contato === idContato
+            );
+
+            const nome = contatoAtual.nome.trim();
+            const cargo = contatoAtual.cargo.trim();
+            const tipoSetor = contatoAtual.tipo_setor.trim();
+            const setor = contatoAtual.setor.trim();
+            const telefone = contatoAtual.telefone.trim();
+            const email = contatoAtual.email.trim();
+            const observacao = contatoAtual.observacao.trim();
+
+            const origNome = (contatoOriginal?.nome || "").trim();
+            const origCargo = (contatoOriginal?.cargo || "").trim();
+            const origTipoSetor = (contatoOriginal?.tipo_setor || "").trim();
+            const origSetor = (contatoOriginal?.setor || "").trim();
+            const origTelefone = (contatoOriginal?.telefone || "").trim();
+            const origEmail = (contatoOriginal?.email || "").trim();
+            const origObservacao = (contatoOriginal?.observacao || "").trim();
+
+            const mudou =
+                nome !== origNome ||
+                cargo !== origCargo ||
+                tipoSetor !== origTipoSetor ||
+                setor !== origSetor ||
+                telefone !== origTelefone ||
+                email !== origEmail ||
+                observacao !== origObservacao;
+
+            if (!mudou) return null;
+
+            return {
+                cod_uf: codUf,
+                id_contato: idContato,
+                nome: nome || null,
+                cargo: cargo || null,
+                tipo_setor: tipoSetor || null,
+                setor: setor || null,
+                telefone: telefone || null,
+                email: email || null,
+                observacao: observacao || null,
+            };
+        })
+        .filter(Boolean);
+
+    
+
+    const houveAlteracao = contatosAlterados.length > 0;
+    
+    // Se o contato sofreu alteração mas o nome ficou vazio
+    const temContatoInvalido = contatosAlterados.some((c) => c.nome === null);
+
+    // Condição final para saber se o formulário pode ser salvo
+    const podeSalvar = !isAuthenticated || (houveAlteracao && !temContatoInvalido);
+
+
+
+
+    // Função que realiza o envio
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        if (!isAuthenticated) {
+            openLoginModal();
+            return;
+        }
+
+
+        // Garante que haja um codUf relacionado ao formulário
+        if (!codUf) {
+            alert("Identificador da UF não informada.");
+            return;
+        }
+
+        if (!podeSalvar) return;
+
+        
+        try {
+            setEnviando(true);
+
+            // Envia APENAS o array contendo os contatos que realmente mudaram
+            await enviarContatoMandataria(contatosAlterados);
+
+            queryClient.invalidateQueries({
+                queryKey: ['pontos-controle', 'contatoMandataria', codUf]
+            });
+
+            setContatoMandataria(false)
+
+        } catch (error) {
+            console.error("Erro ao salvar os contatos:", error);
+            alert(error.message || "Erro ao salvar os contatos.");
+        } finally {
+            setEnviando(false);
+        }
+    };
+    
+
+    // Define a mensagem do tooltip do botão Salvar
+    const obterTextoTooltip = () => {
+        if (!isAuthenticated) return "Será solicitado login para salvar as alterações";
+        if (temContatoInvalido) return "O preenchimento do Nome do contato é obrigatório";
+        if (!houveAlteracao) return "Não há alterações para salvar";
+        return "";
+    };
+
+    
 
     return (
         <div className={estilos.overlay_modal}>
@@ -117,7 +246,7 @@ export default function ContatoMandataria({ setContatoMandataria }) {
                 </div>
                 
                 
-                <div className={estilos.contactContainer}>
+                <div className={estilos.contactContainer} ref={containerRef}>
                     <div className={estilos.columnHeader}>
                         <span className={estilos.nameColumn}>Nome</span>
                         <span className={estilos.positionColumn}>Cargo</span>
@@ -214,7 +343,7 @@ export default function ContatoMandataria({ setContatoMandataria }) {
                     <button 
                         type="submit"
                         className={estilos.actionButton}
-                        title="Salvar"
+                        title={obterTextoTooltip()}
                         disabled={isLoading}
                     >
                         Salvar
