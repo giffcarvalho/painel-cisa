@@ -10,7 +10,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.api.auth import obter_usuario_atual
 from app.core.database import get_db
 from app.schemas.auth import UsuarioAutenticado
-import jenkspy
 import time
 from threading import Lock
 from app.schemas.filtrosMapa import (
