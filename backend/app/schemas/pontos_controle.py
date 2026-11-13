@@ -214,6 +214,7 @@ class PlanoAcaoHistorico(BaseModel):
 
 
 class ContatoMandatariaBuscaItem(BaseModel):
+    id_contato: int
     cod_uf: int
     usuario: str
     nome: str

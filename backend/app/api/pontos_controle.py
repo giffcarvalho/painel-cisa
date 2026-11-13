@@ -893,6 +893,7 @@ async def get_contato_mandataria(
     
     sql = text( """
         SELECT
+            c.id_contato,
             c.cod_uf,
             u.nome as usuario,
             c.nome,
