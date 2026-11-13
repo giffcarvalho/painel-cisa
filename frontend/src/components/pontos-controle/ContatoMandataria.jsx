@@ -14,20 +14,22 @@ export default function ContatoMandataria({ setContatoMandataria }) {
     const [codUf, setCodUf] = useState('12');
     const { data, isLoading, isError } = useBuscaContatoMandatariaQuery(codUf);
     const [contatos, setContatos] = useState([]);
+    const [enviando, setEnviando] = useState(false);
     const containerRef = useRef(null);
     const { isAuthenticated, openLoginModal } = useAuth();
     const queryClient = useQueryClient();
     const listaContatosMandataria = data?.data || [];
     
-    
+        
     useEffect(() => {
         
         if (listaContatosMandataria.length > 0) {
         
             const novoEstado = listaContatosMandataria.map((item) => ({
+                idContato: item.id_contato || "",
                 nome: item.nome || "",
                 cargo: item.cargo || "",
-                tipo_setor: item.tipo_setor || "",
+                tipoSetor: item.tipo_setor || "",
                 setor: item.setor || "",
                 telefone: item.telefone || "",
                 email: item.email || "",
@@ -39,25 +41,28 @@ export default function ContatoMandataria({ setContatoMandataria }) {
         } else {
             
             setContatos([{
-                nome: "", cargo: "", tipo_setor: "", setor: "", telefone: "", email: "", observacao: ""
+                idContato: `vazio_${Date.now()}`, nome: "", cargo: "", tipoSetor: "", setor: "", telefone: "", email: "", observacao: ""
             }]);
         }
+
     }, [data]);
 
 
-    const atualizarContato = (index, campo, valor) => {
-        setContatos((prev) => {
-            const novos = [...prev];
-            novos[index][campo] = valor;
-            return novos;
-        });
+    const atualizarContato = (idContato, campo, valor) => {
+        setContatos((prev) => 
+            prev.map((contato) => 
+                contato.idContato === idContato 
+                    ? { ...contato, [campo]: valor } 
+                    : contato
+            )
+        );
     };
 
 
     const adicionarLinha = () => {
         setContatos((prev) => [
             ...prev,
-            { nome: "", cargo: "", tipo_setor: "", setor: "", telefone: "", email: "", observacao: "" }
+            { idContato: `novo_${Date.now()}`, nome: "", cargo: "", tipoSetor: "", setor: "", telefone: "", email: "", observacao: "" }
         ]);
 
         setTimeout(() => {
@@ -70,57 +75,48 @@ export default function ContatoMandataria({ setContatoMandataria }) {
         }, 100);
     };
 
-    const removerLinha = (index) => {
+    const removerLinha = (idContato) => {
         setContatos((prev) => {
-            const novos = prev.filter((_, i) => i !== index);
             
-            return novos.length > 0 ? novos : [{ nome: "", cargo: "", tipo_setor: "", setor: "", telefone: "", email: "", observacao: "" }];
+            const novos = prev.filter((contato) => contato.idContato !== idContato);
+            
+            return novos.length > 0 ? novos : [{ 
+                idContato: `vazio_${Date.now()}`, nome: "", cargo: "", tipo_setor: "", setor: "", telefone: "", email: "", observacao: "" 
+            }];
         });
     };
 
-    
-    //verificações para checar se o formulário deve ser salvo, e qual contato deve ser salvo
-    // Pega os contatos originais
-    
-
-    // Mapeia e filtra apenas os contatos alterados
     const contatosAlterados = contatos
-        .map((contatoAtual, idContato) => {
+        .map((contatoAtual) => {
                         
-            const contatoOriginal = listaContatosMandataria.find(
-                (item) => item.id_contato === idContato
-            );
+            const contatoOriginal = contatoAtual.idContato && !String(contatoAtual.idContato).startsWith('novo_') 
+                ? listaContatosMandataria.find((item) => item.id_contato === contatoAtual.idContato)
+                : null;
 
-            const nome = contatoAtual.nome.trim();
-            const cargo = contatoAtual.cargo.trim();
-            const tipoSetor = contatoAtual.tipo_setor.trim();
-            const setor = contatoAtual.setor.trim();
-            const telefone = contatoAtual.telefone.trim();
-            const email = contatoAtual.email.trim();
-            const observacao = contatoAtual.observacao.trim();
+            const nome = (contatoAtual.nome || "").trim();
+            const cargo = (contatoAtual.cargo || "").trim();
+            const tipoSetor = (contatoAtual.tipoSetor || "").trim();
+            const setor = (contatoAtual.setor || "").trim();
+            const telefone = (contatoAtual.telefone || "").trim();
+            const email = (contatoAtual.email || "").trim();
+            const observacao = (contatoAtual.observacao || "").trim();
 
-            const origNome = (contatoOriginal?.nome || "").trim();
-            const origCargo = (contatoOriginal?.cargo || "").trim();
-            const origTipoSetor = (contatoOriginal?.tipo_setor || "").trim();
-            const origSetor = (contatoOriginal?.setor || "").trim();
-            const origTelefone = (contatoOriginal?.telefone || "").trim();
-            const origEmail = (contatoOriginal?.email || "").trim();
-            const origObservacao = (contatoOriginal?.observacao || "").trim();
+            const ehNovo = !contatoAtual.idContato || String(contatoAtual.idContato).startsWith('novo_');
 
-            const mudou =
-                nome !== origNome ||
-                cargo !== origCargo ||
-                tipoSetor !== origTipoSetor ||
-                setor !== origSetor ||
-                telefone !== origTelefone ||
-                email !== origEmail ||
-                observacao !== origObservacao;
+            const mudou = ehNovo || (
+                nome !== (contatoOriginal?.nome || "").trim() ||
+                cargo !== (contatoOriginal?.cargo || "").trim() ||
+                tipoSetor !== (contatoOriginal?.tipoSetor || "").trim() ||
+                setor !== (contatoOriginal?.setor || "").trim() ||
+                telefone !== (contatoOriginal?.telefone || "").trim() ||
+                email !== (contatoOriginal?.email || "").trim() ||
+                observacao !== (contatoOriginal?.observacao || "").trim()
+            );    
 
             if (!mudou) return null;
 
             return {
-                cod_uf: codUf,
-                id_contato: idContato,
+                id_contato: ehNovo ? null : contatoAtual.idContato,
                 nome: nome || null,
                 cargo: cargo || null,
                 tipo_setor: tipoSetor || null,
@@ -132,20 +128,14 @@ export default function ContatoMandataria({ setContatoMandataria }) {
         })
         .filter(Boolean);
 
-    
+    console.log(contatosAlterados);
 
     const houveAlteracao = contatosAlterados.length > 0;
-    
-    // Se o contato sofreu alteração mas o nome ficou vazio
     const temContatoInvalido = contatosAlterados.some((c) => c.nome === null);
-
-    // Condição final para saber se o formulário pode ser salvo
     const podeSalvar = !isAuthenticated || (houveAlteracao && !temContatoInvalido);
 
 
-
-
-    // Função que realiza o envio
+    
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -153,21 +143,17 @@ export default function ContatoMandataria({ setContatoMandataria }) {
             openLoginModal();
             return;
         }
-
-
-        // Garante que haja um codUf relacionado ao formulário
+        
         if (!codUf) {
             alert("Identificador da UF não informada.");
             return;
         }
 
         if (!podeSalvar) return;
-
         
         try {
             setEnviando(true);
 
-            // Envia APENAS o array contendo os contatos que realmente mudaram
             await enviarContatoMandataria(contatosAlterados);
 
             queryClient.invalidateQueries({
@@ -185,7 +171,6 @@ export default function ContatoMandataria({ setContatoMandataria }) {
     };
     
 
-    // Define a mensagem do tooltip do botão Salvar
     const obterTextoTooltip = () => {
         if (!isAuthenticated) return "Será solicitado login para salvar as alterações";
         if (temContatoInvalido) return "O preenchimento do Nome do contato é obrigatório";
@@ -197,7 +182,7 @@ export default function ContatoMandataria({ setContatoMandataria }) {
 
     return (
         <div className={estilos.overlay_modal}>
-            <div className={estilos.janela}>
+            <form className={estilos.janela} onSubmit={handleSubmit}>
 
                 <div className={estilos.cabecalho}>
                     <div className={estilos.secao_esquerda}>    
@@ -257,15 +242,15 @@ export default function ContatoMandataria({ setContatoMandataria }) {
                         <span className={estilos.observationColumn}>Observação</span>
                     </div>
 
-                    {contatos.map((contato, idx) => (
-                        <div key={idx} className={estilos.contactLine}>
+                    {contatos.map((contato) => (
+                        <div key={contato.idContato} className={estilos.contactLine}>
                                                         
                             <input
                                 type="text"
                                 className={estilos.nameColumn}
                                 placeholder="Nome do contato"
                                 value={contato.nome}
-                                onChange={(e) => atualizarContato(idx, "nome", e.target.value)}
+                                onChange={(e) => atualizarContato(contato.idContato, "nome", e.target.value)}
                             />
                             
                             <input
@@ -273,7 +258,7 @@ export default function ContatoMandataria({ setContatoMandataria }) {
                                 className={estilos.positionColumn}
                                 placeholder="Cargo"
                                 value={contato.cargo}
-                                onChange={(e) => atualizarContato(idx, "cargo", e.target.value)}
+                                onChange={(e) => atualizarContato(contato.idContato, "cargo", e.target.value)}
                             />
 
                             <input
@@ -281,7 +266,7 @@ export default function ContatoMandataria({ setContatoMandataria }) {
                                 className={estilos.sectorTypeColumn}
                                 placeholder="Tipo Setor"
                                 value={contato.tipo_setor}
-                                onChange={(e) => atualizarContato(idx, "tipo_setor", e.target.value)}
+                                onChange={(e) => atualizarContato(contato.idContato, "tipo_setor", e.target.value)}
                             />
 
                             <input
@@ -289,7 +274,7 @@ export default function ContatoMandataria({ setContatoMandataria }) {
                                 className={estilos.sectorColumn}
                                 placeholder="Setor"
                                 value={contato.setor}
-                                onChange={(e) => atualizarContato(idx, "setor", e.target.value)}
+                                onChange={(e) => atualizarContato(contato.idContato, "setor", e.target.value)}
                             />
                             
                             <IMaskInput
@@ -297,7 +282,7 @@ export default function ContatoMandataria({ setContatoMandataria }) {
                                 className={`${estilos.phoneColumn} ${estilos.phoneInput}`}
                                 placeholder="(00) 00000-0000"
                                 value={contato.telefone}
-                                onAccept={(valor) => atualizarContato(idx, "telefone", valor)}
+                                onAccept={(valor) => atualizarContato(contato.idContato, "telefone", valor)}
                             />
                             
                             <input
@@ -305,7 +290,7 @@ export default function ContatoMandataria({ setContatoMandataria }) {
                                 className={estilos.emailColumn}
                                 placeholder="E-mail"
                                 value={contato.email}
-                                onChange={(e) => atualizarContato(idx, "email", e.target.value)}
+                                onChange={(e) => atualizarContato(contato.idContato, "email", e.target.value)}
                             />
                             
                             <textarea
@@ -314,14 +299,14 @@ export default function ContatoMandataria({ setContatoMandataria }) {
                                 maxLength={100}
                                 placeholder="Observação"
                                 value={contato.observacao}
-                                onChange={(e) => atualizarContato(idx, "observacao", e.target.value)}
+                                onChange={(e) => atualizarContato(contato.idContato, "observacao", e.target.value)}
                             />
 
                             <button 
                                 type="button"
                                 className={estilos.deleteButton}
                                 title = "Excluir contato"
-                                onClick={() => removerLinha(idx)}
+                                onClick={() => removerLinha(contato.idContato)}
                             >
                                 <Trash size={15}/>
                             </button> 
@@ -335,7 +320,7 @@ export default function ContatoMandataria({ setContatoMandataria }) {
                         type="submit"
                         className={estilos.actionButton}
                         title="Adicionar contato"
-                        disabled={isLoading}
+                        disabled={enviando ||isLoading}
                         onClick={adicionarLinha}
                     >
                         Adicionar contato
@@ -344,13 +329,13 @@ export default function ContatoMandataria({ setContatoMandataria }) {
                         type="submit"
                         className={estilos.actionButton}
                         title={obterTextoTooltip()}
-                        disabled={isLoading}
+                        disabled={enviando || isLoading || !podeSalvar}
                     >
-                        Salvar
+                        {enviando ? "Salvando..." : "Salvar"}
                     </button>
                 </div>
 
-            </div>
+            </form>
         </div>
     );
 }
