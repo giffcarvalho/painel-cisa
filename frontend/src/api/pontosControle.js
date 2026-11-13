@@ -161,7 +161,13 @@ export async function getContatoMandataria(codUF) {
   return res.data;
 }
 
+//Envio do formulário dos contatos da mandataria para o backend
+export async function enviarContatoMandataria(contatosParaEnviar) {
+  
+  const res = await api.post("/pontos-controle/envio_contato_mandataria", {data: contatosParaEnviar});
 
+  return res.data;
+}
 
 
 
@@ -176,6 +182,7 @@ const pontosControleApi = {
   getContato,
   getHistoricoAcao,
   getContatoMandataria,
+  enviarContatoMandataria,
 };
 
 export default pontosControleApi;
